@@ -1,13 +1,3 @@
-/**
- * `LocalSpillStore`: the host-filesystem implementation of the
- * `@freddie/freddie-spill` storage seam. Persists a tool's oversized text to a
- * private, session-scoped file (see `./store.js` for the traversal-safe naming
- * and exclusive owner-only write) and returns a path locator plus local
- * read/grep retrieval guidance.
- *
- * @module @freddie/freddie-spill-local
- */
-
 import { resolve } from 'node:path'
 import z from '@freddie/schemastery'
 import { SpillLocator, SpillStore } from '@freddie/freddie-spill'
@@ -15,18 +5,11 @@ import { privateRoot, saveTextFile } from './store.js'
 
 export { encodeSegment, privateRoot, saveTextFile, sessionDir } from './store.js'
 
-/**
- * Local-filesystem spill backend. Files land under `<root>/session-<hash>/…`
- * with unpredictable names, an exclusive owner-only (0600) write, and a private
- * (0700) root — a spilled tool result must not be readable by other local users
- * or redirectable via a planted symlink.
- */
 export class LocalSpillStore extends SpillStore {
   static Config = z.object({
     root: z.string(),
   })
 
-  /** Resolved absolute spill root (config `root`, else the private default), fixed at construction. */
   root
 
   constructor(ctx, config) {

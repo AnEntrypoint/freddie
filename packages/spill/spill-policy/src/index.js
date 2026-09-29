@@ -1,62 +1,14 @@
-/**
- * The spill-policy PLUGIN: a `tools/post-execute` result transformer that keeps
- * oversized plain-text tool results out of the model's context. When a final
- * result's UTF-8 size exceeds `maxInlineBytes`, it saves the FULL text to a
- * session-scoped spill artifact (`ctx.spillStore`) and replaces the
- * model-facing result with a bounded head/tail preview plus the backend's
- * locator and retrieval guidance.
- *
- * It registers NO service and owns NO storage or preview mechanics: preview is
- * `@freddie/freddie-output-retention` (`TextRetainer`), storage is `ctx.spillStore`.
- * The policy only decides WHEN to spill and composes the notice.
- *
- * A second arm applies the SAME cap to the durable log: the
- * `tools/code-dispatch-log` waterfall bounds the `tool/code-dispatch` event's
- * copy of an oversized `run_code` sub-call result (the program's value is
- * untouched; UIs and replay read the full text through the spill artifact).
- *
- * ## Deliberately narrow
- *
- * - Omitted `maxInlineBytes` ⇒ the plugin registers nothing (a true no-op).
- * - Plain-text results only: a result carrying any non-text block is left
- *   untouched (the policy knows only the final formatted text, not tool
- *   internals).
- * - Nested composite calls skip the MODEL-facing arm; their durable log copy
- *   is bounded by the dispatch-log arm instead.
- * - Accepted value replacements pass through for registry revalidation and
- *   rendering; this presentation policy cannot also replace content in the
- *   same mutually exclusive decision.
- * - `read` is skipped by the model-facing arm to avoid a
- *   `read → spill → read again` loop; the dispatch-log arm bounds `read`
- *   sub-calls too (a log copy is not model context, and `read` is precisely
- *   the tool that produces huge logs).
- * - Best-effort: no session owner, no `ctx.spillStore` backend, or a save
- *   failure ⇒ log and return the original result. A spill failure must NEVER
- *   turn a successful tool call into an `isError` or hide the inline result.
- *
- * It COMPOSES with other post-execute listeners: its prepended listener
- * delegates via `next()` and bounds the resulting content projection, so
- * tool-owned asynchronous projection runs before generic bounding, a hook that
- * replaced content still has its replacement bounded, and value replacements
- * and `block` decisions pass through unchanged.
- *
- * @module @freddie/freddie-spill-policy
- */
-
 import z from '@freddie/schemastery'
 import { TextRetainer, describeOmitted } from '@freddie/freddie-output-retention'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'spill-policy'
 
-/** Require the tool registry (its `tools/post-execute` waterfall is the extension point we transform). */
 export const inject = ['tools']
 
 export const Config = z.object({
   maxInlineBytes: z.number(),
 })
 
-/** All-text content flattened to one UTF-8 string, or `undefined` if any block is non-text. */
 function flattenPlainText(content) {
   let text = ''
   for (const block of content) {
@@ -66,12 +18,10 @@ function flattenPlainText(content) {
   return text
 }
 
-/** The owning session id, or `undefined` for a call with no agent (a direct/test call). */
 function ownerSessionId(exec) {
   return exec.agent?.session.header.id
 }
 
-/** Build the bounded head/tail preview for `text`, splitting `budget` bytes across the two ends. */
 function preview(text, budget) {
   const headBytes = Math.ceil(budget / 2)
   const tailBytes = Math.floor(budget / 2)
@@ -81,7 +31,6 @@ function preview(text, budget) {
   return { text: kept.text, omitted: kept.omittedBytes }
 }
 
-/** The spill-notice line for a given omission + saved reference (no preview, no leading blank line). */
 function spillNotice(omitted, ref) {
   const omission = describeOmitted(omitted, 'bytes')
   return `(${omission} Full formatted result stored at: ${ref.locator}. ${ref.retrievalHint})`
@@ -95,13 +44,6 @@ export function apply(ctx, config) {
   }
   const cap = maxInlineBytes
 
-  /**
-   * Spill `text` and build the bounded replacement (preview + notice), or
-   * return `undefined` when the policy must keep the original (no session
-   * owner, no backend, storage failure, or no within-cap replacement).
-   * Shared verbatim by the model-facing post-execute arm and the durable
-   * dispatch-log arm so both produce byte-identical projections.
-   */
   async function spillReplacement(
     text,
     totalBytes,

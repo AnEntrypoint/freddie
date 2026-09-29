@@ -1,23 +1,3 @@
-/**
- * Vocabulary for the spill storage Service Definition. Types only — the abstract service
- * lives in `./index.js`, implementations in sibling packages
- * (`@freddie/freddie-spill-local` first).
- *
- * @module @freddie/freddie-spill/types
- */
-
-/**
- * Opaque model-facing handle for one spilled artifact. A local backend may use a
- * filesystem path; a remote or database backend may use a URI or key. Consumers
- * render it with {@link SpillRef.retrievalHint}, but do not parse it.
- */
-
-/**
- * Brand a string as a SpillLocator.
- *
- * @param locator The backend-produced locator string to brand.
- * @returns The branded spill locator.
- */
 export function SpillLocator(locator) {
   return locator
 }
