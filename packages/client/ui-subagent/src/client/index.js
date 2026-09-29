@@ -1,14 +1,11 @@
-/** Web subagent catalog, navigation, and addressed-session composer owner. */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import {
   SubagentReadOnlyComposer,
 } from './SubagentReadOnlyComposer.js'
 import { en, NS } from './locales.js'
 
-/** Required services for conversation slots and session navigation. */
 export const inject = ['sessions', 'slots', 'locale']
 
-/** Claim the composer for one-shot history or an unavailable continuation owner. */
 function selectReadOnlySubagent(owner) {
   const subagent = owner.session?.subagent
   if (subagent === undefined || subagent === null) return null
@@ -18,10 +15,6 @@ function selectReadOnlySubagent(owner) {
   return runningChildKeepsDefaultComposerForStop ? null : { reason: 'parent-unavailable' }
 }
 
-/**
- * Client plugin body: register the subagent catalog and read-only composer seats.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-subagent: dictionaries')
   const sessions = ctx.sessions

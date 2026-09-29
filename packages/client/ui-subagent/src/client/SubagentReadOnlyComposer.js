@@ -1,11 +1,6 @@
 import { createElement as h } from '@freddie/webjsx'
 import css from './SubagentReadOnlyComposer.css.js'
 
-/**
- * Explain why the normal composer is unavailable for an addressed child.
- * @param props - selector-owned read-only reason plus standard slot props.
- * @returns A read-only composer replacement.
- */
 export function SubagentReadOnlyComposer({
   matched, t,
 }) {

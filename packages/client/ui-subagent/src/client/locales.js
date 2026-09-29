@@ -1,9 +1,5 @@
-/** `subagent` namespace dictionaries. */
-
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'subagent'
 
-/** English dictionary. */
 export const en = {
   'diagnostic.corrupt': 'corrupted session record',
   'diagnostic.unsupported': 'unsupported subagent record version',

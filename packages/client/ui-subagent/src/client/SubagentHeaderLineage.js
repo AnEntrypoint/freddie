@@ -25,7 +25,6 @@ function treeItems(root) {
     : Array.from(root.querySelectorAll('[role="treeitem"]:not([aria-disabled="true"])'))
 }
 
-/** Compact token count shared in shape with the conversation stats strip. */
 function formatTokens(value) {
   const scaled = (next) => next >= 100
     ? String(Math.round(next))
@@ -35,7 +34,6 @@ function formatTokens(value) {
   return `${scaled(value / 1_000_000)}M`
 }
 
-/** Sum the four disjoint durable provider-usage buckets. */
 function tokenTotal(
   usage,
 ) {
@@ -45,7 +43,6 @@ function tokenTotal(
       + usage.cacheReadTokens + usage.cacheWriteTokens
 }
 
-/** Exact whole-second active-turn duration for one catalog row. */
 function activityDuration(
   summary,
   activity,
@@ -76,7 +73,6 @@ function splitDuration(ms) {
   }
 }
 
-/** Format a duration with decreasing visual precision at larger scales. */
 function formatDuration(ms, t) {
   const { seconds, minutes, hours, days, totalMinutes, totalHours } = splitDuration(ms)
   if (days >= 365) {
@@ -114,7 +110,6 @@ function formatDuration(ms, t) {
   return t('duration.seconds', { seconds })
 }
 
-/** Preserve exact whole seconds for hover and accessible naming. */
 function formatExactDuration(ms, t) {
   const { seconds, minutes, hours, days } = splitDuration(ms)
   return days === 0
@@ -152,7 +147,6 @@ function SubagentSwitcherIcon() {
   )
 }
 
-/** Render the known direct-child shape while its authoritative catalog hydrates. */
 function CatalogLoadingRows({
   parentSessionId,
   summaries,
@@ -182,7 +176,6 @@ function CatalogLoadingRows({
   ))
 }
 
-/** Render one catalog level and recurse only through explicitly expanded rows. */
 function CatalogRows({
   parentSessionId, currentSessionId, catalog, catalogs, summaries, expanded, level, now,
   openChild, refresh, toggleBranch, closeCatalog, t,
@@ -377,7 +370,6 @@ function CatalogRows({
 
 const MENU_VIEWPORT_MARGIN = 16
 
-/** Place a portaled catalog below its trigger without crossing the viewport edge. */
 function catalogMenuPosition(trigger) {
   const rect = trigger.getBoundingClientRect()
   const width = Math.min(336, window.innerWidth - MENU_VIEWPORT_MARGIN * 2)
@@ -390,17 +382,6 @@ function catalogMenuPosition(trigger) {
   }
 }
 
-/**
- * One trigger-plus-tree dropdown over the catalog rooted at `rootSessionId`,
- * as a webjsx custom element.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState becomes an instance field, effects become connectedCallback/
- * disconnectedCallback plus explicit listener bind/unbind helpers, and
- * `createPortal(..., document.body)` becomes a directly-appended
- * `document.body` child div kept in sync via `applyDiff`, matching Menu.tsx's
- * portal-mode pattern.
- */
 export class FreddieCatalogDropdown extends HTMLElement {
   #props = null
   #open = false
@@ -483,7 +464,7 @@ export class FreddieCatalogDropdown extends HTMLElement {
     if (props === null) return
     if (next) {
       const trigger = this.#triggerEl
-      /* v8 ignore next -- a queued callback can outlive the trigger */
+      /* v8 ignore next */
       if (trigger === null) return
       this.#open = true
       this.#menuPosition = catalogMenuPosition(trigger)
@@ -575,7 +556,7 @@ export class FreddieCatalogDropdown extends HTMLElement {
     this.#unbindPlacement()
     const placeMenu = () => {
       const trigger = this.#triggerEl
-      /* v8 ignore next -- native resize or scroll can outlive the trigger */
+      /* v8 ignore next */
       if (trigger === null) return
       this.#menuPosition = catalogMenuPosition(trigger)
       this.#render()
@@ -798,43 +779,12 @@ export class FreddieCatalogDropdown extends HTMLElement {
 
 defineElement('freddie-catalog-dropdown', FreddieCatalogDropdown)
 
-/**
- * @typedef {object} CatalogDropdownProps
- * @property {string} rootSessionId - session whose subagent catalog this dropdown renders.
- * @property {string} [currentSessionId] - session id highlighted as the active entry (switcher variant).
- * @property {string} [displayTitle] - fallback title shown until the current entry resolves its own label.
- * @property {() => void} [openTitle] - opens the current title instead of the dropdown, when present.
- * @property {'switcher'|'count'} variant - trigger presentation: a labeled switcher or a bare descendant count.
- * @property {boolean} [separator] - renders a leading `/` separator before the trigger.
- * @property {(selector: (state: object) => *) => *} useSessions - session-store selector hook.
- * @property {(args: {parentSessionId: string, childSessionId: string, mode: string}) => void} openChild - opens a catalog child in the conversation view.
- * @property {(sessionId: string) => void} refresh - requests a fresh catalog snapshot for a session.
- * @property {(sessionId: string, open: boolean) => void} setCatalogOpen - reports whether this dropdown is observing a given catalog.
- * @property {(key: string, params?: object) => string} t - locale translation function.
- */
-
-/**
- * Create (if needed) or update a CatalogDropdown element in place.
- * @param el - an existing `freddie-catalog-dropdown` element to update, or null to create one.
- * @param props - see {@link CatalogDropdownProps}.
- * @returns the `freddie-catalog-dropdown` element; keep it and pass it back in to update.
- */
 function renderCatalogDropdown(el, props) {
   const target = el ?? document.createElement('freddie-catalog-dropdown')
   target.setProps(props)
   return target
 }
 
-/**
- * Render one breadcrumb title together with its subagent navigation, as a
- * webjsx custom element hosting one or two `freddie-catalog-dropdown` children.
- *
- * Converted from a React hooks component to a webjsx custom element: the
- * derived `parentId` (a `useSessions` selector, not local state) is read
- * directly in `#render()`, and the two CatalogDropdown-shaped instances are
- * plain child `freddie-catalog-dropdown` elements kept in sync via `setProps`
- * rather than JSX-mounted React children.
- */
 export class FreddieSubagentHeaderLineage extends HTMLElement {
   #props = null
   #ancestorOrCount = null
@@ -916,24 +866,6 @@ export class FreddieSubagentHeaderLineage extends HTMLElement {
 
 defineElement('freddie-subagent-header-lineage', FreddieSubagentHeaderLineage)
 
-/**
- * @typedef {object} SubagentHeaderLineageProps
- * @property {string} lineageSessionId - the subagent session whose ancestor chain and descendant count render.
- * @property {string} [displayTitle] - fallback title for the ancestor switcher until its current entry resolves one.
- * @property {() => void} [openTitle] - opens the current title instead of the ancestor switcher, when present.
- * @property {(selector: (state: object) => *) => *} useSessions - session-store selector hook.
- * @property {(args: {parentSessionId: string, childSessionId: string, mode: string}) => void} openChild - opens a catalog child in the conversation view.
- * @property {(sessionId: string) => void} refresh - requests a fresh catalog snapshot for a session.
- * @property {(sessionId: string, open: boolean) => void} setCatalogOpen - reports whether a descendant catalog dropdown is observing a given session.
- * @property {(key: string, params?: object) => string} t - locale translation function.
- */
-
-/**
- * Create (if needed) or update a SubagentHeaderLineage element in place.
- * @param el - an existing `freddie-subagent-header-lineage` element to update, or null to create one.
- * @param props - see {@link SubagentHeaderLineageProps}.
- * @returns the `freddie-subagent-header-lineage` element; keep it and pass it back in to update.
- */
 export function renderSubagentHeaderLineage(
   el,
   props,
@@ -943,7 +875,6 @@ export function renderSubagentHeaderLineage(
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function SubagentHeaderLineage(props) {
   return renderSubagentHeaderLineage(null, props)
 }
