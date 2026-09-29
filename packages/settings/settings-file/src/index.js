@@ -1,12 +1,3 @@
-/**
- * File-backed settings provider. One YAML or JSON document under the user's
- * harness home carries every namespace section; external edits hot-publish
- * through the seam, and every write re-reads the document under a
- * cross-process writer lock before patching it as a comment-preserving
- * leaf-level diff.
- * @module @freddie/freddie-settings-file
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { watch as chokidarWatch } from 'chokidar'
@@ -23,12 +14,6 @@ const FORMATS = {
   '.json': 'json',
 }
 
-/**
- * Resolve the runtime spec from plugin config: an explicit `path` wins,
- * otherwise the document lives at `<harness home>/settings.yaml`.
- * @param config - raw plugin config.
- * @returns the resolved file location, format, and watch behavior.
- */
 export function resolveSpec(config) {
   const filename = resolve(config.path ?? join(resolveFreddieHome(config.freddieHome), 'settings.yaml'))
   const format = FORMATS[extname(filename)]
@@ -43,18 +28,10 @@ export function resolveSpec(config) {
   }
 }
 
-/** Whether a parsed YAML value is a map for diffing purposes. */
 function isMapLike(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Apply the difference between one node's stored and next value as minimal
- * `setIn`/`deleteIn` edits, recursing through maps, so every untouched node —
- * and the key node of every changed pair — keeps its comments, anchors, and
- * formatting. Non-map values (arrays and scalars) replace wholesale when
- * unequal, taking any comments inside them along.
- */
 function patchNode(document, path, current, next) {
   if (isMapLike(current) && isMapLike(next)) {
     for (const key of Object.keys(current)) {
@@ -68,17 +45,14 @@ function patchNode(document, path, current, next) {
   if (!deepEqualJson(current, next)) document.setIn([...path], next)
 }
 
-/** Whether a filesystem error means absence; every non-ENOENT failure must surface. */
 function isENOENT(error) {
   return (error)?.code === 'ENOENT'
 }
 
-/** Whether an exclusive file create found an existing document. */
 function isEEXIST(error) {
   return (error)?.code === 'EEXIST'
 }
 
-/** File-backed settings provider (`settings.yaml`/`.json`). */
 export class FileSettingsProvider extends SettingsProvider {
   static Config = z.object({
     path: z.string(),
@@ -87,18 +61,10 @@ export class FileSettingsProvider extends SettingsProvider {
     debounceMs: z.number().min(0).default(100),
   })
 
-  /** Set at dispose: refuse new watcher events and let in-flight work no-op. */
   closed = false
 
-  /**
-   * Single exclusive operation chain: watcher reloads and document writes run
-   * one at a time in queue order (settled tail), so a write can never render
-   * from text a concurrent reload is busy replacing, and a reload can never
-   * read a half-committed write.
-   */
   operations = Promise.resolve()
 
-  /** Opaque read of {@link closed}: control flow cannot narrow it across awaits. */
   isClosed() {
     return this.closed
   }
@@ -109,17 +75,14 @@ export class FileSettingsProvider extends SettingsProvider {
     this.spec = resolveSpec(config)
   }
 
-  /** The local document is always writable through {@link SettingsProvider.update}. */
   get writable() {
     return true
   }
 
-  /** The resolved YAML/JSON document path exposed to local configuration surfaces. */
   get documentPath() {
     return this.spec.filename
   }
 
-  /** Materialize an absent owner-only document, then return its resolved path. */
   prepareDocument() {
     return this.enqueue(async () => {
       await mkdir(dirname(this.spec.filename), { recursive: true, mode: 0o700 })
@@ -155,14 +118,12 @@ export class FileSettingsProvider extends SettingsProvider {
     return this.enqueue(() => this.persistSection(ns, section))
   }
 
-  /** Queue one exclusive document operation behind every earlier one. */
   enqueue(operation) {
     const task = this.operations.then(operation)
     this.operations = task.then(() => undefined, () => undefined)
     return task
   }
 
-  /** Queue a reload; only an invariant violation escaping a commit can reject it. */
   queueRefresh() {
     void this.enqueue(() => this.refresh()).catch((error) => {
       this.ctx.logger.error('settings-file: reload commit failed at %s', this.spec.filename)
@@ -214,7 +175,6 @@ export class FileSettingsProvider extends SettingsProvider {
     }
   }
 
-  /** Parse one document text into raw sections, failing on a non-map root. */
   parse(text) {
     let root
     if (this.spec.format === 'yaml') {
@@ -237,13 +197,6 @@ export class FileSettingsProvider extends SettingsProvider {
     return root
   }
 
-  /**
-   * Re-read the document after a watcher event. Unchanged content (including
-   * this provider's own writes) is a no-op; an unreadable or unparsable
-   * document keeps the last good sections and warns — a live hot-reload must
-   * never take the process down. An invariant violation escaping a commit is
-   * not a reload failure and propagates to the queue's error surface.
-   */
   async refresh() {
     if (this.closed) return
     try {
@@ -255,12 +208,6 @@ export class FileSettingsProvider extends SettingsProvider {
     }
   }
 
-  /**
-   * Compare the on-disk text against the cache and publish any difference
-   * into the seam. Absence publishes the empty document; an unreadable or
-   * unparsable file throws, so each caller picks its policy — a reload warns
-   * and keeps the last good document, a write fails loud.
-   */
   async reconcileFromDisk() {
     let text
     try {
@@ -280,13 +227,6 @@ export class FileSettingsProvider extends SettingsProvider {
     this.publish(doc)
   }
 
-  /**
-   * Render the next YAML text by patching one namespace in the
-   * comment-preserving document. The next section lands as a leaf-level diff
-   * against the stored one — only changed values set, only removed keys
-   * delete — so comments inside the section survive edits to their siblings,
-   * not just comments outside it.
-   */
   renderYaml(ns, section) {
     if (this.text === undefined) {
       return new Document({ [ns]: section }).toString()
@@ -297,7 +237,6 @@ export class FileSettingsProvider extends SettingsProvider {
     return document.toString()
   }
 
-  /** Render the next JSON text by replacing one namespace key. */
   renderJson(ns, section) {
     const root = this.text === undefined
       ? {}

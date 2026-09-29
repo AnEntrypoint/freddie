@@ -1,30 +1,7 @@
-/**
- * Structural secret redaction for settings values. `role('secret')` fields are
- * removed from a value before it crosses a wire boundary; a sidecar records
- * each schema-declared secret position and whether it currently holds a value,
- * so a configuration surface can render a write-only input without ever
- * receiving the secret itself.
- * @module @freddie/freddie-settings/redact
- */
-
-/** Whether a value is a plain data object the walker may recurse into. */
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Whether a schema node can reach a `role('secret')` field anywhere beneath
- * it. Used only to decide whether a `union` branch is safe to pass through
- * unredacted -- a positive here is exactly what makes `walk` fail closed on
- * that union instead of risking a verbatim secret. Recurses through every
- * container `walk` itself understands (`object`, `dict`, `array`, `tuple`,
- * `intersect`); a nested `union` is conservatively treated as reachable,
- * since resolving which of ITS branches applies would require the value
- * `walk`'s union case never receives.
- * @param node - schema node to inspect.
- * @param seen - node objects already visited, guarding a cyclic schema.
- * @returns whether a secret could be reached beneath `node`.
- */
 function canReachSecret(node, seen) {
   if (node === undefined || seen.has(node)) return false
   if (node.meta?.role === 'secret') return true
@@ -103,19 +80,6 @@ function walk(node, value, path, secrets) {
   }
 }
 
-/**
- * Remove every `role('secret')` field a schema declares from a value. The
- * walker follows `object`, `dict`, `array`, `tuple`, and `intersect`
- * containers. A `union` is redacted only when none of its branches could
- * hold a secret (directly or nested); otherwise `walk` throws rather than
- * risk shipping a secret verbatim, since it cannot tell which branch
- * actually matched the value without re-running schema resolution. The
- * input is never mutated.
- * @param schema - live schemastery schema describing the value.
- * @param value - the value to strip; `undefined` yields an empty record with
- *   object-property secret slots still enumerated.
- * @returns the stripped detached value and the ordered secret positions.
- */
 export function redactSecrets(schema, value) {
   const secrets = []
   const stripped = walk(schema, value, [], secrets)

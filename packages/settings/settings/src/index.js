@@ -1,11 +1,3 @@
-/**
- * Service Definition for the user-settings capability seam (`ctx.settings`). Providers store one raw document of
- * per-namespace sections; plugins register a namespace schema and read the
- * resolved value, which layers schema defaults, the registrant's composition
- * `base`, and the user document section, in that order.
- * @module @freddie/freddie-settings
- */
-
 import { Context, Service } from '@freddie/cordis'
 import { redactSecrets } from './redact.js'
 
@@ -15,11 +7,6 @@ const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 
 /** @typedef {string} SettingsNamespace */
 
-/**
- * Brand a raw string as a {@link SettingsNamespace}.
- * @param value - candidate namespace; lowercase kebab-case, as in plugin short names.
- * @returns the branded namespace.
- */
 export function settingsNamespace(value) {
   if (!NAMESPACE_PATTERN.test(value)) {
     throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
@@ -27,14 +14,6 @@ export function settingsNamespace(value) {
   return value
 }
 
-/**
- * Deep equality over JSON-compatible data (objects, arrays, primitives) — the
- * Service Definition's single change-detection predicate, exported so the invariant
- * companion checks exactly the implementation's relation.
- * @param a - one JSON-compatible value.
- * @param b - the other JSON-compatible value.
- * @returns whether the two values are structurally equal.
- */
 export function deepEqualJson(a, b) {
   if (a === b) return true
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
@@ -49,37 +28,22 @@ export function deepEqualJson(a, b) {
   return keys.every(key => key in right && deepEqualJson(left[key], right[key]))
 }
 
-/**
- * A write refused because the namespace moved since the caller read it. The
- * Service Definition's serialized write queue orders writes; it cannot tell a fresh writer
- * from one holding a stale snapshot, which is what this reports.
- */
 export class SettingsConflictError extends Error {
-  /**
-   * @param ns - the namespace whose write was refused.
-   * @param expected - the revision the caller sent.
-   * @param actual - the revision now stored.
-   */
   constructor(ns, expected, actual) {
     super(`settings namespace "${ns}" changed since it was read (expected revision ${String(expected)}, now ${String(actual)})`)
     this.name = 'SettingsConflictError'
-    /** Stable machine code for wire layers mapping this to their own taxonomy. */
     this.code = 'SETTINGS_CONFLICT'
-    /** The revision the write expected. */
     this.expected = expected
-    /** The revision the namespace actually stands at. */
     this.actual = actual
   }
 }
 
-/** Whether a value is a plain data object (not an array, null, or class instance). */
 function isPlainObject(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const proto = Object.getPrototypeOf(value)
   return proto === Object.prototype || proto === null
 }
 
-/** Apply one path op to a detached section, returning the next section. */
 function applyPathOp(section, op) {
   const [head, ...rest] = op.path
   if (head === undefined) {
@@ -102,7 +66,6 @@ function applyPathOp(section, op) {
   return { ...section, [head]: applyPathOp(child, { ...op, path: rest }) }
 }
 
-/** Human label for a value that lossless JSON cannot represent (numbers reject inline). */
 function describeRejected(value) {
   if (value === undefined) return 'undefined'
   if (typeof value === 'object' && value !== null) {
@@ -113,18 +76,6 @@ function describeRejected(value) {
   return `a ${typeof value}`
 }
 
-/**
- * Detach and validate one write input in a single walk before persistence:
- * only JSON data (plain objects, arrays, strings, finite numbers,
- * booleans, `null`) may reach a provider document. `structuredClone` alone
- * would admit Dates, Maps, BigInts, and cycles that YAML/JSON storage then
- * silently distorts on the reload round-trip. `undefined` entries in objects
- * are skipped — the same sparse-patch semantics as {@link mergeLayers} — while
- * an `undefined` array entry is rejected rather than coerced.
- * @param root - plain-object write input (caller-checked).
- * @param reject - builds the validation error from a value label and its `$`-rooted path.
- * @returns the detached JSON-compatible clone.
- */
 function cloneJsonShaped(root, reject) {
   const visiting = new WeakSet()
   const clone = (value, path) => {
@@ -156,13 +107,6 @@ function cloneJsonShaped(root, reject) {
   return clone(root, '$')
 }
 
-/**
- * Layer `over` onto `under`: plain objects merge recursively, every other
- * value (arrays included) replaces the lower layer wholesale. `over` never
- * carries `undefined` entries — sections come from parsed documents and write
- * snapshots pass {@link cloneJsonShaped}, which strips them so a sparse patch
- * cannot erase lower keys.
- */
 function mergeLayers(under, over) {
   if (over === undefined) return under
   if (!isPlainObject(under) || !isPlainObject(over)) return over
@@ -173,32 +117,20 @@ function mergeLayers(under, over) {
   return merged
 }
 
-/** Recursively freeze one resolved value so handed-out snapshots stay immutable. */
 function deepFreeze(value) {
   if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value
   for (const entry of Object.values(value)) deepFreeze(entry)
   return Object.freeze(value)
 }
 
-/**
- * Abstract settings service. Providers implement raw-document storage
- * (`load`/`persist`) and push external changes through {@link SettingsProvider#publish};
- * the base class owns namespace registration, resolution, validation, change
- * detection, and the `settings/updated` commit event.
- */
 export class SettingsProvider extends Service {
   /** @type {Map<string, object>} */
   registrations = new Map()
-  /** Latest published raw document; empty until the provider's first publish. */
   document = {}
-  /** Per-namespace write chains; settled tails, so a failure never poisons the queue. */
   writeQueues = new Map()
-  /** In-flight watcher invocation segments, drained by the dispose teardown. */
   pendingTails = new Set()
-  /** Set at service dispose: refuse new writes while queued ones drain. */
   stopped = false
 
-  /** Opaque read of {@link stopped}: control flow cannot narrow it across awaits. */
   isStopped() {
     return this.stopped
   }
@@ -207,12 +139,6 @@ export class SettingsProvider extends Service {
     super(ctx, 'settings')
   }
 
-  /**
-   * Load the provider's document once and publish it before the service
-   * becomes injectable, and register the write-drain teardown. Providers with
-   * their own init (watchers, connections) delegate here first via
-   * `yield* super[Service.init]()`; their disposers then run before the drain.
-   */
   async* [Service.init]() {
     yield async () => {
       this.stopped = true
@@ -221,37 +147,14 @@ export class SettingsProvider extends Service {
     this.publish(await this.load())
   }
 
-  /**
-   * Absolute path of the provider's user-editable document, when its storage
-   * is one local file. Configuration surfaces use this only as availability
-   * metadata; the guarded open operation resolves the path again Host-side.
-   * Non-file providers leave it undefined and expose no open-document affordance.
-   * @returns the absolute local document path, or undefined for non-file storage.
-   */
   get documentPath() {
     return undefined
   }
 
-  /**
-   * Prepare the provider's user-editable document for a native editor. File
-   * providers may materialize an absent document before returning its path;
-   * non-file providers return undefined.
-   * @returns the absolute local document path, or undefined for non-file storage.
-   */
   prepareDocument() {
     return Promise.resolve(this.documentPath)
   }
 
-  /**
-   * Register a namespace schema and receive its owner scope. The registration
-   * is an effect on the calling plugin's fiber: disposing that fiber removes
-   * the namespace and its observers. An invalid stored section fails the
-   * registration itself — the earliest point where the schema can judge it.
-   * @param ns - unique namespace; duplicate registration fails loud.
-   * @param schema - schemastery schema resolving this namespace's value.
-   * @param options - composition `base` layer and effect timing.
-   * @returns the owner scope for reads, observation, and updates.
-   */
   register(ns, schema, options) {
     if (this.registrations.has(ns)) {
       throw new Error(`settings namespace "${ns}" is already registered`)
@@ -287,13 +190,6 @@ export class SettingsProvider extends Service {
     }
   }
 
-  /**
-   * Describe every registered namespace for configuration surfaces, including
-   * the composition `base` and raw user layers so a form can mark which fields
-   * the user overrode (presence in `user`) and what a reset returns to.
-   * @param options - redaction switch; wire surfaces must redact.
-   * @returns one descriptor per registered namespace, in registration order.
-   */
   describe(options) {
     return [...this.registrations.values()].map((registration) => {
       let user
@@ -326,56 +222,18 @@ export class SettingsProvider extends Service {
     })
   }
 
-  /**
-   * Read one registered namespace's resolved value.
-   * @param ns - the namespace to read.
-   * @returns the resolved value, or `undefined` while unregistered.
-   */
   get(ns) {
     return this.registrations.get(ns)?.resolved
   }
 
-  /**
-   * Merge a patch into one registered namespace's user layer, validate the
-   * resolved candidate, persist through the provider, then commit and emit.
-   * A validation failure rejects before anything is persisted. Writes to one
-   * namespace are serialized: concurrent updates apply in call order, each
-   * merging over the previous write's committed section.
-   * @param ns - the registered namespace to update.
-   * @param patch - plain-object patch over the user section.
-   * @param expectedRevision - the descriptor `revision` the caller read; a
-   *   namespace that moved past it rejects with {@link SettingsConflictError}.
-   */
   async update(ns, patch, expectedRevision) {
     return this.write(ns, patch, 'merge', expectedRevision)
   }
 
-  /**
-   * Replace one registered namespace's user section wholesale, validate,
-   * persist, then commit and emit. Keys absent from `section` fall back to the
-   * composition `base` and schema defaults — this is the removal/reset path a
-   * merge-only patch cannot express (`replace({})` re-inherits everything).
-   * @param ns - the registered namespace to replace.
-   * @param section - the complete next user section.
-   * @param expectedRevision - the descriptor `revision` the caller read; a
-   *   namespace that moved past it rejects with {@link SettingsConflictError}.
-   */
   async replace(ns, section, expectedRevision) {
     return this.write(ns, section, 'replace', expectedRevision)
   }
 
-  /**
-   * Apply path-addressed edits to one registered namespace's user section,
-   * validate, persist, then commit and emit. The ops are applied to the
-   * section as it stands when the write reaches the front of the queue, so a
-   * caller never has to restate fields it did not touch — and, crucially,
-   * cannot delete fields it never saw. This is the write path for any caller
-   * holding a redacted view; `replace` remains the wholesale reset.
-   * @param ns - the registered namespace to edit.
-   * @param ops - ordered path edits; later ops observe earlier ones.
-   * @param expectedRevision - the descriptor `revision` the caller read; a
-   *   namespace that moved past it rejects with {@link SettingsConflictError}.
-   */
   async mutate(ns, ops, expectedRevision) {
     if (!Array.isArray(ops)) throw new TypeError(`settings mutate for "${ns}" must be an array of path ops`)
     for (const op of ops) {
@@ -389,7 +247,6 @@ export class SettingsProvider extends Service {
     return this.write(ns, ops, 'mutate', expectedRevision)
   }
 
-  /** Validate a write, then queue it on the namespace's serialized write chain. */
   write(ns, input, mode, expectedRevision) {
     const verb = mode === 'merge' ? 'update' : mode === 'replace' ? 'replace' : 'mutate'
     const registration = this.registrations.get(ns)
@@ -440,13 +297,6 @@ export class SettingsProvider extends Service {
     return run
   }
 
-  /**
-   * Provider hook: commit a complete raw document observed in storage. Each
-   * registered namespace re-resolves; an invalid section keeps that
-   * namespace's last good value and warns, other namespaces still commit.
-   * @param doc - the detached raw document (unregistered sections preserved).
-   * @param source - change origin; defaults to `provider`.
-   */
   publish(doc, source = 'provider') {
     const before = new Map()
     for (const registration of this.registrations.values()) {
@@ -471,7 +321,6 @@ export class SettingsProvider extends Service {
     }
   }
 
-  /** Read one namespace's raw user section, rejecting non-object sections. */
   section(ns) {
     const section = this.document[ns]
     if (section === undefined) return undefined
@@ -481,27 +330,18 @@ export class SettingsProvider extends Service {
     return section
   }
 
-  /** Resolve one namespace value: schema defaults, then `base`, then the user layer. */
   resolve(schema, base, section, validate) {
     const value = schema(mergeLayers(base, section))
     validate?.(value)
     return value
   }
 
-  /**
-   * Advance a namespace's revision when its RAW section changed, and announce
-   * it. Deliberately independent of {@link commit}'s resolved-value equality:
-   * storing an override equal to the composition base leaves the resolved
-   * value alone but changes what the document says, which is exactly what a
-   * configuration surface must re-read.
-   */
   bumpRevision(registration, before, after) {
     if (deepEqualJson(before, after)) return
     registration.revision += 1
     this.emitDocumentUpdated(registration.ns, registration.revision)
   }
 
-  /** Contained fan-out of `settings/document-updated`, mirroring {@link commit}'s. */
   emitDocumentUpdated(ns, revision) {
     let invariantFailure
     const args = ['settings/document-updated', ns, revision]
@@ -524,7 +364,6 @@ export class SettingsProvider extends Service {
     if (invariantFailure !== undefined) throw invariantFailure
   }
 
-  /** Commit a resolved value when changed: swap, notify watchers, emit the event. */
   commit(registration, next, source) {
     const prev = registration.resolved
     if (deepEqualJson(next, prev)) return
@@ -563,46 +402,25 @@ export class SettingsProvider extends Service {
     if (invariantFailure !== undefined) throw invariantFailure
   }
 
-  /** Contained-watcher diagnostic shared by the sync and async failure paths. */
   warnWatcherFailure(ns, error) {
     this.ctx.logger.warn('settings: watcher for "%s" failed', ns)
     this.ctx.logger.warn(error)
   }
 
-  /** Contained-listener diagnostic shared by the sync and async failure paths. */
   warnListenerFailure(ns, error) {
     this.ctx.logger.warn('settings: a settings/updated listener for "%s" failed', ns)
     this.ctx.logger.warn(error)
   }
 }
 
-/**
- * Value mirror of the `FiberState` members {@link isUnloading} compares
- * against: a const enum has no runtime object to import, and the value is
- * needed at runtime (same rationale as the CLI boot driver's mirror).
- */
 const FIBER_DISPOSED = 4
 const FIBER_UNLOADING = 5
 
-/** Whether the consumer's own fiber is tearing down (not just losing the settings service). */
 function isUnloading(ctx) {
   const state = ctx.fiber.state
   return state === FIBER_UNLOADING || state === FIBER_DISPOSED
 }
 
-/**
- * Install the canonical optional-settings consumer wiring: while a settings
- * service exists, register `ns` with the consumer's composition entry as the
- * `base` layer and point the source thunk at the resolved scope; when the
- * service goes away (disposal, provider reload), fall back to the entry so
- * the consumer keeps working exactly as composed. The registration rides the
- * scoped fiber, so no settings service ever mounted means none of this runs.
- * @param ctx - consumer plugin context owning the wiring.
- * @param ns - the consumer-owned settings namespace.
- * @param schema - schema resolving the namespace (typically the plugin Config).
- * @param entry - the consumer's composition entry config, used as `base`.
- * @param hooks - source sink and change notification.
- */
 export function installSettingsSection(ctx, ns, schema, entry, hooks) {
   ctx.inject(['settings'], (sctx) => {
     const scope = sctx.settings.register(ns, schema, {
