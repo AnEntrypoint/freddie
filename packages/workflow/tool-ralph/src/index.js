@@ -1,17 +1,9 @@
-/**
- * Model-facing foreground Ralph loop over the workflow and subagent seams. A
- * fixed script starts one fresh structured-output child per round, carrying
- * only the immutable objective and the previous bounded handoff between them.
- * @module @freddie/freddie-tool-ralph
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-ralph'
 export const inject = ['tools', 'workflowEngine', 'subagents', 'systemPrompt']
 
-/** Schemastery configuration for the Ralph tool. */
 export const Config = z.object({
   subagentProvider: z.string().default('spawn'),
   maxRounds: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(256),
@@ -25,10 +17,6 @@ const RALPH_META = {
   phases: [{ title: 'Fresh-agent rounds', detail: 'One clean child context per Ralph round.' }],
 }
 
-/**
- * Fixed, deployment-owned orchestration. The model supplies data only; it
- * cannot alter the loop, provider route, schema, or handoff validation.
- */
 const RALPH_SCRIPT = String.raw`
 const reportSchema = {
   type: 'object',
@@ -125,7 +113,6 @@ const DESCRIPTION = 'Run a foreground fresh-agent Ralph loop toward one immutabl
   + 'a worker reports completion or a concrete blocker, or at the round limit. Ordinary long-running same-session work '
   + 'belongs to goal tools.'
 
-/** Validate defaults even when a caller invokes apply() without Loader normalization. */
 function resolveConfig(config) {
   const subagentProvider = config.subagentProvider ?? 'spawn'
   const maxRounds = config.maxRounds ?? 256
@@ -146,7 +133,6 @@ function resolveConfig(config) {
   return { subagentProvider, maxRounds, maxHandoffChars, maxResultChars }
 }
 
-/** Resolve one model-selected cap against the deployment ceiling. */
 function resolveMaxRounds(requested, ceiling) {
   const value = requested ?? ceiling
   if (!Number.isSafeInteger(value) || value < 1) {
@@ -158,7 +144,6 @@ function resolveMaxRounds(requested, ceiling) {
   return value
 }
 
-/** Require the configured route to mean a genuinely fresh structured child. */
 function requireFreshProvider(ctx, name) {
   const provider = ctx.subagents.getProvider(name)
   if (provider === undefined) {
@@ -185,7 +170,6 @@ function normalizedList(value) {
   return Array.isArray(value) && value.every(normalizedText)
 }
 
-/** Defensively decode the fixed script's report across a provider boundary. */
 function readReport(value, expectedStatus, maxChars) {
   if (!isRecord(value)
     || Object.keys(value).sort().join(',') !== 'blocker,evidence,nextSteps,status,summary'
@@ -221,7 +205,6 @@ function readReport(value, expectedStatus, maxChars) {
   return report
 }
 
-/** Defensively decode the fixed script's terminal value. */
 function readRunResult(value, maxRounds, maxHandoffChars) {
   if (!isRecord(value)
     || typeof value['roundsStarted'] !== 'number'
@@ -274,7 +257,6 @@ function readRunResult(value, maxRounds, maxHandoffChars) {
   }
 }
 
-/** A non-clean workflow finish is an error, never a partial Ralph success. */
 function stopReasonError(result) {
   switch (result.stopReason) {
     case 'completed':
@@ -292,14 +274,12 @@ function stopReasonError(result) {
 
 const TRUNCATION_NOTICE = '\n… [truncated]'
 
-/** Bound complete parent-facing text, including its envelope and truncation marker. */
 function boundResult(text, maxChars) {
   if (text.length <= maxChars) return text
   if (maxChars <= TRUNCATION_NOTICE.length) return TRUNCATION_NOTICE.slice(0, maxChars)
   return `${text.slice(0, maxChars - TRUNCATION_NOTICE.length)}${TRUNCATION_NOTICE}`
 }
 
-/** Render the fixed terminal envelope without presenting self-report as certification. */
 function renderResult(result, maxChars) {
   const rounds = `${result.roundsStarted} round${result.roundsStarted === 1 ? '' : 's'}`
   let text
@@ -317,14 +297,12 @@ function renderResult(result, maxChars) {
   return boundResult(text, maxChars)
 }
 
-/** Canonical Ralph result fields shared by schema inference and rendering. */
 const RALPH_OUTPUT_PROPERTIES = {
   runId: { type: 'string', required: true },
   agentsStarted: { type: 'integer', required: true },
   result: { type: 'json', required: true },
 }
 
-/** Render an ordinary child failure with the most recent durable handoff. */
 function renderRoundFailure(result, maxChars) {
   const header = `Ralph round ${result.roundsStarted} child failed before producing a structured report.`
   const text = result.lastReport === undefined
@@ -343,7 +321,6 @@ function presentResult(args, result) {
   return { card: 'generic' }
 }
 
-/** Register the fixed Ralph tool and its explicit-ask usage policy. */
 export function apply(ctx, config) {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({

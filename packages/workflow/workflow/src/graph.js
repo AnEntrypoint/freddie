@@ -1,14 +1,3 @@
-/**
- * Leaf-only graph of one workflow run. Listeners and UI consume this owned
- * snapshot; it never holds live fibers, workers, or Cordis objects.
- * @module @freddie/freddie-workflow/graph
- */
-
-/**
- * Empty graph for a run that has not yet started any children.
- * @param info - identifying run detail from `workflow/start`.
- * @returns a serializable graph.
- */
 export function createWorkflowGraph(info) {
   return {
     id: info.id,
@@ -34,11 +23,6 @@ export function createWorkflowGraph(info) {
   }
 }
 
-/**
- * Record a `workflow/phase` event.
- * @param graph - owned graph for this run.
- * @param title - phase title from the script.
- */
 export function recordPhase(graph, title) {
   graph.currentPhase = title
   const existing = graph.phases.find((phase) => phase.title === title)
@@ -49,21 +33,11 @@ export function recordPhase(graph, title) {
   if (existing.enteredAt === undefined) existing.enteredAt = Date.now()
 }
 
-/**
- * Record a `workflow/log` event as a bounded leaf.
- * @param graph - owned graph for this run.
- * @param message - script log line.
- */
 export function recordLog(graph, message) {
   graph.logs.push({ ts: Date.now(), message: String(message) })
   if (graph.logs.length > 200) graph.logs.shift()
 }
 
-/**
- * Stable node id for one `agent()` call. The worker emits `childId`/`seq`;
- * older payloads used `id`.
- * @param agent - identifying or settlement payload.
- */
 export function agentNodeId(agent) {
   if (typeof agent.childId === 'string' && agent.childId.length > 0) return agent.childId
   if (typeof agent.id === 'string' && agent.id.length > 0) return agent.id
@@ -71,10 +45,6 @@ export function agentNodeId(agent) {
   return undefined
 }
 
-/**
- * Map a live `outcome` or legacy `stopReason` onto a graph node status.
- * @param agent - settlement payload.
- */
 export function agentStopReason(agent) {
   if (agent.outcome === 'failed') return 'failed'
   if (agent.outcome === 'cancelled') return 'cancelled'
@@ -95,11 +65,6 @@ function findNode(graph, agent) {
   return undefined
 }
 
-/**
- * Record a `workflow/agent-start` event as a graph node.
- * @param graph - owned graph for this run.
- * @param agent - identifying child payload.
- */
 export function recordAgentStart(graph, agent) {
   graph.agentsStarted += 1
   const id = agentNodeId(agent)
@@ -122,11 +87,6 @@ export function recordAgentStart(graph, agent) {
   }
 }
 
-/**
- * Record a `workflow/agent-end` event onto the matching node.
- * @param graph - owned graph for this run.
- * @param agent - settlement payload.
- */
 export function recordAgentEnd(graph, agent) {
   const id = agentNodeId(agent)
   const stopReason = agentStopReason(agent)
@@ -150,11 +110,6 @@ export function recordAgentEnd(graph, agent) {
   node.stopReason = stopReason
 }
 
-/**
- * Record a `workflow/end` event.
- * @param graph - owned graph for this run.
- * @param outcome - settlement without the live result value.
- */
 export function recordEnd(graph, outcome) {
   graph.status = outcome.stopReason === 'completed' ? 'completed' : outcome.stopReason
   graph.stopReason = outcome.stopReason
@@ -163,36 +118,19 @@ export function recordEnd(graph, outcome) {
   if (typeof outcome.agentsStarted === 'number') graph.agentsStarted = outcome.agentsStarted
 }
 
-/**
- * Live graph tracker keyed by run id. Stores only owned snapshots.
- */
 export class WorkflowGraphTracker {
   graphs = new Map()
   listeners = new Set()
 
-  /**
-   * Snapshot of every currently tracked run.
-   * @returns independent serializable graphs, newest first.
-   */
   list() {
     return [...this.graphs.values()].reverse().map(snapshotGraph)
   }
 
-  /**
-   * Snapshot of one run, or undefined when unknown.
-   * @param id - workflow run id.
-   * @returns an independent serializable graph.
-   */
   get(id) {
     const graph = this.graphs.get(id)
     return graph === undefined ? undefined : snapshotGraph(graph)
   }
 
-  /**
-   * Subscribe to immutable graph snapshots after each accepted lifecycle event.
-   * @param listener - receives an independent graph snapshot.
-   * @returns disposer.
-   */
   subscribe(listener) {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }
@@ -246,7 +184,6 @@ export class WorkflowGraphTracker {
   }
 }
 
-/** Create the smallest independent graph snapshot observers may retain. */
 function snapshotGraph(graph) {
   return {
     ...graph,

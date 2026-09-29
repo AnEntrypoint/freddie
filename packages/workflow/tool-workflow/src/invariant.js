@@ -1,24 +1,17 @@
-/** Package-owned durable workflow-record invariants. @module @freddie/freddie-tool-workflow/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-tool-workflow'
 
-/** Cordis companion plugin name. */
 export const name = 'tool-workflow-invariant'
-/** Services required to validate existing and newly appended Session logs. */
 export const inject = ['invariants']
 
-/** Whether this package owns the candidate Session event. */
 function isWorkflowRecordEvent(event) {
   return event.type.startsWith('tool-workflow/')
 }
 
-/** Require a durable opaque identity to be a non-empty string. */
 function stringId(value, label, fail) {
   if (typeof value !== 'string' || value.length === 0) fail(`${label} must be a non-empty string`)
   return value
 }
 
-/** Require one workflow member's 1-based sequence identity. */
 function memberSeq(value, fail) {
   if (!Number.isSafeInteger(value) || value < 1) {
     fail('tool-workflow member seq must be a positive safe integer')
@@ -26,7 +19,6 @@ function memberSeq(value, fail) {
   return value
 }
 
-/** Read one plain payload field without trusting restored plugin data. */
 function recordOf(event, fail) {
   const data = event.data
   if (data === null || typeof data !== 'object' || Array.isArray(data)) {
@@ -35,7 +27,6 @@ function recordOf(event, fail) {
   return data
 }
 
-/** Copy only the run one candidate can mutate; other committed states stay shared. */
 function cloneTraceForEvent(source, event, fail) {
   const trace = new Map(source)
   if (event.type === 'tool-workflow/run-start') return trace
@@ -48,7 +39,6 @@ function cloneTraceForEvent(source, event, fail) {
   return trace
 }
 
-/** Require the named run to exist and remain open. */
 function openRun(trace, runId, eventType, fail) {
   const run = trace.get(runId)
   if (run === undefined) fail(`${eventType} has no matching tool-workflow/run-start for run ${runId}`)
@@ -56,7 +46,6 @@ function openRun(trace, runId, eventType, fail) {
   return run
 }
 
-/** Advance the workflow-record fold with one relevant Session event. */
 function applyEvent(trace, event, fail) {
   const data = recordOf(event, fail)
   const runId = stringId(data.runId, `${event.type} runId`, fail)
@@ -136,7 +125,6 @@ function applyEvent(trace, event, fail) {
   }
 }
 
-/** Install an independent incremental fold over every attached Session. */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
   const staged = new WeakMap()
@@ -169,6 +157,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/** Register this package's invariant companion. */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

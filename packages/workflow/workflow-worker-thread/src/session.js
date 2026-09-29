@@ -1,16 +1,3 @@
-/**
- * The worker-side half of the engine: {@link runWorkerSession} wires one MessagePort to one
- * {@link WorkflowExecution} — hook progress and child starts go out as messages, run control
- * and child lifecycle come back in — and posts the run's terminal result exactly once. Keeping it
- * separate from `worker.js` lets unit tests drive the session over a MessageChannel, because main
- * process coverage cannot observe code inside a real Worker.
- *
- * The session announces ready and waits for `go`, so cancellation racing startup can prevent even
- * the script's synchronous prefix. A cancel in place of `go` releases the gate into a cancelled
- * drive without executing the body.
- * @module @freddie/freddie-workflow-worker-thread/session
- */
-
 import { assertNever } from '@freddie/freddie-llm'
 import { HostToWorkerType, WorkerToHostType } from './protocol.js'
 import { renderThrown } from './realm.js'
@@ -25,11 +12,6 @@ import { WorkflowExecution } from './runtime.js'
  * @property {function(): Promise<void>} dispose
  */
 
-/**
- * The worker-side handle for one started child agent ({@link ChildHandle}):
- * every member is an RPC to the host keyed by this call's `callId`, resolved
- * by the session's message handler through the bridge's pending entry.
- */
 class RpcChildHandle {
   result
 
@@ -54,12 +36,6 @@ class RpcChildHandle {
  * @property {function(object): Promise<ChildHandle>} startAgent
  */
 
-/**
- * The worker-side child-RPC bridge ({@link ChildPort}): allocates callIds,
- * posts the start/dispose RPCs, and owns the per-call pending
- * book-keeping the session's message handler settles via the `onChild*`
- * entry points.
- */
 class ChildRpcBridge {
   nextCallId = 0
   pending = new Map()
@@ -83,29 +59,24 @@ class ChildRpcBridge {
     return new RpcChildHandle(this.post, callId, entry, childId)
   }
 
-  /** The host established a published child; releases the `startAgent` await. */
   onChildStarted(callId, childId) {
     this.pending.get(callId)?.started.resolve(childId)
   }
 
-  /** Asynchronous provider start failed; reject and retire the pending RPC. */
   onChildStartError(callId, rendered) {
     const entry = this.pending.get(callId)
     this.pending.delete(callId)
     entry?.started.reject(new Error(rendered))
   }
 
-  /** The child's terminal result arrived. */
   onChildSettled(callId, result) {
     this.pending.get(callId)?.settled.resolve(result)
   }
 
-  /** The child's `result` rejected host-side (an infrastructure fault, relayed as fatal). */
   onChildFailed(callId, rendered) {
     this.pending.get(callId)?.settled.reject(new Error(rendered))
   }
 
-  /** The host acked the dispose; the call's book-keeping is complete. */
   onChildDisposed(callId) {
     const entry = this.pending.get(callId)
     this.pending.delete(callId)
@@ -113,27 +84,11 @@ class ChildRpcBridge {
   }
 }
 
-/**
- * Narrow the nullable `parentPort` the bootstrap reads from
- * `node:worker_threads`.
- * @param port - `parentPort` as imported (null on the main thread).
- * @returns the port, non-null.
- */
 export function requireParentPort(port) {
   if (port === null) throw new Error('the workflow worker entry must be loaded inside a worker thread (no parentPort)')
   return port
 }
 
-/**
- * Run one workflow script to settlement against `port`, posting the terminal result message
- * exactly once; resolves after that post (stray children may still be winding down through the
- * port — the host owns their teardown and ultimately terminates the thread). It never rejects:
- * constructor failure becomes an error result. Host pre-parse makes syntax failure here a likely
- * Node-version skew, but the session still reports it instead of dying silently.
- * @param port - the channel to the host (the real `parentPort`, or one side
- *   of an in-process `MessageChannel` in tests).
- * @param init - the run payload the host provided as `workerData`.
- */
 export async function runWorkerSession(port, init) {
   const post = (type, payload) => {
     port.postMessage({ type, ...payload })

@@ -1,14 +1,3 @@
-/**
- * Materializes values leaving the script vm into plain JSON before they cross the worker
- * boundary, and renders thrown script values without rejecting the run. The walk rejects
- * values that JSON cannot preserve but trusts model-written workflow scripts: getters and proxy traps may
- * run, and the vm is not a security boundary. The worker provides host-loop isolation and
- * forced termination, not hostile-value containment. See
- * .agents/notes/implemented/feature/2026-07-05-dynamic-workflows.md for the isolation rationale.
- * @module @freddie/freddie-workflow-worker-thread/realm
- */
-
-/** Thrown by {@link materializeFromRealm}; the caller wraps it into the right `WorkflowError` code. */
 export class MaterializeError extends Error {
   constructor(path, reason) {
     super(`${path}: ${reason}`)
@@ -18,15 +7,6 @@ export class MaterializeError extends Error {
   }
 }
 
-/**
- * Render a thrown value to failure text without ever throwing: prefer the
- * `stack` (host or realm — a realm error's `stack` is a plain string read),
- * fall back to `message`, then `String()`. Reading those properties MAY run
- * script code (a getter, `toString`) — accepted under the module's trust
- * premise; if that code itself throws, a fixed label is returned instead.
- * @param error - any value thrown in the host or worker realm.
- * @returns human-readable text for the failure report; prefers the stack.
- */
 export function renderThrown(error) {
   try {
     const stack = error?.stack
@@ -39,30 +19,12 @@ export function renderThrown(error) {
   }
 }
 
-/**
- * Whether an object's prototype chain represents a plain data object: `null`, or a prototype
- * whose own prototype is `null` (the realm's `Object.prototype` — which we
- * cannot compare by identity across realms). A `Date`/`Map`/class instance
- * has a longer chain and is rejected.
- */
 function hasPlainPrototype(value) {
   const proto = Object.getPrototypeOf(value)
   if (proto === null) return true
   return Object.getPrototypeOf(proto) === null
 }
 
-/**
- * Copy `value` (typically from the vm realm) into plain host JSON data. Root `undefined` is
- * returned unchanged; nested `undefined` and values JSON cannot represent losslessly fail
- * with the offending path. Property accessors run normally, and a throwing read is wrapped
- * with its rendered failure.
- *
- * @param value - the realm value to materialize.
- * @param root - the path label for the root value (error messages).
- * @returns the host-realm copy (plain objects/arrays/scalars only).
- * @throws {@link MaterializeError} for unsupported values, cycles, sparse arrays, exotic
- *   prototypes, or property reads that throw.
- */
 export function materializeFromRealm(value, root = 'value') {
   if (value === undefined) return undefined
   try {

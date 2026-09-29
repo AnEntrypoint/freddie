@@ -1,13 +1,8 @@
-/** Package-owned workflow lifecycle invariants. @module @freddie/freddie-workflow/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-workflow'
 
-/** Cordis companion plugin name. */
 export const name = 'workflow-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Require every event for a run to retain its validated identity snapshot. */
 function traceFor(traces, info, fail) {
   const trace = traces.get(info.id)
   if (trace === undefined) fail(`workflow event has no matching workflow/start for run ${JSON.stringify(info.id)}`)
@@ -17,7 +12,6 @@ function traceFor(traces, info, fail) {
   return trace
 }
 
-/** Assert the immutable identity fields shared by an agent pair. */
 function validateAgentEnd(start, end, fail) {
   if (start.label !== end.label || start.phase !== end.phase || start.childId !== end.childId) {
     fail(`workflow/agent-end identity diverges from workflow/agent-start for seq ${end.seq}`)
@@ -28,7 +22,6 @@ function validateAgentEnd(start, end, fail) {
   }
 }
 
-/** Validate a terminal result against the accumulated run trace. */
 function validateWorkflowEnd(trace, result, fail) {
   if (trace.agents.size > 0) fail(`workflow/end has ${trace.agents.size} agent call(s) without workflow/agent-end`)
   if (!Number.isSafeInteger(result.agentsStarted) || result.agentsStarted < trace.starts) {
@@ -39,7 +32,6 @@ function validateWorkflowEnd(trace, result, fail) {
   }
 }
 
-/** Install workflow start/end and child-call pairing checks. */
 const install = (ctx, fail) => {
   const traces = new Map()
   const stagedStarts = new WeakSet()
@@ -108,10 +100,5 @@ const install = (ctx, fail) => {
   }, { global: true })
 }
 
-/**
- * Register the workflow invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

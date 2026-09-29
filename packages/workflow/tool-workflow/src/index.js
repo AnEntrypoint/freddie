@@ -1,15 +1,3 @@
-/**
- * The model-facing `workflow` tool: run a JavaScript orchestration script that fans out
- * subagents, and return the script's final value. It owns the model-facing schema and run lifecycle; script
- * parsing, execution, caps, and cancellation live behind `ctx.workflowEngine`
- * (`@freddie/freddie-workflow`), so a hardened engine swaps in without touching what the model
- * sees. Execution awaits `run.result` and always disposes the run; non-completed reasons become tool
- * errors, and background collection remains deferred. Presentation is an args-only generic card
- * titled from `meta.name`. Explicit-ask usage guidance is registered as the tool's own prompt
- * section rather than deployment persona prose.
- * @module @freddie/freddie-tool-workflow
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
@@ -22,7 +10,6 @@ export const Config = z.object({
   enableRunInBackground: z.boolean().default(true),
 })
 
-/** Render a contained recording failure without trusting the thrown value. */
 function renderRecordingError(error) {
   try {
     return String(error)
@@ -35,10 +22,6 @@ function backgroundWorkflowUnavailable() {
   return new Error('background workflows require @freddie/freddie-jobs and @freddie/freddie-tool-jobs')
 }
 
-/**
- * Project active top-level workflow runs into their parent Sessions without
- * letting recording failure affect tool execution.
- */
 const EMPTY_WORKFLOW = Object.freeze({ runs: [] })
 const MAX_WORKFLOW_LOGS = 200
 
@@ -157,11 +140,6 @@ function createWorkflowRecorder(ctx) {
   }
 }
 
-/**
- * The script-authoring contract, embedded in the tool description. This IS the
- * model-facing spec: the meta block, the hooks and their exact semantics, and
- * the supported schema subset.
- */
 const DESCRIPTION = `Run a JavaScript workflow script that orchestrates subagents at scale. Use this for work that fans out across many independent pieces — an audit over many files, a migration, multi-angle research, adversarial verification of findings — where you write the orchestration as a script instead of delegating turn by turn.
 
 The workflow's identity rides the \`meta\` parameter as JSON: required \`name\` (short kebab-case) and \`description\` strings, optional \`whenToUse\` string and \`phases\` array (\`{title, detail?, provider?, model?}\`). The \`script\` parameter is the plain JavaScript body ONLY (NOT TypeScript, and NO \`export const meta\` statement — meta is a parameter, not code), running with top-level await; end with \`return <value>\` — the value must be JSON-serializable and is this tool's result.
@@ -176,7 +154,6 @@ Misused hooks (bad arguments, unknown options, unsupported schemas, tripped caps
 
 Constraints: concurrency and total-agent caps apply; no filesystem, network, timers, or Node.js APIs are provided — the agents do the work, the script only coordinates them. The run executes in the foreground unless \`run_in_background: true\`, which returns an owner-controlled job id immediately; use \`job_output\` to observe it and \`job_kill\` to cancel it.`
 
-/** The pending-state card: a generic card titled by the workflow's meta name. */
 function presentWorkflowCall(args) {
   return {
     card: 'generic',
@@ -185,14 +162,12 @@ function presentWorkflowCall(args) {
   }
 }
 
-/** The completed-state card: keep the pending title; render the result content as-is. */
 function presentWorkflowResult(args, result) {
   void args
   void result
   return { card: 'generic' }
 }
 
-/** A non-`completed` stop reason means the script did not finish cleanly. */
 function stopReasonError(result) {
   switch (result.stopReason) {
     case 'completed':
@@ -208,7 +183,6 @@ function stopReasonError(result) {
   }
 }
 
-/** Render the run's outcome text: the meta name, agent count, and the JSON value (capped). */
 function renderResult(name, agentsStarted, value, maxChars) {
   const rendered = JSON.stringify(value, null, 2)
   const clipped = rendered.length > maxChars

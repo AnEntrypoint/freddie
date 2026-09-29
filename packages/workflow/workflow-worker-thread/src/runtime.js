@@ -1,29 +1,12 @@
-/**
- * Per-run worker-side vm hooks, child RPC, concurrency/caps, cancellation, and result serialization; it
- * never touches Cordis. Script values leaving the realm are materialized as plain JSON before
- * messaging. Values entering the trusted model-written realm are passed directly; `args` alone is
- * cloned so script mutation cannot alter initialization data. See `./realm.js` for the trust model.
- *
- * Fatal workflow errors—bad hook arguments, unsupported schemas/options, caps, start failures, and
- * cancellation—propagate through combinators. Only child failures and ordinary stage errors become
- * per-item nulls. Every returned promise has a rejection consumer so dropped script promises cannot
- * kill the worker. A cancelled script that never settles emits nothing; the host force-settles the
- * run within grace and terminates the thread.
- * @module @freddie/freddie-workflow-worker-thread/runtime
- */
-
 import * as vm from 'node:vm'
 import { SessionId } from '@freddie/freddie-session'
 import { assertObjectJsonSchema, JsonSchemaError } from '@freddie/freddie-tools'
 import { isFatalWorkflowError, WorkflowError } from '@freddie/freddie-workflow'
 import { materializeFromRealm, MaterializeError, renderThrown } from './realm.js'
 
-/** The `agent()` options the script may pass; everything else rejects loud. */
 const SUPPORTED_AGENT_OPTIONS = new Set(['label', 'phase', 'schema', 'provider', 'model'])
-/** Deferred Claude Code options we name explicitly in the rejection message. */
 const DEFERRED_AGENT_OPTIONS = new Set(['effort', 'isolation', 'agentType'])
 
-/** Flatten a child's final output blocks to text (the non-schema `agent()` result). */
 function outputText(blocks) {
   return blocks
     .filter((block) => block.type === 'text')
@@ -31,21 +14,13 @@ function outputText(blocks) {
     .join('')
 }
 
-/** A short display label derived from the prompt when the script passes none. */
 function defaultLabel(prompt) {
   const newline = prompt.indexOf('\n')
   const line = newline === -1 ? prompt : prompt.slice(0, newline)
   return line.length <= 48 ? line : `${line.slice(0, 47)}…`
 }
 
-/**
- * One live script execution inside the worker. Constructed per run by the
- * session; `drive()` is called exactly once and NEVER rejects — every failure
- * becomes a {@link import('@freddie/freddie-workflow/src/types.js').WorkflowResult} with a non-`completed` stop reason. The
- * host owns cancellation and cleanup of any dropped child work.
- */
 export class WorkflowExecution {
-  /** 1-based count of `agent()` calls started (the `agentsStarted` result field). */
   started = 0
   activeSlots = 0
   slotWaiters = []
@@ -90,36 +65,14 @@ export class WorkflowExecution {
     }
   }
 
-  /**
-   * Whether the run has been cancelled. A METHOD, not an inline property
-   * read: `cancel()` mutates `cancelReason` concurrently (the session's
-   * message handler), and an inline read after an `await` gets narrowed by
-   * control flow into an always-false comparison.
-   */
   isCancelled() {
     return this.cancelReason !== undefined
   }
 
-  /**
-   * Shared hook entry guard: after {@link cancel}, EVERY hook throws
-   * `CANCELLED` at its next call — cancellation is the next HOOK boundary,
-   * not just the next `agent()`, so a script that caught one cancelled
-   * rejection cannot keep emitting progress through `phase`/`log` or enter a
-   * combinator.
-   */
   throwIfCancelled() {
     if (this.isCancelled()) throw this.cancelledError()
   }
 
-  /**
-   * Cancel the run: waiting `agent()` slots reject and every future hook call
-   * throws `CANCELLED` — the script dies at its next await. A script that
-   * never settles anyway (parked on a promise no hook owns) is the HOST's
-   * problem: its grace timer force-settles the run and terminates the
-   * worker. Idempotent; the first reason wins.
-   * @param reason - human-readable cause carried on the CANCELLED error. The
-   * host independently aborts the required signal shared by every child.
-   */
   cancel(reason) {
     if (this.cancelReason !== undefined) return
     this.cancelReason = reason
@@ -127,15 +80,6 @@ export class WorkflowExecution {
     for (const waiter of this.slotWaiters.splice(0)) waiter.reject(this.cancelledError())
   }
 
-  /**
-   * Run the script to settlement. Resolves — never rejects — with the run's
-   * {@link import('@freddie/freddie-workflow/src/types.js').WorkflowResult}: the materialized return value on `completed`, the
-   * failure message on `error`, and `cancelled` when the script died of
-   * cancellation. This method only chooses the result; the session publishes
-   * it and the host owns terminal child cancellation.
-   * @returns the settled outcome — this promise NEVER rejects (the seam's
-   * `result`-never-rejects contract); every failure maps to a variant.
-   */
   async drive() {
     try {
       if (this.isCancelled()) throw this.cancelledError()
@@ -152,12 +96,6 @@ export class WorkflowExecution {
     }
   }
 
-  /**
-   * Attach a no-op rejection consumer WITHOUT changing what the caller
-   * receives: if the script drops the promise (no await), cancellation cannot
-   * become an unhandled rejection (which would kill the worker thread); if
-   * the script does await it, it still observes the rejection.
-   */
   contain(promise) {
     promise.catch(() => {})
     return promise
@@ -168,7 +106,6 @@ export class WorkflowExecution {
     return this.cancelError ?? new WorkflowError('workflow run cancelled', 'CANCELLED')
   }
 
-  /** Materialize the script's return value; violations become RESULT_UNSERIALIZABLE. */
   materializeResult(raw) {
     try {
       return materializeFromRealm(raw, 'workflow result')
@@ -183,11 +120,6 @@ export class WorkflowExecution {
     }
   }
 
-  /**
-   * Acquire one concurrency slot (FIFO). Cancellation rejects QUEUED waiters
-   * (see {@link cancel}); the callers guard their own entry and post-acquire
-   * windows, so no cancelled-precheck is duplicated here.
-   */
   acquireSlot() {
     if (this.activeSlots < this.limits.maxConcurrentAgents) {
       this.activeSlots += 1
@@ -210,7 +142,6 @@ export class WorkflowExecution {
     if (next) next.resolve()
   }
 
-  /** The `agent(prompt, opts)` hook. */
   async agent(rawPrompt, rawOpts) {
     this.throwIfCancelled()
     if (typeof rawPrompt !== 'string' || rawPrompt.length === 0) {
@@ -287,7 +218,6 @@ export class WorkflowExecution {
     }
   }
 
-  /** Materialize + validate the `agent()` options bag from the realm. */
   readAgentOptions(rawOpts) {
     if (rawOpts === undefined) return {}
     let opts
@@ -334,7 +264,6 @@ export class WorkflowExecution {
     }
   }
 
-  /** The `parallel(thunks)` hook: each thunk caught → `null`; fatal errors propagate. */
   async parallel(rawThunks) {
     this.throwIfCancelled()
     if (!Array.isArray(rawThunks)) {
@@ -357,7 +286,6 @@ export class WorkflowExecution {
     }))
   }
 
-  /** The `pipeline(items, ...stages)` hook: per-item stage chains, NO cross-stage barrier. */
   async pipeline(rawItems, rawStages) {
     this.throwIfCancelled()
     if (!Array.isArray(rawItems)) {
@@ -396,7 +324,6 @@ export class WorkflowExecution {
     }
   }
 
-  /** The `phase(title)` hook: sets the current label for subsequent `agent()` calls and notifies observers. */
   phase(title) {
     this.throwIfCancelled()
     if (typeof title !== 'string' || title.length === 0) {
@@ -406,7 +333,6 @@ export class WorkflowExecution {
     this.observer.phase(title)
   }
 
-  /** The `log(message)` hook: narration to observers. */
   log(message) {
     this.throwIfCancelled()
     if (typeof message !== 'string') {
