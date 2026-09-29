@@ -1,5 +1,3 @@
-/** Platform-neutral assembly of generated Host Remote contributions. */
-
 import commandsRemote from '@freddie/freddie-commands/remote'
 import goalsRemote from '@freddie/freddie-goal/remote'
 import dynamicRemote from '@freddie/freddie-cordis-host-runner/remote'
@@ -10,14 +8,8 @@ import messageFeedbackRemote from '@freddie/freddie-message-feedback/remote'
 import sessionReferencesRemote from '@freddie/freddie-session-reference/remote'
 import sessionArtifactsRemote from '@freddie/freddie-session-artifacts/remote'
 
-/** Required service: the typed Client Remote contribution mount. */
 export const inject = ['remote']
 
-/**
- * Mount the Host capabilities explicitly selected for this Client assembly.
- * @param ctx - Client Cordis root carrying the typed API service.
- * @returns disposer after every selected Remote namespace is ready.
- */
 export async function apply(ctx) {
   const disposers = []
   try {

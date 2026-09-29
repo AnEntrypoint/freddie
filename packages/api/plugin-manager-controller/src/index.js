@@ -1,18 +1,5 @@
-/**
- * Host `pluginManager` Remote namespace: which mounted plugin entries a browser
- * may switch, and the one write that switches an entry on or off.
- *
- * The write is a deployment-configuration change that remounts host code, so an
- * entry is switchable only when nothing the request path or the browser shell
- * needs would go down with it. Every verdict is derived from the live Loader and
- * Fiber graph on each call, and anything the derivation cannot prove leaf-like
- * is refused.
- * @module @freddie/freddie-api-plugin-manager-controller
- */
-
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 
-/** Why an entry cannot be switched from the browser. */
 export const LOCK = Object.freeze({
   REQUEST_PATH: 'request-path',
   HOST_DEPENDENTS: 'host-dependents',
@@ -20,12 +7,6 @@ export const LOCK = Object.freeze({
   NOT_ADDRESSABLE: 'not-addressable',
 })
 
-/**
- * Modules that answer this request, mount the client that sent it, perform the
- * switch, or are read by them through an optional lookup. No injection edge
- * names these (the connection and the typert loader are reached by route and by
- * manifest, the preset roster by `ctx.get`), so they are listed.
- */
 const REQUEST_PATH_MODULES = Object.freeze(new Set([
   '@freddie/cordis-plugin-hmr',
   '@freddie/freddie-agent-presets',
@@ -58,12 +39,6 @@ function rejected(code, message, details = {}) {
   return Object.freeze({ ok: false, error: Object.freeze({ code, message, ...details }) })
 }
 
-/**
- * Whether a fiber is the given fiber or one of its descendants.
- * @param fiber - the fiber to place.
- * @param ownerUid - uid of the candidate ancestor; a Loader entry's fiber is a
- *   wrapper around the registry fiber, so uids identify it where identity would not.
- */
 function isWithin(fiber, ownerUid) {
   for (let current = fiber; current !== undefined; current = current.parent?.fiber) {
     if (current.uid === ownerUid) return true
@@ -72,7 +47,6 @@ function isWithin(fiber, ownerUid) {
   return false
 }
 
-/** Id of the Loader entry a fiber runs under, or undefined for a root-level fiber. */
 function owningEntryId(fiber) {
   for (let current = fiber; current !== undefined; current = current.parent?.fiber) {
     if (current.entry !== undefined) return current.entry.id
@@ -81,12 +55,6 @@ function owningEntryId(fiber) {
   return undefined
 }
 
-/**
- * Ids of the other entries whose fibers require a service the given entry's
- * fiber tree provides. Unloading the entry would park every one of them.
- * @param ctx - context carrying the reflect store and the plugin registry.
- * @param entry - the Loader entry under test.
- */
 function hostDependentsOf(ctx, entry) {
   const owner = entry.fiber
   if (owner === undefined) return new Set()
@@ -107,13 +75,11 @@ function hostDependentsOf(ctx, entry) {
   return dependents
 }
 
-/** Whether a browser module row lists the package as a client dependency or imports one of its subpaths. */
 function requestsPackage(row, packageName) {
   return [...row.inject ?? [], ...row.external ?? []]
     .some(request => request === packageName || request.startsWith(`${packageName}/`))
 }
 
-/** Number of browser module rows other than the package's own that need it. */
 function clientDependentsOf(rows, packageName) {
   return rows.filter(row => row.id !== packageName && requestsPackage(row, packageName)).length
 }
@@ -125,22 +91,15 @@ function findEntry(loader, id) {
   return undefined
 }
 
-/** Host Remote namespace owner for enabling and disabling mounted plugin entries. */
 export class PluginManagerController extends TypertRemoteService {
   static inject = []
 
   queue = Promise.resolve()
 
-  /**
-   * @param ctx - Host context carrying the optional plugin manager, config editor and Loader.
-   */
   constructor(ctx) {
     super(ctx, 'pluginManagerController', { namespace: 'pluginManager' })
   }
 
-  /**
-   * Every mounted, non-group entry with the reason a browser may not switch it.
-   */
   describe() {
     const parts = this.parts()
     if (parts === undefined) return Promise.resolve(this.unavailable())
@@ -155,9 +114,6 @@ export class PluginManagerController extends TypertRemoteService {
     return Promise.resolve(success({ entries }))
   }
 
-  /**
-   * @param request - the mounted entry id and the state to put it in.
-   */
   setDisabled(request) {
     const run = this.queue.then(() => this.switch(request))
     this.queue = run.then(() => undefined, () => undefined)

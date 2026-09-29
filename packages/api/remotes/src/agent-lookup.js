@@ -1,29 +1,14 @@
-/** Host BFF policy for resolving Remote Agent and Session identities. */
-
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
-/** Cold identity absent from the durable session store. */
 export class ApiRemoteSessionNotFound extends Error {}
 
-/** Session identity whose lifecycle belongs to subagent routing. */
 export class ApiRemoteSubagentSessionOwnership extends Error {
-  /**
-   * Construct the ownership fence.
-   * @param sessionId - identity reserved to subagent routing.
-   */
   constructor(sessionId) {
     super(`session "${sessionId}" is a subagent session; use subagent delivery`)
     this.sessionId = sessionId
   }
 }
 
-/**
- * Test whether generic Host routing must leave an identity to subagent routing.
- * @param ctx - Host Context carrying the live Agent registry.
- * @param session - attached or live Session metadata.
- * @param agent - live Agent when one is registered.
- * @returns whether generic Remote and legacy API calls must reject the identity.
- */
 export function hasApiRemoteSubagentOwner(ctx, session, agent) {
   if (session.header.origin === 'subagent') return true
   const parentId = session.header.parentSession
@@ -32,11 +17,6 @@ export function hasApiRemoteSubagentOwner(ctx, session, agent) {
   return parent !== undefined && ctx.agents.isOwnedBy(agent.id, parent)
 }
 
-/**
- * Build the stable caller-facing ownership rejection.
- * @param sessionId - identity reserved to subagent routing.
- * @returns the existing `agent-busy` RPC shape.
- */
 export function apiRemoteSubagentOwnershipError(sessionId) {
   return {
     code: 'agent-busy',
@@ -45,13 +25,6 @@ export function apiRemoteSubagentOwnershipError(sessionId) {
   }
 }
 
-/**
- * Inspect one cold served session without repairing, resuming, or publishing it.
- * @param ctx - Host Context carrying the optional persistence provider.
- * @param sessionId - durable identity to inspect.
- * @returns detached metadata and events for a servable session.
- * @throws {@link ApiRemoteSessionNotFound} when the identity has no project-backed session.
- */
 export async function inspectApiRemoteSession(ctx, sessionId) {
   const persistence = ctx.get('sessionPersistence')
   if (persistence === undefined) {
@@ -68,14 +41,6 @@ export async function inspectApiRemoteSession(ctx, sessionId) {
   return { meta: inspected.meta, events: [...inspected.events] }
 }
 
-/**
- * Create the Host's shared Agent resolver and configure Agent/Session Typert lookups.
- * Live Agents are reused, ordinary cold sessions resume once per identity, and
- * subagent-owned identities retain the legacy `agent-busy` fence.
- * @param ctx - owning Host Context.
- * @param options - defaults and Agent-scope setup used only for cold resume.
- * @returns resolver shared by legacy API Proxy methods and Typert lookups.
- */
 export function createApiRemoteAgentResolver(ctx, options) {
   const resumes = new Map()
 

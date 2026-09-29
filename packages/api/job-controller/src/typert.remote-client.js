@@ -1,4 +1,3 @@
-/** Hand-owned Typert Remote-client manifest for the job Remote namespace. */
 import { z } from 'zod'
 
 const agentId = z.intersection(z.string(), z.unknown())

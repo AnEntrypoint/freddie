@@ -1,18 +1,7 @@
-/**
- * Host settings and credentials Remote namespaces: the wire verbs a Client
- * configuration surface calls over the composed provider seams.
- *
- * Both owners resolve their provider lazily, so a composition that mounts no
- * settings or credential provider still boots every other namespace and has
- * these verbs answer `unavailable` instead of failing the whole load.
- * @module @freddie/freddie-api-settings-controller
- */
-
 import { credentialRef } from '@freddie/freddie-credentials'
 import { SettingsConflictError, settingsNamespace } from '@freddie/freddie-settings'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 
-/** One batched `credentials.describe` resolves at most this many references. */
 const MAX_DESCRIBE_REFS = 64
 
 function success(value) {
@@ -41,7 +30,6 @@ function credentialsUnavailable() {
   )
 }
 
-/** Project one redacted settings descriptor onto the wire. */
 function namespaceView(descriptor) {
   return {
     ns: String(descriptor.ns),
@@ -55,17 +43,9 @@ function namespaceView(descriptor) {
   }
 }
 
-/**
- * Host settings Remote namespace owner. Every answer is rebuilt from
- * `describe({ redactSecrets: true })` after the write commits, so a caller
- * holding a redacted view can never write one back over its own secrets.
- */
 export class SettingsController extends TypertRemoteService {
   static inject = []
 
-  /**
-   * @param ctx - Host context carrying the optional composed settings provider.
-   */
   constructor(ctx) {
     super(ctx, 'settingsController', { namespace: 'settings' })
     ctx.plugin(CredentialsController)
@@ -81,23 +61,14 @@ export class SettingsController extends TypertRemoteService {
     }))
   }
 
-  /**
-   * @param request - namespace id, merge patch, and optional revision guard.
-   */
   update(request) {
     return this.write(request, 'update')
   }
 
-  /**
-   * @param request - namespace id, replacement section, and optional revision guard.
-   */
   replace(request) {
     return this.write(request, 'replace')
   }
 
-  /**
-   * @param request - namespace id, path operations, and optional revision guard.
-   */
   mutate(request) {
     return this.write(request, 'mutate')
   }
@@ -137,24 +108,13 @@ export class SettingsController extends TypertRemoteService {
   }
 }
 
-/**
- * Host credentials Remote namespace owner. No verb returns a secret value: the
- * only reads project `configured`, `source`, and `writable`, and a write
- * failure names the reference it rejected without quoting what was submitted.
- */
 export class CredentialsController extends TypertRemoteService {
   static inject = []
 
-  /**
-   * @param ctx - Host context carrying the optional composed credential provider.
-   */
   constructor(ctx) {
     super(ctx, 'credentialsController', { namespace: 'credentials' })
   }
 
-  /**
-   * @param request - credential references to describe in one batch.
-   */
   async describe(request) {
     const credentials = this.ctx.get('credentials')
     if (credentials === undefined) return credentialsUnavailable()
@@ -183,9 +143,6 @@ export class CredentialsController extends TypertRemoteService {
     return success({ credentials: Object.fromEntries(entries) })
   }
 
-  /**
-   * @param request - credential reference and the value to store.
-   */
   async set(request) {
     const credentials = this.ctx.get('credentials')
     if (credentials === undefined) return credentialsUnavailable()
@@ -203,9 +160,6 @@ export class CredentialsController extends TypertRemoteService {
     return success({})
   }
 
-  /**
-   * @param request - credential reference to clear.
-   */
   async unset(request) {
     const credentials = this.ctx.get('credentials')
     if (credentials === undefined) return credentialsUnavailable()

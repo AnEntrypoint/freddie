@@ -1,23 +1,9 @@
-/**
- * Live Typert Remote dispatch over Cordis Services and registered providers.
- * Transport, request correlation, and response envelopes belong to Connection.
- * @module @freddie/freddie-api-gateway
- */
-
 import { Service, symbols } from '@freddie/cordis'
 import { remoteMethods, TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
 const NEVER_ABORTED_SIGNAL = new AbortController().signal
 
-/** Dispatch failure produced outside the invoked business method. */
 export class TypertGatewayError extends Error {
-  /**
-   * Construct a Gateway failure without embedding boundary values in its message.
-   * @param code - stable failure category.
-   * @param endpoint - canonical Remote endpoint.
-   * @param message - correction-oriented diagnostic without sensitive values.
-   * @param options - optional field and contained cause.
-   */
   constructor(code, endpoint, message, options = {}) {
     super(`typert gateway: ${endpoint}: ${message}`, options.cause === undefined ? undefined : { cause: options.cause })
     this.name = 'TypertGatewayError'
@@ -27,32 +13,19 @@ export class TypertGatewayError extends Error {
   }
 }
 
-/** Business invocation lost its carrier cancellation race. */
 class RemoteInvocationCancelled extends Error {
-  /**
-   * @param endpoint - canonical Remote endpoint.
-   * @param cause - business rejection observed after carrier cancellation.
-   */
   constructor(endpoint, cause) {
     super(`Remote invocation "${endpoint}" was aborted`, { cause })
     this.name = 'RemoteInvocationCancelled'
   }
 }
 
-/**
- * Resolve strict generated definitions or conservative SRC markers against
- * current Cordis Services and Typert providers.
- * @typert service typertGateway
- */
+/** @typert service typertGateway */
 export class TypertGatewayService extends Service {
   static inject = ['typert']
 
   srcClaims
 
-  /**
-   * Register the Gateway against the active Typert registry.
-   * @param ctx - owning Host Context with Typert registry access.
-   */
   constructor(ctx) {
     super(ctx, 'typertGateway')
     ctx.on('internal/service', () => {
@@ -93,12 +66,6 @@ export class TypertGatewayService extends Service {
     return claims
   }
 
-  /**
-   * Invoke one live Remote method through strict generated reflection or SRC markers.
-   * @param request - decoded endpoint and exact named wire arguments.
-   * @returns the validated business result.
-   * @throws {@link TypertGatewayError} for dispatch, provider, or boundary failures; lookup-policy and business errors retain identity.
-   */
   async invoke(request) {
     const endpoint = endpointOf(request.namespace, request.method)
     const descriptor = this.resolveDescriptor(request.namespace, request.method, endpoint)
@@ -347,7 +314,7 @@ export class TypertGatewayService extends Service {
     const value = decode(parameter.codec, args[parameter.wire], 'input-invalid', endpoint, parameter.wire)
     if (parameter.source === 'json') return value
     const key = parameter.lookup
-    /* v8 ignore next -- registry validation rejects strict descriptors without a key, and SRC derivation always supplies one. */
+    /* v8 ignore next */
     if (key === undefined) {
       throw new TypertGatewayError(
         'lookup-unavailable',
@@ -481,7 +448,7 @@ function methodParameterNames(service, method, endpoint) {
   const source = Function.prototype.toString.call(implementation)
   const open = source.indexOf('(')
   const close = source.indexOf(')', open + 1)
-  /* v8 ignore next -- standard public class-method syntax always contains a parenthesized parameter list. */
+  /* v8 ignore next */
   if (open < 0 || close < 0) return invalidSignature(endpoint, method)
   const body = source.slice(open + 1, close).trim()
   if (body.length === 0) return []
@@ -566,7 +533,7 @@ function assertJsonValue(value, ancestors) {
     if (Object.getOwnPropertySymbols(value).length > 0) throw new TypeError('symbol property is not JSON-safe')
     for (const key of Reflect.ownKeys(value)) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
-      /* v8 ignore next -- ownKeys() just returned this key; only a hostile same-process Proxy can delete it between operations. */
+      /* v8 ignore next */
       if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
         throw new TypeError('non-data property is not JSON-safe')
       }

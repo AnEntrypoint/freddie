@@ -1,18 +1,7 @@
-/**
- * Client projection of generated Typert Remote descriptors. Contributions
- * install traced `remote.<namespace>` services; no JavaScript Proxy
- * participates in method lookup, invocation, or type exposure.
- */
-
 import { Service } from '@freddie/cordis'
 
-/** Required Client services: the Typert registry and the existing Connection carrier. */
 export const inject = ['typert', 'connection']
 
-/**
- * Install the typed Client Remote service.
- * @param ctx - Client Cordis root.
- */
 export function apply(ctx) {
   new ClientRemoteService(ctx)
 }
@@ -46,19 +35,13 @@ class ClientRemoteService extends Service {
       listeners.push(subscription)
       return () => {
         const at = listeners.indexOf(subscription)
-        /* v8 ignore next -- listener */
+        /* v8 ignore next */
         if (at >= 0) listeners.splice(at, 1)
       }
     }, `api-gateway.client.$on(${JSON.stringify(event)})`)
     return () => { void owned() }
   }
 
-  /**
-   * Deliver one forwarded event in registration order, isolating a listener
-   * that fails either synchronously or by rejecting a returned promise; this
-   * is the caller contract behind the generated `TypertClientRemote.$dispatch`
-   * surface.
-   */
   $dispatch(event, args) {
     const listeners = this.subscriptions.get(event)
     if (listeners === undefined) return
@@ -75,7 +58,6 @@ class ClientRemoteService extends Service {
     }
   }
 
-  /** Subscriptions for one event name; empty arrays are retained, bounded by the Host's selection. */
   listeners(event) {
     let listeners = this.subscriptions.get(event)
     if (listeners === undefined) {
@@ -156,16 +138,6 @@ class ClientRemoteService extends Service {
     }
   }
 
-  /**
-   * Mount one namespace's descriptor group with no visibility gap: a fresh
-   * namespace installs its whole group synchronously inside its fiber's
-   * apply, so a plugin parked on the namespace service never observes it
-   * without the methods the same contribution carries; an existing namespace
-   * takes the group in one synchronous step.
-   * @param name - Remote namespace.
-   * @param descriptors - Every contribution descriptor naming that namespace.
-   * @returns disposer unmounting the group and the namespace once empty.
-   */
   async installNamespace(name, descriptors) {
     let namespace = this.namespaces.get(name)
     let installed
@@ -177,7 +149,7 @@ class ClientRemoteService extends Service {
     const handle = namespace
     return async () => {
       for (const method of [...installed].reverse()) {
-        /* v8 ignore next -- Cordis effect disposers are idempotent and invoke this cleanup at most once. */
+        /* v8 ignore next */
         if (!method.token.active) continue
         method.token.active = false
         method.token.abort.abort()
@@ -208,7 +180,7 @@ class ClientRemoteService extends Service {
       await fiber.dispose()
       throw error
     }
-    /* v8 ignore next 3 -- a settled namespace fiber synchronously constructs its Service and installs the group. */
+    /* v8 ignore next 3 */
     if (service === undefined || installed === undefined) {
       throw new Error(`client api: namespace ${JSON.stringify(name)} did not start`)
     }
@@ -367,7 +339,7 @@ class RemoteNamespaceService extends Service {
   remove(kind, method, token) {
     const record = this.methods.get(method)
     const current = record?.[kind]
-    /* v8 ignore next -- duplicate live variants are rejected before installation, so no newer token can replace this one. */
+    /* v8 ignore next */
     if (record === undefined || current?.token !== token) return
     if (kind === 'direct') delete record.direct
     else delete record.scoped
@@ -377,13 +349,6 @@ class RemoteNamespaceService extends Service {
   }
 }
 
-/**
- * Install one descriptor group on a namespace service, unwinding the partial
- * group when a descriptor is refused.
- * @param service - Namespace service taking the methods.
- * @param descriptors - Descriptor group of one contribution.
- * @returns per-descriptor records for the group disposer.
- */
 function installMethods(service, descriptors) {
   const installed = []
   try {
@@ -487,7 +452,6 @@ function parse(codec, value, endpoint, field) {
   }
 }
 
-/** The namespace retired before or during the call, so no request outcome exists. */
 function withdrawn(endpoint) {
   return internalFailure(`client api: Remote method ${endpoint} is no longer mounted`)
 }

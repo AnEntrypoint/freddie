@@ -1,14 +1,3 @@
-/**
- * Host workspace Remote namespace owner plus the directory-picking controller
- * a workspace surface shares with it.
- *
- * freddie's Remote carrier serves unary methods only, so the whole ordered
- * workspace list arrives through `list` rather than through a live follow
- * stream: a Client that wants freshness re-reads after the
- * `domain/changed` event the registry already publishes.
- * @module @freddie/freddie-api-workspace-controller
- */
-
 import { DirectoryPickerError } from '@freddie/freddie-host-directory-picker'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 import {
@@ -31,7 +20,6 @@ function messageOf(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** Project one durable workspace entity onto the wire. */
 function workspaceView(entity) {
   return {
     workspaceId: entity.id,
@@ -43,13 +31,9 @@ function workspaceView(entity) {
   }
 }
 
-/** Host workspace Remote namespace owner. */
 export class WorkspaceController extends TypertRemoteService {
   static inject = ['workspaceRegistry']
 
-  /**
-   * @param ctx - Host context carrying the durable workspace registry.
-   */
   constructor(ctx) {
     super(ctx, 'workspaceController', { namespace: 'workspace' })
     ctx.plugin(DirectoryPickerController)
@@ -62,9 +46,6 @@ export class WorkspaceController extends TypertRemoteService {
     }))
   }
 
-  /**
-   * @param request - directory to adopt as a workspace.
-   */
   async create(request) {
     const registry = this.ctx.workspaceRegistry
     try {
@@ -75,9 +56,6 @@ export class WorkspaceController extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - workspace id and replacement display title.
-   */
   async rename(request) {
     const entity = this.ctx.workspaceRegistry.get(request.workspaceId)
     if (entity === undefined) return workspaceNotFound(request.workspaceId)
@@ -89,9 +67,6 @@ export class WorkspaceController extends TypertRemoteService {
     return success({ workspace: workspaceView(entity) })
   }
 
-  /**
-   * @param request - workspace registration to drop.
-   */
   async delete(request) {
     const registry = this.ctx.workspaceRegistry
     try {
@@ -102,9 +77,6 @@ export class WorkspaceController extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - workspace to move and the anchor it lands before.
-   */
   async insertBefore(request) {
     try {
       const workspaceIds = await this.ctx.workspaceRegistry.insertBefore(request.workspaceId, request.beforeId)
@@ -117,9 +89,6 @@ export class WorkspaceController extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - session to move inside one workspace and its anchor.
-   */
   async insertSessionBefore(request) {
     const entity = this.ctx.workspaceRegistry.get(request.workspaceId)
     if (entity === undefined) return workspaceNotFound(request.workspaceId)
@@ -134,9 +103,6 @@ export class WorkspaceController extends TypertRemoteService {
     return success({ workspace: workspaceView(entity) })
   }
 
-  /**
-   * @param request - session to hide from every grouping surface.
-   */
   async archiveSession(request) {
     try {
       await this.ctx.workspaceRegistry.archiveSession(request.sessionId)
@@ -150,26 +116,13 @@ export class WorkspaceController extends TypertRemoteService {
   }
 }
 
-/**
- * Host directory-picking Remote namespace owner. The seam it exports is
- * abstract and therefore never a Loader entry of its own, so this controller
- * carries the wire verbs: one composed backend serves either the native
- * chooser or the browse primitives, and a verb the composition cannot serve is
- * refused rather than approximated.
- */
 export class DirectoryPickerController extends TypertRemoteService {
   static inject = ['directoryPicker']
 
-  /**
-   * @param ctx - Host context carrying the composed directory-picking backend.
-   */
   constructor(ctx) {
     super(ctx, 'directoryPickerController', { namespace: 'directoryPicker' })
   }
 
-  /**
-   * @param signal - caller lifetime; abort terminates the chooser.
-   */
   async pick(signal) {
     const capability = this.requireCapability('native')
     if (typeof capability === 'string') {
@@ -182,10 +135,6 @@ export class DirectoryPickerController extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - absolute directory to list; absent lists the home directory.
-   * @param signal - caller lifetime; abort stops the backend's scan.
-   */
   async list(request, signal) {
     const capability = this.requireCapability('browse')
     if (typeof capability === 'string') {
@@ -205,9 +154,6 @@ export class DirectoryPickerController extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - existing parent directory and the child segment to create.
-   */
   async createDirectory(request) {
     const capability = this.requireCapability('browse')
     if (typeof capability === 'string') {
@@ -224,14 +170,12 @@ export class DirectoryPickerController extends TypertRemoteService {
     return this.ctx.directoryPicker.capability().kind
   }
 
-  /** @returns the capability, or the wire code refusing a backend that cannot serve it. */
   requireCapability(kind) {
     const capability = this.ctx.directoryPicker.capability()
     return capability.kind === kind ? capability : 'directory-picker/unavailable'
   }
 }
 
-/** Wire code answered for each seam browse failure. */
 const BROWSE_FAILURE_CODES = {
   'directory-unreadable': 'directory-picker/unreadable',
   'directory-exists': 'directory-picker/exists',

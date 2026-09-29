@@ -1,17 +1,3 @@
-/**
- * Bounded workspace file Remote reads over the filesystem and sandbox seams.
- *
- * Every verb resolves its target through `ctx.fs` and then proves containment
- * in a workspace root, so a path that escapes through `..` or a symlink is
- * refused rather than read. Reads go through `readBytes` — the one primitive
- * whose byte cap the backend enforces — so an oversized file is rejected at
- * the seam instead of being decoded whole into this process.
- *
- * When no session cwd and no sandbox fallback root can be established the
- * request is refused: a read with no boundary is never served.
- * @module @freddie/freddie-api-workspace-files
- */
-
 import { Buffer } from 'node:buffer'
 import z from '@freddie/schemastery'
 import { FsError } from '@freddie/freddie-fs'
@@ -20,7 +6,6 @@ import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 const MEBIBYTE = 1024 * 1024
 const UTF8 = new TextDecoder('utf-8', { fatal: true })
 
-/** Wire code answered for each filesystem seam failure. */
 const FAILURE_CODES = {
   FS_NOT_FOUND: 'workspace-file/not-found',
   FS_NOT_TEXT: 'workspace-file/not-text',
@@ -55,7 +40,6 @@ function notFound(path) {
   return rejected('workspace-file/not-found', 'no entry exists at this workspace path', { path })
 }
 
-/** Workspace file read owner for one composition. */
 export class WorkspaceFiles extends TypertRemoteService {
   static inject = ['fs']
 
@@ -66,18 +50,11 @@ export class WorkspaceFiles extends TypertRemoteService {
     maxEntries: z.number().step(1).min(1).default(2000),
   })
 
-  /**
-   * @param ctx - Host context carrying the filesystem backend.
-   * @param config - byte and line bounds every read is cut to.
-   */
   constructor(ctx, config = {}) {
     super(ctx, 'workspaceFiles')
     this.config = config
   }
 
-  /**
-   * @param request - workspace path and optional owning session.
-   */
   async stat(request) {
     const located = await this.locate(request)
     if (located.failure !== undefined) return located.failure
@@ -90,9 +67,6 @@ export class WorkspaceFiles extends TypertRemoteService {
     }
   }
 
-  /**
-   * @param request - workspace path, owning session, and the line window.
-   */
   async read(request) {
     const located = await this.locate(request)
     if (located.failure !== undefined) return located.failure
@@ -124,9 +98,6 @@ export class WorkspaceFiles extends TypertRemoteService {
     })
   }
 
-  /**
-   * @param request - workspace path, owning session, and the byte window.
-   */
   async readBytes(request) {
     const located = await this.locate(request)
     if (located.failure !== undefined) return located.failure
@@ -151,9 +122,6 @@ export class WorkspaceFiles extends TypertRemoteService {
     })
   }
 
-  /**
-   * @param request - workspace directory to list and optional owning session.
-   */
   async list(request) {
     const path = request.path ?? ''
     const located = await this.locate({ ...request, path: path === '' ? '.' : path })
@@ -190,7 +158,6 @@ export class WorkspaceFiles extends TypertRemoteService {
     }
   }
 
-  /** @returns the confined target, or the failure refusing this request. */
   async locate(request) {
     const root = await this.rootFor(request.sessionId)
     if (root === undefined) {
@@ -208,7 +175,6 @@ export class WorkspaceFiles extends TypertRemoteService {
     }
   }
 
-  /** The session's immutable cwd, else the deployment's sandbox fallback root. */
   async rootFor(sessionId) {
     if (sessionId !== undefined) {
       const cwd = this.ctx.get('sessions')?.get(sessionId)?.header?.cwd
@@ -219,7 +185,6 @@ export class WorkspaceFiles extends TypertRemoteService {
   }
 }
 
-/** Decode one byte window as UTF-8 text, refusing binary content. */
 function decodeText(bytes) {
   if (bytes.includes(0)) {
     throw new FsError('cannot read file: binary content', 'FS_NOT_TEXT')
