@@ -1,5 +1,3 @@
-/** Terminal API identity pass-through markers. */
-
 function passthrough() {
   const fn = value => value
   fn.optional = () => fn

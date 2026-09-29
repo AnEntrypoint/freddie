@@ -1,25 +1,9 @@
-/**
- * Cross-platform native path and text-document openers used by the local GUI
- * carrier.
- *
- * The default intent prefers the default browser for documents it renders when
- * the platform can name one, then falls back to the default application. WSL
- * translates every path for the Windows desktop instead of assuming a Linux
- * GUI. The text-editor intent never consults the browser.
- */
-
 import { release as osRelease } from 'node:os'
 import { extname } from 'node:path'
 import { runNativeCommand } from '@freddie/freddie-native-command'
 
-/** Documents a browser renders, as opposed to ones an editor merely edits. */
 const BROWSER_DOCUMENTS = new Set(['.html', '.htm', '.xhtml', '.svg'])
 
-/**
- * The macOS bundle registered for `https` — the default browser, as
- * LaunchServices records it. The nested version dict is stripped first
- * because it carries its own `LSHandlerRoleAll`.
- */
 function macBundleForHttps(plist) {
   const stripped = plist.replace(/LSHandlerPreferredVersions\s*=\s*\{[^}]*\};/g, '')
   const block = /\{[^{}]*LSHandlerURLScheme\s*=\s*"?https"?;[^{}]*\}/.exec(stripped)?.[0]
@@ -27,11 +11,6 @@ function macBundleForHttps(plist) {
   return /LSHandlerRoleAll\s*=\s*"?([\w.-]+)"?;/.exec(block)?.[1]
 }
 
-/**
- * Open one browser-renderable document with the default browser.
- * @returns true when a browser took it; false when this platform cannot name
- * one, or naming it failed — the caller then uses the default application.
- */
 async function openInBrowser(path, signal, platform, run, env) {
   if (platform === 'darwin') {
     let bundle
@@ -55,24 +34,20 @@ async function openInBrowser(path, signal, platform, run, env) {
   return false
 }
 
-/** PowerShell single-quoted literal (doubles embedded quotes). */
 function powershellLiteral(path) {
   return `'${path.replace(/'/g, "''")}'`
 }
 
-/** Whether one environment marker is set to a non-empty value. */
 function present(value) {
   return value !== undefined && value !== ''
 }
 
-/** Distinguish WSL from desktop Linux using its process and kernel markers. */
 function isWsl(internals) {
   const env = internals.env ?? process.env
   if (present(env.WSL_DISTRO_NAME) || present(env.WSL_INTEROP)) return true
   return (internals.osRelease ?? osRelease()).toLowerCase().includes('microsoft')
 }
 
-/** Open one Windows-resolvable path through its registered desktop application. */
 async function openWindowsPath(path, signal, run) {
   await run('powershell.exe', [
     '-NoProfile',
@@ -81,7 +56,6 @@ async function openWindowsPath(path, signal, run) {
   ], signal)
 }
 
-/** Translate a WSL path before handing it to the Windows desktop. */
 async function openWslPath(path, signal, run) {
   const translated = await run('wslpath', ['-w', path], signal)
   signal.throwIfAborted()
@@ -90,7 +64,6 @@ async function openWslPath(path, signal, run) {
   await openWindowsPath(windowsPath, signal, run)
 }
 
-/** Dispatch one shell-free platform command for the requested open intent. */
 async function openNativePathWithIntent(path, signal, intent, internals = {}) {
   const platform = internals.platform ?? process.platform
   const run = internals.run ?? runNativeCommand
@@ -122,15 +95,6 @@ async function openNativePathWithIntent(path, signal, intent, internals = {}) {
   throw new Error(`native path opener is unsupported on ${platform}`)
 }
 
-/**
- * Whether {@link openNativePath} plausibly reaches a desktop on this host.
- *
- * macOS and Windows always carry a desktop opener; Linux does when it is WSL
- * (the Windows desktop takes the path) or a display server is announced.
- * A headless or containerised Linux host answers false, which is what lets a
- * surface show a path as text instead of offering a button that would spawn
- * `xdg-open` into nothing.
- */
 export function canOpenNativePath(internals = {}) {
   const platform = internals.platform ?? process.platform
   if (platform === 'darwin' || platform === 'win32') return true
@@ -139,18 +103,10 @@ export function canOpenNativePath(internals = {}) {
   return isWsl(internals) || present(env.DISPLAY) || present(env.WAYLAND_DISPLAY)
 }
 
-/**
- * Open a filesystem path with the operating system's default application, or
- * with the default browser when the path names a document a browser renders.
- */
 export function openNativePath(path, signal, internals = {}) {
   return openNativePathWithIntent(path, signal, 'default', internals)
 }
 
-/**
- * Open a text document for editing; macOS bypasses the file-type association
- * so a YAML association with a browser cannot consume the gesture.
- */
 export function openNativeTextFile(path, signal, internals = {}) {
   return openNativePathWithIntent(path, signal, 'text-editor', internals)
 }

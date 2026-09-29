@@ -1,11 +1,3 @@
-/**
- * Server side of the fetch carrier: maps an ApiProxy onto a pure
- * WHATWG Request->Response function. Two-level parse: full form (type/rpcId/method +
- * path==method) -> payload dispatched per method. HTTP status expresses only the carrier
- * (404 unknown path / 415 non-JSON media type / 400 non-JSON body / 500 handler crash);
- * business errors are always 200 + ServerResponse.
- */
-
 import { randomUUID } from 'node:crypto'
 import { parseSessionLogQuery } from '../api/downloads.schema.js'
 import { RpcId } from '../api/rpc.js'
@@ -70,11 +62,6 @@ import {
   terminalOpenRequestSchema, terminalResizeRequestSchema, terminalSnapshotRequestSchema,
 } from '../api/terminals.schema.js'
 
-/**
- * Unary dispatch table. Every invoke receives the carrier Request's signal;
- * routes whose contract declares a signal parameter forward it, and the rest
- * ignore it.
- */
 const UNARY_ROUTES = {
   'session.list': { schema: sessionListRequestSchema, invoke: (api, r) => api.sessions.list(r) },
   'session.search': { schema: sessionSearchRequestSchema, invoke: (api, r, signal) => api.sessions.search(r, signal) },
@@ -136,31 +123,22 @@ const UNARY_ROUTES = {
   'llm.discoverModels': { schema: llmDiscoverModelsRequestSchema, invoke: (api, r, signal) => api.llm.discoverModels(r, signal) },
 }
 
-/** Route lookup that narrows an arbitrary path segment to a map key. */
 function methodFor(path) {
   return Object.hasOwn(UNARY_ROUTES, path) ? path : undefined
 }
 
-/**
- * Sentinel rpcId for error responses to envelopes whose own rpcId is unreadable: the response
- * must still be a valid ServerResponse (a self-violating shape would turn the server's explicit
- * bad-request report into a client-side parse failure). Fixed value, documented here as wire contract.
- */
 const INVALID_REQUEST_RPC_ID = RpcId('invalid-request')
 
-/** Wrap a business error as a ServerResponse full form (rpcId backfilled; an unreadable rpcId uses the invalid-request sentinel). */
 function errorResponse(rpcId, error) {
   const body = { type: 'server-response', rpcId, result: { ok: false, error } }
   return Response.json(body)
 }
 
-/** Complete the impl's narrow form into a ServerResponse full form. */
 function fullResponse(narrow) {
   const body = { type: 'server-response', rpcId: narrow.rpcId, result: narrow.result }
   return Response.json(body)
 }
 
-/** Parse the payload and invoke one unary route. */
 async function handleUnary(api, method, message, signal) {
   const route = UNARY_ROUTES[method]
   const payload = route.schema.safeParse(message.payload)
@@ -175,15 +153,10 @@ async function handleUnary(api, method, message, signal) {
   }
 }
 
-/** SSE frame: complete the narrow RpcRequest<frame> into a ServerRequest full form (method = frame type). */
 function fullFrame(narrow) {
   return { type: 'server-request', rpcId: narrow.rpcId, method: narrow.payload.type, payload: narrow.payload }
 }
 
-/**
- * Wrap a frame stream as an SSE Response; stops when req.signal aborts. An
- * impl throw mid-stream emits one stream/error frame and then closes.
- */
 function sseResponse(frames) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
@@ -211,11 +184,6 @@ function sseResponse(frames) {
   })
 }
 
-/**
- * Wraps an ApiProxy into a pure fetch function (isomorphic point: feed the returned fetch straight to InProcessApiClient).
- * @param api - the host-side ApiProxy implementation.
- * @returns an object holding `fetch(Request)`; paths outside /api/ return 404.
- */
 export function toFetchHandler(api) {
   return {
     async fetch(input, init) {

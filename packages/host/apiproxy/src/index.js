@@ -1,17 +1,3 @@
-/**
- * @freddie/freddie-host-apiproxy — the API gateway every client shape shares:
- * the ApiProxy contract (api/: types + zod schemas, browser-safe), the fetch
- * carrier pair (fetch/: toFetchHandler on the host side, AbstractApiClient +
- * platform subclasses on the client side), and the host-side implementation
- * (api-proxy.ts: createApiProxy + the ApiProxyService gateway plugin providing
- * `ctx.apiProxy`). Transport-agnostic by design: this package registers no
- * routes — physical carriers wrap `ctx.apiProxy` themselves.
- *
- * The gateway consumes `ctx.agentDefaultModel`, the transport-independent default
- * shared with direct entry points. Switching models persists through that
- * service; sessions that have already logged a selection remain unchanged.
- */
-
 import { Context, Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import {
@@ -28,11 +14,6 @@ export { toFetchHandler } from './fetch/handler.js'
 export { AbstractApiClient, InProcessApiClient } from './fetch/client.js'
 export { createApiProxy } from './api-proxy.js'
 
-/**
- * The API gateway service: implements the ApiProxy contract over the composed
- * host context and provides it as `ctx.apiProxy`. The Host cwd is the default
- * project directory.
- */
 export class ApiProxyService extends Service {
   static inject = [
     'agentDefaultModel', 'agents', 'attachments', 'directoryPicker', 'llm', 'sessions', 'subagents', 'sessionQuery',

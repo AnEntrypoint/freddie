@@ -1,10 +1,3 @@
-/**
- * Client side of the fetch carrier. AbstractApiClient holds every protocol invariant: rpcId minting,
- * four-quadrant envelope wrap/unwrap, zod parsing, in-process SSE frame decoding, and the payload-direct
- * IApiClient domain methods (business code never mints). Platform differences ride two aspects:
- * abstract doFetch (transport) + overridable onEnvelope (tap). ApiProxy (the impl face) is untouched.
- */
-
 import { RpcId } from '../api/rpc.js'
 import { rpcReceiptSchema, serverRequestSchema, serverResponseSchema } from '../api/rpc.schema.js'
 import {
@@ -66,10 +59,6 @@ import {
   terminalOpenValueSchema, terminalResizeValueSchema, terminalSnapshotValueSchema,
 } from '../api/terminals.schema.js'
 
-/**
- * S→C second-level parse table: value schema by method (the response-path
- * mirror of the handler's request table).
- */
 const UNARY_VALUE_SCHEMAS = {
   'session.list': sessionListValueSchema,
   'session.search': sessionSearchValueSchema,
@@ -131,36 +120,19 @@ const UNARY_VALUE_SCHEMAS = {
   'llm.discoverModels': llmDiscoverModelsValueSchema,
 }
 
-/** Default timeout for bounded unary calls (rpc-compare 2026-07-19: a hung host must not leave callers pending forever). */
 const DEFAULT_TIMEOUT_MS = 30_000
 
-/** URL base for in-process handler injection (fake authority, opencode precedent). */
 const INTERNAL_BASE = 'http://freddie.internal'
 
-/**
- * Abstract fetch-carrier client. Subclasses supply the transport (doFetch) and may refine the
- * per-message tap (onEnvelope) — platform aspects stay in subclasses, protocol invariants stay
- * here. Envelope observation is a first-class aspect of this data middle layer: the instance
- * owns a microtask-batched buffer (frame storms must not cost one consumer update per frame),
- * and observers subscribe via subscribeEnvelopes. The isomorphic point survives: an in-process
- * subclass whose doFetch is toFetchHandler(api).fetch never touches the network.
- */
 export class AbstractApiClient {
-  /** Instance-owned observation buffer (module-level state would leak across instances/tests). */
   envelopeBatch = []
   flushScheduled = false
   envelopeListeners = new Set()
 
-  /** @param timeoutMs - timeout for bounded unary calls; user-paced calls and streams do not use it. */
   constructor(timeoutMs = DEFAULT_TIMEOUT_MS) {
     this.timeoutMs = timeoutMs
   }
 
-  /**
-   * Subscribe to batched envelope observation (diagnostics/logging consumers).
-   * Batches follow microtask boundaries; a listener throw is isolated (observation
-   * must never break the carrier).
-   */
   subscribeEnvelopes(listener) {
     this.envelopeListeners.add(listener)
     return () => {
@@ -168,7 +140,6 @@ export class AbstractApiClient {
     }
   }
 
-  /** Per-message tap: feeds the instance buffer. Subclasses may override to observe unbatched (call super to keep batching). */
   onEnvelope(message) {
     if (this.envelopeListeners.size === 0) return
     this.envelopeBatch.push(message)
@@ -188,7 +159,6 @@ export class AbstractApiClient {
     })
   }
 
-  /** Browser = same-origin (a fake authority would fail DNS on real requests); no-location env (Node) = fake authority. */
   resolveBase() {
     const loc = globalThis.location
     return loc?.origin !== undefined && loc.origin !== 'null' ? loc.origin : INTERNAL_BASE
@@ -198,10 +168,6 @@ export class AbstractApiClient {
     return RpcId(crypto.randomUUID())
   }
 
-  /**
-   * Shared POST leg of both C→S carriers (callUnary/respond): JSON body,
-   * optional default timeout merged with the caller's external signal, non-2xx → transport throw.
-   */
   async postJson(path, body, signal, timeoutPolicy = 'default') {
     const requestSignal = timeoutPolicy === 'default'
       ? signal === undefined
@@ -218,11 +184,6 @@ export class AbstractApiClient {
     return response
   }
 
-  /**
-   * Unary protocol path: mint → tap → POST full form → envelope parse → verify
-   * echo → value parse → tap → narrow. Virtual so a fake carrier (fixture) can
-   * override transport at this layer.
-   */
   async callUnary(method, payload, signal, timeoutPolicy = 'default') {
     const message = { type: 'client-request', rpcId: this.mintRpcId(), method, payload }
     this.onEnvelope(message)
@@ -235,23 +196,14 @@ export class AbstractApiClient {
     return { rpcId: full.rpcId, result: { ok: true, value } }
   }
 
-  /** Mux stream opener; virtual for the same override reason as callUnary. */
   openMux(_payload, signal, onOpen) {
     return this.readSse('/api/events.mux', signal, onOpen)
   }
 
-  /** Host stream opener; virtual. */
   openHost(_payload, signal, onOpen) {
     return this.readSse('/api/events.host', signal, onOpen)
   }
 
-  /**
-   * SSE protocol path: streaming fetch (not EventSource), '\n\n' framing, ServerRequest envelope +
-   * frame-schema parse, tap, narrow yield. onOpen fires once the response headers are in and the
-   * body is readable — the stream-established signal, before any frame arrives. A frame that fails
-   * either parse level is reported and skipped (one corrupt frame must not kill the stream; the
-   * client's gap detection covers whatever the frame carried).
-   */
   async *readSse(path, signal, onOpen) {
     const response = await this.doFetch(new URL(path, this.resolveBase()), { signal })
     if (!response.ok || response.body === null) throw new Error(`transport failure for ${path}: HTTP ${response.status}`)
@@ -392,21 +344,12 @@ export class AbstractApiClient {
   }
 }
 
-/**
- * In-process client over an injected fetch-shaped handler (the isomorphic point:
- * `new InProcessApiClient(toFetchHandler(api))` never touches the network). Lives here because
- * in-process injection is this package's own capability (handler and client are both local).
- */
 export class InProcessApiClient extends AbstractApiClient {
   constructor(handler, timeoutMs) {
     super(timeoutMs)
     this.handler = handler
   }
 
-  /**
-   * Faithful to real fetch: reject on signal abort even when the in-process
-   * handler ignores the signal (a hung impl must not defeat timeout/cancel).
-   */
   doFetch(input, init) {
     const signal = init?.signal ?? undefined
     if (signal === undefined) return this.handler.fetch(input, init)
@@ -421,7 +364,6 @@ export class InProcessApiClient extends AbstractApiClient {
   }
 }
 
-/** Mirror fetch's abort rejection: the signal's reason when present, else a DOMException-style AbortError. */
 function abortError(signal) {
   const reason = signal.reason
   if (reason instanceof Error) return reason

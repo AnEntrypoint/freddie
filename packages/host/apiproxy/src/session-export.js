@@ -1,34 +1,7 @@
-/**
- * Host-side session-log download: streams one ZIP archive whose files are the
- * sessions' stored artifact text verbatim plus every referenced media object.
- * The root artifact sits under its original base name (`session.jsonl`); each
- * subagent descendant under `subagents/<id>/<filename>`; each image referenced
- * by any included log under `media/<attachmentId>.<ext>` (content-addressed,
- * so one archive never duplicates a shared image). No manifest is written —
- * every file is byte-identical to the backend's durable artifact or attachment
- * store and self-describing through its own header line or media type. Before
- * each live session's artifact read, the SessionStore flush barrier makes the
- * current in-memory log durable; cold sessions need no barrier. Request abort
- * and response-consumer cancellation share one producer signal and terminate
- * the active compressor.
- * Compression runs on the host with fflate's streaming Zip API, so the archive
- * bytes are produced incrementally and the host never holds the whole archive
- * in one buffer; production waits for consumer pull whenever the response queue
- * reaches its byte high-water mark, so a slow consumer bounds accumulation to
- * the fixed 64 KiB response queue plus one synchronous fflate push.
- * @module
- */
-
 import { Zip, ZipDeflate } from 'fflate'
 
-/** Balanced default used when a direct createApiProxy caller omits deployment config. */
 export const DEFAULT_SESSION_LOG_COMPRESSION_LEVEL = 6
 
-/**
- * Resolve the persistence, session-query, and attachment services a log export needs.
- * @param ctx - the composed host context.
- * @returns the export services (absent when the deployment does not mount them).
- */
 export function sessionLogExportDeps(ctx) {
   return {
     sessionQuery: ctx.get('sessionQuery'),
@@ -38,11 +11,6 @@ export function sessionLogExportDeps(ctx) {
   }
 }
 
-/**
- * Flush one currently live session through the store's authoritative durability
- * barrier immediately before its raw artifact is read. A cold or absent id has
- * no in-memory work to flush.
- */
 export async function flushLiveSessionLog(deps, id, signal) {
   signal?.throwIfAborted()
   const sessions = deps.sessions
@@ -53,7 +21,6 @@ export async function flushLiveSessionLog(deps, id, signal) {
   signal?.throwIfAborted()
 }
 
-/** Zip extension for each accepted raster media type. */
 const MEDIA_TYPE_EXTENSIONS = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -61,19 +28,10 @@ const MEDIA_TYPE_EXTENSIONS = {
   'image/gif': 'gif',
 }
 
-/**
- * The zip path for one media object: content-addressed by the opaque
- * attachment id so shared images land once and the id in the log maps back to
- * the archive entry without a manifest.
- */
 function mediaEntryPath(ref) {
   return `media/${String(ref.attachmentId)}.${MEDIA_TYPE_EXTENSIONS[ref.mediaType]}`
 }
 
-/**
- * Collect every image reference inside one content array, descending into
- * nested tool results the way the live attachment route does.
- */
 function collectImageRefs(content, refs) {
   if (!Array.isArray(content)) return
   const pending = []
@@ -92,11 +50,6 @@ function collectImageRefs(content, refs) {
   }
 }
 
-/**
- * Collect every image reference one session event carries, across the same
- * carriers the live attachment route scans (direct content, message content,
- * inserted messages, and completed assistant chunk blocks).
- */
 function collectEventImageRefs(event, refs) {
   const data = event.data
   if (typeof data !== 'object' || data === null) return
@@ -109,11 +62,6 @@ function collectEventImageRefs(event, refs) {
   if (carrier.chunk?.type === 'block-end') collectImageRefs([carrier.chunk.block], refs)
 }
 
-/**
- * Collect the distinct media references one stored artifact text names.
- * Lines that fail to parse cannot reference media and are skipped (the
- * artifact text itself is exported verbatim regardless).
- */
 function imageRefsInArtifact(content) {
   const refs = new Map()
   for (const line of content.split('\n')) {
@@ -129,33 +77,14 @@ function imageRefsInArtifact(content) {
   return refs
 }
 
-/**
- * One safe zip path segment from an untrusted session id. Session ids are
- * host-controlled, but the brand allows any non-empty string, so `../`, dot
- * segments, and separator characters are neutralized before they can shape
- * archive entries. Distinct ids may collapse onto one segment (id collision
- * is impossible for the host-minted UUIDs, so no uniqueness suffix is kept).
- */
 function safeSessionIdSegment(id) {
   return id.replace(/[^A-Za-z0-9_-]/g, '_')
 }
 
-/**
- * The export archive filename for one root session.
- */
 export function sessionLogZipFilename(sessionId) {
   return `freddie-session-${safeSessionIdSegment(sessionId)}.zip`
 }
 
-/**
- * Yield the export entries in zip order: the preloaded root artifact first,
- * then every subagent descendant in lineage order (each flushed when live,
- * read from the persistence backend right before it is yielded, and dropped
- * after the consumer moves on), then every distinct media object referenced by any of
- * the included logs (read and verified from the attachment store, one archive
- * entry per attachment id). The host holds at most one descendant's artifact
- * text and one media object at a time beyond the root.
- */
 export async function* sessionLogZipEntries(deps, root, sessionId, includeDescendants, signal) {
   const media = new Map()
   const rememberMedia = (content) => {
@@ -197,22 +126,15 @@ export async function* sessionLogZipEntries(deps, root, sessionId, includeDescen
   }
 }
 
-/** How many code units of artifact text one zip push carries (bounded encode memory). */
 const PUSH_CHUNK_CODE_UNITS = 1 << 16
 
-/** How many bytes of media one zip push carries (bounded memory; images are already size-capped). */
 const PUSH_CHUNK_BYTES = 1 << 16
 
-/** Byte capacity retained by the response stream before ZIP production waits for pull. */
 const RESPONSE_HIGH_WATER_MARK_BYTES = 1 << 16
 
-/** One producer waiter released only when ReadableStream pull restores capacity. */
 class ResponseCapacityGate {
   releasePending
 
-  /**
-   * Wait until the response queue has positive byte capacity or cancellation wins.
-   */
   async wait(controller, signal) {
     signal.throwIfAborted()
     if (controller.desiredSize === null || controller.desiredSize > 0) return
@@ -228,16 +150,11 @@ class ResponseCapacityGate {
     signal.throwIfAborted()
   }
 
-  /** Release the current producer waiter after a consumer pull. */
   pulled() {
     this.releasePending?.()
   }
 }
 
-/**
- * Push one media object's bytes into a deflate stream in bounded chunks,
- * waiting for consumer capacity between chunks like the artifact path does.
- */
 async function pushBinaryChunks(deflate, data, controller, capacity, signal) {
   let offset = 0
   do {
@@ -250,11 +167,6 @@ async function pushBinaryChunks(deflate, data, controller, capacity, signal) {
   } while (offset < data.byteLength)
 }
 
-/**
- * Push one artifact's text into a deflate stream in bounded chunks, never
- * splitting a surrogate pair across a chunk boundary (a lone high surrogate
- * re-encodes as U+FFFD and would silently corrupt the exported artifact).
- */
 async function pushArtifactChunks(deflate, content, controller, capacity, signal) {
   const encoder = new TextEncoder()
   let offset = 0
@@ -273,14 +185,6 @@ async function pushArtifactChunks(deflate, content, controller, capacity, signal
   } while (!finalChunk)
 }
 
-/**
- * Stream one session-log ZIP as a WHATWG ReadableStream. The root artifact is
- * read and validated by the caller before this is called (missing root or
- * missing services answer cleanly before any byte is produced); each entry is
- * then encoded and deflated in bounded chunks as it is produced, so the
- * archive bytes arrive incrementally. A descendant that fails to read errors
- * the stream (fail-loud, never silent under-export).
- */
 export function streamSessionLogZip(deps, root, sessionId, includeDescendants, compressionLevel, signal) {
   const consumerAbort = new AbortController()
   const producerSignal = AbortSignal.any([signal, consumerAbort.signal])
