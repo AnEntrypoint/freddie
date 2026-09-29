@@ -1,40 +1,3 @@
-/**
- * File-backed credentials provider over `$FREDDIE_HOME/.credentials.yaml`, layered
- * against the environment by how much each layer is trusted:
- *
- * ```text
- * inherited process environment      (read-only, wins)
- * > $FREDDIE_HOME/.credentials.yaml      (provider-managed, writable)
- * > <invocation cwd>/.env            (read-only fallback)
- * > $FREDDIE_HOME/.env                   (read-only fallback)
- * ```
- *
- * The inherited environment wins because `DEEPSEEK_API_KEY=… freddie`, a CI
- * secret, or a container `-e` is this run's explicit intent; it cannot be
- * edited from inside, so it must be *visibly* read-only rather than silently
- * shadow writes. Everything below it loses to the managed store, so a key the
- * Models page writes takes effect immediately even when an older key sits in
- * the user's `.env`.
- *
- * The invoking project may supply a key, because the product trusts the
- * project it is launched in. It ranks below the managed store, so a key stored
- * through the Models page is never displaced by one a checkout happens to carry.
- *
- * The file is the provider-managed writable source: every write re-reads the
- * document under a cross-process writer lock before patching only its own key
- * — comments and the formatting of every untouched entry survive — external
- * edits hot-publish through the seam, and each reload replaces the snapshot
- * wholesale so a deleted entry never lingers in memory.
- *
- * The document holds nothing but credentials, which is why it is a strict
- * `CredentialRef`-to-string mapping rather than a dotenv file: a store the
- * Harness owns and never materializes into the environment cannot also serve
- * as the user's environment layer; a store that doubled as the environment
- * layer would shadow non-secret entries behind its precedence, making them
- * silently unreachable.
- * @module @freddie/freddie-credentials-local
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { watch as chokidarWatch } from 'chokidar'
@@ -46,15 +9,8 @@ import { canonicalizeWatchPath, resolveFreddieHome } from '@freddie/freddie-home
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { CredentialProvider, credentialRef, parseCredentialKey } from '@freddie/freddie-credentials'
 
-/** Basename of the credentials document inside the harness home. */
 export const CREDENTIALS_FILENAME = '.credentials.yaml'
 
-/**
- * Resolve the runtime spec from plugin config: an explicit `path` wins,
- * otherwise the document lives at `<harness home>/.credentials.yaml`.
- * @param config - raw plugin config.
- * @returns the resolved file location and watch behavior.
- */
 export function resolveSpec(config) {
   return {
     filename: resolve(config.path ?? join(resolveFreddieHome(config.freddieHome), CREDENTIALS_FILENAME)),
@@ -63,49 +19,18 @@ export function resolveSpec(config) {
   }
 }
 
-/** Permission bits outside the owner; a credentials document must have none of them. */
 const GROUP_OTHER_BITS = 0o077
 
-/** Directory mode for the harness home, which holds user-private data. */
 const OWNER_ONLY_DIR_MODE = 0o700
 
-/** Write options that keep the credentials document readable by its owner alone. */
 const OWNER_ONLY_WRITE = { mode: 0o600, dirMode: OWNER_ONLY_DIR_MODE }
 
-/** Parse options that make errors carry `linePos`; the parser's own message is never surfaced. */
 const LINE_POSITION_PARSE_OPTIONS = { prettyErrors: true, uniqueKeys: true }
 
-/** A YAML directive or document marker, none of which survives being indented into `refs:`. */
 const DIRECTIVE_OR_DOCUMENT_MARKER = /^(%|---|\.\.\.)/
 
-/**
- * How long a record write waits for the cross-process writer lock. A record
- * mutation runs its caller's decision while holding the lock, and for the
- * operation this half exists to serve — an owner refreshing an expired token —
- * that decision includes a network round trip. The file-work default would
- * fail every other writer of this document for its duration. A contender's
- * wait is sized by the longest holder it can meet, and refs and records share
- * one file and one lock, so every writer of this document — reference writes
- * and record deletes included — waits this long, not only the mutation that
- * holds it. Like the retry cadence in `freddie-atomic-write`, this is a
- * robustness bound of the write protocol rather than a deployment choice: it
- * is sized by what a provider request costs, which no deployment varies.
- */
 const DOCUMENT_LOCK_WAIT_MS = 30_000
 
-/**
- * Reject a credentials document other OS users can read, before its contents
- * are read at all. The provider creates and replaces the file at `0600`, but a
- * hand-written or externally generated one carries whatever umask produced it,
- * and silently serving secrets out of a world-readable file would make the
- * mode the provider promises meaningless.
- *
- * POSIX only: Windows has no mode to inspect — its ACLs are not expressible
- * here — so the check is skipped rather than faked, and the file's protection
- * there is whatever the create and replace APIs express.
- * @param filename - absolute path of the document.
- * @throws when the path hierarchy is invalid or the file exists with group or other permission bits set.
- */
 async function assertOwnerOnly(filename) {
   let mode
   try {
@@ -127,17 +52,10 @@ async function assertOwnerOnly(filename) {
   /* v8 ignore stop */
 }
 
-/** Whether a filesystem error means absence; every non-ENOENT failure must surface. */
 function isENOENT(error) {
   return error?.code === 'ENOENT'
 }
 
-/**
- * Describe one YAML parse failure without quoting the source. The parser's own
- * message embeds the offending line, which here holds a secret.
- * @param error - the parser's error.
- * @returns the error code with its line and column.
- */
 function describeYamlError(error) {
   const at = error.linePos?.[0]
   /* v8 ignore next -- `prettyErrors` populates linePos on every error; the guard answers its optional type */
@@ -145,20 +63,8 @@ function describeYamlError(error) {
   return `${error.code}${where}`
 }
 
-/** The document layout this build reads and writes. */
 export const DOCUMENT_VERSION = 1
 
-/**
- * Parse one credentials document. Everything is rejected rather than skipped —
- * an unversioned root, an unknown top-level key, a key that is not addressable,
- * a wrong-typed value, an unknown record tag or field — because this file holds
- * nothing but credentials and a silently ignored entry reads as "the credential
- * I stored has no effect". Duplicate keys surface as parser errors. An empty
- * document is an empty store and needs no version.
- * @param text - the document's text.
- * @param filename - absolute path, quoted in errors.
- * @returns the parsed references and records.
- */
 export function parseCredentialsDocument(text, filename) {
   const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) {
@@ -193,19 +99,6 @@ export function parseCredentialsDocument(text, filename) {
   return { refs: parseRefs(fields['refs'], filename), records: parseRecords(fields['records'], filename) }
 }
 
-/**
- * Render the version-1 layout for a pre-release flat document, or `undefined`
- * for anything else. The flat layout is recognized exactly — a non-empty
- * top-level mapping of addressable reference names to non-empty string
- * scalars, with no `version` key and no document directives — and the rewrite
- * nests the original lines verbatim under `refs:` at two spaces' indent, so
- * comments, blank lines, and each value's spelling survive byte for byte.
- * Anything the recognizer declines keeps {@link parseCredentialsDocument}'s
- * loud rejection: a document this build cannot prove it understands is never
- * rewritten. Remove with the pre-release stance at the first tagged release.
- * @param text - the document's text.
- * @returns the migrated text, or `undefined` when the text is not the recognized flat layout.
- */
 export function renderFlatLayoutMigration(text) {
   const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) return undefined
@@ -223,7 +116,6 @@ export function renderFlatLayoutMigration(text) {
   return `version: ${DOCUMENT_VERSION}\nrefs:\n${body}${text.endsWith('\n') ? '' : '\n'}`
 }
 
-/** Whether `name` is a POSIX identifier, the constraint a stored reference must meet to be addressable through the seam. */
 function isAddressableRefName(name) {
   try {
     credentialRef(name)
@@ -233,7 +125,6 @@ function isAddressableRefName(name) {
   }
 }
 
-/** Admit a `refs` section: POSIX-identifier keys over non-empty string values. */
 function parseRefs(section, filename) {
   const entries = new Map()
   for (const [key, value] of Object.entries(asSection(section, 'refs', filename))) {
@@ -249,7 +140,6 @@ function parseRefs(section, filename) {
   return entries
 }
 
-/** Admit a `records` section: `<scope>/<id>` keys over tagged record mappings. */
 function parseRecords(section, filename) {
   const entries = new Map()
   for (const [key, value] of Object.entries(asSection(section, 'records', filename))) {
@@ -259,25 +149,11 @@ function parseRecords(section, filename) {
   return entries
 }
 
-/**
- * Refuse a record the read path could not admit, before it is rendered, so a
- * caller never persists a document the next boot rejects.
- * @param key - the record's credential key, for the failure message.
- * @param record - the record a mutation returned.
- */
 function assertStorableRecord(key, record) {
   if (record.kind === 'grant') assertJsonValue(`record "${key}" payload`, record.payload, new Set())
   else assertStorableApiKey(key, record)
 }
 
-/**
- * Refuse an api-key record the read path could not admit, before it is
- * rendered: an empty key, an env name outside the reference grammar, or an
- * empty env value would persist a document `parseRecord` rejects at the next
- * boot — a durable-boundary write is validated where it is written.
- * @param key - the record's credential key, for the failure message.
- * @param record - the api-key record a mutation returned.
- */
 function assertStorableApiKey(key, record) {
   if (record.key !== undefined && record.key.length === 0) {
     throw new TypeError(`credentials-local: record "${key}" has an empty key; omit the field instead`)
@@ -290,7 +166,6 @@ function assertStorableApiKey(key, record) {
   }
 }
 
-/** One section of the document as a plain mapping; absent and null both mean empty. */
 function asSection(section, name, filename) {
   if (section === undefined || section === null) return {}
   if (typeof section !== 'object' || Array.isArray(section)) {
@@ -299,7 +174,6 @@ function asSection(section, name, filename) {
   return section
 }
 
-/** Admit one record entry, rejecting an unknown tag or field rather than dropping it. */
 function parseRecord(key, value, filename) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     throw new TypeError(`credentials-local: record "${key}" in ${filename} must be a mapping`)
@@ -331,7 +205,6 @@ function parseRecord(key, value, filename) {
   throw new Error(`credentials-local: record "${key}" in ${filename} has unknown kind ${JSON.stringify(kind)}`)
 }
 
-/** Reject a field the tag does not define, so a typo is not silently dropped. */
 function assertFields(key, fields, allowed, filename) {
   for (const field of Object.keys(fields)) {
     if (!allowed.includes(field)) {
@@ -340,7 +213,6 @@ function assertFields(key, fields, allowed, filename) {
   }
 }
 
-/** Admit an api-key record's provider environment: POSIX names over non-empty strings. */
 function parseRecordEnv(key, env, filename) {
   if (env === undefined) return undefined
   if (typeof env !== 'object' || env === null || Array.isArray(env)) {
@@ -359,18 +231,6 @@ function parseRecordEnv(key, env, filename) {
   return parsed
 }
 
-/**
- * Reject a payload that cannot survive a JSON round trip, on the way in and on
- * the way out. The seam promises owners their payload comes back exactly as
- * written, and both directions can break that: a document may spell `.inf` or
- * an alias cycle, and an owner may hand over a `Date`, a class instance, or a
- * `bigint` that this document has no faithful spelling for. Neither the value
- * nor any nested value is quoted in a diagnostic.
- * @param where - the subject named in a diagnostic, already free of any value.
- * @param value - the payload or nested value to admit.
- * @param seen - objects on the current path, for cycle detection.
- * @throws TypeError naming `where` when the value cannot round-trip.
- */
 function assertJsonValue(where, value, seen) {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return
   if (typeof value === 'number') {
@@ -389,26 +249,12 @@ function assertJsonValue(where, value, seen) {
   throw new TypeError(`credentials-local: ${where} holds a value JSON cannot represent`)
 }
 
-/**
- * The comment-preserving mutable tree one edit renders from. Editing the
- * parsed document rather than rebuilding it keeps comments and the formatting
- * of every untouched entry; an absent document starts a fresh one.
- * @param text - the current document text, `undefined` while the file is absent.
- * @returns the tree to edit, carrying this build's version stamp.
- */
 function mutableDocument(text) {
   const document = text === undefined ? new Document({}) : parseDocument(text)
   document.setIn(['version'], DOCUMENT_VERSION)
   return document
 }
 
-/**
- * Render the next document text with one reference set or deleted.
- * @param text - the current document text, `undefined` while the file is absent.
- * @param ref - the reference to write.
- * @param value - the new value, or `undefined` to delete the key.
- * @returns the text to persist.
- */
 function renderRef(text, ref, value) {
   const document = mutableDocument(text)
   if (value === undefined) deleteSectionEntry(document, 'refs', ref)
@@ -416,15 +262,6 @@ function renderRef(text, ref, value) {
   return document.toString()
 }
 
-/**
- * Render the next document text with one record written or deleted. The record
- * node is replaced wholesale rather than edited field by field: records are
- * machine-written, so there is no hand formatting inside one to preserve.
- * @param text - the current document text, `undefined` while the file is absent.
- * @param key - the record to write.
- * @param record - the new record, or `undefined` to delete it.
- * @returns the text to persist.
- */
 function renderRecord(text, key, record) {
   const document = mutableDocument(text)
   if (record === undefined) deleteSectionEntry(document, 'records', key)
@@ -432,16 +269,6 @@ function renderRecord(text, key, record) {
   return document.toString()
 }
 
-/**
- * Remove one entry from a section, taking its annotation with it. A comment
- * block written above a section's first entry annotates that entry, but the
- * parser attaches it to the section's map rather than to the pair — leaving it
- * behind would move it onto whichever entry became first, which reads as an
- * annotation of a credential nobody wrote it for.
- * @param document - the mutable tree being edited.
- * @param section - the section holding the entry.
- * @param key - the entry to remove.
- */
 function deleteSectionEntry(document, section, key) {
   const map = document.get(section, true)
   /* v8 ignore next -- both callers render a delete only for an entry they just
@@ -458,15 +285,6 @@ function deleteSectionEntry(document, section, key) {
   document.deleteIn([section, key])
 }
 
-/**
- * Structural equality over two admitted JSON values. Records reach this after
- * {@link assertJsonValue}, so the walk meets only JSON shapes; key order is
- * ignored because an external editor may reorder a record's fields without
- * changing what it stores.
- * @param left - one value.
- * @param right - the other value.
- * @returns whether the two carry the same JSON content.
- */
 function sameJsonValue(left, right) {
   if (left === right) return true
   if (typeof left !== 'object' || typeof right !== 'object' || left === null || right === null) return false
@@ -478,7 +296,6 @@ function sameJsonValue(left, right) {
     && sameJsonValue(left[key], right[key]))
 }
 
-/** File-backed credentials provider (`$FREDDIE_HOME/.credentials.yaml`). */
 export class LocalCredentialProvider extends CredentialProvider {
   /* jscpd:ignore-start */
   static Config = z.object({
@@ -488,26 +305,12 @@ export class LocalCredentialProvider extends CredentialProvider {
     debounceMs: z.number().min(0).default(100),
   })
 
-  /**
-   * Raw text of the last read or persisted document; `undefined` while the
-   * file is absent. Watcher events whose content equals this cache are no-ops,
-   * which is also the self-write suppression.
-   */
   text
-  /** Parsed reference snapshot; replaced wholesale on every reload. */
   values = new Map()
-  /** Parsed record snapshot; replaced wholesale on every reload. */
   records = new Map()
-  /**
-   * Single exclusive operation chain: watcher reloads and line edits run one
-   * at a time in queue order (settled tail), so an edit can never render from
-   * text a concurrent reload is busy replacing.
-   */
   operations = Promise.resolve()
-  /** Set at dispose: refuse new writes and let in-flight work no-op. */
   closed = false
 
-  /** Opaque read of {@link closed}: control flow cannot narrow it across awaits. */
   isClosed() {
     return this.closed
   }
@@ -519,17 +322,11 @@ export class LocalCredentialProvider extends CredentialProvider {
     this.spec = resolveSpec(config)
   }
 
-  /** The inherited-environment value for a reference, or `undefined` when empty or unset. */
   inherited(ref) {
     const entry = launchEnvironmentOf(this.ctx).getFrom(ref, ['process'])
     return entry !== undefined && entry.value.length > 0 ? entry.value : undefined
   }
 
-  /**
-   * The `.env` fallback for a reference — below the managed store, never above
-   * it. The invoking project ranks over the user's home file, matching the
-   * environment layering: the more specific location wins.
-   */
   dotenvFallback(ref) {
     const entry = launchEnvironmentOf(this.ctx).getFrom(ref, ['project-env', 'user-env'])
     return entry !== undefined && entry.value.length > 0 ? entry : undefined
@@ -660,14 +457,12 @@ export class LocalCredentialProvider extends CredentialProvider {
   }
 
   /* jscpd:ignore-start */
-  /** Queue one exclusive document operation behind every earlier one. */
   enqueue(operation) {
     const task = this.operations.then(operation)
     this.operations = task.then(() => undefined, () => undefined)
     return task
   }
 
-  /** Queue a reload; only an invariant violation escaping the fan-out can reject it. */
   queueRefresh() {
     void this.enqueue(() => this.refresh()).catch((error) => {
       this.ctx.logger.error('credentials-local: reload commit failed at %s', this.spec.filename)
@@ -676,7 +471,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   }
   /* jscpd:ignore-end */
 
-  /** Queue one line edit; entry checks reject early, the queue re-judges them at run time. */
   async write(ref, value) {
     const verb = value === undefined ? 'unset' : 'set'
     if (this.isClosed()) {
@@ -703,16 +497,10 @@ export class LocalCredentialProvider extends CredentialProvider {
     })
   }
 
-  /** Create the harness home the writer lock needs as a parent, private to the owner. */
   async ensureLockableDirectory() {
     await mkdir(dirname(this.spec.filename), { recursive: true, mode: OWNER_ONLY_DIR_MODE })
   }
 
-  /**
-   * Reject a write the inherited environment would shadow into apparent
-   * no-effect. Only that layer can shadow a write: everything else this
-   * provider resolves ranks below the document being written.
-   */
   assertUnshadowed(ref, verb) {
     if (this.inherited(ref) !== undefined) {
       throw new Error(
@@ -722,14 +510,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     }
   }
 
-  /**
-   * Boot read: an absent file is an empty store; an invalid one fails the
-   * plugin's activation, because a credentials document that exists but
-   * cannot be trusted must never be treated as "no credentials stored". The
-   * one exception is the recognized pre-release flat layout, which is
-   * upgraded in place first — a key stored by an earlier build must survive
-   * the layout change without a hand edit.
-   */
   async loadInitial() {
     await assertOwnerOnly(this.spec.filename)
     let text
@@ -746,16 +526,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     this.text = text
   }
 
-  /**
-   * One-shot upgrade of the recognized pre-release flat layout, before the
-   * watcher exists. The rewrite runs under the document's writer lock and
-   * re-reads first — a concurrent boot may have migrated already — and
-   * whatever the re-read finds that is not the flat layout is returned
-   * untouched for the ordinary parse. Values are carried verbatim; only the
-   * enclosing layout changes. Remove with the pre-release stance at the
-   * first tagged release.
-   * @returns the document text this boot should parse.
-   */
   async migrateFlatDocument() {
     return withFileLock(this.spec.filename, async () => {
       const current = await readFile(this.spec.filename, 'utf8')
@@ -777,13 +547,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   }
 
   /* jscpd:ignore-start */
-  /**
-   * Re-read the document after a watcher event. Unchanged content (including
-   * this provider's own writes) is a no-op; an unreadable document keeps the
-   * last good snapshot and warns — a live hot-reload must never take the
-   * process down. An invariant violation escaping the fan-out is not a reload
-   * failure and propagates to the queue's error surface.
-   */
   async refresh() {
     if (this.closed) return
     try {
@@ -795,13 +558,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     }
   }
 
-  /**
-   * Compare the on-disk text against the cache and publish any difference
-   * into the seam. Absence publishes the empty store; an unreadable or
-   * invalid document throws, so each caller picks its policy — a reload warns
-   * and keeps the last good snapshot, a write fails loud rather than
-   * overwriting a document it could not understand.
-   */
   async reconcileFromDisk() {
     await assertOwnerOnly(this.spec.filename)
     let text
@@ -825,7 +581,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   }
   /* jscpd:ignore-end */
 
-  /** Entries whose stored value changed; the parser has already proven every key addressable. */
   changedRefs(prev, next) {
     const changed = []
     for (const key of new Set([...prev.keys(), ...next.keys()])) {
@@ -835,7 +590,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     return changed
   }
 
-  /** Records whose stored value changed; the parser has already proven every key addressable. */
   changedRecords(prev, next) {
     const changed = []
     for (const key of new Set([...prev.keys(), ...next.keys()])) {
