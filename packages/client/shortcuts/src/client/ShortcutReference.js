@@ -1,14 +1,3 @@
-/**
- * Shortcut reference: the dialog that lists every command available in this
- * window, finds one by action, English alias, or key, and rebinds it.
- *
- * Search and ranking are pure ({@link rankRows}); the only state here is the
- * row being edited, the inline status line, and the restore-all confirmation.
- * Recording is delegated to {@link KeyRecorder}, whose listeners exist solely
- * for the duration of one gesture.
- *
- * @typedef {{ id: string, label: string, keys: readonly string[], aliases: readonly string[], binding: object | null, modified: boolean, issue: string | null, conflicts: readonly string[], aria?: string }} CatalogRow
- */
 
 import { defineElement, renderModal } from '@freddie/freddie-client-ui-primitives'
 import { createElement as h, Fragment } from '@freddie/webjsx'
@@ -17,7 +6,6 @@ import { overrideCount, rankRows, referenceRows } from './search.js'
 import { SHORTCUT_STORAGE_KEY } from './storage.js'
 import css from './ShortcutReference.css.js'
 
-/** Save outcomes that leave the accepted bindings untouched, mapped to copy. */
 const SAVE_STATUS = {
   'stale': 'stale',
   'not-ready': 'not-ready',
@@ -26,10 +14,8 @@ const SAVE_STATUS = {
   'conflict': 'conflict',
 }
 
-/** Dialog attribute the keyboard adapter reads to name the modal that owns the dialog. */
 const MODAL_OWNER_ATTRIBUTE = 'data-shortcut-modal'
 
-/** Modal name of this dialog, matched against a command's `modals`. */
 const MODAL_ID = 'shortcuts'
 
 export class FreddieShortcutReference extends HTMLElement {
@@ -41,7 +27,6 @@ export class FreddieShortcutReference extends HTMLElement {
   #recorder = null
   #wasOpen = false
 
-  /** Set/replace props and re-render. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -240,7 +225,6 @@ export class FreddieShortcutReference extends HTMLElement {
     recorder.start({ document: this.ownerDocument, window: this.ownerDocument?.defaultView })
   }
 
-  /** Stop recording; the candidate is dropped, never persisted or reported. */
   #stopRecording() {
     this.#recorder?.stop()
     this.#recorder = null
@@ -252,10 +236,6 @@ export class FreddieShortcutReference extends HTMLElement {
     this.#render()
   }
 
-  /**
-   * Review a recorded combination, then accept it or explain the refusal.
-   * A rejected candidate never reaches preferences.
-   */
   #capture(binding) {
     const props = this.#props
     const id = this.#editing

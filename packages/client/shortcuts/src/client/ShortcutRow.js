@@ -1,19 +1,13 @@
-/**
- * Settings row: the entry point that opens the shortcut reference, carrying the
- * current `shortcuts.open` combination as its `aria-keyshortcuts`.
- */
 
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './ShortcutRow.css.js'
 
-/** Command whose live combination the row advertises. */
 const OPEN_COMMAND = 'shortcuts.open'
 
 export class FreddieShortcutRow extends HTMLElement {
   #props = null
 
-  /** Set/replace props and re-render. */
   setProps(props) {
     this.#props = props
     this.#render()

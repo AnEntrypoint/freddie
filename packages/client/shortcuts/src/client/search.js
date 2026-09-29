@@ -1,13 +1,4 @@
-/**
- * Reference discovery: the rows the shortcut browser lists, and the ordered
- * subsequence search that finds them by action, English alias, or key.
- *
- * A row appears once no matter how many of its names matched; relevance wins,
- * and equal matches keep the display order (core product actions first, then
- * stable command-id order within each group).
- */
 
-/** Core product actions keep a fixed display order, independent of registration. */
 const CORE_ACTION_ORDER = [
   'shortcuts.open',
   'session.new',
@@ -29,19 +20,8 @@ const CORE_ACTION_ORDER = [
   'page.close',
 ]
 
-/** Fixed-action groups render after the editable application group. */
 const GROUP_ORDER = ['application', 'input', 'menus', 'approval']
 
-/**
- * Score one ordered-subsequence alignment; lower is better, null is no match.
- *
- * Prefixes outrank mid-string starts, contiguous matches outrank gapped ones,
- * and shorter names break ties — the same ranking shape the command palette
- * uses, kept local because a UI package never imports another's internals.
- * @param name - candidate haystack, already lower-cased.
- * @param query - needle, already lower-cased and non-empty.
- * @returns the rank, or null when the query is not a subsequence.
- */
 export function subsequenceScore(name, query) {
   if (query.length > name.length) return null
   let index = 0
@@ -66,13 +46,6 @@ function better(left, right) {
   return false
 }
 
-/**
- * Build the display rows for the reference: editable commands first with their
- * searchable names, then mounted fixed actions.
- * @param catalog - effective editable catalog rows.
- * @param fixedCatalog - mounted read-only actions.
- * @returns rows in stable display order, each carrying its searchable `names`.
- */
 export function referenceRows(catalog, fixedCatalog) {
   const editable = catalog.map(row => ({
     ...row,
@@ -100,12 +73,6 @@ export function referenceRows(catalog, fixedCatalog) {
   })
 }
 
-/**
- * Filter and rank display rows by an ordered-subsequence query.
- * @param rows - display rows from {@link referenceRows}.
- * @param query - raw search text; empty returns the rows unchanged.
- * @returns matching rows, one per command, relevance first.
- */
 export function rankRows(rows, query) {
   const needle = query.trim().toLowerCase()
   if (needle === '') return rows
@@ -127,13 +94,6 @@ export function rankRows(rows, query) {
   return [...new Set(ranked.map(entry => entry.row))]
 }
 
-/**
- * Count the overrides stored for one profile, including cleared bindings and
- * rows whose owning plugin is not currently mounted.
- * @param document - accepted preference document.
- * @param profile - current device profile.
- * @returns the override count.
- */
 export function overrideCount(document, profile) {
   return Object.keys(document.profiles[profile] ?? {}).length
 }

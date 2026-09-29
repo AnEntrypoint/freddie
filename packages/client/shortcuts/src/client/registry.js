@@ -1,17 +1,3 @@
-/**
- * Command registry: registration, normalized default bindings, the derived
- * localized catalog, and synchronous dispatch.
- *
- * The registry is React-free and DOM-free — it resolves a gesture against the
- * accepted configuration and hands the outcome to whoever owns the event, which
- * is what lets the live verification drive real dispatch with plain objects.
- *
- * @typedef {{ code: string, control: boolean, alt: boolean, shift: boolean, meta: boolean, repeat: boolean, composing: boolean, defaultPrevented: boolean }} ShortcutGesture
- * @typedef {{ source?: 'keyboard' | 'menu', region: 'page' | 'editable' | 'terminal', modal: string | null, target: unknown }} ShortcutContext
- * @typedef {{ status: 'handled', run: () => void } | { status: 'blocked', reason: string } | { status: 'pass' }} ShortcutResolution
- * @typedef {{ id: string, label: () => string, aliases: readonly string[], defaults: object, regions?: readonly ('page' | 'editable' | 'terminal')[], modals?: readonly string[], resolve: (context: ShortcutContext) => ShortcutResolution }} ShortcutCommand
- * @typedef {{ id: string, label: () => string, keys: readonly string[], bindings: readonly object[], group: 'application' | 'input' | 'menus' | 'approval' }} ShortcutFixedCommand
- */
 
 import {
   bindingIssue, bindingKey, effectiveShortcuts, initialShortcutConfig, isWebBindingAllowed,
@@ -19,30 +5,18 @@ import {
 } from './protocol.js'
 import { createSource } from './source.js'
 
-/** Local input regions a command may claim; text entry is opt-in, never default. */
 const DEFAULT_REGIONS = Object.freeze(['page'])
 
-/** Terminal-local combinations that stay with the terminal on every platform. */
 const TERMINAL_LOCAL_CODES = Object.freeze(['KeyW', 'KeyR'])
 
-/** @typedef {{ status: 'handled', commandId: string } | { status: 'blocked', commandId: string, reason: string } | { status: 'pass' }} ShortcutDispatch */
-
 export class ShortcutRegistry {
-  /** @type {Map<string, ShortcutCommand>} */
   #commands = new Map()
-  /** @type {Map<string, ShortcutFixedCommand>} */
   #fixedCommands = new Map()
-  /** @type {Map<string, ShortcutCommand>} */
   #bindings = new Map()
-  /** @type {Map<string, ShortcutCommand>} */
   #conflicts = new Map()
   #state
   #fixedState
 
-  /**
-   * @param platform - receiving device platform.
-   * @param config - initial accepted configuration snapshot.
-   */
   constructor(platform, config = initialShortcutConfig()) {
     this.platform = platform
     this.profile = `web:${platform}`
@@ -58,7 +32,6 @@ export class ShortcutRegistry {
     this.refreshLabels(config)
   }
 
-  /** @returns {Array} serializable active catalog for storage validation. */
   definitions() {
     return [
       ...[...this.#commands.values()].map(({ id, defaults }) => ({ id, defaults })),
@@ -66,11 +39,6 @@ export class ShortcutRegistry {
     ]
   }
 
-  /**
-   * Register an editable command after checking its defaults on every profile.
-   * @param command - feature-owned labels, defaults, regions, and resolver.
-   * @returns idempotent disposer removing both the binding and the catalog row.
-   */
   register(command) {
     if (this.#commands.has(command.id) || this.#fixedCommands.has(command.id)) {
       throw new Error(`Duplicate shortcut command: ${command.id}`)
@@ -98,12 +66,6 @@ export class ShortcutRegistry {
     }
   }
 
-  /**
-   * Register a read-only input action and reserve its combinations against
-   * editable bindings.
-   * @param command - owner-localized action and reserved physical combinations.
-   * @returns idempotent disposer removing the fixed row.
-   */
   registerFixed(command) {
     if (this.#fixedCommands.has(command.id) || this.#commands.has(command.id)) {
       throw new Error(`Duplicate shortcut command: ${command.id}`)
@@ -118,22 +80,12 @@ export class ShortcutRegistry {
     }
   }
 
-  /**
-   * Publish accepted preferences and every derived label atomically.
-   * @param config - storage owner's latest accepted snapshot.
-   */
   configure(config) {
     const current = this.#state.getSnapshot().config
     if (config.revision === current.revision && config.status === current.status && config.error === current.error) return
     this.refreshLabels(config)
   }
 
-  /**
-   * Describe a candidate using the device's physical-key and reservation rules.
-   * @param binding - candidate combination, or null for an unbound command.
-   * @returns canonical binding, visible keys, rejection reason, and overlapping
-   * editable and fixed command ids.
-   */
   describeBinding(binding) {
     const normalized = binding === null ? null : normalizeBinding(binding, this.platform)
     if (normalized === null) return { binding: null, keys: [], issue: null, conflicts: [] }
@@ -153,10 +105,6 @@ export class ShortcutRegistry {
     }
   }
 
-  /**
-   * Recompute effective bindings when preferences, commands, or locale change.
-   * @param config - accepted configuration, defaulting to the current snapshot.
-   */
   refreshLabels(config = this.#state.getSnapshot().config) {
     this.#bindings.clear()
     this.#conflicts.clear()
@@ -188,12 +136,6 @@ export class ShortcutRegistry {
     })))
   }
 
-  /**
-   * Invoke a menu selection independently of its optional key binding.
-   * @param id - registered command.
-   * @param context - live input owner and modal state.
-   * @returns whether the action ran.
-   */
   invoke(id, context) {
     const command = this.#commands.get(id)
     if (command === undefined) return false
@@ -203,18 +145,6 @@ export class ShortcutRegistry {
     return result.status === 'handled'
   }
 
-  /**
-   * Resolve one gesture against the effective bindings.
-   *
-   * The event is consumed only when the command actually handles it, so an
-   * unmatched or abstaining combination always reaches the browser and the
-   * native editor behavior — a binding can never swallow the user's only way
-   * out of a field.
-   * @param gesture - normalized input facts.
-   * @param context - synchronous input region and modal owner.
-   * @param consume - the adapter's preventDefault, called before execution.
-   * @returns handled, blocked with a reason, or pass for local and system input.
-   */
   dispatch(gesture, context, consume) {
     if (gesture.defaultPrevented || gesture.composing) return { status: 'pass' }
     const modifiers = ['control', 'alt', 'shift', 'meta'].filter(value => gesture[value])

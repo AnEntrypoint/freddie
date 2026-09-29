@@ -1,32 +1,10 @@
-/**
- * Main-document keyboard adapter.
- *
- * Listeners are installed on the bubble phase so a local control — the
- * composer, a terminal, an embedded page — arbitrates before a window command
- * ever sees the key. The event is consumed only when the registry reports the
- * command handled it, so every other combination keeps its native behavior.
- *
- * Nothing here is a standing interceptor: `installKeyboard` returns a disposer
- * that removes every listener, and the plugin's `ctx.effect` owns it.
- *
- * @typedef {import('./registry.js').ShortcutRegistry} ShortcutRegistry
- * @typedef {import('./registry.js').ShortcutGesture} ShortcutGesture
- */
 
-/** Local input owner resolved before an application command. */
 const EDITABLE_SELECTOR = 'input, textarea, select, [contenteditable="true"], [contenteditable=""]'
 
-/** Terminal surfaces keep their own control combinations. */
 const TERMINAL_SELECTOR = '.xterm, [data-freddie-terminal]'
 
-/** Topmost open dialog, when any; its `data-shortcut-modal` names the modal. */
 const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"]'
 
-/**
- * Detect the visiting device, never the server operating system.
- * @param navigatorLike - browser device identification.
- * @returns the receiving device platform.
- */
 export function detectPlatform(navigatorLike) {
   const device = navigatorLike?.platform ?? navigatorLike?.userAgent ?? ''
   if (/darwin|mac|iphone|ipad/iu.test(device)) return 'macos'
@@ -34,11 +12,6 @@ export function detectPlatform(navigatorLike) {
   return 'linux'
 }
 
-/**
- * Classify the element that received the key.
- * @param element - event target, or null.
- * @returns the owning input region.
- */
 export function regionOf(element) {
   if (element === null || element === undefined || typeof element.closest !== 'function') return 'page'
   if (element.closest(TERMINAL_SELECTOR) !== null) return 'terminal'
@@ -46,13 +19,6 @@ export function regionOf(element) {
   return 'page'
 }
 
-/**
- * Install document keyboard dispatch for one window.
- * @param windowLike - input window owned by the client plugin.
- * @param registry - command registry for this window.
- * @param options - `fixed` receives locally arbitrated input before dispatch.
- * @returns disposer releasing every listener.
- */
 export function installKeyboard(windowLike, registry, options = {}) {
   const { fixed } = options
   const document = windowLike.document

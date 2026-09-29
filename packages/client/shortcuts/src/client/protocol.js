@@ -1,35 +1,5 @@
-/**
- * Physical-key protocol: binding normalization, keycap presentation, browser
- * reservation checks, deterministic conflict resolution, and versioned
- * preference persistence.
- *
- * No DOM, no Cordis, no network — every rule in this module is the same one the
- * browser service and the reference UI enforce, which is why the live
- * verification drives this file directly.
- *
- * Two upstream dimensions were dropped on purpose, both because freddie has no
- * Desktop shell (Electron is excluded from the stack): the `desktop:*` runtime
- * profiles, and the two-key chord (`secondCode`). A chord is rejected by
- * `isWebBindingAllowed` on Web anyway, so keeping it would only be dead code.
- */
 
-/**
- * @typedef {'macos' | 'windows' | 'linux'} ShortcutPlatform
- * @typedef {'web:macos' | 'web:windows' | 'web:linux'} ShortcutProfile
- * @typedef {'primary' | 'control' | 'alt' | 'shift' | 'meta'} ShortcutModifier
- * @typedef {{ readonly code: string, readonly modifiers: readonly ShortcutModifier[] }} ShortcutBinding
- * @typedef {{ readonly code: string, readonly modifiers: readonly ('control' | 'alt' | 'shift' | 'meta')[] }} NormalizedBinding
- * @typedef {'reserved' | 'unsupported-browser' | 'modifier-required' | 'unsupported-key'} BindingIssue
- * @typedef {{ readonly schemaVersion: 1, readonly profiles: Readonly<Partial<Record<ShortcutProfile, Readonly<Record<string, ShortcutBinding | null>>>>> }} ShortcutDocument
- * @typedef {{ readonly id: string, readonly defaults: Readonly<Partial<Record<ShortcutProfile, ShortcutBinding>>>, readonly fixed?: readonly [ShortcutBinding, ...ShortcutBinding[]] }} ShortcutDefinition
- * @typedef {{ readonly id: string, readonly binding: NormalizedBinding | null, readonly modified: boolean, readonly conflicts: readonly string[], readonly issue: BindingIssue | null }} EffectiveShortcut
- * @typedef {{ type: 'set', id: string, binding: ShortcutBinding | null } | { type: 'reset', id: string } | { type: 'reset-all' }} ShortcutEdit
- * @typedef {{ readonly revision: string, readonly sequence: number, readonly document: ShortcutDocument, readonly status: 'loading' | 'ready' | 'unreadable', readonly error: 'read' | 'invalid' | 'future' | null, readonly usingDefaults: boolean }} ShortcutConfigSnapshot
- * @typedef {{ readonly status: 'saved' | 'stale' | 'unreadable' | 'write-failed' | 'not-ready' | 'conflict', readonly snapshot: ShortcutConfigSnapshot, readonly issue?: BindingIssue, readonly conflicts?: readonly string[] }} ShortcutSaveResult
- * @typedef {{ read: () => (string | null | Promise<string | null>), write: (raw: string) => (void | Promise<void>) }} ShortcutStorage
- */
 
-/** Physical codes whose visible name is not their `code` string. */
 const keyNames = Object.freeze({
   Slash: '/', Comma: ',', Period: '.', Backslash: '\\', Backquote: '`', Minus: '-', Equal: '=',
   BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Enter: 'Enter',
@@ -37,38 +7,26 @@ const keyNames = Object.freeze({
   ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
 })
 
-/** Normalized modifier order, which is also the keycap and index order. */
 const modifierOrder = Object.freeze(['control', 'alt', 'shift', 'meta'])
 
-/** Editor and navigation keys a user binding may never take over. */
 const reservedCodes = Object.freeze([
   'Escape', 'Tab', 'Space', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
 ])
 
-/** Clipboard and window keys reserved under the device primary modifier. */
 const reservedPrimaryCodes = Object.freeze(['KeyC', 'KeyV', 'KeyX', 'KeyZ', 'KeyY', 'KeyQ', 'KeyH'])
 
-/** Command identity: dotted lowercase segments, owned by the registering feature. */
 const commandPattern = /^[a-z][a-zA-Z0-9-]*(?:\.[a-zA-Z][a-zA-Z0-9-]*)+$/u
 
 const profilePattern = /^web:(macos|windows|linux)$/u
 
 const codePattern = /^(Key[A-Z]|Digit[0-9]|F([1-9]|1[0-9]|2[0-4]))$/u
 
-/** Preference document version this build reads and writes. */
 export const SCHEMA_VERSION = 1
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/**
- * Expand the logical `primary` modifier, deduplicate, and validate the physical
- * code. Unsupported codes throw during registration, never during a keystroke.
- * @param binding - declared binding.
- * @param platform - receiving device platform.
- * @returns canonical binding.
- */
 export function normalizeBinding(binding, platform) {
   if (!codePattern.test(binding.code) && !Object.hasOwn(keyNames, binding.code)) {
     throw new Error(`Unsupported shortcut code: ${binding.code}`)
@@ -79,22 +37,10 @@ export function normalizeBinding(binding, platform) {
   return { code: binding.code, modifiers: modifierOrder.filter(value => expanded.has(value)) }
 }
 
-/**
- * Produce an exact-match index from a normalized binding.
- * @param binding - normalized physical key and modifiers.
- * @returns stable index used for both matching and conflict checks.
- */
 export function bindingKey(binding) {
   return [...binding.modifiers, binding.code].join('+')
 }
 
-/**
- * Format keycaps and ARIA for one device; Windows separates modifiers with plus
- * signs, macOS runs them together.
- * @param binding - normalized binding, or null for an unbound command.
- * @param platform - receiving device platform.
- * @returns visible keycaps and the `aria-keyshortcuts` string.
- */
 export function presentBinding(binding, platform) {
   if (binding === null) return { keys: [], aria: undefined }
   const key = keyNames[binding.code] ?? binding.code.replace(/^(Key|Digit)/u, '')
@@ -114,16 +60,6 @@ export function presentBinding(binding, platform) {
   }
 }
 
-/**
- * Check the Web combination allow-list: three or more modifiers, a primary
- * Comma/Backslash, Control+Backquote, primary+alt/shift, and the three explicit
- * defaults. Anything narrower is a combination the browser or the window manager
- * answers before the page sees it, so it is never offered as a binding.
- * @param binding - normalized candidate.
- * @param platform - receiving device platform.
- * @returns whether this combination is admitted; admission does not guarantee
- * the browser or the OS will actually deliver it.
- */
 export function isWebBindingAllowed(binding, platform) {
   const primary = platform === 'macos' ? 'meta' : 'control'
   if (binding.modifiers.length >= 3) return true
@@ -140,15 +76,6 @@ export function isWebBindingAllowed(binding, platform) {
   ].some(candidate => bindingKey(binding) === bindingKey(normalizeBinding(candidate, platform)))
 }
 
-/**
- * Reject combinations that belong to the browser, the OS, or the editor.
- *
- * Escape and Tab are reserved unconditionally: a user binding must never remove
- * the only way out of a field or out of a dialog.
- * @param binding - normalized candidate.
- * @param platform - receiving device platform.
- * @returns the rejection reason, or null when the combination may be bound.
- */
 export function bindingIssue(binding, platform) {
   const { code, modifiers } = binding
   if (modifiers.length === 0 || modifiers.every(value => value === 'shift')) return 'modifier-required'
@@ -165,36 +92,14 @@ export function bindingIssue(binding, platform) {
   return null
 }
 
-/**
- * Select the command owner's explicit default for one device profile.
- * @param definition - command identity and per-profile defaults.
- * @param profile - receiving device profile.
- * @returns the declared physical binding, or undefined for an unbound action.
- */
 export function resolveShortcutDefault(definition, profile) {
   return definition.defaults[profile]
 }
 
-/**
- * Detect identical combinations; a Web binding is one physical key plus an
- * exact modifier set, so overlap is equality.
- * @param left - normalized candidate.
- * @param right - normalized occupied binding.
- * @returns whether both bindings require the same key and modifiers.
- */
 export function overlappingBindings(left, right) {
   return bindingKey(left) === bindingKey(right)
 }
 
-/**
- * Resolve overrides and conflicts independently of registration order. An
- * explicit override displaces a conflicting default; two explicit overrides
- * that collide both end up disabled.
- * @param definitions - active commands.
- * @param document - accepted preferences.
- * @param profile - receiving device profile.
- * @returns every active command, including rows whose binding cannot execute.
- */
 export function effectiveShortcuts(definitions, document, profile) {
   const platform = profile.slice('web:'.length)
   const overrides = document.profiles[profile] ?? {}
@@ -219,12 +124,6 @@ export function effectiveShortcuts(definitions, document, profile) {
   })
 }
 
-/**
- * Validate JSON binding fields before normalization; unknown fields are
- * rejected so a future document is never silently rewritten lossily.
- * @param value - file or storage input.
- * @returns a binding with a supported physical code, or null for explicit removal.
- */
 export function parseBinding(value) {
   if (value === null) return null
   if (!isRecord(value)
@@ -241,16 +140,6 @@ export function parseBinding(value) {
   return binding
 }
 
-/**
- * Decode the complete document while preserving dormant overrides.
- *
- * Fail-safe: anything unreadable — unparsable JSON, an unknown field, a bad
- * profile key, a bad command id, a future schema version — returns a classified
- * failure rather than a partially applied set. The caller falls back to
- * defaults and denies edits.
- * @param raw - stored JSON, or null for a missing document.
- * @returns the accepted document, or a classified read failure.
- */
 export function parseShortcutDocument(raw) {
   if (raw === null) return { schemaVersion: SCHEMA_VERSION, profiles: {} }
   try {
@@ -275,13 +164,6 @@ export function parseShortcutDocument(raw) {
   }
 }
 
-/**
- * Apply an edit without touching other profiles or dormant overrides.
- * @param document - accepted document.
- * @param edit - validated operation.
- * @param profile - current device profile.
- * @returns the candidate document, pending conflict checks and durable storage.
- */
 export function editShortcutDocument(document, edit, profile) {
   let overrides = { ...document.profiles[profile] }
   switch (edit.type) {
@@ -302,11 +184,6 @@ export function editShortcutDocument(document, edit, profile) {
   return { schemaVersion: SCHEMA_VERSION, profiles: { ...document.profiles, [profile]: overrides } }
 }
 
-/**
- * Validate a preference edit arriving from the reference UI.
- * @param value - caller-supplied operation.
- * @returns the constrained operation; malformed requests throw.
- */
 export function parseShortcutEdit(value) {
   if (!isRecord(value)) throw new Error('Invalid shortcut edit')
   if (value.type === 'reset-all' && Object.keys(value).length === 1) return { type: 'reset-all' }
@@ -318,12 +195,6 @@ export function parseShortcutEdit(value) {
   throw new Error('Invalid shortcut edit')
 }
 
-/**
- * Validate the active command catalog at registration ingress.
- * @param value - caller-supplied command definitions.
- * @returns validated definitions; duplicate ids, overlapping defaults, and
- * reserved or unadmitted defaults throw.
- */
 export function parseShortcutDefinitions(value) {
   if (!Array.isArray(value)) throw new Error('Invalid shortcut catalog')
   const ids = new Set()
@@ -364,11 +235,6 @@ export function parseShortcutDefinitions(value) {
 
 let revisionCounter = 0
 
-/**
- * Mint an opaque accepted-state identity; every accepted snapshot invalidates
- * drafts reviewed against an older one.
- * @returns a fresh revision.
- */
 export function newRevision() {
   revisionCounter += 1
   const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -377,11 +243,6 @@ export function newRevision() {
   return `${revisionCounter}:${suffix}`
 }
 
-/**
- * Create a disabled initial snapshot for asynchronous storage startup; loading
- * never enables commands.
- * @returns a fresh configuration with no accepted persisted state.
- */
 export function initialShortcutConfig() {
   return {
     revision: newRevision(),
@@ -393,14 +254,6 @@ export function initialShortcutConfig() {
   }
 }
 
-/**
- * Single-writer coordinator for one preference document.
- *
- * Reads and writes serialize through one queue, so a re-read triggered by
- * another tab can never land in the middle of an edit. A failed read preserves
- * the empty default document and marks the configuration unreadable, which
- * disables editing rather than exposing a half-applied set.
- */
 export class ShortcutPersistence {
   #snapshot = initialShortcutConfig()
   #raw
@@ -408,47 +261,25 @@ export class ShortcutPersistence {
   #definitions = null
   #active = true
 
-  /**
-   * @param storage - origin-local document adapter.
-   * @param profile - current device profile.
-   * @param publish - accepts complete configuration snapshots.
-   */
   constructor(storage, profile, publish) {
     this.storage = storage
     this.profile = profile
     this.publish = publish
   }
 
-  /**
-   * Install or revoke the active catalog and invalidate drafts from its
-   * previous lifetime.
-   * @param definitions - current trusted definitions, or null while unavailable.
-   */
   setDefinitions(definitions) {
     this.#definitions = definitions
     this.#accept({ ...this.#snapshot })
   }
 
-  /** Stop accepting edits and publishing late completions. */
   dispose() {
     this.#active = false
   }
 
-  /**
-   * Read the current document; a failure retains defaults and disables writes.
-   * @returns the accepted snapshot or a diagnostic snapshot.
-   */
   readCurrent() {
     return this.#serialize(() => this.#read())
   }
 
-  /**
-   * Compare the reviewed revision, validate the complete candidate, then
-   * persist before publishing.
-   * @param edit - constrained preference operation.
-   * @param revision - state against which the user reviewed the edit.
-   * @returns a classified outcome and the currently accepted snapshot.
-   */
   edit(edit, revision) {
     return this.#serialize(async () => {
       await this.#read()

@@ -1,6 +1,4 @@
-/** `shortcuts` namespace dictionaries (reference dialog and settings row copy). */
 
-/** English dictionary. */
 export const en = {
   'title': 'Keyboard shortcuts',
   'close': 'Close',
