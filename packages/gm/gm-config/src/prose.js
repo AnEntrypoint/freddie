@@ -1,10 +1,3 @@
-/**
-  * Read-only prose / gate / residual resolution. First non-empty wins:
-  * project `.gm/instructions/<key>.md`, then `<cacheDir>/<dir>/<stem>.md`.
-  * Never invents compiled-default prose (that text is baked into gm.wasm).
-  * @module @freddie/freddie-gm-config/src/prose
-  */
-
 import { readText } from './fs.js'
 import { joinRel, pathContainedWithin, validateProseKey, validateSourcePath } from './path.js'
 import { resolve } from './resolve.js'
@@ -63,12 +56,6 @@ function readFromCacheRoot(cache, config, key) {
   return { tier: 'miss', path: full }
 }
 
-/**
-  * Resolve one prose/gate/residual key against project overrides then the winning cache.
-  * @param projectRoot - project directory.
-  * @param key - e.g. `entry`, `gates/dirty-tree`, `residual/prd-open`.
-  * @returns `{ tier, text?, path?, reason? }`.
-  */
 export function resolveProse(projectRoot, key) {
   const keyErr = validateProseKey(key)
   if (keyErr !== undefined) return { tier: 'broken', reason: keyErr }

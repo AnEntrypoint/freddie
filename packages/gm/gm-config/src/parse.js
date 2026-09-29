@@ -1,9 +1,3 @@
-/**
-  * gm.config.json parse/merge matching rs-plugkit `config.rs` parse_config /
-  * deep_merge / parse_source_spec. Read-only: never fetches.
-  * @module @freddie/freddie-gm-config/src/parse
-  */
-
 import { fnv1a64Hex } from './hash.js'
 import { joinRel, validateGitRef, validateRepoUrl, validateSourcePath } from './path.js'
 
@@ -32,10 +26,6 @@ const KNOWN_TOP_LEVEL = [
   'discipline_note', 'claim_audit', 'db_path', 'memory_md_tables', 'retention',
 ]
 
-/**
-  * Compiled builtin default matching Config::builtin_default.
-  * @returns the default config object.
-  */
 export function builtinDefault() {
   return {
     version: SCHEMA_VERSION,
@@ -45,12 +35,6 @@ export function builtinDefault() {
   }
 }
 
-/**
-  * Deep-merge `over` onto `base`. Object keys recurse; any other type is replaced.
-  * @param base - lower-priority value.
-  * @param over - higher-priority value.
-  * @returns merged value.
-  */
 export function deepMerge(base, over) {
   if (isPlainObject(base) && isPlainObject(over)) {
     const out = { ...base }
@@ -90,12 +74,6 @@ function checkVersion(v, origin) {
   return { ok: true, version: n }
 }
 
-/**
-  * Parse one gm.config.json body.
-  * @param text - file contents.
-  * @param origin - path used in rejection reasons.
-  * @returns `{ kind: 'accepted', version, value } | { kind: 'rejected', reason } | { kind: 'absent' }`.
-  */
 export function parseConfig(text, origin) {
   const cleaned = stripBom(text)
   if (cleaned.trim() === '') return { kind: 'absent' }
@@ -117,24 +95,11 @@ export function parseConfig(text, origin) {
   }
 }
 
-/**
-  * Top-level keys this build does not recognise (underscore-prefixed keys are reserved, not unknown).
-  * @param value - parsed config object.
-  * @returns unknown key names.
-  */
 export function unknownTopLevelKeys(value) {
   if (!isPlainObject(value)) return []
   return Object.keys(value).filter(k => !k.startsWith('_') && !KNOWN_TOP_LEVEL.includes(k))
 }
 
-/**
-  * Parse one `{repo, reference, path}` object into a RepoSource.
-  * @param obj - source entry.
-  * @param origin - path used in rejection reasons.
-  * @param cacheRoot - tier cache root.
-  * @param tierLabel - tier id string.
-  * @returns `{ ok: true, source } | { ok: false, reason }`.
-  */
 export function parseSourceEntry(obj, origin, cacheRoot, tierLabel) {
   const repo = typeof obj.repo === 'string' ? obj.repo.trim() : ''
   if (repo === '') {
@@ -165,24 +130,11 @@ export function parseSourceEntry(obj, origin, cacheRoot, tierLabel) {
   }
 }
 
-/**
-  * Config file path inside a materialized source.
-  * @param source - parsed RepoSource.
-  * @returns path of gm.config.json or the entry's `path`.
-  */
 export function sourceConfigPath(source) {
   if (source.path === '') return joinRel(source.cacheDir, 'gm.config.json')
   return joinRel(source.cacheDir, source.path)
 }
 
-/**
-  * Parse a config.source.json body (object or array of objects).
-  * @param text - file contents.
-  * @param origin - path used in rejection reasons.
-  * @param cacheRoot - tier cache root.
-  * @param tierLabel - tier id string.
-  * @returns `{ ok: true, sources } | { ok: false, reason }`.
-  */
 export function parseSourceSpec(text, origin, cacheRoot, tierLabel) {
   const cleaned = stripBom(text)
   if (cleaned.trim() === '') return { ok: true, sources: [] }

@@ -1,9 +1,3 @@
-/**
-  * Read-only JS resolver for gm-config's four-tier protocol.
-  * Clone/fetch and `hooks/*.js` execution stay with the gm daemon.
-  * @module @freddie/freddie-gm-config
-  */
-
 export {
   SCHEMA_VERSION,
   MIN_READABLE_SCHEMA_VERSION,

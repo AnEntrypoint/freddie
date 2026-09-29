@@ -1,16 +1,6 @@
-/**
-  * Synchronous UTF-8 file reads for already-materialized gm-config files.
-  * @module @freddie/freddie-gm-config/src/fs
-  */
-
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 
-/**
-  * Read a UTF-8 file. Missing or unreadable paths return undefined.
-  * @param path - absolute or relative path.
-  * @returns file text, or undefined.
-  */
 export function readText(path) {
   try {
     return readFileSync(path, 'utf8')
@@ -22,10 +12,6 @@ export function readText(path) {
   }
 }
 
-/**
-  * Operator home used by the user-wide spec tier: HOME, then USERPROFILE, then os.homedir().
-  * @returns trimmed home directory without a trailing slash, or undefined.
-  */
 export function homeDir() {
   for (const key of ['HOME', 'USERPROFILE']) {
     const raw = process.env[key]

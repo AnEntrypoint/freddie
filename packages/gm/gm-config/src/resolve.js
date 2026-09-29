@@ -1,9 +1,3 @@
-/**
-  * Four-tier gm.config.json resolution over files already on disk.
-  * Never clones, fetches, or shells to agentplug-runner.
-  * @module @freddie/freddie-gm-config/src/resolve
-  */
-
 import { homeDir, readText } from './fs.js'
 import {
   DEFAULT_REPO_CACHE_REL,
@@ -90,11 +84,6 @@ function resolution({ tier, why, rejected, version, config, cacheDir }) {
   }
 }
 
-/**
-  * Resolve gm.config.json for `projectRoot` from files already on disk.
-  * @param projectRoot - project directory containing `.gm/`.
-  * @returns `{ tier, why, rejected, version, config, cacheDir, unknownKeys }`.
-  */
 export function resolve(projectRoot) {
   const rejected = []
   const p1 = joinRel(projectRoot, PROJECT_CONFIG_REL)

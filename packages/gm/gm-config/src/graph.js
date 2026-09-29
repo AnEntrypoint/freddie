@@ -1,11 +1,3 @@
-/**
-  * Read-only FSM graph resolution. First usable wins:
-  * `.gm/instructions/fsm/graph.json`, then `<cacheDir>/<fsm.graph>`.
-  * A vendored graph replaces the default wholesale; this package never
-  * invents a compiled-default graph.
-  * @module @freddie/freddie-gm-config/src/graph
-  */
-
 import { readText } from './fs.js'
 import { joinRel, pathContainedWithin, validateSourcePath } from './path.js'
 import { resolve } from './resolve.js'
@@ -27,11 +19,6 @@ function parseGraph(raw, path) {
   }
 }
 
-/**
-  * Resolve the FSM graph JSON for `projectRoot`.
-  * @param projectRoot - project directory.
-  * @returns `{ tier, graph?, path?, reason? }`.
-  */
 export function resolveGraph(projectRoot) {
   const localPath = joinRel(projectRoot, GRAPH_OVERRIDE_REL)
   const localRaw = readText(localPath)
@@ -63,12 +50,6 @@ export function resolveGraph(projectRoot) {
   return { tier: 'broken', reason: parsed.reason, path: full }
 }
 
-/**
-  * Return the filesystem path a named hook would occupy. Never evaluates the file.
-  * @param projectRoot - project directory.
-  * @param hookPath - relative hook name from a graph edge.
-  * @returns `{ path, exists }` or `{ reason }` when the pointer is unsafe.
-  */
 export function resolveHookPath(projectRoot, hookPath) {
   const pathErr = validateSourcePath(hookPath)
   if (pathErr !== undefined) return { reason: pathErr }

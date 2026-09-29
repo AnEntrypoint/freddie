@@ -1,18 +1,7 @@
-/**
-  * Path and URL allowlists matching rs-plugkit `config_path.rs`.
-  * A rejected value is refused, never rewritten into a benign path.
-  * @module @freddie/freddie-gm-config/src/path
-  */
-
 const MAX_COMPONENT_LEN = 128
 const MAX_PATH_LEN = 512
 const ALLOWED_URL_SCHEMES = ['https://', 'http://', 'ssh://', 'git://']
 
-/**
-  * @param component - one path segment.
-  * @param what - label for the error.
-  * @returns error string, or undefined when accepted.
-  */
 function checkComponent(component, what) {
   if (component === '') return `${what}: empty path component`
   if (component.length > MAX_COMPONENT_LEN) {
@@ -30,11 +19,6 @@ function checkComponent(component, what) {
   return undefined
 }
 
-/**
-  * Validate a prose key for interpolation into `<base>/<key>.md`.
-  * @param key - hierarchical key using `/` separators.
-  * @returns error string, or undefined when accepted.
-  */
 export function validateProseKey(key) {
   const what = 'prose key'
   if (key === '') return `${what}: empty`
@@ -49,11 +33,6 @@ export function validateProseKey(key) {
   return undefined
 }
 
-/**
-  * Validate the `path` field of a repo-source spec. Empty means repo root.
-  * @param path - relative subdirectory inside a materialized config repo.
-  * @returns error string, or undefined when accepted.
-  */
 export function validateSourcePath(path) {
   const what = 'source spec `path`'
   const trimmed = path.trim().replace(/^\/+|\/+$/g, '')
@@ -75,11 +54,6 @@ function isScpLike(url) {
   return url.includes('@')
 }
 
-/**
-  * Validate a git remote URL. Refuses `ext::`, `file://`, local paths, leading `-`.
-  * @param url - repo URL from a source spec.
-  * @returns error string, or undefined when accepted.
-  */
 export function validateRepoUrl(url) {
   const what = 'config repo url'
   const u = url.trim()
@@ -99,11 +73,6 @@ export function validateRepoUrl(url) {
   return `${what}: ${JSON.stringify(u)} does not use an allowed transport. Permitted: ${ALLOWED_URL_SCHEMES.join(', ')} or git's user@host:path form. Local paths and file:// are refused because a repo-backed tier exists to fetch from elsewhere, and ext:// is refused because git executes it as a command rather than fetching from it.`
 }
 
-/**
-  * Validate a git ref / branch / sha used as `reference`.
-  * @param reference - ref string.
-  * @returns error string, or undefined when accepted.
-  */
 export function validateGitRef(reference) {
   const r = reference.trim()
   if (r === '') return '`ref` is empty'
@@ -149,12 +118,6 @@ function isRooted(p) {
   return s.startsWith('/') || s.charAt(1) === ':'
 }
 
-/**
-  * Whether `candidate` stays inside `root` after lexical `..` normalization.
-  * @param root - containing directory.
-  * @param candidate - joined path.
-  * @returns true when candidate is under root.
-  */
 export function pathContainedWithin(root, candidate) {
   const c = candidate.replaceAll('\\', '/')
   if (isRooted(c) && !isRooted(root)) return false
@@ -168,12 +131,6 @@ export function pathContainedWithin(root, candidate) {
   return true
 }
 
-/**
-  * Join base and relative with `/`, trimming trailing slashes on base.
-  * @param base - directory.
-  * @param rel - relative segment.
-  * @returns joined path using `/`.
-  */
 export function joinRel(base, rel) {
   const b = base.replace(/[/\\]+$/, '')
   if (b === '') return rel
