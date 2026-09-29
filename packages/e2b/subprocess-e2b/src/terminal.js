@@ -1,5 +1,3 @@
-/** E2B PTY allocation and process-session ownership for the subprocess seam. */
-
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { PassThrough } from 'node:stream'
@@ -185,7 +183,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
       attemptFailures.push(asError(error))
     }
   }
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- Provider cleanup yields to completion.
   if (!topLevelExited) {
     try {
       await handle.kill()
@@ -208,7 +205,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
       proofFailures.push(asError(error))
     }
   }
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- The callback mutates this after a race.
   if (!topLevelExited) {
     proofFailures.push(new Error(`subprocess-e2b: terminal setup rollback failed; surviving pid: ${handle.pid}`))
   }
@@ -225,7 +221,6 @@ async function rollbackUnpublishedTerminal(sandbox, handle, completion, envs, gr
   }
 }
 
-/** One E2B PTY and all process groups in its remote process session. */
 export class E2BTerminalHandle {
   pid
   done
@@ -250,7 +245,6 @@ export class E2BTerminalHandle {
     this.done = this.waitForCommand()
   }
 
-  /** @inheritdoc */
   write(data) {
     return this.trackOperation(async (signal) => {
       if (this.topLevelExited) throw new Error('terminal process has exited')
@@ -258,12 +252,10 @@ export class E2BTerminalHandle {
     })
   }
 
-  /** @inheritdoc */
   inspectForeground() {
     return this.trackOperation(signal => this.inspectForegroundOnce(signal))
   }
 
-  /** @inheritdoc */
   signalForeground(signal) {
     return this.trackOperation(async (operationSignal) => {
       const foreground = await this.inspectForegroundOnce(operationSignal)
@@ -281,7 +273,6 @@ export class E2BTerminalHandle {
     })
   }
 
-  /** @inheritdoc */
   terminate() {
     if (this.cleanup !== undefined) return this.cleanup
     this.operationController.abort(new Error('subprocess-e2b: terminal is terminating'))
@@ -389,15 +380,6 @@ export class E2BTerminalHandle {
   }
 }
 
-/**
- * Allocate an E2B PTY, replace its bootstrap shell with the requested argv,
- * and return only after the private runner has published readiness.
- * @param runtime - Shared E2B sandbox owner.
- * @param spec - Fully specified terminal-process request.
- * @param stateDir - Private remote directory for one startup transaction.
- * @param pollMs - Remote session liveness poll cadence.
- * @returns The live subprocess terminal handle.
- */
 export async function spawnE2BTerminal(runtime, spec, stateDir, pollMs) {
   const sandbox = await runtime.getSandbox()
   spec.signal?.throwIfAborted()

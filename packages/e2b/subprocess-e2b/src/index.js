@@ -1,9 +1,3 @@
-/**
- * E2B Service Provider for the subprocess capability seam. Each handle starts through the
- * shared sandbox and retains command output/status paths in that remote world.
- * @module @freddie/freddie-subprocess-e2b
- */
-
 import { randomUUID } from 'node:crypto'
 import { posix } from 'node:path'
 import z from '@freddie/schemastery'
@@ -14,19 +8,12 @@ import { E2BSubprocessHandle } from './process.js'
 import { asError, signalOpts } from './remote.js'
 import { spawnE2BTerminal } from './terminal.js'
 
-/**
- * Enforce the seam's documented grace bound (positive, finite, one Node timer),
- * matching subprocess-local's spawn-time check; an unbounded grace would make
- * the remote force-escalation deadline unreachable.
- * @param graceMs - The spec's cleanup grace in milliseconds.
- */
 function requireRepresentableGrace(graceMs) {
   if (!Number.isFinite(graceMs) || graceMs <= 0 || graceMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`subprocess graceMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
 }
 
-/** E2B command manager registered as `ctx.subprocess`. */
 export class E2BSubprocessRuntime extends SubprocessRuntime {
   static inject = ['e2b']
 
@@ -40,7 +27,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
   pollMs
   disposing = false
 
-  /** Create the E2B subprocess service and bind its disposal policy. */
   constructor(ctx, config) {
     super(ctx)
     const { pollMs } = config
@@ -76,7 +62,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
     }, 'e2b subprocess teardown')
   }
 
-  /** @inheritdoc */
   async resolveExecutable(command, env, signal) {
     if (command.length === 0) throw new Error('subprocess-e2b: executable name must be non-empty')
     signal?.throwIfAborted()
@@ -108,7 +93,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
     return posix.resolve(this.ctx.e2b.cwd, executable)
   }
 
-  /** @inheritdoc */
   spawn(spec) {
     if (this.disposing) throw new Error('subprocess-e2b: service is disposing')
     const program = spec.argv[0]
@@ -131,7 +115,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
     return handle
   }
 
-  /** @inheritdoc */
   async spawnTerminal(spec) {
     if (this.disposing) throw new Error('subprocess-e2b: service is disposing')
     const program = spec.argv[0]
@@ -155,7 +138,6 @@ export class E2BSubprocessRuntime extends SubprocessRuntime {
         this.pollMs,
       )
       this.terminals.add(terminal)
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- Remote allocation yields to disposal.
       if (this.disposing) {
         await terminal.terminate()
         this.terminals.delete(terminal)

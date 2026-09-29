@@ -1,22 +1,13 @@
-/** Bounded host-side projection of a complete output file retained in E2B. */
-
 import { Buffer } from 'node:buffer'
 
 const BASE64_TEXT = /^[A-Za-z0-9+/]+={0,2}$/u
 
-/** Reserved non-base64 frame proving that one remote encoder reached clean EOF. */
 export const E2B_OUTPUT_COMPLETE_FRAME = '!freddie-e2b-output-complete!'
 
-/** Incrementally decode newline-delimited base64 frames emitted by one remote encoder. */
 export class E2BBase64Decoder {
   pending = ''
   complete = false
 
-  /**
-   * Decode every complete newline-delimited frame in one arbitrarily split SDK callback.
-   * @param text - ASCII base64 frames from E2B's decoded callback.
-   * @returns the complete raw bytes made available by this callback.
-   */
   push(text) {
     if (text.length === 0) return Buffer.alloc(0)
     this.pending += text
@@ -44,10 +35,6 @@ export class E2BBase64Decoder {
     return Buffer.concat(decoded)
   }
 
-  /**
-   * Validate clean encoder completion, or discard an interrupted trailing frame after requested termination.
-   * @param requireComplete - Whether natural completion requires the reserved EOF frame.
-   */
   finish(requireComplete = true) {
     if (!requireComplete) {
       this.pending = ''
@@ -60,39 +47,26 @@ export class E2BBase64Decoder {
   }
 }
 
-/** Offset reader used for one collect-mode E2B stream. */
 export class E2BOutputReader {
   chunks = []
   retainedBytes = 0
   totalBytes = 0
   spillValid = true
 
-  /**
-   * Create a bounded reader over one remote spill path.
-   * @param maxBytes - In-memory tail cap.
-   * @param maxSpillBytes - Maximum complete remote file size the caller accepts.
-   * @param spillPath - Remote full-output path.
-   */
   constructor(maxBytes, maxSpillBytes, spillPath) {
     this.maxBytes = maxBytes
     this.maxSpillBytes = maxSpillBytes
     this.spillPath = spillPath
   }
 
-  /** Total bytes observed from the SDK stream. */
   get size() {
     return this.totalBytes
   }
 
-  /** Stop advertising a remote spill whose writer did not reach clean EOF. */
   invalidateSpill() {
     this.spillValid = false
   }
 
-  /**
-   * Append one byte-faithful decoded transport event.
-   * @param bytes - Raw command bytes recovered from the ASCII SDK transport.
-   */
   push(bytes) {
     if (bytes.length === 0) return
     const chunk = Buffer.from(bytes)
@@ -112,7 +86,6 @@ export class E2BOutputReader {
     }
   }
 
-  /** @inheritdoc */
   readFrom(fromByte) {
     const retained = Buffer.concat(this.chunks, this.retainedBytes)
     const firstRetained = this.totalBytes - this.retainedBytes

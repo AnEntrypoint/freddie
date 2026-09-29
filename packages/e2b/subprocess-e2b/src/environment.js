@@ -1,5 +1,3 @@
-/** Shared remote-environment scrubbing for E2B process and terminal launchers. */
-
 import { Buffer } from 'node:buffer'
 import { posix } from 'node:path'
 import { e2bControlEnvs } from '@freddie/freddie-e2b'
@@ -18,12 +16,6 @@ function remoteEnvironmentEntries(raw) {
   return entries
 }
 
-/**
- * Read the remote environment through ASCII base64 so SDK callback chunking cannot corrupt UTF-8.
- * @param sandbox - shared E2B execution world.
- * @param signal - optional cancellation for the control-plane request.
- * @returns the complete NUL-delimited UTF-8 environment.
- */
 export async function readRemoteEnvironment(sandbox, signal) {
   const result = await sandbox.commands.run(
     'set -o pipefail; freddie_e2b_passwd="$(getent passwd "$(id -u)")"; IFS=: read -r _ _ _ _ _ freddie_e2b_home _ <<<"$freddie_e2b_passwd"; test -n "$freddie_e2b_home" -a -d "$freddie_e2b_home"; printf \'%s\' "$freddie_e2b_home" | base64 -w 0; printf \'\\n\'; env -0 | base64 -w 0',
@@ -51,11 +43,6 @@ export async function readRemoteEnvironment(sandbox, signal) {
   return [...environment].map(([name, value]) => `${name}=${value}\0`).join('')
 }
 
-/**
- * Parse an E2B NUL-delimited environment while removing harness-private and credential-shaped names.
- * @param raw - The complete NUL-delimited remote environment.
- * @returns Mutable retained entries for the caller to overlay and serialize.
- */
 export function scrubRemoteEnvironment(raw) {
   const environment = new Map()
   for (const [name, value] of remoteEnvironmentEntries(raw)) {
@@ -65,11 +52,6 @@ export function scrubRemoteEnvironment(raw) {
   return environment
 }
 
-/**
- * Isolate E2B's fixed login-shell bootstrap from user profiles and ambient credentials.
- * @param raw - The complete NUL-delimited remote environment.
- * @returns Explicit E2B command or PTY overrides for bootstrap-shell startup.
- */
 export function bootstrapEnvironment(raw) {
   const environment = { TERM: 'dumb' }
   for (const [name] of remoteEnvironmentEntries(raw)) {
@@ -78,12 +60,6 @@ export function bootstrapEnvironment(raw) {
   return environment
 }
 
-/**
- * Overlay explicit entries and serialize one validated E2B environment.
- * @param raw - The complete NUL-delimited remote environment.
- * @param explicit - Deliberate caller overrides applied after ambient scrubbing; an `undefined` tombstone removes an ambient entry.
- * @returns NUL-delimited `name=value` entries accepted by `env -i`.
- */
 export function serializeRemoteEnvironment(raw, explicit) {
   const environment = scrubRemoteEnvironment(raw)
   for (const [name, value] of Object.entries(explicit ?? {})) {

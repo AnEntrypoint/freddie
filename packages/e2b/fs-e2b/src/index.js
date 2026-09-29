@@ -1,9 +1,3 @@
-/**
- * E2B provider for the filesystem capability seam. Paths, contents, and
- * atomic staging files remain inside the shared remote sandbox.
- * @module @freddie/freddie-fs-e2b
- */
-
 import { createHash, randomUUID } from 'node:crypto'
 import { Buffer } from 'node:buffer'
 import { posix } from 'node:path'
@@ -149,7 +143,6 @@ function literalEdit(content, request, displayPath) {
   return request.replaceAll ? content.split(oldString).join(newString) : content.replace(oldString, newString)
 }
 
-/** Remote filesystem backend sharing the sandbox owned by `ctx.e2b`. */
 export class E2BFileSystem extends FileSystem {
   static inject = ['e2b']
 

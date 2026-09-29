@@ -1,5 +1,3 @@
-/** One asynchronously-started E2B command projected onto the subprocess seam. */
-
 import { Buffer } from 'node:buffer'
 import { PassThrough, Writable } from 'node:stream'
 import { posix } from 'node:path'
@@ -135,7 +133,6 @@ function waitWithSignal(promise, signal) {
   })
 }
 
-/** E2B-backed subprocess handle with deferred remote PID acquisition. */
 export class E2BSubprocessHandle {
   stdin
   stdout
@@ -148,7 +145,6 @@ export class E2BSubprocessHandle {
   stdoutDecoder = new E2BBase64Decoder()
   stderrDecoder = new E2BBase64Decoder()
   terminationController = new AbortController()
-  /** Releases output waits that survive the command outcome, so blocked SDK callbacks settle. */
   outputReleased = new AbortController()
   stdoutReader
   stderrReader
@@ -163,13 +159,6 @@ export class E2BSubprocessHandle {
   terminationFailure
   terminationSignal = null
 
-  /**
-   * Begin an E2B command without blocking the synchronous subprocess spawn call.
-   * @param runtime - Shared E2B sandbox owner.
-   * @param spec - Fully resolved subprocess request.
-   * @param stateDir - Remote directory retaining process identity, status, and valid spills.
-   * @param pollMs - Remote status/liveness poll cadence.
-   */
   constructor(runtime, spec, stateDir, pollMs) {
     this.runtime = runtime
     this.spec = spec
@@ -204,12 +193,10 @@ export class E2BSubprocessHandle {
     if (spec.signal?.aborted === true) this.terminate()
   }
 
-  /** Remote process id after start; `-1` while E2B startup is pending or after it fails. */
   get pid() {
     return this.remotePid
   }
 
-  /** @inheritdoc */
   terminate() {
     if (this.quiescenceProven || this.terminationAttempt !== undefined) return
     this.terminationController.abort(new Error('subprocess-e2b: command terminated'))
@@ -227,7 +214,6 @@ export class E2BSubprocessHandle {
     )
   }
 
-  /** @inheritdoc */
   async waitForExit(signal) {
     if (this.quiescenceProven) return true
     let handle

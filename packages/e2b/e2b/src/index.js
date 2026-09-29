@@ -1,9 +1,3 @@
-/**
- * Shared ownership of one E2B sandbox. Capability adapters await the same SDK
- * handle, so filesystem and process operations inhabit one remote Linux world.
- * @module @freddie/freddie-e2b
- */
-
 import { randomUUID } from 'node:crypto'
 import { posix } from 'node:path'
 import { Service } from '@freddie/cordis'
@@ -18,29 +12,14 @@ export {
   SandboxNotFoundError,
 } from 'e2b'
 
-/**
- * Quote one opaque argument for the SDK's unavoidable `/bin/bash -l -c` layer.
- * @param value - Exact argument value to preserve.
- * @returns A single shell word with no interpolation.
- */
 export function quoteE2BShellArg(value) {
   return `'${value.replaceAll('\'', "'\"'\"'")}'`
 }
 
-/**
- * Isolate E2B's hard-coded login shell behind a fresh randomized home path.
- * @param overrides - Additional environment entries for the internal command.
- * @returns A fresh mutable map that the E2B SDK may extend.
- */
 export function e2bControlEnvs(overrides = {}) {
   return { ...overrides, HOME: `/.freddie-e2b-control-${randomUUID()}` }
 }
 
-/**
- * Creates one lazily consumable E2B SDK handle and deletes the sandbox at
- * timeout or disposal. Creation begins at plugin construction; adapters await
- * {@link getSandbox} before their first operation.
- */
 export class E2BRuntime extends Service {
   static Config = z.object({
     apiKey: z.string(),
@@ -48,10 +27,8 @@ export class E2BRuntime extends Service {
     timeoutMs: z.number().default(300_000),
   })
 
-  /** Validated remote working directory shared by provider adapters. */
   cwd
 
-  /** Remote directory reserved for adapter-owned process and terminal state. */
   runtimeRoot
 
   config
@@ -89,15 +66,9 @@ export class E2BRuntime extends Service {
     }, 'e2b sandbox teardown')
   }
 
-  /**
-   * Return the shared live SDK handle.
-   * @returns the created sandbox after the configured cwd exists.
-   * @throws when E2B rejects creation or the service is disposing.
-   */
   async getSandbox() {
     if (this.disposed) throw new Error('E2B sandbox service is disposing')
     const sandbox = await this.ready
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- Awaiting readiness yields to disposal.
     if (this.disposed) throw new Error('E2B sandbox service is disposing')
     return sandbox
   }
