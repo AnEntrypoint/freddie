@@ -4,15 +4,6 @@ const PACKAGE_NAME = '@freddie/freddie-host-webserver'
 export const name = 'host-webserver-invariant'
 export const inject = ['invariants']
 
-/**
- * Owned relation: HTTP and upgrade route registrations and their disposers must stay
- * symmetric — after the owning fiber of a registered route unloads, the
- * route table must no longer answer for its path (a stale route would keep
- * serving a disposed plugin's handler). Checked on every fiber teardown
- * (cordis 'internal/plugin'): the service's own registry state is compared
- * against the set of live fibers' registrations indirectly, by probing that
- * dispose really removed the entry — the register() disposer contract.
- */
 const install = (ctx, fail) => {
   ctx.on('internal/plugin', () => {
     const server = ctx.get('webServer')

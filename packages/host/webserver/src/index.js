@@ -6,13 +6,6 @@ import { renderIndexInjections } from './injections.js'
 export { renderIndexInjections } from './injections.js'
 export { etagOf, sendFile } from './static-file.js'
 
-/**
- * Strip a shell-HMR cache-busting prefix. `/__hmr/<rev>/plugins/x` is the
- * same route as `/plugins/x`; the prefix exists only so the browser's module
- * cache treats the tree as a new URL space after a shell remount.
- * @param pathname - decoded request pathname.
- * @returns the pathname with a leading `/__hmr/<rev>` removed, or unchanged.
- */
 export function stripHmrPrefix(pathname) {
   if (!pathname.startsWith('/__hmr/')) return pathname
   const rest = pathname.slice('/__hmr/'.length)
@@ -21,13 +14,6 @@ export function stripHmrPrefix(pathname) {
   return rest.slice(slash) || '/'
 }
 
-/**
- * The browser HTTP carrier service. Activation listens immediately. Route
- * registration order does not affect requests because configured named routes
- * must be distinct, and the fallback handler answers anything not yet claimed
- * during startup with 404 until its owner registers. A listen failure rejects
- * initialization, and the boot process reports the failed fiber.
- */
 export class WebServer extends Service {
   static Config = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
@@ -56,10 +42,6 @@ export class WebServer extends Service {
     return this.config.host
   }
 
-  /**
-   * Register a named route. Duplicate (kind, path) throws — route patterns are
-   * a composition-level contract, so a collision is a misconfiguration.
-   */
   register(route) {
     const table = route.kind === 'exact' ? this.exact : this.prefixes
     if (table.has(route.path)) {
@@ -69,10 +51,6 @@ export class WebServer extends Service {
     return () => { table.delete(route.path) }
   }
 
-  /**
-   * Register an exact-path HTTP upgrade route. Duplicate paths throw because
-   * one socket can have only one protocol owner.
-   */
   registerUpgrade(route) {
     if (this.upgrades.has(route.path)) {
       throw new Error(`webserver: duplicate upgrade route "${route.path}"`)
@@ -81,12 +59,6 @@ export class WebServer extends Service {
     return () => { this.upgrades.delete(route.path) }
   }
 
-  /**
-   * Claim the fallback seat: the handler answering every request no named
-   * route matches (the SPA dist server in the shipped Web composition). One
-   * owner only — a second registration throws, because two fallbacks cannot
-   * compose.
-   */
   registerFallback(handler) {
     if (this.fallback !== undefined) {
       throw new Error('webserver: fallback already registered')
@@ -95,11 +67,6 @@ export class WebServer extends Service {
     return () => { this.fallback = undefined }
   }
 
-  /**
-   * Register a raw-HTML index transform, the escape hatch for markup no
-   * structured injection row expresses: renderIndex applies taps in
-   * registration order after rendering the structured rows.
-   */
   tapIndex(transform) {
     this.indexTaps.push(transform)
     return () => {
@@ -108,7 +75,6 @@ export class WebServer extends Service {
     }
   }
 
-  /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init]() {
     const handle = async (req, res) => {
       const incoming = req.url ?? '/'
@@ -196,7 +162,6 @@ export class WebServer extends Service {
     }, 'webServer.listen')
   }
 
-  /** Longest-prefix-wins over the prefix table after an exact-table miss. */
   match(pathname) {
     const exact = this.exact.get(pathname)
     if (exact !== undefined) return exact
@@ -208,31 +173,18 @@ export class WebServer extends Service {
     return best
   }
 
-  /**
-   * Run an index.html body through the registered taps in registration order
-   * — called by the fallback owner on every index response it renders.
-   */
   applyIndexTaps(html) {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)
     return out
   }
 
-  /**
-   * Gather the structured injection table: one `webserver/index-inject` emit,
-   * every subscriber pushes its current rows. Fresh per call, so subscribers
-   * read live state (module graph, theme preference) at emit time.
-   */
   collectIndexInjections() {
     const table = []
     this.ctx.emit('webserver/index-inject', table)
     return table
   }
 
-  /**
-   * Render one index.html body: the structured injection table first, then
-   * the raw `tapIndex` transforms over the result.
-   */
   renderIndex(html) {
     return this.applyIndexTaps(renderIndexInjections(html, this.collectIndexInjections()))
   }
