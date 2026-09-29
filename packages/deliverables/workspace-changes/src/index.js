@@ -1,13 +1,3 @@
-/**
- * Summarizes the files each top-level turn changed from git working-tree
- * snapshots taken at turn start and turn end, plus whole-file captures taken
- * around each file-tool edit for paths git does not cover, and serves each
- * listed file's before-and-after comparison on demand. Each summary is
- * announced by a `workspace/changes` Session event that carries only the turn
- * number; summaries and comparisons are served through the `workspaceChanges`
- * service until the Session is disposed. Outside a git repository, or without
- * git, the summary lists file-tool edits only.
- */
 import { homedir, tmpdir } from 'node:os'
 import z from '@freddie/schemastery'
 import { GitRunner } from './git.js'
@@ -15,13 +5,10 @@ import { TurnRecorder } from './recorder.js'
 
 export * from './types.js'
 
-/** Stable Loader identity. */
 export const name = 'workspace-changes'
 
-/** Services used to run git and observe turns. */
 export const inject = ['subprocess']
 
-/** Schemastery validation for the plugin's snapshot, capture, and comparison bounds. */
 export const Config = z.object({
   timeoutMs: z.number().default(30_000),
   outputMaxBytes: z.number().default(8 * 1024 * 1024),
@@ -35,14 +22,6 @@ function eligible(session) {
   return origin === 'subagent' || (delegationDepth ?? 0) > 0 ? undefined : cwd
 }
 
-/**
- * Resolve the git executable once. On macOS the Xcode stub at `/usr/bin/git`
- * opens an installer dialog instead of running, so it counts as absent until
- * developer tools are selected.
- * @param {import('@freddie/cordis').Context} ctx - subprocess capability.
- * @param {AbortSignal} signal - plugin lifetime.
- * @returns {Promise<string | null>} the executable path, or null when git is unavailable.
- */
 async function resolveGit(ctx, signal) {
   let executable
   try {
@@ -59,13 +38,6 @@ async function resolveGit(ctx, signal) {
   return outcome.exitCode === 0 ? executable : null
 }
 
-/**
- * Observe top-level turns of every Session with a working directory, capture
- * file-tool edits, announce change summaries, and serve them with their
- * comparisons as `workspaceChanges`.
- * @param {import('@freddie/cordis').Context} ctx - host context with `subprocess`.
- * @param {{ timeoutMs: number; outputMaxBytes: number; maxFiles: number; maxFileBytes: number; diffTimeoutMs: number }} config - validated bounds.
- */
 export function apply(ctx, config) {
   for (const [field, value] of [
     ['timeoutMs', config.timeoutMs], ['outputMaxBytes', config.outputMaxBytes], ['maxFiles', config.maxFiles],
@@ -86,7 +58,6 @@ export function apply(ctx, config) {
     lifetime.abort()
     await Promise.all([...recorders.keys()].map(forget))
   })
-  /** @type {import('./types.js').WorkspaceChanges} */
   const service = {
     summary: (sessionId, seq) => byId.get(sessionId)?.summary(seq),
     diff: (sessionId, seq, index, signal) => byId.get(sessionId)?.diff(seq, index, signal) ?? Promise.resolve(undefined),

@@ -1,17 +1,3 @@
-/**
- * Parsing of `git diff-tree --numstat -z` output.
- * @typedef {{ path: string; oldPath?: string; added: number; deleted: number; binary: boolean }} NumstatEntry
- *   One `--numstat` record; paths are slash-separated and relative to the repository root. `oldPath`
- *   is the path before a detected rename; absent for a file that kept its path.
- */
-
-/**
- * Parse NUL-terminated numstat records. A rename record carries an empty path
- * followed by the old and new paths.
- * @param {string} output - complete stdout of `git diff-tree -r -M -z --numstat`.
- * @returns {NumstatEntry[]} records in git's output order.
- * @throws when a record is malformed, which indicates truncated output.
- */
 export function parseNumstat(output) {
   const queue = output.split('\0')
   if (queue.at(-1) !== '') throw new Error('numstat output is not NUL-terminated')

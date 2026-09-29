@@ -1,31 +1,15 @@
-/** Line comparison of two whole-file texts, bounded by a timeout that degrades to whole-file replacement. */
 import { structuredPatch } from 'diff'
 
-/** Context lines around each change, the unified-diff default. */
 const CONTEXT_LINES = 3
 
-/**
- * A side's text with every line terminated, so the last line compares by
- * content alone and empty text reads as no lines rather than one empty line.
- */
 function terminated(text) {
   return text === '' || text.endsWith('\n') ? text : `${text}\n`
 }
 
-/** Content lines of a terminated text; empty text is zero lines. */
 function lines(text) {
   return text === '' ? [] : text.slice(0, -1).split('\n')
 }
 
-/**
- * Compare two texts line by line. A side that is null means the file did not
- * exist. A comparison exceeding `timeoutMs` yields one hunk that deletes every
- * old line and adds every new line.
- * @param {string | null} before - turn-start text, or null.
- * @param {string | null} after - turn-end text, or null.
- * @param {number} timeoutMs - milliseconds the line comparison may run.
- * @returns {{ hunks: import('./types.js').WorkspaceDiffHunk[]; coarse: boolean; added: number; deleted: number }} hunks and totals; no hunks when both sides hold the same lines.
- */
 export function compareText(before, after, timeoutMs) {
   const oldText = terminated(before ?? '')
   const newText = terminated(after ?? '')

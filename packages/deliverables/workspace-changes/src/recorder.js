@@ -1,4 +1,3 @@
-/** Per-Session turn recorder: snapshots, captures around file-tool edits, the turn-end diff, and the records kept until disposal. */
 import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
@@ -9,59 +8,27 @@ import {
 } from './git.js'
 import { canonicalPath, compareDisplay, displayPathOf, durablePathOf, isInside, isTemporaryPath, temporaryRoots, toPosix } from './paths.js'
 
-/**
- * @typedef {{ git: Promise<import('./git.js').GitRunner | null>; tempRoot: string; maxFiles: number; maxFileBytes: number; diffTimeoutMs: number; warn: (message: string) => void }} RecorderEnvironment
- *   Facts shared by every recorder of one plugin instance. `git` resolves to the runner, or null when
- *   git is unavailable and no snapshot is taken. `warn` is the failure reporter; a failed turn
- *   records nothing and the next turn retries.
- */
 
 function freshState(turn) {
   return { turn, baseline: null, captures: new Map(), lastToolResultSeq: -1, attemptedAfterSeq: -1, recordedAfterSeq: -1 }
 }
 
-/** A snapshot side larger than the byte cap. */
 const OVERSIZED = Symbol('oversized')
 
-/**
- * Serializes one Session's recording work: the turn-start snapshot, the
- * whole-file capture before each file-tool mutation, the turn-end snapshot
- * with its diff, and the appended `workspace/changes` event whose summary and
- * comparisons this recorder keeps. Snapshot objects and captured copies live in
- * a temporary directory owned by the recorder; disposal removes it together
- * with the summaries. Tool execution waits for pending work so a snapshot or
- * capture never races a mutation. A working directory outside any repository,
- * or a Host without git, gets no snapshot; its summary lists the files the file
- * tools changed.
- */
 export class TurnRecorder {
-  /**
-   * @param {import('@freddie/freddie-session').Session} session
-   * @param {string} cwd
-   * @param {RecorderEnvironment} env
-   */
   constructor(session, cwd, env) {
     this.session = session
     this.cwd = cwd
     this.env = env
     this.chain = Promise.resolve()
-    /** The open turn; before the first `turn/start` it is an empty placeholder no event can match. */
     this.state = freshState(0)
-    /** Canonical paths, resolved by the first turn. */
     this.paths = undefined
-    /** The located repository, reused across turns once found; null keeps retrying each turn. */
     this.repository = null
-    /** Temporary directory holding this Session's snapshot objects, scratch indexes, and captured copies. */
     this.scratch = undefined
-    /** Records by the sequence of the event that announced them. */
     this.records = new Map()
     this.lifetime = new AbortController()
   }
 
-  /**
-   * Open a turn with fresh per-turn state and queue its baseline snapshot.
-   * @param {number} turn - the turn number from `turn/start`.
-   */
   start(turn) {
     const state = freshState(turn)
     this.state = state
@@ -79,13 +46,6 @@ export class TurnRecorder {
     })
   }
 
-  /**
-   * Queue the capture of the path a file tool is about to mutate, before the
-   * tool runs; only the turn's first mutation of a path captures it. Await
-   * {@link TurnRecorder#settled} afterwards so the tool cannot overtake the capture.
-   * @param {string} name - wire tool name.
-   * @param {unknown} args - parsed call arguments.
-   */
   capture(name, args) {
     const path = mutationPath(name, args)
     if (path === undefined) return
@@ -100,58 +60,31 @@ export class TurnRecorder {
     })
   }
 
-  /**
-   * Remember a settled tool result, so a record after `turn/end` covers it.
-   * @param {import('@freddie/freddie-session').SessionEvent} event - the appended `tool/result` event.
-   */
   observe(event) {
     const state = this.state
     if (event.data.turn === state.turn) state.lastToolResultSeq = event.seq
   }
 
-  /**
-   * Record the turn's changes inside the turn, before `turn/end` commits.
-   * @param {number} turn - the stopping turn.
-   * @returns {Promise<void>} after the event is appended or the attempt failed.
-   */
   stopping(turn) {
     const state = this.state
     if (turn !== state.turn) return Promise.resolve()
     return this.enqueue(signal => this.record(state, signal))
   }
 
-  /**
-   * Record after `turn/end` unless a record was already attempted after the turn's last tool result.
-   * @param {number} turn - the turn number from `turn/end`.
-   */
   end(turn) {
     const state = this.state
     if (turn !== state.turn || state.attemptedAfterSeq >= state.lastToolResultSeq) return
     void this.enqueue(signal => this.record(state, signal))
   }
 
-  /** @returns {Promise<void>} resolves once every queued snapshot, capture, and record has settled. */
   settled() {
     return this.chain
   }
 
-  /**
-   * The summary announced by one `workspace/changes` event of this Session.
-   * @param {number} seq - the event's sequence number.
-   * @returns {import('./types.js').WorkspaceChangesSummary | undefined} the summary, or undefined for a sequence this recorder did not announce.
-   */
   summary(seq) {
     return this.records.get(seq)?.summary
   }
 
-  /**
-   * Compare one listed file's contents at turn start and turn end.
-   * @param {number} seq - the announcing event's sequence number.
-   * @param {number} index - the file's index in the summary's `files`.
-   * @param {AbortSignal} signal - cancels the reads.
-   * @returns {Promise<import('./types.js').WorkspaceFileDiff | undefined>} the comparison, or undefined for an unknown sequence or index, or once disposed.
-   * @throws when a read fails while the recorder lives.
-   */
   async diff(seq, index, signal) {
     const record = this.records.get(seq)
     const file = record?.summary.files[index]
@@ -171,10 +104,6 @@ export class TurnRecorder {
     }
   }
 
-  /**
-   * Abort queued work, forget every record, and remove the temporary directory.
-   * @returns {Promise<void>} once the temporary directory is gone.
-   */
   async dispose() {
     this.lifetime.abort()
     this.records.clear()
@@ -195,18 +124,15 @@ export class TurnRecorder {
     return run
   }
 
-  /** A failure after disposal is expected cancellation and stays silent. */
   warnUnlessDisposed(error) {
     if (!this.lifetime.signal.aborted) this.env.warn(`workspace-changes: ${String(error)}`)
   }
 
-  /** This Session's temporary directory, created on first use. */
   scratchDir() {
     this.scratch ??= mkdtemp(join(this.env.tempRoot, 'freddie-workspace-changes-'))
     return this.scratch
   }
 
-  /** The repository enclosing the working directory, located once; null keeps retrying each turn. */
   async locate(cwd, signal) {
     if (this.repository !== null) return this.repository
     const git = await this.env.git
@@ -217,7 +143,6 @@ export class TurnRecorder {
     return this.repository
   }
 
-  /** One side's text, null for an absent file, or {@link OVERSIZED} for a snapshot side beyond the byte cap. */
   async readSide(source, signal) {
     switch (source.kind) {
       case 'absent': return null
@@ -295,11 +220,6 @@ export class TurnRecorder {
     state.recordedAfterSeq = event.seq
   }
 
-  /**
-   * The listing of a captured pair: an oversized side lists the file without
-   * counts and refuses its comparison, a binary side likewise, and two text
-   * sides carry the counts of their line comparison.
-   */
   async compared(paths, root, absolute, before, after) {
     const list = (counts, sources) => ({ file: changedFile(paths, root, absolute, counts), sources })
     if (before.kind === 'oversized' || after.kind === 'oversized') {
@@ -312,7 +232,6 @@ export class TurnRecorder {
   }
 }
 
-/** Whether a captured side holds binary content. */
 function isBinary(capture) {
   return capture.kind === 'file' && capture.binary
 }

@@ -1,32 +1,15 @@
-/**
- * Scoped tool that declares filesystem deliveries in their owning Session.
- *
- * @typedef {{ readonly path: string; readonly description?: string }} PresentedFile
- */
-
 import z from '@freddie/schemastery'
 import { FsError } from '@freddie/freddie-fs'
 import { defineTool } from '@freddie/freddie-tools'
 
-/** Stable Loader identity. */
 export const name = 'tool-present'
 
-/** Validated delivery limit. */
 export const Config = z.object({
   maxFiles: z.number().default(8),
 })
 
-/** Services used by the delivery tool. */
 export const inject = ['tools', 'fs']
 
-/**
- * The turn number a call belongs to, and whether that turn is still open —
- * read directly from the session's event log rather than a registered
- * projection unit, matching how `@freddie/freddie-agent-loop` itself derives
- * `lastTurn`. Open means the most recent `turn/start` has no later `turn/end`.
- * @param {import('@freddie/freddie-session').Session} session - the session to inspect.
- * @returns {{ turn: number; open: boolean }} the current turn number and whether it is still open.
- */
 function currentTurnBoundary(session) {
   const events = session.events
   const start = events.findLast(event => event.type === 'turn/start')
@@ -35,11 +18,6 @@ function currentTurnBoundary(session) {
   return { turn: start.data.turn, open: end === undefined || end.seq < start.seq }
 }
 
-/**
- * Register present with durable file references in its tool result.
- * @param {import('@freddie/cordis').Context} ctx - agent-scoped services.
- * @param {{ maxFiles: number }} config - maximum files per call.
- */
 export function apply(ctx, config) {
   if (!Number.isSafeInteger(config.maxFiles) || config.maxFiles < 1) {
     throw new Error('present requires a positive integer maxFiles')
