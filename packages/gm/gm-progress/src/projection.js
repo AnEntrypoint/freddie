@@ -1,5 +1,3 @@
-/** Pure session-projection fold for the complete GM progress event. */
-
 const EMPTY_PROGRESS = Object.freeze({
   verb: null,
   status: 'idle',
@@ -17,7 +15,6 @@ const EMPTY_PROGRESS = Object.freeze({
   walking: null,
 })
 
-/** Client-visible GM progress projection definition. */
 export const gmProgressProjectionDefinition = {
   key: 'gmProgress',
   stateVersion: 3,

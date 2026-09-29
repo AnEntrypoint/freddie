@@ -1,5 +1,3 @@
-/** GM progress is an optional ignorable session event projection. */
-
 export const name = 'gm-progress-invariant'
 export const inject = ['invariants']
 
