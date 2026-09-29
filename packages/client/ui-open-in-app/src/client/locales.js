@@ -33,7 +33,6 @@ const PRODUCT_NAMES = {
   'app.konsole': 'Konsole',
 }
 
-/** English dictionary. */
 export const en = {
   'group.aria': 'Open workspace in an application',
   'open.title': 'Open in {app}',

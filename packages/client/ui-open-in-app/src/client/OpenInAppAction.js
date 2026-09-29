@@ -5,13 +5,6 @@ import css from './OpenInAppAction.css.js'
 
 const ITEM_PREFIX = 'app:'
 
-/**
- * Session-header split button: the primary half opens the session workspace in
- * the remembered (else first) installed application, the chevron lists the rest.
- * Renders nothing until the host has answered with at least one application and
- * the session has a working directory, so a refused or unreachable host never
- * leaves a broken control behind.
- */
 export class FreddieOpenInAppAction extends HTMLElement {
   #props = null
   #apps = null
@@ -20,7 +13,6 @@ export class FreddieOpenInAppAction extends HTMLElement {
   #pending = false
   #brokenIcons = new Set()
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#adoptApps()

@@ -5,10 +5,6 @@ import { en, NS } from './locales.js'
 
 export const inject = ['slots', 'locale']
 
-/**
- * Register the dictionaries and the session-header split button.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   const controller = new OpenInAppController()
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-open-in-app: dictionaries')

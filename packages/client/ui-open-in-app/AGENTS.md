@@ -7,3 +7,5 @@
 - `index.js` registers with `order: -10` so the split button sits left of the other utilities entries, whose default order is 0.
 - Failures collapse to "unavailable" in `controller.js` on purpose: the host answers 403 to any non-loopback Host, and a rejected offer must look identical to an absent one.
 - `src/invariant.js` installs nothing. No runtime invariant: the host entry `src/index.js` registers nothing, and the browser half contributes one header slot entry over three host routes whose validation lives in `freddie-host-open-in-app`; the only state it owns is the remembered choice in `localStorage`, which is read and written by the browser alone.
+
+- `OpenInAppAction.js` renders nothing until the host has answered with at least one application and the session has a working directory, so a refused or unreachable host never leaves a broken control; the primary half opens the remembered (else first) application, the chevron lists the rest.
