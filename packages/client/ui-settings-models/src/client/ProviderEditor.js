@@ -1,28 +1,3 @@
-/**
- * One provider's editor card, hand-written for the DeepSeek adapter: the
- * primary field is a single write-only **API key** input (the page never
- * asks for an environment-variable name — a typed key stores through
- * `credentials.set` under the profile's reference, deriving `<ROUTE>_API_KEY`
- * when the profile has none); the collapsed custom-settings area carries the
- * curated extras (`baseURL`, DeepSeek's id/name/context-window model
- * catalog).
- * Reasoning effort is deliberately absent: it is a per-MODEL capability, and
- * the models under one provider disagree about it, so a provider-scoped
- * control can only be set to a value some of them reject. The composer's
- * model picker offers each model its own levels; `settings.yaml` keeps the
- * profile field for a deployment that knows its route. Everything else stays
- * owned by `settings.yaml`. Profile edits land as minimal `settings.mutate`
- * path ops against the stored section — the card names only the fields it can
- * see instead of rebuilding the whole subtree from a partial descriptor.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState becomes an instance field, the credential-describe useEffect
- * becomes connectedCallback/disconnectedCallback (the `stale` guard becomes
- * an epoch counter), and useMemo becomes a plain recompute cached behind a
- * last-inputs identity check. Re-render is an explicit applyDiff(this, vdom)
- * call (Toast.tsx's pattern).
- */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   DeepSeekModelsEditor, modelDrafts, validateDeepSeekModels,
@@ -33,10 +8,8 @@ import { deriveKeyRef, messageOf } from './store.js'
 import styles from './ModelsSection.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
 
-/** A user-section subtree as a plain draft object (absent → empty). */
 function draftAt(
   schema,
   namespace,
@@ -47,16 +20,6 @@ function draftAt(
   return structuredClone(subtree)
 }
 
-/**
- * The minimal path ops carrying `after` over `before`, both as the card sees
- * them. Only keys the card observed are named; fields absent from both sides
- * produce no op, which is why edits are path-addressed rather than a rebuilt
- * section.
- * @param base - path of the edited subtree inside the user section.
- * @param before - the subtree as loaded, or undefined when it is new.
- * @param after - the subtree as edited.
- * @returns ordered set/unset ops; empty when nothing changed.
- */
 export function pathOps(
   base,
   before,
@@ -76,13 +39,11 @@ export function pathOps(
   return ops
 }
 
-/** The editor layout the owning namespace selects. */
 function layoutOf(ns) {
   if (ns === 'llm-deepseek') return 'deepseek'
   return 'unknown'
 }
 
-/** The credential reference this profile resolves keys through. */
 function refFor(
   schema,
   namespace,
@@ -108,7 +69,6 @@ const DEFAULT_PROPS = {
   onClose: () => {},
 }
 
-/** One provider's editing card, as a webjsx custom element. */
 export class FreddieProviderEditor extends HTMLElement {
   #props = DEFAULT_PROPS
   #draft = {}
@@ -168,12 +128,6 @@ export class FreddieProviderEditor extends HTMLElement {
       : schema.setPath(this.#draft, [key], value)
   }
 
-  /**
-   * The write for this card, or a failure message. Every edit travels as
-   * path ops against the STORED section: the draft comes from the redacted
-   * descriptor, so a wholesale replace rebuilt from it could delete fields
-   * outside the card. Ops name only the fields this card can see.
-   */
   async #applyOnce() {
     const { schema, namespace, settingsPath, api, provider, t } = this.#props
     const ns = namespace.ns
@@ -235,13 +189,6 @@ export class FreddieProviderEditor extends HTMLElement {
     }
   }
 
-  /**
-   * The catalog beneath the user layer: what the composition entry pinned, or
-   * else the schema default that `resolve` would supply. The effective value
-   * cannot answer this — it still carries the stored override until the unset
-   * is applied, so reading it would echo that override straight back the
-   * moment reset drops it, leaving the rows unchanged until a reload.
-   */
   #inheritedModels() {
     const { schema, namespace, settingsPath } = this.#props
     const pinned = schema.getPath(namespace.base, [...settingsPath, 'models'])
@@ -249,11 +196,6 @@ export class FreddieProviderEditor extends HTMLElement {
     return pinned ?? (schema.nodeAtPath(root, [...settingsPath, 'models']))?.meta.default
   }
 
-  /**
-   * The curated fields of one known adapter family. The family arrives
-   * narrowed so the per-family branches below are total: an unknown namespace
-   * renders the hint instead and never reaches this body.
-   */
   #curatedFields() {
     const props = this.#props
     const { schema, namespace, settingsPath, t } = props
@@ -403,51 +345,12 @@ export class FreddieProviderEditor extends HTMLElement {
 
 defineElement('freddie-provider-editor', FreddieProviderEditor)
 
-/**
- * @typedef {object} ProviderEditorProps
- * @property {string} provider - the profile's route key (e.g. `llm-deepseek`), shown beside
- * `displayName` when they differ and used to derive the credential reference.
- * @property {string} displayName - the card's title text.
- * @property {object} namespace - the addressed settings namespace view: `ns`, `value`
- * (effective), `user` (stored override), `base` (composition-pinned), `schema` (serialized
- * node), and `revision` (expected-revision fence for writes).
- * @property {object} schema - settings-owned schema operations: `getPath`, `setPath`,
- * `deletePath`, `hasPath`, `nodeAtPath`, `rehydrate`, `validate`.
- * @property {Array<string|number>} settingsPath - path of the edited subtree inside the
- * namespace's user section.
- * @property {object} api - wire faces used by the card: `api.credentials.describe`/`set` and
- * `api.settings.mutate`.
- * @property {(key: string) => string} t - locale lookup for field labels and copy.
- * @property {boolean} readOnly - disables every control without hiding them.
- * @property {() => void} onClose - called with no meaning attached to the return; see the call
- * site (`onClose(true)` on a successful apply, `onClose(false)` on cancel).
- * @property {boolean} [credentialOnly] - renders only the API-key field, hiding the
- * customized-settings disclosure and skipping section path ops on apply.
- * @property {boolean} [credentialRequired] - requires a non-blank key before submit is enabled.
- * @property {boolean} [autoFocusCredential] - autofocuses the API-key input.
- * @property {boolean} [hideTitle] - omits the header row (title plus route).
- * @property {string} [submitLabel] - overrides the footer submit button's copy key.
- * @property {string} [submitBusyLabel] - overrides the footer submit button's busy-state copy key.
- * @property {string} [cancelLabel] - overrides the footer cancel button's copy key.
- */
-
-/**
- * Create (if needed) or update a ProviderEditor element in place.
- * @param el - an existing element to update, or null to create one.
- * @param props - see {@link ProviderEditorProps}.
- * @returns the element; keep it and pass it back in to update.
- */
 export function renderProviderEditor(el, props) {
   const target = el ?? document.createElement('freddie-provider-editor')
   target.setProps(props)
   return target
 }
 
-/**
- * Render one provider's editing card.
- * @param props - the addressed profile plus wire faces and copy.
- * @returns the editor card, cast for JSX use (Modal.tsx's pattern).
- */
 export function ProviderEditor(props) {
   return renderProviderEditor(null, props)
 }

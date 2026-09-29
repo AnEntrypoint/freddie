@@ -1,39 +1,17 @@
-/**
- * Models settings plugin, browser half. It registers the Models page. The
- * Host settings and credential contracts stay behind their existing wire
- * APIs. Export discipline: packages/client/AGENTS.md.
- */
 import { ModelsSection } from './ModelsSection.js'
 import { ModelsSettingsStore } from './store.js'
 import { createSettingsSchemaOperations } from './schema-operations.js'
 import { en } from './locales.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'settings.models'
 
-/**
- * Refetch the page snapshot only after its first load: an unopened Models
- * page must not fetch on background invalidations.
- * @param controller - the page store.
- */
 export function refreshIfLoaded(controller) {
   if (controller.store.getSnapshot().status === 'idle') return
   void controller.load()
 }
 
-/**
- * Required services (cordis fiber inject). The target slot is declared by
- * ui-settings' apply, whose activation order relative to this one is NOT
- * constrained; registration depends on each slot through `slots.inject()`.
- */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope', 'settingsSchema']
 
-/**
- * Register the Models section once the `settings.section` declaration is on
- * the ledger, wire its store to the connection, and keep it fresh on every
- * pushed invalidation (settings, credentials, or provider topology).
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-models: copy dictionaries')
 

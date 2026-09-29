@@ -1,31 +1,9 @@
-/**
- * Models settings section: the provider rows joined from the configurable
- * directory, settings namespaces, and credential states, with one editor
- * card at a time. Rows expose only confirmed API-key state through accessible
- * solid configured or missing dots. A whole-section provider without a
- * configured key renders as its open setup card instead of a row, but only in
- * the first-run posture — no provider on the page can serve requests yet — and
- * only until the user closes that card; the add flow is a card carrying the
- * dormant-provider select. Each card kind owns its own open state, so closing
- * one never discards a draft in another. Every mutation writes through the
- * wire, while a provider removal first requires confirmation; the page
- * re-renders from pushed invalidations or the post-apply reload.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState becomes an instance field, and re-render is an explicit
- * applyDiff(this, vdom) call (Toast.tsx's pattern). `ModelsSection` itself
- * stays a plain function (its only job was reading injected props and
- * choosing null-vs-render, no state of its own); the stateful body (the old
- * `Loaded` component) becomes the `FreddieModelsSectionLoaded` custom element.
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconPlusOutline16, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { deriveKeyRef, messageOf, providerUsable } from './store.js'
 import { ProviderEditor } from './ProviderEditor.js'
 import styles from './ModelsSection.css.js'
 
-/** Render an editor for either the setup posture or an expanded provider row. */
 function renderProviderEditorCard({ target, ...props }) {
   return h(ProviderEditor, {
     provider: target.provider,
@@ -36,17 +14,6 @@ function renderProviderEditorCard({ target, ...props }) {
   })
 }
 
-/**
- * Remove one user-added provider and its page-managed credential. Credential
- * removal comes first so a second-step failure leaves the provider row visible
- * and the whole operation safely retryable; both unsets are idempotent.
- * The settings removal names the profile rather than rebuilding its whole
- * namespace from a partial view.
- * @param api - settings and credential wire faces.
- * @param controller - the page store to refresh.
- * @param target - the provider's settings address and optional managed credential.
- * @returns the failure message, or undefined once the write and reload landed.
- */
 export async function removeProviderProfile(
   api,
   controller,
@@ -69,15 +36,6 @@ export async function removeProviderProfile(
   return undefined
 }
 
-/**
- * Whether a whole-section provider still needs its first key: an unconfigured
- * credential opens the setup card instead of showing a row. This is the
- * first-run posture alone — a user who can already reach some provider gets an
- * ordinary row with the missing-key dot, since nothing here is blocking them.
- * @param row - the joined provider row.
- * @param anyUsable - whether any joined row can already serve requests.
- * @returns whether to render the setup card.
- */
 export function needsSetup(row, anyUsable) {
   if (anyUsable) return false
   if (row.entry.settingsPath.length > 0) return false
@@ -101,23 +59,16 @@ function targetOf(row) {
   }
 }
 
-/** Stable visible and accessible identity for one provider target. */
 export function providerTargetLabel(target) {
   return target.provider === target.displayName
     ? target.provider
     : `${target.displayName} (${target.provider})`
 }
 
-/** Replace the one provider placeholder in localized destructive-action copy. */
 export function providerCopy(template, target) {
   return template.replace('{provider}', () => providerTargetLabel(target))
 }
 
-/**
- * Render the Models section content column.
- * @param props - slot-delivered injected dependencies.
- * @returns the section, or null while the shell has not injected yet.
- */
 export function ModelsSection(props) {
   const { controller, useSnapshot, api, schema, t } = props
   if (
@@ -129,7 +80,6 @@ export function ModelsSection(props) {
 
 const DEFAULT_LOADED_PROPS = {}
 
-/** The stateful body of the Models section, as a webjsx custom element. */
 export class FreddieModelsSectionLoaded extends HTMLElement {
   #injected = DEFAULT_LOADED_PROPS
   #editing = undefined
@@ -166,13 +116,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
     this.#render()
   }
 
-  /**
-   * Close a setup card, which owns none of the state above: the row-editor,
-   * add, and declare cards each own one of those, so clearing them here would
-   * discard a draft the user opened beside this card. Dismissal is this card's
-   * own — the provider falls back to an ordinary row for the rest of the
-   * session, and reopens through Edit.
-   */
   #closeSetup(changed, target) {
     this.#dismissedSetup = new Set([...this.#dismissedSetup, target.provider])
     if (changed) this.#announceSaved(target)
@@ -437,12 +380,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
 
 defineElement('freddie-models-section-loaded', FreddieModelsSectionLoaded)
 
-/**
- * Create (if needed) or update the Models-section stateful body in place.
- * @param el - an existing element to update, or null to create one.
- * @param injected - the slot-delivered injected dependencies.
- * @returns the element; keep it and pass it back in to update.
- */
 export function renderModelsSectionLoaded(
   el,
   injected,

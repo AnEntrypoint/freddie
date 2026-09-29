@@ -1,22 +1,8 @@
-/**
- * Welcome-notice state derived from the welcome settings scope. The scope is
- * the transport: a loopback browser follows the durable Host section, while a
- * remote browser's memory-mode scope never answers and the acknowledgement
- * stays process-local here.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_VERSION,
 } from '../onboarding-copy.js'
 
-/**
- * Accept any object section verbatim; a malformed durable value reads as an
- * empty section, so the notice treats it as unacknowledged instead of leaving
- * the scope stuck on its previous value.
- * @param section - the wire section value.
- * @returns the section object, or an empty one for non-object values.
- */
 export function decodeWelcomeSection(section) {
   return typeof section === 'object' && section !== null && !Array.isArray(section)
     ? section
@@ -28,9 +14,7 @@ function assertNever(_value) {
   throw new Error('unexpected welcome settings status')
 }
 
-/** Coordinates durable Host acknowledgement or a process-local remote fallback. */
 export class WelcomeNoticeStore {
-  /** uSES-safe state source shared by the registered welcome step. */
   store = createSnapshotStore({
     status: 'idle', acknowledged: false, error: null,
   })
@@ -39,30 +23,16 @@ export class WelcomeNoticeStore {
   saving = false
   following
 
-  /**
-   * @param scope - the welcome settings namespace scope; its memory mode is
-   * what keeps a remote browser process-local.
-   */
   constructor(scope) {
     this.scope = scope
   }
 
-  /**
-   * Begin following the bound scope (idempotent) and publish its current answer.
-   * @returns settlement after the current answer is published.
-   */
   load() {
     this.following ??= this.scope.subscribe(() => { this.derive() })
     this.derive()
     return Promise.resolve()
   }
 
-  /**
-   * Persist this copy version, or advance only this process for a remote
-   * browser. Success is judged against the state the write left behind, so a
-   * refused or failed write reports false after its recovery read settles.
-   * @returns true when the selected persistence mode holds the acknowledgement.
-   */
   async acknowledge() {
     if (this.scope.getSnapshot().mode === 'memory') {
       this.localAcknowledged = true
@@ -87,7 +57,6 @@ export class WelcomeNoticeStore {
     return acknowledged
   }
 
-  /** Stop following the scope. */
   dispose() {
     this.following?.()
     this.following = undefined

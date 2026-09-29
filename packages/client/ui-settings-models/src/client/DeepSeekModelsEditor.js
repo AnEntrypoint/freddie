@@ -1,14 +1,3 @@
-/**
- * Curated editor for the direct DeepSeek adapter's advisory model catalog.
- * The settings layer replaces `models` as one array, so the parent supplies
- * the effective inherited rows until the first edit materializes a user
- * override; reset removes that override instead of copying defaults into it.
- *
- * Converted from a React hooks component to a webjsx custom element: the two
- * useState buffers (editing/expanded) become instance fields, and re-render
- * is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconPlusOutline16, IconTrashOutline16,
@@ -16,24 +5,14 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import styles from './ModelsSection.css.js'
 
-/** Row index encoded in an editing-buffer key. */
 function rowOf(key) {
   return Number(key.slice(0, key.indexOf(':')))
 }
 
-/** Accepted capacity spellings: a decimal count with an optional K/M suffix. */
 const CAPACITY_PATTERN = /^(\d+(?:\.\d+)?)([km])?$/i
 
-/** Decimal suffix scales — `1M` is 1000K, matching how model capacities are quoted. */
 const CAPACITY_SCALE = { k: 1_000, m: 1_000_000 }
 
-/**
- * Read a typed capacity, so a user can write `256K` or `1M` instead of counting
- * zeroes. The stored value stays a plain token count.
- * @param text - raw field text.
- * @returns the count; `undefined` when blank (inherit), `NaN` when unreadable
- * (rejected by {@link validateDeepSeekModels} before any write).
- */
 export function parseCapacity(text) {
   const trimmed = text.trim()
   if (trimmed.length === 0) return undefined
@@ -46,13 +25,6 @@ export function parseCapacity(text) {
   return Math.abs(scaled - rounded) < 1e-6 ? rounded : scaled
 }
 
-/**
- * Spell a stored count back in the shortest form that survives a round trip
- * through {@link parseCapacity}; a count that is not a whole number of
- * thousands stays written out.
- * @param value - stored capacity.
- * @returns the field text.
- */
 export function formatCapacity(value) {
   if (!Number.isInteger(value) || value <= 0) return String(value)
   if (value % CAPACITY_SCALE.m === 0) return `${String(value / CAPACITY_SCALE.m)}M`
@@ -60,7 +32,6 @@ export function formatCapacity(value) {
   return String(value)
 }
 
-/** Convert a schema-validated catalog value into records without dropping hidden fields. */
 export function modelDrafts(value) {
   if (!Array.isArray(value)) return []
   return value.map(entry =>
@@ -69,11 +40,6 @@ export function modelDrafts(value) {
       : {})
 }
 
-/**
- * Validate adapter constraints that the serialized schema cannot express.
- * @param value - user-owned `models` value, or undefined while inherited.
- * @returns the first invalid row, or undefined when the adapter will accept it.
- */
 export function validateDeepSeekModels(value) {
   if (value === undefined) return undefined
   const models = modelDrafts(value)
@@ -113,17 +79,11 @@ const DEFAULT_PROPS = {
   onReset: () => {},
 }
 
-/**
- * The direct DeepSeek adapter's model catalog editor: id and display name on
- * each row, capacities behind the row's own disclosure. Custom element —
- * `editing`/`expanded` were `useState` buffers, now instance fields.
- */
 export class FreddieDeepSeekModelsEditor extends HTMLElement {
   #props = DEFAULT_PROPS
   #editing = new Map()
   #expanded = new Set()
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -174,7 +134,6 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
     this.#render()
   }
 
-  /** The field's text: its live keystrokes, else the stored count spelled short. */
   #capacityText(model, index, field) {
     const typed = this.#editing.get(`${String(index)}:${field}`)
     if (typed !== undefined) return typed
@@ -193,7 +152,6 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
     this.#editing = next
   }
 
-  /** One capacity field of one row, rendered inside the row's disclosure. */
   #capacityField(model, index, field, fallback) {
     const props = this.#props
     return h('label', { class: styles['modelField'] ?? '' },
@@ -308,40 +266,12 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
 
 defineElement('freddie-deepseek-models-editor', FreddieDeepSeekModelsEditor)
 
-/**
- * @typedef {object} DeepSeekModelsEditorProps
- * @property {Array<object>} models - effective rows (inherited or user-overridden), each a
- * plain draft object that may carry `id`, `name`, `contextWindow`, `maxTokens`.
- * @property {boolean} overridden - whether `models` is a user override rather than the
- * inherited default; drives the "customized"/"inherited" meta text and the reset button.
- * @property {number} [defaultContextWindow] - fallback shown as the context-window field's
- * placeholder when a row leaves it blank.
- * @property {number} [defaultMaxTokens] - fallback shown as the max-tokens field's
- * placeholder when a row leaves it blank.
- * @property {(key: string) => string} t - locale lookup for field labels and copy.
- * @property {boolean} disabled - disables every input, add, remove, and reset control.
- * @property {(models: Array<object>) => void} onChange - called with the next full `models`
- * array on any row edit, add, or remove.
- * @property {() => void} onReset - called to drop the user override and revert to inherited rows.
- */
-
-/**
- * Create (if needed) or update a DeepSeekModelsEditor element in place.
- * @param el - an existing element to update, or null to create one.
- * @param props - see {@link DeepSeekModelsEditorProps}.
- * @returns the element; keep it and pass it back in to update.
- */
 export function renderDeepSeekModelsEditor(el, props) {
   const target = el ?? document.createElement('freddie-deepseek-models-editor')
   target.setProps(props)
   return target
 }
 
-/**
- * Render the direct DeepSeek adapter's model catalog.
- * @param props - effective rows plus the array-level override actions.
- * @returns the catalog editor, cast for JSX use (Modal.tsx's pattern).
- */
 export function DeepSeekModelsEditor(props) {
   return renderDeepSeekModelsEditor(null, props)
 }

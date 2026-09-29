@@ -1,8 +1,5 @@
-/** Copy dictionaries for the Models settings section. */
-
 import { WELCOME_NOTICE_COPY } from '../onboarding-copy.js'
 
-/** English strings. */
 export const en = {
   nav: 'Models',
   title: 'Models',
