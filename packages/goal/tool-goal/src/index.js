@@ -1,9 +1,3 @@
-/**
- * Model-facing `get_goal`, `create_goal`, and `update_goal` tools over the
- * persisted same-session goal domain.
- * @module @freddie/freddie-tool-goal
- */
-
 import z from '@freddie/schemastery'
 import { GoalId } from '@freddie/freddie-goal'
 import { boundContextSummary, createUserMessage, HarnessError } from '@freddie/freddie-llm'
@@ -18,7 +12,6 @@ import { renderWrapupContext } from './wrapup.js'
 export const name = 'tool-goal'
 export const inject = ['agents', 'goals', 'tools', 'systemPrompt']
 
-/** Schemastery config for the goal-tool policy. */
 export const Config = z.object({
   blockedAfterConsecutiveRounds: z.number().step(1).min(1).default(3),
 })
@@ -76,7 +69,6 @@ const GOAL_VALUE_SCHEMA = {
   ],
 }
 
-/** Render policy guidance with its deployment-selected blocked threshold. */
 function guidance(blockedAfter) {
   return 'Use goal tools for one long-running completion objective in the current session. '
     + 'create_goal may infer goal intent from a direct human request in any language; do not '
@@ -89,7 +81,6 @@ function guidance(blockedAfter) {
     + 'or useful remaining work is not blocked.'
 }
 
-/** Validate config even when apply is called directly outside Loader normalization. */
 function resolveConfig(config) {
   const blockedAfter = config.blockedAfterConsecutiveRounds ?? 3
   if (!Number.isSafeInteger(blockedAfter) || blockedAfter < 1) {
@@ -98,17 +89,14 @@ function resolveConfig(config) {
   return { blockedAfterConsecutiveRounds: blockedAfter }
 }
 
-/** Whether optional text is meaningful rather than a strict-schema empty filler. */
 function hasText(value) {
   return value !== undefined && value !== ''
 }
 
-/** Whether an optional round cap is meaningful rather than a strict-schema zero filler. */
 function hasRoundCap(value) {
   return value !== undefined && value !== 0
 }
 
-/** Build the exact compare-and-set ref from model arguments. */
 function goalRef(goalId, revision) {
   if (goalId.length === 0 || goalId !== goalId.trim()
     || !Number.isSafeInteger(revision) || revision < 1) {
@@ -120,7 +108,6 @@ function goalRef(goalId, revision) {
   return { id: GoalId(goalId), revision }
 }
 
-/** Stable compact model result; activation is an observation, not replay state. */
 function goalValue(goal) {
   if (goal === undefined) return { goal: null }
   return {
@@ -139,18 +126,15 @@ function goalValue(goal) {
   }
 }
 
-/** Reusable canonical output declaration for all three goal controls. */
 const GOAL_OUTPUT = {
   schema: GOAL_VALUE_SCHEMA,
   render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
 }
 
-/** Generic, args-only pending presentation shared by the goal tools. */
 function present(title, kind, rawInput) {
   return { card: 'generic', title, kind, ...rawInput === undefined ? {} : { rawInput } }
 }
 
-/** Register the three Codex-shaped goal tools and their shared policy section. */
 export function apply(ctx, config) {
   const resolved = resolveConfig(config)
   ctx.systemPrompt.section({
