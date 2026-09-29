@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest (Remote RPC schema + reflection metadata). */
 import { z } from 'zod'
 
 const _deepseek_ai_dsh_host_plugin_inventory_pluginInventory_list_result$schema = z.object({
