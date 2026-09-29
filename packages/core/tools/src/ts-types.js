@@ -1,39 +1,25 @@
-/**
- * Code Mode codegen: the pure projection from registered tool schemas to the TypeScript SDK
- * text the model programs against (the `tools:sdk` prompt section). Sibling of
- * `json-schema.js` — `schemas()` (native function calling) and this module (the generated
- * `declare const tools` API) are two projections of the same store.
- * @module @freddie/freddie-tools/src/ts-types
- */
-
 import { assertSupportedJsonSchema } from './json-schema.js'
 
-/** Property names that are valid bare TS identifiers; anything else is quoted. */
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/
 
-/** Render an object key: bare when it is a valid identifier, quoted otherwise (every name stays reachable, no aliasing). */
 function renderKey(name) {
   return IDENTIFIER.test(name) ? name : JSON.stringify(name)
 }
 
-/** One `indent`-deep line prefix (two spaces per level). */
 function pad(indent) {
   return '  '.repeat(indent)
 }
 
-/** A one-line JSDoc block for a schema `description`, or no lines when there is none. */
 function docLines(description, indent) {
   if (typeof description !== 'string' || description.length === 0) return []
   const collapsed = description.replace(/\s+/g, ' ').trim()
   return [`${pad(indent)}/** ${collapsed.replaceAll('*/', String.raw`*\/`)} */`]
 }
 
-/** Render one scalar already validated by the unified schema boundary. */
 function renderScalar(value) {
   return JSON.stringify(value)
 }
 
-/** Render a validated scalar `const`/`enum`, falling back to the broad type. */
 function renderConstrainedScalar(node, type) {
   const broad = type === 'integer' ? 'number' : type
   if (Object.hasOwn(node, 'const')) return renderScalar(node.const)
@@ -43,7 +29,6 @@ function renderConstrainedScalar(node, type) {
   return broad
 }
 
-/** Build one document from captured parts while retaining the legacy array-parenthesization test. */
 function typeDocumentFrom(parts) {
   return {
     parts,
@@ -53,12 +38,10 @@ function typeDocumentFrom(parts) {
   }
 }
 
-/** Build a small document without an intermediate array at each call site. */
 function typeDocument(...parts) {
   return typeDocumentFrom(parts)
 }
 
-/** Flatten a nested document with an explicit work stack. */
 function flattenTypeDocument(document) {
   const chunks = []
   const tasks = [document]
@@ -76,12 +59,10 @@ function flattenTypeDocument(document) {
   return chunks.join('')
 }
 
-/** Initialize one schema-render frame with empty aggregation state. */
 function schemaRenderFrame(node, indent) {
   return { node, indent, phase: 'start', children: [], childIndex: 0, childDocuments: [], entries: [] }
 }
 
-/** Render an already asserted schema to a composable document. */
 function renderSupportedSchema(schema, indent) {
   const frames = [schemaRenderFrame(schema, indent)]
   let rootDocument
@@ -202,14 +183,6 @@ function renderSupportedSchema(schema, indent) {
   return rootDocument ?? typeDocument('unknown')
 }
 
-/**
- * Map one enforced JSON-Schema node to a TypeScript type literal. Supports
- * every unified schema construct and returns `unknown` for malformed or
- * unsupported inputs without throwing.
- * @param schema - the JSON-Schema node (any shape; hostile inputs degrade).
- * @param indent - the indentation level for nested object members.
- * @returns the TS type text (multi-line for objects with properties).
- */
 export function jsonSchemaToTs(schema, indent = 0) {
   try {
     assertSupportedJsonSchema(schema)
@@ -219,7 +192,6 @@ export function jsonSchemaToTs(schema, indent = 0) {
   }
 }
 
-/** The fixed model-facing usage contract rendered above the declarations (see the Code Mode Agent Note's "What the model sees"). */
 const SDK_INSTRUCTIONS = `## Writing code for run_code
 
 \`run_code\` takes two required arguments: \`code\` — the body of an async TypeScript function (erasable syntax only — no \`enum\` or namespaces; type annotations are advisory, the code runs type-stripped) — and \`description\`, a short summary of what the program does. Inside the program:
@@ -231,18 +203,6 @@ const SDK_INSTRUCTIONS = `## Writing code for run_code
 
 The available tools:`
 
-/**
- * Render the full `tools:sdk` prompt section: the fixed usage instructions
- * plus one `declare const tools` interface covering every given tool.
- * Deterministic — tools are emitted in lexicographic name order, so an
- * unchanged tool set produces byte-identical text across assemblies. The sort
- * is not a total order on byte-equal names, so two schemas sharing a name
- * would render in argument order; the caller's visible-capability map is keyed
- * by name, so the input never carries a duplicate.
- * @param schemas - the tool schemas to declare (the caller excludes
- *   `run_code` itself).
- * @returns the complete section text.
- */
 export function renderToolsSdk(schemas) {
   const sorted = [...schemas].sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0)
   const argsMembers = []

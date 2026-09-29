@@ -1,16 +1,12 @@
-/** Unified JSON-value schema DSL, inference, compilation, and typed tool helper. @module freddie-tools/schema */
-
 import { HarnessError } from '@freddie/freddie-llm'
 import { assertSupportedJsonSchema, isJsonSchemaRecord, isPlainJsonArray, JsonSchemaError, validateJsonSchemaValue } from './json-schema.js'
 
 const ANNOTATION_KEYS = ['description', 'title', 'default', 'examples']
 
-/** Throw one author-schema violation through the shared schema error type. */
 function authorError(message) {
   throw new JsonSchemaError([message])
 }
 
-/** Copy own annotation fields for validation by the raw-schema boundary. */
 function copyAnnotations(source, target) {
   if (Object.hasOwn(source, 'description')) target.description = source.description
   if (Object.hasOwn(source, 'title')) target.title = source.title
@@ -18,14 +14,12 @@ function copyAnnotations(source, target) {
   if (Object.hasOwn(source, 'examples')) target.examples = source.examples
 }
 
-/** Reject author-only keys outside one node's declared vocabulary. */
 function assertAuthorKeys(source, path, allowed) {
   for (const key of Object.keys(source)) {
     if (!allowed.includes(key)) authorError(`${path}.${key} is not supported by the value schema DSL`)
   }
 }
 
-/** Install a compiled node without giving `__proto__` assignment semantics. */
 function assignCompiledNode(destination, node) {
   switch (destination.kind) {
     case 'root':
@@ -48,7 +42,6 @@ function assignCompiledNode(destination, node) {
   }
 }
 
-/** Install a compiled property map at its root or containing object node. */
 function assignCompiledPropertyMap(destination, compiled) {
   if (destination.kind === 'root') {
     destination.holder.value = compiled
@@ -57,7 +50,6 @@ function assignCompiledPropertyMap(destination, compiled) {
   }
 }
 
-/** Execute an author-schema compilation task graph without recursive descent. */
 function runSchemaCompiler(initial) {
   const seen = new Set()
   const tasks = [initial]
@@ -199,7 +191,6 @@ function runSchemaCompiler(initial) {
   }
 }
 
-/** Compile one implicit property map, collecting per-property requiredness. */
 function compilePropertyMap(input, path) {
   const holder = {}
   runSchemaCompiler({ kind: 'property-map', input, path, destination: { kind: 'root', holder } })
@@ -207,7 +198,6 @@ function compilePropertyMap(input, path) {
   return holder.value ?? authorError(`${path} did not compile`)
 }
 
-/** Compile one author node without applying any consumer root restriction. */
 function compileValueSchema(input, path) {
   const holder = {}
   runSchemaCompiler({ kind: 'value', input, path, allowRequired: false, destination: { kind: 'root', holder } })
@@ -215,23 +205,12 @@ function compileValueSchema(input, path) {
   return holder.value ?? authorError(`${path} did not compile`)
 }
 
-/**
- * Compile one author-facing value schema to the enforced raw JSON Schema
- * subset. The author-only `json` node becomes an annotation-only schema.
- * @param spec - schema for any JSON-value root.
- * @returns The asserted raw schema projection.
- */
 export function valueSchemaSpecToJsonSchema(spec) {
   const schema = compileValueSchema(spec, 'schema')
   assertSupportedJsonSchema(schema)
   return schema
 }
 
-/**
- * Compile the implicit open parameter object into raw JSON Schema.
- * @param spec - per-property parameter definitions.
- * @returns An object-rooted raw schema with no implicit-root openness override.
- */
 export function parameterSchemaSpecToJsonSchema(spec) {
   const compiled = compilePropertyMap(spec, 'parameters')
   const schema = {
@@ -243,7 +222,6 @@ export function parameterSchemaSpecToJsonSchema(spec) {
   return schema
 }
 
-/** Invalid model-generated arguments for a typed tool. */
 export class ToolArgsError extends HarnessError {
   constructor(violations) {
     super(`invalid arguments: ${violations.join('; ')}`, 'INVALID_ARGS')
@@ -252,39 +230,11 @@ export class ToolArgsError extends HarnessError {
   }
 }
 
-/**
- * Validate model-generated arguments against an implicit parameter schema.
- * @param spec - declared parameter schema.
- * @param args - candidate arguments, however malformed.
- * @returns Path-qualified violations; empty means valid.
- */
 export function validateArgs(spec, args) {
   return validateJsonSchemaValue(parameterSchemaSpecToJsonSchema(spec), args, '')
 }
 
-/**
- * A registry-ready tool definition, as built by {@link defineTool} and consumed
- * by `ToolRuntime` (`./index.js`).
- * @typedef {object} ToolDefinition
- * @property {string} name
- * @property {string} description
- * @property {object} parameters - JSON Schema for the tool's arguments.
- * @property {import('./index.js').ToolOutputContract} output - canonical output validation/render/presentation contract.
- * @property {number} [timeoutMs]
- * @property {function(*, *): Promise<*>} execute - validates `args` then runs the user body.
- * @property {function(*, *): *} [finalizeContent] - definition-owned final content transform.
- * @property {function(*): *} [presentCall]
- * @property {function(*, *): *} [presentResult]
- * @property {function(*): boolean} [isConcurrencySafe]
- */
 
-/**
- * Define a first-party tool with inferred arguments and strict execution
- * validation. Replay-only presenters validate softly and fall back to generic
- * rendering for obsolete logged arguments.
- * @param options - typed definition and optional finalizer and presenters.
- * @returns {ToolDefinition} A registry-ready definition.
- */
 export function defineTool(options) {
   const userExecute = options.execute
   const userFinalizeContent = options.finalizeContent

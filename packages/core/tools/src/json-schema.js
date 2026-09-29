@@ -1,23 +1,6 @@
-/**
- * Enforced JSON Schema subset shared by tool outputs, generated Code Mode
- * types, subagents, and workflows. The subset accepts any JSON root, an
- * annotation-only schema for unconstrained JSON, one scalar `type`, object
- * `properties`/`required`/boolean `additionalProperties`, array `items`,
- * type-correct scalar `enum`/`const`, and exact-one `oneOf`.
- *
- * Unsupported or misplaced keywords reject rather than being accepted without
- * enforcement. Consumers that require an object root apply
- * {@link assertObjectJsonSchema} before accepting input.
- * @module freddie-tools/json-schema
- */
-
 import { assertNever, HarnessError } from '@freddie/freddie-llm'
 import { isJsonValue } from '@freddie/freddie-session'
 
-/**
- * Thrown when a raw schema falls outside the enforced subset. `violations`
- * lists every offending path instead of stopping at the first author error.
- */
 export class JsonSchemaError extends HarnessError {
   constructor(violations) {
     super(`unsupported JSON schema: ${violations.join('; ')}`, 'UNSUPPORTED_SCHEMA')
@@ -40,7 +23,6 @@ const ANNOTATION_KEYWORDS = new Set(['description', 'title', 'default', 'example
 const SCHEMA_TYPES = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
 
 /* jscpd:ignore-start -- this realm boundary mirrors the session-owned lossless-JSON intrinsic test */
-/** Whether a realm-owned intrinsic prototype is backed by its native constructor. */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -54,17 +36,10 @@ function hasIntrinsicConstructor(prototype, name) {
   }
 }
 
-/** Whether a candidate is one realm's intrinsic `Object.prototype`. */
 function isIntrinsicObjectPrototype(value) {
   return Object.getPrototypeOf(value) === null && hasIntrinsicConstructor(value, 'Object')
 }
 
-/**
- * Test for a realm-agnostic plain JSON record without accepting arrays or
- * exotic objects.
- * @param value - candidate record from any JavaScript realm.
- * @returns Whether the value has a plain-object prototype chain.
- */
 export function isPlainJsonRecord(value) {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   try {
@@ -76,7 +51,6 @@ export function isPlainJsonRecord(value) {
   }
 }
 
-/** Whether an array uses one realm's intrinsic `Array.prototype`. */
 function hasPlainArrayPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
@@ -87,7 +61,6 @@ function hasPlainArrayPrototype(value) {
 }
 /* jscpd:ignore-end */
 
-/** Return whether a record contains only own enumerable string keys. */
 function hasOnlyEnumerableStringKeys(value) {
   try {
     return Reflect.ownKeys(value)
@@ -97,20 +70,10 @@ function hasOnlyEnumerableStringKeys(value) {
   }
 }
 
-/**
- * Test for an ordinary schema record whose keys survive JSON projection.
- * @param value - candidate record from any JavaScript realm.
- * @returns Whether the record has an intrinsic prototype and only own enumerable string keys.
- */
 export function isJsonSchemaRecord(value) {
   return isPlainJsonRecord(value) && hasOnlyEnumerableStringKeys(value)
 }
 
-/**
- * Test for a dense ordinary array with no JSON-invisible decorations.
- * @param value - candidate array from any JavaScript realm.
- * @returns Whether the array is intrinsic, dense, and undecorated.
- */
 export function isPlainJsonArray(value) {
   if (!Array.isArray(value)) return false
   try {
@@ -124,12 +87,10 @@ export function isPlainJsonArray(value) {
   }
 }
 
-/** Lossless finite JSON number, excluding negative zero. */
 function isJsonNumber(value) {
   return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0)
 }
 
-/** Whether a scalar is valid for one declared schema type. */
 function scalarMatches(type, value) {
   switch (type) {
     case 'string': return typeof value === 'string'
@@ -142,10 +103,8 @@ function scalarMatches(type, value) {
   }
 }
 
-/** Keywords that are invalid beside `oneOf`. */
 const ONE_OF_SIBLING_KEYWORDS = ['properties', 'required', 'additionalProperties', 'items', 'enum', 'const']
 
-/** Validate object-only fields after its property schemas have been visited. */
 function checkObjectSchemaTail(node, path, properties, violations) {
   const hasRequired = Object.hasOwn(node, 'required')
   const required = hasRequired ? node.required : undefined
@@ -164,7 +123,6 @@ function checkObjectSchemaTail(node, path, properties, violations) {
   }
 }
 
-/** Collect every violation for one raw schema tree without using the JavaScript call stack. */
 function checkSchemaNode(root, rootPath, violations, seen) {
   const tasks = [{ kind: 'enter', node: root, path: rootPath }]
   for (let task = tasks.pop(); task !== undefined; task = tasks.pop()) {
@@ -316,25 +274,12 @@ function checkSchemaNode(root, rootPath, violations, seen) {
   }
 }
 
-/**
- * Assert that an arbitrary raw schema uses only the enforced subset.
- * Annotation-only schemas are accepted as the standard unconstrained-JSON
- * form; callers that require an object root use {@link assertObjectJsonSchema}.
- * @param schema - untrusted raw JSON Schema.
- * @returns Assertion that the schema belongs to the supported subset.
- */
 export function assertSupportedJsonSchema(schema) {
   const violations = []
   checkSchemaNode(schema, 'schema', violations, new Set())
   if (violations.length > 0) throw new JsonSchemaError(violations)
 }
 
-/**
- * Assert the enforced subset plus the object-root constraint retained by
- * subagent and workflow structured outputs.
- * @param schema - untrusted caller-supplied schema.
- * @returns Assertion that the schema belongs to the supported subset and has an object root.
- */
 export function assertObjectJsonSchema(schema) {
   const violations = []
   checkSchemaNode(schema, 'schema', violations, new Set())
@@ -345,7 +290,6 @@ export function assertObjectJsonSchema(schema) {
   if (violations.length > 0) throw new JsonSchemaError(violations)
 }
 
-/** Safely test the lossless JSON boundary when a getter may throw. */
 function safelyIsJsonValue(value) {
   try {
     return isJsonValue(value)
@@ -354,27 +298,22 @@ function safelyIsJsonValue(value) {
   }
 }
 
-/** Root-aware diagnostic path for the parameter validator's empty sentinel. */
 function diagnosticPath(path) {
   return path === '' ? 'arguments' : path
 }
 
-/** Append one object property without a leading dot at an implicit root. */
 function propertyPath(path, key) {
   return path === '' ? key : `${path}.${key}`
 }
 
-/** The generic exception-containment diagnostic owned by one valid schema node. */
 function losslessValueViolation(path) {
   return [`"${diagnosticPath(path)}" must be a lossless JSON value`]
 }
 
-/** Append diagnostics without spreading a potentially wide child result as call arguments. */
 function appendViolations(target, source) {
   for (const violation of source) target.push(violation)
 }
 
-/** Initialize one validation frame with empty aggregation state. */
 function valueFrame(node, value, path) {
   return {
     node,
@@ -390,7 +329,6 @@ function valueFrame(node, value, path) {
   }
 }
 
-/** Validate one scalar node after its primitive type check. */
 function checkScalarValue(node, value, path) {
   const allowed = Object.hasOwn(node, 'enum') ? node.enum : undefined
   if (allowed !== undefined && !allowed.includes(value)) {
@@ -402,7 +340,6 @@ function checkScalarValue(node, value, path) {
   return []
 }
 
-/** Validate one trusted schema/value pair with explicit frames rather than recursive calls. */
 function checkValue(schema, value, path) {
   const frames = [valueFrame(schema, value, path)]
   let rootResult
@@ -562,14 +499,6 @@ function checkValue(schema, value, path) {
   return rootResult ?? losslessValueViolation(path)
 }
 
-/**
- * Validate a candidate value against an asserted raw schema. The function is
- * total for arbitrary values and returns path-qualified violations.
- * @param schema - a schema accepted by {@link assertSupportedJsonSchema}.
- * @param value - the candidate JSON value.
- * @param path - root label used in diagnostics.
- * @returns All violations in walk order; empty means valid.
- */
 export function validateJsonSchemaValue(schema, value, path = 'value') {
   return checkValue(schema, value, path)
 }

@@ -1,28 +1,12 @@
-/**
- * Code Mode `run_code` transport. Programs call the registry's agent-visible
- * tools through nested executions scheduled under the native concurrency
- * contract; each sub-dispatch is logged for reconstruction, while only the
- * outer curated result enters model history.
- * @module @freddie/freddie-tools/src/code-mode
- */
-
 import { CallId, createUserMessage, HarnessError } from '@freddie/freddie-llm'
 import { snapshotJsonValue } from '@freddie/freddie-session'
 import { defineTool, parameterSchemaSpecToJsonSchema } from './schema.js'
 import { TOOL_RUNTIME_SCHEDULER } from './index.js'
 
-/** The model-facing name of the Code Mode tool. */
 export const RUN_CODE_NAME = 'run_code'
 
-/** The `tools:sdk` section order: inside the 100–199 tool-guidance band, after per-tool guidance sections. */
 export const SDK_SECTION_ORDER = 150
 
-/**
- * The TypeScript flavor: the fallback for a schema read with no runtime
- * mounted ({@link resolveFlavor} owns which readers reach that). A real
- * assembly always resolves a runtime first, so the model never sees this
- * fallback outside its own language.
- */
 const TYPESCRIPT_FLAVOR = {
   description:
     'Execute a TypeScript program against the available tools. Takes two required '
@@ -34,11 +18,6 @@ const TYPESCRIPT_FLAVOR = {
   codeDescription: 'The program: the body of an async TypeScript function.',
 }
 
-/**
- * The Python flavor: the body of an async function, top-level `await` and
- * `return`, answer via `print` and/or the returned value, matching
- * {@link ./py-types.js}'s SDK instructions.
- */
 const PYTHON_FLAVOR = {
   description:
     'Execute a Python program against the available tools. Takes two required '
@@ -50,50 +29,18 @@ const PYTHON_FLAVOR = {
   codeDescription: 'The program: the body of an async Python function.',
 }
 
-/**
- * A `run_code` backend language: the key of {@link import('@freddie/freddie-code-runtime').CodeRuntime#language}
- * that `freddie-tools` presents (only `'typescript'` has a published backend).
- * @typedef {'typescript'|'python'} CodeSdkLanguage
- */
 
-/**
- * One language's `run_code` schema strings.
- * @typedef {object} RunCodeFlavor
- * @property {string} description - the model-facing `run_code` tool description.
- * @property {string} codeDescription - the model-facing `code` parameter description.
- */
 
-/** Per-language `run_code` schema flavors; one entry per {@link CodeSdkLanguage}. */
 const RUN_CODE_FLAVORS = {
   typescript: TYPESCRIPT_FLAVOR,
   python: PYTHON_FLAVOR,
 }
 
-/**
- * The `description` parameter's model-facing description: language-independent
- * (the UI label contract is the same for every runtime), shared between the
- * static spec and the language-aware `parameters` getter so the two emissions
- * can never drift.
- */
 const RUN_CODE_DESCRIPTION_PARAM_DESCRIPTION
   = 'Clear, concise description of what this program does in active voice, '
     + '5-10 words (shown in the UI). Examples: "Count TODO markers across packages"; '
     + '"Read failing test and its fixture"; "Rename config key in every cordis.yml".'
 
-/**
- * Resolve the {@link RunCodeFlavor} for the loaded runtime's language, read at
- * schema-emission time so the model-visible `run_code` schema always matches
- * the SDK section's language. `peekRuntime` returns `undefined` only when no
- * runtime is mounted, which reaches this function through definition readers
- * and `schemas()` — the doc-catalog harvest is the only shipped one, and none
- * of them feeds a model, because `wireSchemas` calls `requireCodeRuntime`
- * before projecting — so that path degrades to {@link TYPESCRIPT_FLAVOR}. A
- * mounted runtime whose language has no flavor entry fails loud, exactly as
- * `requireCodeRuntime` rejects it at assembly. Keeping this table in step with
- * `SDK_RENDERERS` is the compiler's job ({@link CodeSdkLanguage}); what this
- * guard owns is the runtime-supplied language neither table knows, which never
- * yields a wrong-language schema for a real runtime.
- */
 function resolveFlavor(peekRuntime) {
   const runtime = peekRuntime()
   if (runtime === undefined) {
@@ -107,13 +54,6 @@ function resolveFlavor(peekRuntime) {
   return flavor
 }
 
-/**
- * Thrown by `run_code` when the program run itself failed — a program
- * exception, a budget expiry, an abort, or substrate death. Extends
- * {@link HarnessError} (`code: 'CODE_RUN_FAILED'`); the registry's execution
- * pipeline converts it into a structured `isError` result whose text carries
- * the failure kind plus the captured logs, so the model can self-correct.
- */
 export class CodeRunFailedError extends HarnessError {
   constructor(message) {
     super(message, 'CODE_RUN_FAILED')
@@ -121,11 +61,6 @@ export class CodeRunFailedError extends HarnessError {
   }
 }
 
-/**
- * Snapshot one binding call's argument as lossless JSON, then snapshot that
- * detached value again so dispatch and logging stay independent without
- * reintroducing structured-clone's platform-specific nesting limit.
- */
 function jsonNormalizeArgs(value) {
   let snapshot
   try {
@@ -144,17 +79,10 @@ function jsonNormalizeArgs(value) {
   return { dispatched: snapshot, logged }
 }
 
-/** Two-space JSON presentation, matching the existing shallow `run_code` text contract. */
 const JSON_INDENT = '  '
 
-/**
- * ECMAScript caps `JSON.stringify`'s `space` string at ten characters. The
- * renderer also caps TOTAL indentation there, compacting deeper subtrees, so
- * formatted output remains linear in the canonical JSON size.
- */
 const MAX_JSON_INDENT_CHARS = 10
 
-/** Render one non-string JSON root without recursive traversal or unbounded indentation growth. */
 function renderJsonValue(value) {
   const chunks = []
   const tasks = [{ kind: 'value', value, depth: 0, compact: false }]
@@ -224,22 +152,10 @@ function renderJsonValue(value) {
   return chunks.join('')
 }
 
-/** Render one present program completion value for the model-facing result text. */
 function renderValue(value) {
   return typeof value === 'string' ? value : renderJsonValue(value)
 }
 
-/**
- * Build the `run_code` {@link import('./schema.js').ToolDefinition}: required `code` and
- * `description` parameters, executed through the dispatch bridge described
- * above. The
- * registry reserves it as presentation infrastructure under non-native modes,
- * outside the filterable global/scoped capability layers.
- * @param registry - the owning registry (sub-calls go through its `execute`,
- *   bindings cover its registered tools).
- * @param options - the registry-private capabilities described above.
- * @returns the registry-ready definition.
- */
 export function createRunCodeTool(registry, options) {
   const { requireRuntime, peekRuntime, maxParallel, shapeDispatchLog } = options
   const definition = defineTool({
@@ -281,7 +197,6 @@ export function createRunCodeTool(registry, options) {
       let dispatches = 0
       const pendingQueue = []
       const inFlight = new Set()
-      /** Tracked settle-event side work (log-content listener + append), drained at run settlement. */
       const logWork = new Set()
       const commitQueue = []
       let exclusiveActive = false
@@ -293,13 +208,6 @@ export function createRunCodeTool(registry, options) {
         wake = undefined
         release?.()
       }
-      /**
-       * The single ordered lane. Each pass commits the head-of-line settled
-       * dispatch (ordered post-execute), then starts the next queued entry if
-       * its slot is free (ordered pre-execute), and otherwise sleeps until a
-       * body settles or a new submission arrives. One run reaching the
-       * empty-queues/empty-pool state is quiescence.
-       */
       const drive = () => {
         if (driving) return driverRun
         driving = true
@@ -348,7 +256,6 @@ export function createRunCodeTool(registry, options) {
         })()
         return driverRun
       }
-      /** Every dispatch settled AND committed; nothing can start (the run is aborted at call time). */
       const drainDispatches = async () => {
         await drive()
         while (logWork.size > 0) await Promise.allSettled([...logWork])

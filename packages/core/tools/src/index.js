@@ -1,9 +1,3 @@
-/**
- * Tool registry, model presentation modes, and pre/guard/around/post/result
- * execution pipeline.
- * @module @freddie/freddie-tools
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { AnonymousEntries, NamedEntries, ScopedLayers, scopeChainOf, scopeOf, scopeTarget } from '@freddie/freddie-scope'
@@ -14,34 +8,10 @@ import { createRunCodeTool, RUN_CODE_NAME, SDK_SECTION_ORDER } from './code-mode
 import { renderToolsSdk } from './ts-types.js'
 import { renderToolsSdkPy } from './py-types.js'
 
-/**
- * Prompt order of the `code` collapse statement: after the persona and before
- * the 100-199 per-tool guidance band, so the model reads which tools it may
- * call before it reads what each one is for.
- */
 const COLLAPSE_SECTION_ORDER = 99
 
-/**
- * The model-facing statement of the `code` collapse. Names the consequence
- * (the call fails) and the route (inside the program), because a rule the
- * model can only discover by being denied is one it corrects too late.
- */
 const CODE_ONLY_INSTRUCTION = `\`${RUN_CODE_NAME}\` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.`
 
-/**
- * Language → SDK-section renderer. The registry looks up the loaded
- * `ctx.codeRuntime.language` in this table when assembling the `tools:sdk`
- * section under a non-native mode; a runtime whose language is not a key
- * fails the assembly loudly (same idiom as `toolOrder` violations). Adding a
- * new backend language is three parallel edits — a {@link import('./code-mode.js').CodeSdkLanguage}
- * member, an entry here, and a `RUN_CODE_FLAVORS` entry in `code-mode.js` for
- * its `run_code` schema strings — plus the renderer function this table points
- * at. What no check reaches is the prose that names the values
- * instead of deriving them: the seam's `freddie-code-runtime` README pair, its
- * `CodeRuntime.language` JSDoc, and `docs/subsystems/code-runtime.md`,
- * plus this package's own README and the
- * {@link ToolRuntime.Config} JSDoc (`mode`).
- */
 const SDK_RENDERERS = {
   typescript: renderToolsSdk,
   python: renderToolsSdkPy,
@@ -67,23 +37,11 @@ export { jsonSchemaToTs, renderToolsSdk } from './ts-types.js'
 export { jsonSchemaToPy, renderToolsSdkPy } from './py-types.js'
 export { defineContentToolFixture } from './testing.js'
 
-/**
- * Tool-owned canonical output contract used after the body returns a JSON
- * value: `schema` validates it, `render` projects it to model-facing content
- * blocks, and optional `presentationMeta` projects it for a top-level call's
- * client presentation.
- * @typedef {object} ToolOutputContract
- * @property {object} schema - JSON Schema the returned value must satisfy.
- * @property {function(*, *): *} render - `(args, value) => ContentBlock[]`.
- * @property {function(*, *): *} [presentationMeta] - `(args, value) => *`.
- */
 
-/** Convert one projector exception into the canonical invalid-output failure. */
 function projectionError(toolName, projector, error) {
   return new ToolOutputError(toolName, [`output.${projector} failed: ${errorMessage(error)}`])
 }
 
-/** Snapshot one projector result before later durable-result materialization. */
 function snapshotProjection(toolName, projector, candidate) {
   try {
     const detached = snapshotJsonValue(candidate)
@@ -97,7 +55,6 @@ function snapshotProjection(toolName, projector, candidate) {
   }
 }
 
-/** Snapshot one body or policy value into the canonical invalid-output failure class. */
 function snapshotToolValue(toolName, candidate) {
   try {
     const detached = snapshotJsonValue(candidate)
@@ -109,19 +66,7 @@ function snapshotToolValue(toolName, candidate) {
   }
 }
 
-/**
- * Thrown (internally) when the model requests a tool that isn't registered.
- * Extends {@link HarnessError} (`code: 'UNKNOWN_TOOL'`) so an unknown-tool
- * failure is as routable as a tool-thrown one — retry/sandbox/replay code can
- * distinguish it from a tool body's own error.
- */
 export class ToolNotFoundError extends HarnessError {
-  /**
-   * @param toolName - the name the caller asked for.
-   * @param reachableFrom - how the model reaches this tool instead, when the
-   *   name IS visible and only the presentation denies calling it directly.
-   *   Omitted for a name that is registered nowhere.
-   */
   constructor(toolName, reachableFrom) {
     super(
       reachableFrom === undefined
@@ -133,7 +78,6 @@ export class ToolNotFoundError extends HarnessError {
   }
 }
 
-/** Thrown when a tool body or post-policy value violates its declared output. */
 export class ToolOutputError extends HarnessError {
   constructor(toolName, violations) {
     super(`tool "${toolName}" returned invalid output: ${violations.join('; ')}`, 'INVALID_TOOL_OUTPUT')
@@ -142,12 +86,6 @@ export class ToolOutputError extends HarnessError {
   }
 }
 
-/**
- * Best-effort human-readable message from an arbitrary thrown value: Error
- * instances use `.message`; non-Error objects with a string `message`
- * property (e.g. `throw { message: 'denied' }`) use it too; everything else
- * is stringified.
- */
 function errorMessage(error) {
   try {
     if (error instanceof Error) return error.message
@@ -161,7 +99,6 @@ function errorMessage(error) {
   }
 }
 
-/** Derive one failure message from policy feedback without changing its rendered blocks. */
 function failureMessageFromContent(content) {
   const text = content
     .map(block => block.type === 'text' ? block.text : `[${block.type} content]`)
@@ -169,7 +106,6 @@ function failureMessageFromContent(content) {
   return text.length > 0 ? text : 'tool result blocked by post-execute policy'
 }
 
-/** Snapshot and freeze one durable tool-result projection or reject lossy data. */
 function materializePresentation(candidate) {
   const detached = snapshotJsonValue(candidate)
   if (detached === undefined) {
@@ -178,7 +114,6 @@ function materializePresentation(candidate) {
   return deepFreeze(detached)
 }
 
-/** Structured `{ name, code }` for a thrown HarnessError, else undefined. */
 function errorInfo(error) {
   try {
     return error instanceof HarnessError ? { name: error.name, code: error.code } : undefined
@@ -187,28 +122,16 @@ function errorInfo(error) {
   }
 }
 
-/**
- * Scheduler entry point omitted from the generated named service API.
- * @internal
- */
 export const TOOL_RUNTIME_SCHEDULER = Symbol('@freddie/freddie-tools.scheduler')
 
-/** Canonical error code for cancellation after a tool body was invoked. */
 export const TOOL_ABORTED = 'ABORTED'
 
-/** Canonical error code for cancellation before a tool body was invoked. */
 export const TOOL_ABORTED_BEFORE_DISPATCH = 'ABORTED_BEFORE_DISPATCH'
 
-/** One scope's complete tool-registry contribution. */
 class ToolLayer {
   tools
   restrictions = new AnonymousEntries()
   guards = new AnonymousEntries()
-  /**
-   * Presentation this scope's agent declared for itself, shadowing the
-   * deployment default. One cell rather than an entry table: two answers to
-   * "which form does the model see" is a contradiction, not a merge.
-   */
   mode
 
   constructor(scope) {
@@ -217,13 +140,11 @@ class ToolLayer {
       : `tool "${name}" is already registered in this scope`))
   }
 
-  /** Whether every contribution table in this aggregate layer is empty. */
   isEmpty() {
     return this.tools.isEmpty() && this.restrictions.isEmpty() && this.guards.isEmpty()
       && this.mode === undefined
   }
 
-  /** Whether every compiled restriction in this layer admits a global tool name. */
   admits(name) {
     for (const filter of this.restrictions.values()) {
       if ((filter.allow !== undefined && !filter.allow.has(name))
@@ -232,7 +153,6 @@ class ToolLayer {
     return true
   }
 
-  /** First monotonic denial from this layer's live guard registrations. */
   guardReason(exec) {
     for (const guard of this.guards.values()) {
       const reason = guard(exec)
@@ -242,7 +162,6 @@ class ToolLayer {
   }
 }
 
-/** Resolve the run_code overlap cap at the owning config boundary (direct construction bypasses the Loader schema). */
 function resolveMaxParallelSubCalls(value) {
   const maxParallelSubCalls = value ?? 10
   if (!Number.isInteger(maxParallelSubCalls) || maxParallelSubCalls < 1) {
@@ -251,10 +170,6 @@ function resolveMaxParallelSubCalls(value) {
   return maxParallelSubCalls
 }
 
-/**
- * Tool registry and execution pipeline. Scoped registrations shadow globals;
- * one visibility resolver feeds presentation, lookup, and dispatch.
- */
 export class ToolRuntime extends Service {
   static inject = ['systemPrompt']
 
@@ -263,7 +178,6 @@ export class ToolRuntime extends Service {
     maxParallelSubCalls: z.natural().min(1).default(10),
   });
 
-  /** Internal staged view consumed by `freddie-agent-loop`'s parallel scheduler. */
   [TOOL_RUNTIME_SCHEDULER] = {
     prepare: exec => this.prepareScheduledExecution(exec),
     dispatch: exec => this.dispatchScheduledExecution(exec),
@@ -271,19 +185,12 @@ export class ToolRuntime extends Service {
     finish: (exec, result) => this.finishScheduledExecution(exec, result),
   }
 
-  /** Context deferred by a running tool body, keyed by its scheduler-owned execution. */
   deferredContexts = new WeakMap()
-  /** Executions whose tool body declared the current turn complete. */
   concludingExecutions = new WeakSet()
-  /** Original caller cancellation, kept outside the wrapper-mutable execution object. */
   cancellationStates = new WeakMap()
-  /** Definition-owned final content transform snapshotted before policy begins. */
   contentFinalizers = new WeakMap()
-  /** Bumps when a scoped tool contribution changes the model-facing projection. */
   presentationRevision = 0
-  /** Cached global Code Mode SDK projection. */
   globalSdkCache
-  /** Cached Code Mode SDK projections for agent scopes. */
   scopedSdkCaches = new WeakMap()
   layers = new ScopedLayers(
     scope => new ToolLayer(scope),
@@ -294,15 +201,8 @@ export class ToolRuntime extends Service {
       this.ctx.emit('tools/change')
     },
   )
-  /** Presentation for scopes that declare none; {@link presentAs} shadows it per scope. */
   defaultMode
   maxParallelSubCalls
-  /**
-   * Reserved presentation transport, kept outside the filterable registration
-   * layers. Built on first need rather than at construction: which agents run
-   * a code mode is no longer known when the service is constructed, and the
-   * transport is stateless beyond its closures over `this`.
-   */
   codeTransport
 
   constructor(ctx, config = {}) {
@@ -316,22 +216,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * The prompt statement of the `code` executor collapse, registered wherever
-   * {@link sdkSection} is and rendering empty outside an effective `code`.
-   *
-   * Every tool contributes its own guidance section naming its tool, none of
-   * them qualify how that tool is reached, and they all render before the SDK
-   * (orders 100-199 against {@link SDK_SECTION_ORDER}). Without this the model
-   * reads a catalog of tools it is told to use and no statement that only
-   * `run_code` may be called, so it emits a native call, receives
-   * `UNKNOWN_TOOL` for a tool the prompt just declared, and concludes the
-   * deployment is inconsistent. {@link COLLAPSE_SECTION_ORDER} places the rule
-   * before that guidance rather than after it.
-   *
-   * `both` renders empty: native calls do execute there, so the rule is false.
-   * @returns the section registration.
-   */
   collapseSection() {
     return {
       name: 'tools:code-only',
@@ -340,16 +224,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * The generated-SDK prompt section, registered globally by a code-mode
-   * deployment and per scope by {@link presentAs}.
-   *
-   * The body regenerates from the CALLING scope, and renders empty for an
-   * agent presenting natively — an agent that opted out under a code-mode
-   * deployment still sees the global registration, and an empty section is
-   * dropped from the rendered prompt.
-   * @returns the section registration.
-   */
   sdkSection() {
     return {
       name: 'tools:sdk',
@@ -366,15 +240,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Render one scope's generated SDK once per tool-visibility revision and
-   * scope ancestry. A preset recompose retains the agent key but changes its
-   * parent chain, which can change visible tools without a registry mutation.
-   * @param scope - the model-facing scope, or undefined for the global view.
-   * @param language - the loaded code runtime language.
-   * @param render - the corresponding SDK renderer.
-   * @returns the byte-stable SDK text for the current visible tool view.
-   */
   renderSdk(scope, language, render) {
     let cache
     if (scope === undefined) {
@@ -398,12 +263,6 @@ export class ToolRuntime extends Service {
     return next.text
   }
 
-  /**
-   * The presentation one scope's agent sees: its own declaration, else the
-   * deployment default.
-   * @param scope - the calling agent, or undefined for the global view.
-   * @returns the resolved presentation mode.
-   */
   modeFor(scope) {
     const layers = this.layers.chainLayers(scope)
     for (let index = layers.length - 1; index >= 0; index -= 1) {
@@ -413,15 +272,6 @@ export class ToolRuntime extends Service {
     return this.defaultMode
   }
 
-  /**
-   * The reserved `run_code` transport, built on first need.
-   *
-   * It never enters the global layer: per-agent restrictions must not remove
-   * it, and a scoped registration must not shadow it. The visibility resolver
-   * appends it after resolving the filterable global/scoped capability layers,
-   * and only for scopes whose mode actually presents it.
-   * @returns the shared transport definition.
-   */
   requireCodeTransport() {
     this.codeTransport ??= createRunCodeTool(this, {
       requireRuntime: () => this.requireCodeRuntime(this.defaultMode),
@@ -432,17 +282,6 @@ export class ToolRuntime extends Service {
     return this.codeTransport
   }
 
-  /**
-   * Present the calling scope's tools in `mode` instead of the deployment
-   * default. Nearest scope on the chain wins, so a preset's standing
-   * declaration covers every agent joined under it.
-   *
-   * Scoped only, and one declaration per scope: this is how an agent preset
-   * composes Code Mode agents beside native ones in the same process, and a
-   * process-global override would be the `mode` config field instead.
-   * @param mode - the presentation the covered agents' models see.
-   * @returns the exact disposer that restores the deployment default.
-   */
   presentAs(mode) {
     const ctx = this.ctx
     if (scopeOf(ctx) === undefined) {
@@ -469,10 +308,6 @@ export class ToolRuntime extends Service {
     return dispose
   }
 
-  /**
-   * Build one scope's wire schemas and names for prompt-order validation.
-   * Restrictions do not make known tools invalid, but a mode collapse does.
-   */
   wireSchemas(scope) {
     const view = this.view(scope)
     const mode = this.modeFor(scope)
@@ -491,22 +326,6 @@ export class ToolRuntime extends Service {
     return { schemas, knownNames: [...view.knownNames, RUN_CODE_NAME] }
   }
 
-  /**
-   * Resolve the code runtime or throw the actionable misconfiguration error.
-   * Read at use time (assembly / run_code execution), NOT via static
-   * `inject`: an inject entry would hold `ctx.tools` — and every tool plugin
-   * behind it — hostage to a code runtime existing even under `mode:
-   * 'native'` (the loop's optional-backend idiom, same as
-   * `sessionPersistence`).
-   *
-   * Assembly and `run_code` execution read separately, so the language is not
-   * bound to a request. Harmless while one published backend exists — both
-   * reads return the same flavor — but a reload that swapped in a second
-   * language between them would hand a program written against one SDK to the
-   * other. Binding it is deferred until a second backend ships (the first
-   * point it is testable); rationale in the
-   * [language-dispatch note](../../../../.agents/notes/implemented/feature/2026-07-31-code-mode-language-dispatch.md).
-   */
   requireCodeRuntime(mode) {
     const runtime = this.ctx.get('codeRuntime')
     if (!runtime) {
@@ -519,12 +338,6 @@ export class ToolRuntime extends Service {
     return runtime
   }
 
-  /**
-   * Register globally or in the calling agent scope. Scoped tools shadow
-   * globals; duplicates within one layer and the reserved `run_code` name fail.
-   * @param definition - tool schema, execution, and optional finalization/presentation callbacks.
-   * @returns the exact disposer that unregisters the tool.
-   */
   register(definition) {
     const name = definition.name
     const output = definition.output
@@ -549,13 +362,6 @@ export class ToolRuntime extends Service {
     )
   }
 
-  /**
-   * Restrict global tools for the calling agent scope. Empty filters, unknown
-   * names, scope-local names, and reserved transport names fail. Restrictions
-   * intersect; scoped registrations remain visible.
-   * @param filter - global-tool mask: `allow` (keep only) and/or `deny` (remove).
-   * @returns the exact disposer that lifts this restriction.
-   */
   restrict(filter) {
     const scope = scopeOf(this.ctx)
     if (scope === undefined) {
@@ -585,16 +391,6 @@ export class ToolRuntime extends Service {
     )
   }
 
-  /**
-   * Register a monotonic guard after the extensible `tools/pre-execute`
-   * waterfall. A plain-context guard applies globally; one registered through
-   * `agent.ctx` applies only to that agent. Any matching guard may deny by
-   * returning a reason, while no guard can force-allow a call another guard
-   * denied. The exact effect disposer is returned for ordered ownership and
-   * HMR cleanup.
-   * @param guard - synchronous check; a returned string denies the execution.
-   * @returns the exact disposer that unregisters the guard.
-   */
   guard(guard) {
     return this.layers.effect(
       this.ctx,
@@ -603,7 +399,6 @@ export class ToolRuntime extends Service {
     )
   }
 
-  /** First monotonic denial from the global then the scope chain's guard layers, farthest first. */
   guardReason(exec) {
     const globalReason = this.layers.global.guardReason(exec)
     if (globalReason !== undefined) return globalReason
@@ -615,28 +410,6 @@ export class ToolRuntime extends Service {
     return undefined
   }
 
-  /**
-   * Resolve every registry fact one scope needs in one layer traversal. The
-   * visible map applies restrictions to the INHERITED surface, then the
-   * scope's own registrations and the reserved presentation transport; the
-   * other sets retain the pre-restriction facts needed by restriction and
-   * prompt-order validation.
-   *
-   * A restriction filters what a scope inherits — the global layer and every
-   * ancestor layer on its chain — and never what its OWN layer registers.
-   * That exemption is what a per-child capability filter has to keep intact:
-   * the delegation runtime registers a child's reporting and structured-output
-   * tools into the child's own layer, and a filter naming the capabilities the
-   * child may use must not strip the machinery it answers through.
-   *
-   * Reading the exempt set as "the global layer" instead of "not mine" held
-   * only while every model-facing tool sat in the host composition. Once
-   * presets moved them onto the agent plane they became an ANCESTOR
-   * contribution, so a child's filter silently stopped constraining anything
-   * it was given.
-   * @param scope - the viewing scope (the agent), or undefined for the global view.
-   * @returns the complete derived view for that scope.
-   */
   view(scope) {
     const layers = this.layers.chainLayers(scope)
     const own = this.layers.peek(scope)
@@ -665,32 +438,10 @@ export class ToolRuntime extends Service {
     return { visible, knownNames, restrictableNames }
   }
 
-  /**
-   * Look up a tool as one scope sees it (scoped
-   * shadows global; a restricted-away global reads as absent). Presenters pass
-   * the calling agent so the rendered card matches the definition that
-   * actually executed.
-   * @param name - the tool name as registered.
-   * @param scope - the viewing scope (the agent); omitted = the global view.
-   * @returns the definition the scope resolves, or undefined when none is visible.
-   */
   get(name, scope) {
     return this.view(scope).visible.get(name)
   }
 
-  /**
-   * Resolve the definition that MAY EXECUTE for a call, applying the mode
-   * collapse at the operation boundary that owns it. The registry view
-   * (`get`) is presentation-agnostic; here a MODEL-DIRECT call under `code`
-   * may only name the reserved `run_code` transport, while a nested
-   * sub-dispatch (a `parent` token set — the `run_code` SDK calling a tool
-   * it bound) may call any visible tool. Denial surfaces as `UNKNOWN_TOOL`
-   * through the executor, matching an absent definition.
-   * @param name - the tool name as registered.
-   * @param scope - the viewing scope (the agent); omitted = the global view.
-   * @param nested - whether the call is a transport sub-dispatch, not a model-direct call.
-   * @returns the definition that may run, or undefined when the call must be rejected.
-   */
   resolveExecution(name, scope, nested) {
     const tool = this.get(name, scope)
     if (tool === undefined) return undefined
@@ -698,17 +449,10 @@ export class ToolRuntime extends Service {
     return tool
   }
 
-  /**
-   * Project visible definitions onto the allowlisted model-facing schema fields,
-   * excluding execution and presentation callbacks.
-   * @param scope - the viewing scope (the agent); omitted = the global view.
-   * @returns one deep-cloned schema per visible tool.
-   */
   schemas(scope) {
     return [...this.view(scope).visible.values()].map(definition => this.schemaOf(definition, true))
   }
 
-  /** Project visible callable tools onto the generated Code Mode SDK contract. */
   sdkSchemas(scope) {
     return [...this.view(scope).visible.values()]
       .filter(definition => definition.name !== RUN_CODE_NAME)
@@ -725,7 +469,6 @@ export class ToolRuntime extends Service {
       })
   }
 
-  /** Project one definition onto the model-facing schema fields. */
   schemaOf(definition, detachParameters) {
     const { name, description, parameters } = definition
     const detached = detachParameters ? snapshotJsonValue(parameters) : parameters
@@ -739,13 +482,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Classify a pending call through the caller's visible tool definition. Only
-   * an exact `true` is parallel; unknown, hidden, undeclared, invalid, or
-   * throwing classifiers are exclusive.
-   * @param exec - call name, parsed arguments, and optional agent scope.
-   * @returns the fail-closed scheduling mode.
-   */
   executionMode(exec) {
     const tool = this.resolveExecution(exec.name, exec.agent, exec.parent !== undefined)
     if (!tool?.isConcurrencySafe) return { kind: 'exclusive' }
@@ -757,15 +493,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Run the `tools/code-dispatch-log` waterfall over one settled sub-dispatch
-   * and return the content the bridge should log on `tool/code-dispatch`.
-   * Contained: when a listener throws, the method logs the original settled
-   * content; that failure must not fail the dispatch or omit the settle event. Private:
-   * the ONE consumer is the `run_code` bridge this registry constructs, which
-   * receives it as a capability parameter (the `requireRuntime` idiom) — the
-   * waterfall, not this invoker, is the public extension point.
-   */
   async shapeDispatchLog(dispatch) {
     try {
       return await this.ctx.waterfall(
@@ -778,40 +505,10 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Whether the `code` mode collapse denies a model-direct call: only the
-   * reserved `run_code` transport may be named. Nested sub-dispatches (a
-   * `parent` token set) bypass the collapse. One home for the
-   * security-relevant predicate, shared by {@link resolveExecution} and
-   * {@link createExecution} so the two can never drift apart.
-   *
-   * Resolved through {@link modeFor}, NOT `defaultMode`: an agent given `code`
-   * by an agent preset under a native deployment is the composition
-   * `freddie-agent-tool-presentation` exists for, and reading the deployment default would
-   * leave exactly that agent uncollapsed — announcing one surface while
-   * executing another, which is the bypass this collapse closes.
-   * @param name - the tool name as registered.
-   * @param scope - the viewing scope whose effective presentation mode applies.
-   * @param nested - whether the call is a transport sub-dispatch, not a model-direct call.
-   */
   collapses(name, scope, nested) {
     return !nested && this.modeFor(scope) === 'code' && name !== RUN_CODE_NAME
   }
 
-  /**
-   * Execute through pre-policy, guards, around-dispatch, post-policy,
-   * definition-owned content finalization, and final notification. Tool and
-   * listener failures resolve as materialized error results; an invisible tool
-   * reports `UNKNOWN_TOOL`. The returned outcome is the same lossless, frozen
-   * snapshot final observers receive. Cancellation
-   * arriving after entry and before final result materialization skips a
-   * not-yet-started body with `ABORTED_BEFORE_DISPATCH` or replaces a
-   * successful started outcome with `ABORTED`; already-started work is still
-   * drained and may retain a tool-owned structured error.
-   * @param exec - the typed same-process call input. The registry assigns its
-   *   correlation token before policy begins.
-   * @returns the materialized final result.
-   */
   async execute(exec) {
     return this.prepareExecution(exec, prepared => this.completeScheduledExecution(prepared))
   }
@@ -897,12 +594,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Run the ordered pre-execute and monotonic guard stages for the scheduler.
-   * @param input - the caller-supplied execution input.
-   * @returns the prepared execution plus the next scheduler stage.
-   * @internal
-   */
   async prepareScheduledExecution(input) {
     return this.prepareExecution(input, prepared => prepared)
   }
@@ -950,7 +641,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /** Whether the original caller signal is currently aborted. */
   callerCancelled(exec) {
     const state = this.cancellationStates.get(exec)
     /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
@@ -958,7 +648,6 @@ export class ToolRuntime extends Service {
     return state.callerSignal.aborted
   }
 
-  /** Canonical cancellation outcome selected by whether the tool body started. */
   cancellationResult(exec, prior) {
     const state = this.cancellationStates.get(exec)
     /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
@@ -968,11 +657,6 @@ export class ToolRuntime extends Service {
       : toolAbortedBeforeDispatchResult(prior)
   }
 
-  /**
-   * Dispatch the registered body with the original caller signal fused back
-   * into any around-wrapper replacement. Cancellation never abandons the body:
-   * a started promise reaches quiescence before its outcome becomes `ABORTED`.
-   */
   async dispatchToolBody(exec) {
     const state = this.cancellationStates.get(exec)
     /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
@@ -1003,13 +687,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Run around-dispatch and the tool body. Tool and unknown-tool failures still
-   * receive post-execute; pipeline failures are already final.
-   * @param exec - the prepared execution.
-   * @returns whether the result still needs post-execute.
-   * @internal
-   */
   async dispatchScheduledExecution(exec) {
     try {
       const mutableExec = exec
@@ -1042,14 +719,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Run ordered post-execute, then apply definition-owned content finalization,
-   * materialize, and notify the final outcome.
-   * @param exec - the prepared execution.
-   * @param result - dispatch/pre result that still needs post-execute.
-   * @returns the materialized final result.
-   * @internal
-   */
   async finalizeScheduledExecution(exec, result) {
     try {
       const postResult = await this.postExecute(exec, result)
@@ -1064,14 +733,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Materialize the candidate, apply definition-owned content finalization,
-   * then materialize and notify the authoritative result.
-   * @param exec - the prepared execution.
-   * @param result - final result.
-   * @returns the materialized final result.
-   * @internal
-   */
   finishScheduledExecution(exec, result) {
     let materializedResult
     try {
@@ -1089,7 +750,6 @@ export class ToolRuntime extends Service {
     return finalResult
   }
 
-  /** Apply the snapshotted tool-owned content transform without exposing other result fields. */
   applyFinalContent(exec, result) {
     const finalizeContent = this.contentFinalizers.get(exec)
     if (finalizeContent === undefined) return result
@@ -1097,7 +757,6 @@ export class ToolRuntime extends Service {
     return content === undefined ? result : { ...result, content }
   }
 
-  /** Notify observers without exposing a mutation or error channel into the outcome. */
   notifyResult(exec, result) {
     Object.freeze(exec)
     const { name: toolName, callId } = exec
@@ -1117,17 +776,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * Resolve an `ask` decision to allow/deny through the approval seam. The
-   * seam is consumed opportunistically with `ctx.get('approval')` — a
-   * deployment that composes no ApprovalService keeps the historical degrade
-   * to deny, and an unmount mid-session degrades the same way on the next ask.
-   * An agent-less execution also degrades: without an agent there is no
-   * session to audit to and no UI to route to. Otherwise the outcome maps
-   * one-to-one — `allowed-once` proceeds; the three non-grants deny with
-   * distinct reasons so the model can tell a human "no" from an absent
-   * approval channel.
-   */
   async serviceAsk(exec, ask) {
     const approval = this.ctx.get('approval')
     if (approval === undefined) {
@@ -1167,34 +815,6 @@ export class ToolRuntime extends Service {
     }
   }
 
-  /**
-   * The `tools/post-execute` waterfall's decision over a dispatched result.
-   * @typedef {PostToolDecisionAccept|PostToolDecisionBlock} PostToolDecision
-   */
-  /**
-   * @typedef {object} PostToolDecisionAccept
-   * @property {'accept'} kind
-   * @property {*} [value] - replaces the tool's returned value (revalidated against its output schema); mutually exclusive with `content`.
-   * @property {readonly *[]} [content] - replaces the rendered content blocks directly.
-   * @property {readonly *[]} [additionalContexts] - extra context messages ferried to the loop's active-batch FIFO.
-   */
-  /**
-   * @typedef {object} PostToolDecisionBlock
-   * @property {'block'} kind
-   * @property {readonly *[]} feedback - corrective content blocks that become the call's `isError` result.
-   * @property {readonly *[]} [additionalContexts]
-   */
-  /**
-   * Run the `tools/post-execute` waterfall over a dispatched `result` and apply
-   * its {@link PostToolDecision}: `accept` keeps the call successful (replacing
-   * `content` when given), `block` turns it into an `isError` whose content is
-   * the corrective `feedback`. Either decision may attach `additionalContexts`,
-   * which are ferried on the returned result for the loop's active-batch FIFO.
-   * Context deferred by the tool body survives an accepted result but is
-   * discarded when the outer call is blocked; a block exposes only context the
-   * blocking decision explicitly supplied.
-   * Runs inside `execute`'s outer try/catch (a throwing listener → isError).
-   */
   async postExecute(exec, result) {
     const decision = await this.ctx.waterfall(
       scopeTarget(this, exec.agent), 'tools/post-execute', exec, result,
@@ -1236,16 +856,13 @@ export class ToolRuntime extends Service {
     })
   }
 
-  /** Registry-normalized results and the exact dispatch that validated each value. */
   canonicalResults = new WeakMap()
 
-  /** Mark one registry-normalized result as canonical only for its owning dispatch. */
   markCanonical(exec, result) {
     this.canonicalResults.set(result, exec.token)
     return result
   }
 
-  /** Snapshot, validate, render, and optionally project one successful body value. */
   createSuccessResult(exec, tool, candidate) {
     const detached = snapshotToolValue(tool.name, candidate)
     const violations = validateJsonSchemaValue(tool.output.schema, detached, 'value')
@@ -1278,7 +895,6 @@ export class ToolRuntime extends Service {
     }))
   }
 
-  /** Normalize an around-dispatch wrapper's authored result through the owning output contract. */
   normalizeDispatchResult(exec, result) {
     if (this.canonicalResults.get(result) === exec.token) return result
     if (result.isError) {
@@ -1299,7 +915,6 @@ export class ToolRuntime extends Service {
     })
   }
 
-  /** Materialize the authoritative commit outcome once, immediately before `tools/result`. */
   materializeFinalResult(result) {
     const presentation = {
       content: result.content,
@@ -1318,7 +933,6 @@ export class ToolRuntime extends Service {
   }
 }
 
-/** Mint a same-process correlation token whose identity is its value. */
 function createExecutionToken() {
   return Symbol('freddie.tool.execution')
 }
@@ -1333,15 +947,10 @@ function toolErrorResult(error) {
   }
 }
 
-/** Read live abort state across an await without treating it as synchronously immutable. */
 function isAborted(signal) {
   return signal.aborted
 }
 
-/**
- * Fuse caller and wrapper cancellation without nesting `AbortSignal.any`.
- * Keeping the relay dispatch-scoped also removes listeners when work settles.
- */
 function fuseToolSignals(caller, wrapper) {
   if (caller === wrapper) return { signal: caller, dispose() {} }
 
@@ -1371,7 +980,6 @@ function fuseToolSignals(caller, wrapper) {
   return { signal: controller.signal, dispose }
 }
 
-/** Canonical result when cancellation supersedes success after body invocation. */
 function toolAbortedResult(prior) {
   const additionalContexts = prior?.additionalContexts ?? []
   return {
@@ -1385,7 +993,6 @@ function toolAbortedResult(prior) {
   }
 }
 
-/** Canonical result when cancellation prevents tool body invocation. */
 function toolAbortedBeforeDispatchResult(prior) {
   const additionalContexts = prior?.additionalContexts ?? []
   return {

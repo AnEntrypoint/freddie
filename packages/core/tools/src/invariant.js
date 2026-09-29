@@ -1,13 +1,8 @@
-/** Package-owned tool-pipeline invariants. @module @freddie/freddie-tools/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-tools'
 
-/** Cordis companion plugin name. */
 export const name = 'tools-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate the immutable final execution/result snapshot. */
 function validateResult(exec, result, fail) {
   if (!Object.isFrozen(exec)) fail('tools/result execution must be frozen before publication')
   if (!Object.isFrozen(result) || !Object.isFrozen(result.content)) {
@@ -18,7 +13,6 @@ function validateResult(exec, result, fail) {
   }
 }
 
-/** Install monotonic pipeline, final-snapshot, and code-dispatch enclosure checks. */
 const install = Object.assign((ctx, fail) => {
   const stages = new WeakMap()
   const openTurns = new WeakMap()
@@ -108,10 +102,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/**
- * Register the tools invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

@@ -1,16 +1,7 @@
-/** Canonical tool-definition fixtures for repository tests. @module freddie-tools/testing */
-
 import { defineTool } from './schema.js'
 
 const CONTENT_VALUE_SCHEMA = { type: 'array', items: { type: 'json' } }
 
-/**
- * Define a test fixture that deliberately uses its content blocks as the
- * canonical JSON value. Product tools must declare domain-owned DTOs instead.
- * @param options - ordinary fixture fields plus a content-producing body.
- * @returns a registry-ready tool with an explicit JSON-array output contract.
- * @internal
- */
 export function defineContentToolFixture(options) {
   const execute = options.execute
   return defineTool({
