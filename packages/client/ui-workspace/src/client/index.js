@@ -1,38 +1,13 @@
-/**
- * Workspace plugin, browser half. Two registrations: WorkspaceBrowser fills
- * the sidebar shell's `sidebar.workspaces` hole (the whole browsing region),
- * and WorkspacePicker fills the conversation hero's picker hole
- * (`conversation.hero.workspace` — both hero forms). Both read real Host
- * Workspaces through the global useWorkspaces hook, and each declares its
- * own `single` directory-flow child hole for the composed picker package's
- * client half (see the contract module doc). Export discipline:
- * packages/client/AGENTS.md.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { createWorkspaceViewStore } from './stores.js'
 import './WorkspaceBrowser.js'
 import './WorkspacePicker.js'
 import { en } from './locales.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'workspace'
 
-/**
- * Required services (cordis fiber inject). The target slots are declared by
- * the ui-sidebar / ui-conversation applies, whose activation order relative
- * to this one is NOT constrained: freddie.client.inject edges are informational
- * (loading/prefetch metadata, never apply sequencing) and neither owner
- * provides a waitable service. apply therefore depends on each slot
- * declaration through `slots.inject()` instead of assuming order.
- */
 export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'connection']
 
-/**
- * Register the browser and picker once their slot declarations are on the
- * ledger. Inject factories return plain callbacks; data reads use the
- * framework's global hooks.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   const connection = ctx.get('connection')
   const hostDescription = connection.hostDescription

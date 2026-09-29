@@ -1,19 +1,7 @@
-/**
- * The workspace browser's viewing store: the session-list grouping mode,
- * persisted across reloads. Module level exports the factory only (a
- * module-level handle would pin the store identity across plugin reloads);
- * register() receives the factory and the browser derives its PropsStore
- * share from the return type.
- */
 import { defineStore } from '@freddie/freddie-client-runtime/client'
 
-/** Browser-local order account for the hierarchy-free flat Session list. */
 export const FLAT_SESSION_ORDER_KEY = '__flat_session_order__'
 
-/**
- * Create the workspace browser viewing store handle.
- * @returns the store handle (spec + type + identity + factory in one).
- */
 export function createWorkspaceViewStore() {
   return defineStore({
     init: () => ({

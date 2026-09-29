@@ -1,28 +1,3 @@
-/**
- * The workspace/session browsing region filling the sidebar shell's
- * `sidebar.workspaces` hole: section header (title + view options + add
- * workspace), search, the grouped tree or flat list, and the workspace
- * dialogs. Wide state renders the full browser; rail state renders the two
- * region icons (search / add workspace) as 36px controls on the shell's shared
- * rail entry path, each requesting expansion through the owner share. Adding
- * is the header button's one action, so it raises the directory flow with no
- * menu in between; the flow and its error dialog live in WorkspacePicker
- * (same package — direct composition, no slot between them).
- *
- * Converted from a React hooks component tree to webjsx custom elements:
- * every nested component that held `useState`/`useRef`/`useEffect` identity
- * (ViewOptionsMenu, SessionTree, FlatList, SearchResults, and the top-level
- * WorkspaceBrowser itself) becomes its own `HTMLElement` subclass with
- * private fields replacing hook state, `setProps`/`connectedCallback`/
- * `disconnectedCallback` replacing mount/cleanup effects, and explicit
- * `applyDiff(this, vdom)` replacing implicit re-render. The framework's own
- * selector hooks (`useSessions`, `useWorkspaces`, `useStore`,
- * `useHostDescription`, `useDirectoryFlow`) are still called as plain
- * functions inside `#render()`, exactly as ConversationRoot.tsx (already
- * converted, ui-conversation) does — they are getSnapshot+subscribe sources
- * bound by the framework's render machinery, not React hooks, so no manual
- * subscribe/unsubscribe wiring is needed here.
- */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -36,24 +11,6 @@ import {
   FreddieProjectRowItem, FreddieSessionNodeItem, SearchResultItem,
 } from './rows/Rows.js'
 
-/**
- * Reuse the same row custom element across renders, keyed by row identity, so
- * a row that re-renders every tick (the live relative-time clock) keeps its
- * element instance instead of getting swapped for a fresh one each time --
- * see Rows.js' `#hoverCard`/`#menu` reuse comments for the exact failure mode
- * a fresh element per render causes (a real, open HoverCard swapped out from
- * under the pointer before its own disconnectedCallback cleanup can run,
- * leaking a detached portal card in document.body that nothing ever removes).
- * Reusing the row element here is what makes that per-row reuse effective --
- * without it, Rows.js still creates a fresh `#hoverCard` every render because
- * it never gets an existing instance to reuse.
- * @param cache - Map<rowId, HTMLElement> owned by the calling component,
- *   cleared of stale entries by {@link pruneRowCache} once per render.
- * @param tag - custom element tag name to create when the cache misses.
- * @param rowId - stable identity for the row (workspace/group key, session id).
- * @param props - forwarded verbatim to the element's `setProps`.
- * @returns the cached (or newly created) element, updated in place.
- */
 function cachedRowItem(cache, tag, rowId, props) {
   let el = cache.get(rowId)
   if (el === undefined) {
@@ -64,12 +21,6 @@ function cachedRowItem(cache, tag, rowId, props) {
   return el
 }
 
-/**
- * Drop cache entries for rows no longer present, so a closed session or
- * removed workspace does not pin its element (and HoverCard portal) forever.
- * @param cache - the row-item cache to prune.
- * @param liveIds - identities present in the current render.
- */
 function pruneRowCache(cache, liveIds) {
   if (cache.size === liveIds.size) return
   const live = liveIds instanceof Set ? liveIds : new Set(liveIds)
@@ -78,12 +29,10 @@ function pruneRowCache(cache, liveIds) {
   }
 }
 
-/** `freddie-project-row-item` (Rows.js exports only the class), reused per group key via `cache`. */
 function ProjectRowItem(cache, rowId, props) {
   return cachedRowItem(cache, 'freddie-project-row-item', rowId, props)
 }
 
-/** `freddie-session-node-item` (Rows.js exports only the class), reused per session id via `cache`. */
 function SessionNodeItem(cache, rowId, props) {
   return cachedRowItem(cache, 'freddie-session-node-item', rowId, props)
 }
@@ -91,19 +40,11 @@ import { FLAT_SESSION_ORDER_KEY } from './stores.js'
 import { renderWorkspacePickFlow } from './WorkspacePicker.js'
 import css from './WorkspaceBrowser.css.js'
 
-/**
- * Column slide length (--ds-transition-duration-slow): rail-search focus waits it out —
- * focus() forces a synchronous layout and would jank the slide.
- */
 const EXPAND_SLIDE_MS = 300
-/** Pause between the latest keystroke and a Host content-search request. */
 const SEARCH_DEBOUNCE_MS = 250
-/** `session.search` wire bound, measured in JavaScript UTF-16 code units. */
 const SEARCH_QUERY_MAX_CODE_UNITS = 500
-/** Session rows visible per Workspace before the local overflow control. */
 const COLLAPSED_SESSION_LIMIT = 5
 
-/** Keep controlled input and RPC payload inside the session.search wire contract. */
 function sanitizeSearchQuery(value) {
   const withoutNul = value.replaceAll('\0', '')
   if (withoutNul.length <= SEARCH_QUERY_MAX_CODE_UNITS) return withoutNul
@@ -114,17 +55,10 @@ function sanitizeSearchQuery(value) {
   return withoutNul.slice(0, end)
 }
 
-/** Immutable membership toggle for the local expand-all array. */
 function toggled(list, key) {
   return list.includes(key) ? list.filter(k => k !== key) : [...list, key]
 }
 
-/**
- * Accept the native drag at document level while a row drag is active: row
- * hover still owns the insertion marker, and releasing outside the list must
- * not be rendered as a rejected drop before dragend commits that last marker.
- * Bind/unbind pair used from `#syncNativeDragAcceptance` (was `useEffect`).
- */
 function bindNativeDragAcceptance() {
   const acceptDrag = (event) => {
     event.preventDefault()
@@ -139,7 +73,6 @@ function bindNativeDragAcceptance() {
   }
 }
 
-/** Owns one drag-source's native-drag-acceptance bind/unbind pair, edge-triggered on the active flag. */
 class NativeDragAcceptance {
   #unbind = null
   #active = false
@@ -157,7 +90,6 @@ class NativeDragAcceptance {
   }
 }
 
-/** Reconcile a stored view order with the Workspace's current session account. */
 function reconciledSessionOrder(sessionIds, stored) {
   if (stored === undefined) return [...sessionIds]
   const byId = new Map(sessionIds.map(id => [id, id]))
@@ -176,7 +108,6 @@ function reconciledSessionOrder(sessionIds, stored) {
   return ordered
 }
 
-/** Newest update first with stable Session identity as the tie-break. */
 function compareSessionRecency(a, b, byId) {
   const aUpdatedAt = byId[a]?.updatedAt ?? Number.NEGATIVE_INFINITY
   const bUpdatedAt = byId[b]?.updatedAt ?? Number.NEGATIVE_INFINITY
@@ -184,7 +115,6 @@ function compareSessionRecency(a, b, byId) {
   return a < b ? -1 : 1
 }
 
-/** Reconcile one editable order account and apply its activity-promotion policy. */
 function nextSessionOrderAccount({
   sessionIds, previousOrder, previousUpdatedAt, list, orderBy, sortByRecency,
 }) {
@@ -217,11 +147,6 @@ function nextSessionOrderAccount({
   return { order, updatedAt, changed: orderChanged || timestampsChanged }
 }
 
-/**
- * Grouping and ordering menu custom element; own open state so it resets
- * with the wide chrome. Converted from a React function component
- * (useState open) — open becomes an instance field, re-render is explicit.
- */
 export class FreddieViewOptionsMenu extends HTMLElement {
   #props = null
   #open = false
@@ -285,29 +210,17 @@ export class FreddieViewOptionsMenu extends HTMLElement {
 
 defineElement('freddie-view-options-menu', FreddieViewOptionsMenu)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 function ViewOptionsMenu(props) {
   const el = document.createElement('freddie-view-options-menu')
   el.setProps(props)
   return el
 }
 
-/** Resolve an insertion side from the full rendered workspace group. */
 function workspaceGroupHalf(e) {
   const rect = e.currentTarget.getBoundingClientRect()
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 }
 
-/**
- * The scrolling session tree custom element; disconnecting drops the native
- * drag-acceptance listeners and expand-all state. Converted from a React
- * function component: every `useState` becomes a private field, the
- * `useNativeDragAcceptance`/current-group/order-reconciliation `useEffect`s
- * become explicit sync steps at the top of `#render()` compared against
- * previous field values, and `useMemo` derivations become plain recomputes
- * (webjsx re-renders explicitly, so there is no per-frame cost concern to
- * offset).
- */
 export class FreddieSessionTree extends HTMLElement {
   #props = null
   #expandedSessionGroups = []
@@ -334,7 +247,6 @@ export class FreddieSessionTree extends HTMLElement {
     this.#nativeDrag.teardown()
   }
 
-  /** Mirrors `useNativeDragAcceptance(active)`: bind/unbind on active-flag change. */
   #syncNativeDragAcceptance(active) {
     this.#nativeDrag.sync(active)
   }
@@ -560,11 +472,11 @@ export class FreddieSessionTree extends HTMLElement {
                     ? undefined
                     : {
                       rename: () => {
-                        /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
                       },
                       delete: () => {
-                        /* v8 ignore next -- narrowing guard: the actions object exists only for real-workspace groups. */
+                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onDeleteRequest(group.workspaceId, group.label)
                       },
                     },
@@ -583,13 +495,13 @@ export class FreddieSessionTree extends HTMLElement {
                     active: sameGroupDrag,
                     marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
                     hover: (half) => {
-                    /* v8 ignore next -- narrowing guard: Rows gates hover on `active`, which is false while the drag state is null. */
+                    /* v8 ignore next */
                       if (this.#drag === null) return
                       this.#drag = { ...this.#drag, over: { id: node.id, half } }
                       this.#render()
                     },
                     drop: (half) => {
-                    /* v8 ignore next -- narrowing guard: Rows gates drop on `active`, which is false while the drag state is null. */
+                    /* v8 ignore next */
                       if (this.#drag === null) return
                       commitSessionDrag(this.#drag, { id: node.id, half })
                     },
@@ -648,24 +560,12 @@ export class FreddieSessionTree extends HTMLElement {
 
 defineElement('freddie-session-tree', FreddieSessionTree)
 
-/**
- * Create (if needed) or update a `freddie-session-tree` element in place --
- * pass back the previous return value as `el` so the tree's own row-item
- * caches (see its `#projectRowCache`/`#sessionNodeCache`) survive across the
- * owning WorkspaceBrowser's re-renders.
- */
 function SessionTree(el, props) {
   const target = el ?? document.createElement('freddie-session-tree')
   target.setProps(props)
   return target
 }
 
-/**
- * The flat "In one list" body custom element: every session is one
- * draggable top-level row. Converted from a React function component —
- * `useState`/`useRef` become private fields, the order-reconciliation
- * `useEffect` becomes an explicit sync step in `#render()`.
- */
 export class FreddieFlatList extends HTMLElement {
   #props = null
   #drag = null
@@ -806,24 +706,12 @@ export class FreddieFlatList extends HTMLElement {
 
 defineElement('freddie-flat-list', FreddieFlatList)
 
-/**
- * Create (if needed) or update a `freddie-flat-list` element in place --
- * pass back the previous return value as `el` so the list's own
- * `#sessionNodeCache` survives across the owning WorkspaceBrowser's
- * re-renders.
- */
 function FlatList(el, props) {
   const target = el ?? document.createElement('freddie-flat-list')
   target.setProps(props)
   return target
 }
 
-/**
- * Flat search body custom element: local metadata matches plus the current
- * Host result page. No hook holds identity across renders here beyond prop
- * reads and a pure derivation, but it stays a custom element (rather than a
- * stateless function) so its call sites match the sibling tree/list bodies.
- */
 export class FreddieSearchResults extends HTMLElement {
   #props = null
 
@@ -889,25 +777,12 @@ export class FreddieSearchResults extends HTMLElement {
 
 defineElement('freddie-search-results', FreddieSearchResults)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 function SearchResults(props) {
   const el = document.createElement('freddie-search-results')
   el.setProps(props)
   return el
 }
 
-/**
- * The browsing region custom element (registered `freddie-workspace-browser`).
- * Converted from the top-level `WorkspaceBrowser` React function component:
- * every `useState` becomes a private field, every `useRef` becomes a
- * private field holding the current DOM node (looked up after render where
- * a callback ref was used), and every `useEffect` becomes an explicit sync
- * step compared against previous field values, run at the top of
- * `#render()` or from `setProps`/`connectedCallback`/`disconnectedCallback`
- * as appropriate — mirroring Toast.tsx's/HoverCard.tsx's bind/unbind timer
- * field patterns.
- * @see WorkspaceBrowserProps for the field-by-field docs (unchanged from the React version).
- */
 export class FreddieWorkspaceBrowser extends HTMLElement {
   #props = null
 
@@ -1025,7 +900,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     this.#outsideClickBound = false
   }
 
-  /** Rail search = expand + land in the search box (was a useEffect keyed on [wide, searchOnExpand]). */
   #syncExpandFocus(wide) {
     const armed = wide && this.#searchOnExpand
     const wasArmed = this.#expandFocusArmedFor !== null
@@ -1043,19 +917,11 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     }
   }
 
-  /** Focus the search input once expanded (non-rail path), mirrors the second focus effect. */
   #syncSearchExpandedFocus(wide, searchExpanded) {
     if (!wide || !searchExpanded || this.#searchOnExpand) return
     this.#searchInput?.focus({ preventScroll: true })
   }
 
-  /**
-   * Outside-click dismissal stays off while the rail gesture is in flight
-   * (searchOnExpand): the rail click flips the shell wide and mounts this
-   * listener during its own dispatch, then keeps bubbling to document with
-   * the now-unmounted rail button as its target — outside searchRoot, so the
-   * listener would dismiss the search that click just opened.
-   */
   #syncOutsideClick(wide, searchExpanded, normalizedQuery) {
     const shouldBind = wide && searchExpanded && !this.#searchOnExpand
     if (!shouldBind) { this.#unbindOutsideClick(); return }
@@ -1075,7 +941,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     void normalizedQuery
   }
 
-  /** Search debounce/AbortController, was a useEffect keyed on normalizedQuery. */
   #syncSearchRequest(normalizedQuery, searchSessions) {
     if (this.#searchQueryInFlight === normalizedQuery) return
     this.#searchQueryInFlight = normalizedQuery
@@ -1195,7 +1060,7 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   #confirmDelete() {
     const props = this.#props
     const deleteTarget = this.#deleteTarget
-    /* v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
+    /* v8 ignore next */
     if (props === null || this.#deleting || deleteTarget === null) return
     this.#deleting = true
     this.#deleteCommittedId = null
@@ -1217,20 +1082,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
     return el
   }
 
-  /**
-   * The grouped-tree or flat-list session body, reusing the same
-   * freddie-session-tree/freddie-flat-list element across renders (see
-   * SessionTree/FlatList's own doc comments) -- this component re-renders
-   * on every store tick, and creating a fresh element each time reset that
-   * element's own row-item caches to empty every render, so a HoverCard
-   * portal opened mid-hover belonged to an instance already replaced by the
-   * time its pointerleave should have closed it (witnessed live: the card
-   * survived pointerleave, click-away, and a manually dispatched
-   * PointerEvent alike, with #close() never once firing -- the listener was
-   * still attached, just on a DOM node no session list component instance
-   * owned any more). Switching between flat and grouped view creates a
-   * fresh element of the new kind rather than reusing the wrong tag.
-   */
   #renderSessionList({
     groupBy, useSessions, open, forkSession, archivedSessionIds, orderBy,
     sessionOrderByAccount, sessionUpdatedAtByAccount, actions, workspaces,
@@ -1693,11 +1544,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
 
 defineElement('freddie-workspace-browser', FreddieWorkspaceBrowser)
 
-/**
- * Render the browsing region.
- * @param props - composed slot props (shell owner share + store + injected actions).
- * @returns the region element tree.
- */
 export function WorkspaceBrowser(props) {
   const el = document.createElement('freddie-workspace-browser')
   el.setProps(props)

@@ -1,10 +1,3 @@
-/**
- * `workspace` namespace dictionaries: the browsing region (section header,
- * search, tree rows, dialogs) and the pick/add flow. Runtime failure
- * messages (wire error strings) pass through untranslated by policy.
- */
-
-/** English dictionary. */
 export const en = {
   'group.ungrouped': 'Ungrouped',
   'session.new': 'New Session',

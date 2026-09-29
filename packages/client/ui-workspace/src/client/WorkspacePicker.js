@@ -1,13 +1,3 @@
-/**
- * Workspace pick/add flow. WorkspacePickFlow is the reusable core (menu +
- * path error dialog) consumed directly by WorkspaceBrowser (same package) and
- * wrapped by WorkspacePicker for the conversation empty-state slot
- * registration. Directory picking itself lives in the composed flow package's
- * slot occupant (see the contract module doc): this core only opens the flow,
- * adopts the picked path, and owns the error surface. Adding a workspace has
- * exactly one route — pick a host directory, new or existing — because the
- * occupant's own create-folder affordance already covers creating one.
- */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   Button, IconFolderClose16, IconPlusOutline16, renderMenu,
@@ -18,23 +8,12 @@ import css from './WorkspacePicker.css.js'
 
 const ADD_WORKSPACE = '::add-workspace'
 
-/**
- * Pick menu plus the adoption error dialog, as a webjsx custom element.
- * Converted from a React hooks component: every useState becomes a private
- * field, useCallback identities are irrelevant (no memoized child tree to
- * preserve), and the two useEffect bodies become explicit comparisons inside
- * `#render()` — the framework's standard selector hooks (`useWorkspaces`,
- * `useDirectoryFlow`) are called directly from `#render()`, matching
- * ui-conversation's FreddieChatView established convention for webjsx elements
- * consuming the standard-kit hooks.
- */
 export class FreddieWorkspacePickFlow extends HTMLElement {
   #props = null
   #errorOpen = false
   #modalError = null
   #flowOpen = false
   #pickingFolder = false
-  /** Edge-trigger latch for the addIsTheOnlyEntry auto-open (was a useEffect deps array). */
   #autoOpenArmedFor = null
   #menu = null
   #errorModal = null
@@ -56,7 +35,6 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
     this.#render()
   }
 
-  /** Adopt a picked directory; failures land in the folder-error dialog (Choose again reopens the flow). */
   #adoptDirectory(path) {
     const props = this.#props
     if (props === null) return Promise.resolve()
@@ -129,7 +107,6 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
       }
     }
 
-    /** Owner side of the flow conversation: adopt keeps the flow open (busy) until the Host answers. */
     const flowOwner = {
       open: flowOpen,
       busy: pickingFolder,
@@ -194,46 +171,16 @@ export class FreddieWorkspacePickFlow extends HTMLElement {
 
 defineElement('freddie-workspace-pick-flow', FreddieWorkspacePickFlow)
 
-/**
- * @typedef {object} WorkspacePickFlowProps
- * @property {function(string, object=): string} t - conversation locale seat.
- * @property {boolean} open - whether the pick menu is open.
- * @property {{current: Element|null}} anchorRef - element the pick menu and error modal anchor to.
- * @property {function(function(object): object): object} useWorkspaces - workspace-store selector hook; called with an identity selector, returns `{items: Array<{workspaceId: string, title: string}>, phase: 'pending'|'ready'|string}`.
- * @property {function({path: string}): Promise<{workspaceId: string}>} createWorkspace - adopts a picked host directory as a workspace.
- * @property {function(function(boolean): boolean): boolean} useDirectoryFlow - reports whether the directory-flow slot occupant is available.
- * @property {function(object): (Node|null)} renderDirectoryFlow - renders the composed directory-picking flow for the given flow-owner share.
- * @property {string} [selectedId] - the menu item to show selected.
- * @property {function(string): void} onPick - called with the chosen workspace id.
- * @property {function(): void} onClose - called to close the pick menu.
- * @property {boolean} [addOnly=false] - when true, the menu shows only the add-workspace entry.
- * @property {string} [side='bottom'] - the menu's anchor side.
- */
-
-/**
- * Create (if needed) or update a WorkspacePickFlow element in place.
- * @param el - an existing `freddie-workspace-pick-flow` element to update, or null to create one.
- * @param props - see {@link WorkspacePickFlowProps}.
- * @returns the `freddie-workspace-pick-flow` element; keep it and pass it back in to update.
- */
 export function renderWorkspacePickFlow(el, props) {
   const target = el ?? document.createElement('freddie-workspace-pick-flow')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function WorkspacePickFlow(props) {
   return renderWorkspacePickFlow(null, props)
 }
 
-/**
- * The conversation empty-state registration: adapts the owner share to the
- * core flow (all state and semantics live in the flow / the owner). Converted
- * to a webjsx custom element wrapping {@link FreddieWorkspacePickFlow}, since it
- * only reads props and creates no local state — a thin bridge, same shape as
- * ui-primitives' one-shot creation helpers.
- */
 export class FreddieWorkspacePicker extends HTMLElement {
   #props = null
   #pickFlow = null
@@ -271,33 +218,12 @@ export class FreddieWorkspacePicker extends HTMLElement {
 
 defineElement('freddie-workspace-picker', FreddieWorkspacePicker)
 
-/**
- * @typedef {object} WorkspacePickerProps
- * @property {boolean} open - whether the pick menu is open.
- * @property {{current: Element|null}} anchorRef - element the pick menu and error modal anchor to.
- * @property {function(function(object): object): object} useWorkspaces - workspace-store selector hook; forwarded to {@link WorkspacePickFlowProps}.
- * @property {string} [selectedId] - the menu item to show selected.
- * @property {function(string): void} onPick - called with the chosen workspace id.
- * @property {function(): void} onClose - called to close the pick menu.
- * @property {function({path: string}): Promise<{workspaceId: string}>} createWorkspace - adopts a picked host directory as a workspace.
- * @property {function(function(boolean): boolean): boolean} useDirectoryFlow - reports whether the directory-flow slot occupant is available.
- * @property {function(string, object): (Node|null)} renderSlot - renders the named contract slot's registered occupant with the given owner share.
- * @property {function(string, object=): string} t - conversation locale seat.
- */
-
-/**
- * Create (if needed) or update a WorkspacePicker element in place.
- * @param el - an existing `freddie-workspace-picker` element to update, or null to create one.
- * @param props - see {@link WorkspacePickerProps}.
- * @returns the `freddie-workspace-picker` element; keep it and pass it back in to update.
- */
 export function renderWorkspacePicker(el, props) {
   const target = el ?? document.createElement('freddie-workspace-picker')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function WorkspacePicker(props) {
   return renderWorkspacePicker(null, props)
 }

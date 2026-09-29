@@ -1,56 +1,30 @@
-/**
- * Derives the workspace browser tree from Host Workspace order and membership.
- * Unassigned Sessions trail under Ungrouped; only the selected blank Session
- * remains visible.
- */
 import { indexSubagentDescendants } from '@freddie/freddie-client-runtime/client'
 
-/** Group key for Sessions outside every Workspace. */
 export const UNGROUPED_KEY = ''
 
-/** Display label for the ungrouped bucket row. */
 export const UNGROUPED_LABEL = 'Ungrouped'
 
-/**
- * Directory display label: basename of the path (both separators accepted).
- * Ungrouped-bucket fallback for surfaces without a workspace title.
- * @param cwd - directory path, or undefined for the ungrouped bucket.
- * @returns basename, the raw cwd when it has no basename, or the ungrouped label.
- */
 export function workspaceLabel(cwd) {
   if (cwd === undefined || cwd === '') return UNGROUPED_LABEL
   const base = cwd.replace(/[/\\]+$/, '').split(/[/\\]/).pop()
   return base !== undefined && base !== '' ? base : cwd
 }
 
-/** Recency comparator: newest first, id as the deterministic tiebreak (ids are unique per group). */
 function byRecency(a, b) {
   if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt
   return a.id < b.id ? -1 : 1
 }
 
-/**
- * Ordinary sessions are visible; among blank sessions, only the current one
- * is visible. Subagent children use their parent header catalog; archived
- * sessions are visible nowhere, while their accounting slots remain so
- * unarchiving restores position.
- */
 function sessionVisible(session, current, archived) {
   return session.origin !== 'subagent'
     && !archived.has(session.id)
     && (!session.blank || session.id === current)
 }
 
-/**
- * A blank session is the selected Workspace's provisional New Session row;
- * its canonical title never enters search (blank rows are query-excluded)
- * and the renderer localizes its display label.
- */
 function sessionTitle(session) {
   return session.blank ? 'New Session' : session.displayTitle
 }
 
-/** Build one group without projecting session lineage into presentation. */
 function buildGroup(
   key,
   workspaceId,
@@ -65,7 +39,6 @@ function buildGroup(
   return { key, workspaceId, cwd, createdAt, label, sessions }
 }
 
-/** Apply a stored Ungrouped order and append newly loose Sessions by recency. */
 function orderedUngrouped(members, stored) {
   const byId = new Map(members.map(session => [session.id, session]))
   const included = new Set()
@@ -83,12 +56,6 @@ function orderedUngrouped(members, stored) {
   return ordered
 }
 
-/**
- * Group Sessions by Host Workspace: one group per entity in stable Host
- * order, with members resolved from sessionIds in their stored order. Sessions
- * outside every Workspace trail in the browser-local Ungrouped order, which
- * falls back to recency before that order is initialized.
- */
 function groupByWorkspace(
   list,
   workspaces,
@@ -146,20 +113,6 @@ function sessionNode(
   }
 }
 
-/**
- * Derive the workspace browser groups with every session as a top-level row.
- *
- * Every group shows; sessions populate under expanded groups in the selected
- * local order. Blank sessions are excluded except for the selected
- * provisional New Session row; archived sessions are excluded everywhere.
- * Content search lives outside this derivation
- * (see {@link deriveSearchResults}).
- * @param list - sessions list snapshot (`current` feeds containsCurrent).
- * @param workspaces - real workspaces in stable Host order.
- * @param archivedSessionIds - registry-global archive set.
- * @param view - local expansion arrays.
- * @returns group sections in render order.
- */
 export function deriveGroups(
   list,
   workspaces,
@@ -191,15 +144,6 @@ export function deriveGroups(
   return groups
 }
 
-/**
- * Derive the flat session list ("In one list" mode): every session — fork
- * children included — as a top-level row, strictly newest-first. No grouping,
- * no parent/child adjacency. Content search lives outside this derivation
- * (see {@link deriveSearchResults}).
- * @param list - sessions list snapshot.
- * @param archivedSessionIds - registry-global archive set.
- * @returns flat rows in render order.
- */
 export function deriveFlat(
   list,
   archivedSessionIds,
@@ -216,18 +160,6 @@ export function deriveFlat(
   return rows.map(session => sessionNode(session, descendants))
 }
 
-/**
- * Merge immediate title/Workspace substring matches with ranked Host content
- * matches. Local rows lead newest-first, content-only rows retain backend
- * order, and duplicate sessions receive the backend snippet in place.
- * @param list - session metadata authority.
- * @param workspaces - Workspace membership and display labels.
- * @param query - caller text; surrounding whitespace is ignored.
- * @param archivedSessionIds - registry-global archive set (members never match).
- * @param content - ranked Host content-search page.
- * @param limit - protocol-owned maximum merged row count.
- * @returns bounded deduplicated flat rows and a refine-query hint bit.
- */
 export function deriveSearchResults(
   list,
   workspaces,
@@ -300,13 +232,6 @@ export function deriveSearchResults(
   }
 }
 
-/**
- * Compact relative time for session rows, as a structured bucket the
- * renderer localizes ("now"/"5min"/"3h"/"2d"/"4mo"/"1y" in en).
- * @param updatedAt - epoch ms of the session's last activity.
- * @param now - current epoch ms (injected for pure rendering).
- * @returns the row's trailing time bucket and magnitude.
- */
 export function relativeTime(updatedAt, now) {
   const MIN = 60_000
   const HOUR = 3_600_000
