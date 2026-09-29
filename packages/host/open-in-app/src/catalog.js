@@ -1,139 +1,26 @@
-/**
- * The open-in-app application catalog: a compile-time table of launchable
- * applications, each declaring per-platform launcher sources tried in order.
- * The table is data only — `resolver.js` resolves it against this host,
- * `icons.js` extracts icons from what resolution proved. An entry that declares
- * no locator for the running platform resolves as absent, so the catalog never
- * guesses from an install record alone.
- * @module @freddie/freddie-host-open-in-app/catalog
- */
-
-/** Launch-arg token the workspace directory substitutes into (`--cd={path}`). */
 export const PATH_TOKEN = '{path}'
 
-/**
- * How a resolved application takes the workspace directory. `argv` spawns the
- * launcher detached, substituting the directory into the arg carrying
- * {@link PATH_TOKEN} or appending it when no arg does. `shell-open` hands the
- * directory to the operating system shell's open verb — the channel the file
- * managers use, because they are the OS default for a directory and a direct
- * `explorer.exe <dir>` spawn does not reliably raise a window.
- * @typedef {{
- *   readonly kind: 'argv',
- *   readonly command: string,
- *   readonly args: readonly string[],
- *   readonly env?: Readonly<Record<string, string>>,
- *   readonly windowsHide?: boolean,
- * } | {
- *   readonly kind: 'shell-open',
- * }} OpenInAppLaunch
- */
 
-/**
- * How one platform derives a verified launcher. Every kind resolves to an
- * artifact this host actually holds — an existing `.app` bundle, an executable
- * on disk, or a PATH resolution — never a bare install record: `fixed` ships
- * with the OS; `app` checks the known `.app` directories for the named bundles;
- * `xcode` follows `xcode-select -p`, so Beta or renamed installs are found;
- * `cli` resolves a PATH name in-process (PATH/PATHEXT stat, no shell, no
- * `which`); `file` takes the first existing expanded candidate; `scan` picks the
- * newest matching versioned install directory; `app-paths` reads the Windows
- * `App Paths` registry keys; `install-record` reads the Windows Uninstall
- * records and verifies the executable they point at; `github-desktop` resolves
- * GitHub Desktop's versioned executable and packaged CLI together; `desktop`
- * reads a Linux XDG desktop entry and verifies its `TryExec`/`Exec` executable.
- * @typedef {{
- *   readonly kind: 'fixed',
- *   readonly launch: OpenInAppLaunch,
- *   readonly iconPath: string,
- * } | {
- *   readonly kind: 'app',
- *   readonly fsNames: readonly string[],
- * } | {
- *   readonly kind: 'xcode',
- * } | {
- *   readonly kind: 'cli',
- *   readonly name: string,
- *   readonly args: readonly string[],
- *   readonly requiresDesktop?: boolean,
- * } | {
- *   readonly kind: 'file',
- *   readonly candidates: readonly string[],
- *   readonly args: readonly string[],
- * } | {
- *   readonly kind: 'scan',
- *   readonly root: string,
- *   readonly namePrefix: string,
- *   readonly relativeLauncher: string,
- *   readonly args: readonly string[],
- * } | {
- *   readonly kind: 'app-paths',
- *   readonly exe: string,
- *   readonly args: readonly string[],
- * } | {
- *   readonly kind: 'install-record',
- *   readonly displayNamePrefix: string,
- *   readonly relativeLauncher?: string,
- *   readonly args: readonly string[],
- * } | {
- *   readonly kind: 'github-desktop',
- *   readonly root: string,
- * } | {
- *   readonly kind: 'desktop',
- *   readonly desktopId: string,
- *   readonly args: readonly string[],
- * }} OpenInAppLocator
- */
 
-/**
- * One platform's launcher sources and, on Linux, the desktop entry owning its
- * icon (macOS icons come from the resolved bundle and Windows icons from the
- * resolved executable, neither of which needs a declaration).
- * @typedef {{
- *   readonly locators: readonly OpenInAppLocator[],
- *   readonly desktopId?: string,
- * }} OpenInAppPlatformSpec
- */
 
-/**
- * One launchable application and the platforms that can offer it.
- * @typedef {{
- *   readonly id: string,
- *   readonly platforms: Readonly<Record<string, OpenInAppPlatformSpec | undefined>>,
- * }} OpenInAppApp
- */
 
-/** macOS spec checking the known application directories for the named bundles. */
 const macApp = (...fsNames) => ({ locators: [{ kind: 'app', fsNames }] })
 
-/** Spec from its locator chain. */
 const spec = (...locators) => ({ locators })
 
-/** Spec from its locator chain plus the Linux desktop entry owning its icon. */
 const desktopSpec = (desktopId, ...locators) => ({ locators, desktopId })
 
-/** In-process PATH-name locator launching the resolved executable. */
 const cli = (name, ...args) => ({ kind: 'cli', name, args })
 
-/** In-process PATH-name locator offered only when the host announces a desktop. */
 const desktopCli = (name, ...args) => ({ kind: 'cli', name, args, requiresDesktop: true })
 
-/** First-existing-candidate locator launching the matched candidate. */
 const file = (candidates, ...args) => ({ kind: 'file', candidates, args })
 
-/** Windows `App Paths` registry locator for one registered executable name. */
 const appPaths = (exe, ...args) => ({ kind: 'app-paths', exe, args })
 
-/** Windows Uninstall-record locator verified through the executable it proves. */
 const installRecord = (displayNamePrefix, relativeLauncher, ...args) =>
   ({ kind: 'install-record', displayNamePrefix, relativeLauncher, args })
 
-/**
- * JetBrains product entry: known bundle names on macOS (direct-download and
- * Toolbox spellings), the newest versioned `%ProgramFiles%\JetBrains` install or
- * a verified Uninstall record on Windows, PATH command or Toolbox shell script
- * on Linux.
- */
 const jetBrains = (id, productName, cliName, winExe, macNames) => ({
   id,
   platforms: {
@@ -154,15 +41,6 @@ const jetBrains = (id, productName, cliName, winExe, macNames) => ({
 
 const GIT_FOR_WINDOWS_DISPLAY_NAME_PREFIX = 'Git version'
 
-/**
- * The launch catalog in menu order: file managers, editors and IDEs, Git GUIs,
- * terminals. Finder, Terminal, and File Explorer ship with their operating
- * system, so their locators always resolve there. macOS bundle names list the
- * common install spellings; a bundle renamed beyond them or moved outside
- * `/Applications` and `~/Applications` is not detected (README Known
- * Limitations), because there is no Launch Services lookup and deliberately no
- * disk scan.
- */
 export const OPEN_IN_APP_CATALOG = [
   {
     id: 'finder',
