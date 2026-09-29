@@ -9,10 +9,6 @@ import css from './QueueDock.css.js'
 
 let listIdSeq = 0
 
-/**
- * Queue strip custom element: one item renders directly; multiple items
- * default to a collapsible count header; an empty queue renders nothing.
- */
 export class FreddieQueueDock extends HTMLElement {
   #props = null
   #editing = null
@@ -253,24 +249,15 @@ export class FreddieQueueDock extends HTMLElement {
 
 defineElement('freddie-queue-dock', FreddieQueueDock)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function QueueDock(props) {
   const el = document.createElement('freddie-queue-dock')
   el.setProps(props)
   return el
 }
 
-/**
- * The dock entry as a plain registrant plugin. The conversation service is
- * the action contract; the slot declaration has an independent lifecycle boundary.
- */
 export const queueDockEntry = {
   name: 'conversation-queue-dock',
   inject: ['slots', 'conversation', 'sessions'],
-  /**
-   * Register the queue strip as the terminal input-dock entry (order 20).
-   * @param ctx - registrant context (disposal rides ctx.effect inside slots.register).
-   */
   apply(ctx) {
     ctx.slots.inject('conversation.input.dock', () => ctx.slots.register({
       name: 'conversation.input.dock',

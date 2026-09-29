@@ -1,16 +1,6 @@
-/**
- * Scope-addressed conversation send, cancel, and history orchestration.
- *
- * Scope addressing rides the cordis Service tracker: property access through
- * `ctx.conversation` rebinds `this.ctx` to the caller's context, so methods
- * read the session tag with `scopeOf`. Mutable state must remain reachable
- * through one property read; assignment through the tracker proxy and `#`
- * private fields bypass that rebinding.
- */
 import { Service } from '@freddie/cordis'
 import { bytesToBase64, randomUUID } from '@freddie/freddie-crypto'
 
-/** Create one browser-only draft descriptor; only its id enters input state. */
 function browserDraftAttachment(file) {
   return {
     kind: 'image',
@@ -20,31 +10,18 @@ function browserDraftAttachment(file) {
   }
 }
 
-/** Unsupported browser-declared image type, localized by the UI boundary. */
 export class UnsupportedImageMediaTypeError extends Error {
-  /** @param mediaType - Browser-declared MIME value, possibly empty. */
   constructor(mediaType) {
     super(`unsupported image media type: ${mediaType || '(empty)'}`)
     this.name = 'UnsupportedImageMediaTypeError'
-    /** Browser-declared MIME value, possibly empty. */
     this.mediaType = mediaType
   }
 }
 
-/** Scope-addressed conversation service (root singleton, provided as `conversation`). */
 export class ConversationController extends Service {
-  /**
-   * @param ctx - owning root context (the plugin apply context; the service
-   * registers itself and follows that fiber's lifetime).
-   * @param config - carries the SessionInputResolver and composer-block registry
-   * constructed by the plugin apply (the same instances the slot inject
-   * factories close over).
-   */
   constructor(ctx, config) {
     super(ctx, 'conversation')
-    /** The per-session input machine registry (SessionInputResolver face). */
     this.input = config.input
-    /** The per-session composer-block registry. */
     this.blocks = config.blocks
     this.draftAttachments = new Map()
     this.imageUrls = new Map()
@@ -61,27 +38,12 @@ export class ConversationController extends Service {
     }, 'conversation attachment URL cache')
   }
 
-  /**
-   * Send a prompt into the scoped session. Business failures also land in the
-   * session snapshot's promptError (object-layer state); the rejection here
-   * exists for caller choreography (the composer restores the draft on it).
-   * @param text - prompt text, sent verbatim as one text block.
-   */
   async send(text) {
     const session = this.scopedSession('send')
     const result = await session.prompt([{ type: 'text', text }], 'queue')
     if (!result.ok) throw new Error(`conversation.send failed: ${result.error.code}: ${result.error.message}`)
   }
 
-  /**
-   * Submit ordered draft images with text through one host admission.
-   * @param session - target session.
-   * @param text - serialized prompt text.
-   * @param imageIds - ordered draft-local attachment ids.
-   * @param mode - queue or steer delivery selected by composer policy.
-   * @param signal - optional cancellation for the complete Host admission.
-   * @returns the Host admission outcome; local attachment preparation failures reject.
-   */
   async sendSession(session, text, imageIds, mode, signal) {
     const attachments = this.draftImages(imageIds)
     if (attachments.length !== imageIds.length) {
@@ -95,11 +57,6 @@ export class ConversationController extends Service {
     return { kind: 'success' }
   }
 
-  /**
-   * Create runtime-only draft images and their object URLs.
-   * @param files - browser files to register after MIME validation.
-   * @returns ordered draft descriptors.
-   */
   createDraftImages(files) {
     for (const file of files) imageMediaType(file.type)
     return files.map((file) => {
@@ -110,11 +67,6 @@ export class ConversationController extends Service {
     })
   }
 
-  /**
-   * Resolve ordered input-state ids to runtime-owned draft images.
-   * @param ids - draft attachment ids.
-   * @returns descriptors that remain live, in requested order.
-   */
   draftImages(ids) {
     const attachments = []
     for (const id of ids) {
@@ -124,13 +76,6 @@ export class ConversationController extends Service {
     return attachments
   }
 
-  /**
-   * Serialize ordered draft images to command-submit wire payloads without
-   * sending or releasing them (the composer releases only after the command
-   * settles successfully).
-   * @param imageIds - ordered draft-local attachment ids.
-   * @returns base64 payloads in id order.
-   */
   async serializeDraftImages(imageIds) {
     const attachments = this.draftImages(imageIds)
     if (attachments.length !== imageIds.length) {
@@ -139,10 +84,6 @@ export class ConversationController extends Service {
     return Promise.all(attachments.map(attachment => this.encodeImage(attachment.file)))
   }
 
-  /**
-   * Release one browser-owned draft image and preview URL.
-   * @param id - draft attachment id.
-   */
   releaseDraftImage(id) {
     const attachment = this.draftAttachments.get(id)
     if (attachment === undefined) return
@@ -151,20 +92,10 @@ export class ConversationController extends Service {
     revokePreview(attachment.previewUrl)
   }
 
-  /**
-   * Release a set of browser-owned draft images.
-   * @param attachments - descriptors to release.
-   */
   releaseDraftImages(attachments) {
     for (const attachment of attachments) this.releaseDraftImage(attachment.id)
   }
 
-  /**
-   * Resolve and cache one session-authorized historical image URL.
-   * @param sessionId - owning session authorization scope.
-   * @param attachment - durable image reference.
-   * @returns browser URL valid until its rendered session is released.
-   */
   resolveImage(sessionId, attachment) {
     if (this.disposed) return Promise.reject(new Error('conversation.resolveImage: service is disposed'))
     const key = `${sessionId}:${attachment.attachmentId}`
@@ -198,10 +129,6 @@ export class ConversationController extends Service {
     return pending
   }
 
-  /**
-   * Release every historical image URL owned by one rendered session.
-   * @param sessionId - rendered session scope.
-   */
   releaseSessionImages(sessionId) {
     this.imageGenerations.set(sessionId, (this.imageGenerations.get(sessionId) ?? 0) + 1)
     for (const [key, entry] of this.imageUrls) {
@@ -215,7 +142,6 @@ export class ConversationController extends Service {
     }
   }
 
-  /** Apply one operation to a pending queue occurrence. */
   async updateQueue(itemId, action) {
     const session = this.scopedSession('updateQueue')
     const result = await session.updateQueue(itemId, action)
@@ -228,19 +154,16 @@ export class ConversationController extends Service {
     }
   }
 
-  /** Cancel the scoped session's in-flight turn while preserving Queue (failures land in promptError and reject, as in send). */
   async cancel() {
     const session = this.scopedSession('cancel')
     const result = await session.cancel()
     if (!result.ok) throw new Error(`conversation.cancel failed: ${result.error.code}: ${result.error.message}`)
   }
 
-  /** Pull one older history page for the scoped Session. */
   async loadOlder() {
     await this.scopedSession('loadOlder').loadOlder()
   }
 
-  /** Resolve the caller scope's session face or throw on root contexts. */
   scopedSession(op) {
     const id = this.scopeId(op)
     const binding = this.requireSessions().binding(id)
@@ -248,7 +171,6 @@ export class ConversationController extends Service {
     return binding.session
   }
 
-  /** Read the caller's session scope tag via the sessions service; root contexts fail loud. */
   scopeId(op) {
     const id = this.requireSessions().scopeOf(this.ctx)
     if (id === undefined) {
@@ -263,12 +185,10 @@ export class ConversationController extends Service {
     return sessions
   }
 
-  /** Convert browser files to canonical base64 prompt parts. */
   serializeImages(images) {
     return Promise.all(images.map(async file => ({ type: 'image', ...await this.encodeImage(file) })))
   }
 
-  /** Canonical base64 wire form of one browser image file. */
   async encodeImage(file) {
     return {
       mediaType: imageMediaType(file.type),

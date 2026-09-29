@@ -1,11 +1,7 @@
-/** `conversation` namespace dictionaries. */
-
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'conversation'
 
 const PLAN_NEXT_ACTION_EN = 'describe your task to generate plan'
 
-/** English dictionary. */
 export const en = {
   'view.chat': 'Chat',
   'hint.plan': PLAN_NEXT_ACTION_EN,

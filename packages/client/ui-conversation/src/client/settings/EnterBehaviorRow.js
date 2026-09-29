@@ -1,8 +1,3 @@
-/** General Settings row for the Composer's busy-state Enter preference.
- *
- * Converted from a React hooks component to a webjsx custom element: `open`
- * becomes an instance field and re-render is an explicit applyDiff(this,
- * vdom) call (Toast.tsx's pattern). */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChevronDownOutline14, Menu, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './EnterBehaviorRow.css.js'
@@ -12,9 +7,6 @@ const OPTIONS = [
   { id: 'steer', label: 'settings.enter.steer' },
 ]
 
-/**
- * Busy-state Enter behavior selector custom element.
- */
 export class FreddieEnterBehaviorRow extends HTMLElement {
   #props = null
   #open = false
@@ -72,7 +64,6 @@ export class FreddieEnterBehaviorRow extends HTMLElement {
 
 defineElement('freddie-enter-behavior-row', FreddieEnterBehaviorRow)
 
-/** One-shot creation/update helper preserving the original function-component call shape. */
 export function EnterBehaviorRow(props) {
   const el = document.createElement('freddie-enter-behavior-row')
   el.setProps(props)

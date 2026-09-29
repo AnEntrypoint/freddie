@@ -1,13 +1,5 @@
-/**
- * Per-session chat store shared by conversation and details registrations.
- * The plugin creates its handle at apply time so identity follows the fiber.
- */
 import { defineStore } from '@freddie/freddie-client-runtime/client'
 
-/**
- * Declares the per-session chat state and write surface.
- * @returns the store handle.
- */
 export function createChatStore() {
   return defineStore({
     init: () => ({ selection: null, draft: '', view: null, inspect: null }),

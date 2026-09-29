@@ -21,3 +21,49 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - `input/machine.js`: typing joins the open undo run only while contiguous and inside the merge window; undo/redo pushes the log manually because `pushTxn` would cut the redo chain. After submit, text appended during the Host round trip survives only as a pure suffix, sent content leaves the undo log, a command claim persists only while the live draft equals the enter-time draft, and a warmup failure keeps the draft instead of downgrading to a prompt.
 - `input/facade.js`, `input/hub.js`: a claim that does not declare image acceptance never submits with images (one notice, all retained); machine-driven draft replacements bypass `onChange`, so the caret is re-tracked; a dead attempt must not reach the Host executor; release settles after the submit RPC, when teardown may have unloaded the conversation service.
 - `MessageIconActions.js`, `QueueDock.js`: an unavailable branch action uses `aria-disabled`, not `disabled`, because native disabled buttons deliver no hover or focus events to the tooltip; the queue's unsupported-edit hint stays a native `title`. `ModelRetryItem` (`MessageItem.js`) anchors the host-scheduled delay to this browser's first render because host event time and `Date.now()` may be different clocks.
+- `service.js`: the cordis Service tracker rebinds `this.ctx` on property access through `ctx.conversation`, so methods read the session tag with `scopeOf`; mutable state must stay reachable through one property read because assignment through the tracker proxy and `#` private fields bypass the rebinding.
+- `input/facade.js`: the InputState store is `raf`-batched because every session-scoped slot outlet subscribes to it; InputBar re-renders synchronously from `#onChange`, so its controlled value never depends on that subscription. Submit serializes references through the session controller's codec routing; owner missing, serialize failure or disposal blocks the send with a notice and keeps draft and chips.
+- `input/hub.js` steer-all: strict steer in FIFO order; `steer-unavailable` and `queue-item-not-found` converge silently (a row the host already steered makes the repeated steer a no-op), any other failure is one composer notice.
+- `input/submission-policy.js`: direct `steer` is best-effort; AgentLoop turns a closed-window submission into the next waking Queue item. Host and Agent own the delivery window.
+- `input/machine.js`: draft edit, occurrence reconciliation and undo push are one transaction bumping `draftRev`, so span CAS is revision equality and mutation success is read as a `draftRev` advance. The machine owns each attempt's AbortController and drops stale `adjudicated`/`adjudication-failed`/`submit-settled` events by `seq`. Paste-upgrade of a matched token is its own transaction (undo one restores the token text, undo two the pre-paste draft).
+- `input/decorations.js`: a reference token needs the trigger at draft start or after whitespace and an exact lexicon member name.
+- `skeleton/ContextMeter.js`: the occupancy sentence is split on a marker so each locale keeps its own word order while the headline keeps its tone.
+- `skeleton/EmptyHero.js`: hero chrome has no glow, composer or workspace row; the workspace row rides the InputBar accessory hole.
+- `skeleton/TodoPanel.js`: the `TodoItem` status union is re-declared locally because client packages do not depend on `freddie-llm`.
+- `invariant.js`: no runtime invariant; the `conversation.view` tab ring and `conversation.chat.node` renderer seat ride the slot system whose ledger invariants live in the runtime slots package.
+- `submission-settings.js`: the default keeps Enter-as-Queue for running conversations.
+- Custom elements converted from React hold former refs/state as private fields, re-render with `applyDiff(this, vdom)`, and pair bind/unbind methods with `connectedCallback`/`disconnectedCallback`; the one-shot `create*` helpers keep the old function-component call shape.
+
+## Comment sweep: chat, contract, conversation-nodes, apply
+
+- `chat/ContextBody.js`: model-facing text is bounded at the disclosure, not the producer. Content runs keep
+model order: adjacent text joins with no separator, an unknown block breaks the run and keeps its own fallback
+(the block union is merge-extensible). Instruction, catalog, snapshot, recall and relay readers are all-or-nothing
+(an unreadable source falls back to the opaque body; the row is labelled with the form actually rendered).
+`instructions` keeps its `<system-reminder>` framing verbatim; `snapshot` shows sections as assembled plus the
+supersedes framing line as a caption; `relay` shows the sender session id as a field (no title resolution);
+`recall` shows retained/omitted counts; only `notice` supplies a collapsed one-line summary. `kind` is always
+omitted from source fields, `form` only when a dedicated body rendered.
+- `chat/StatsLine.js`: the node fold is only the fallback for assemblies without the `sessionStats` projection;
+context occupancy uses `projectedTokens` (bare sample only for logs predating it); numerator and capacity are
+independent last-wins fields, so the figure is a reference, not an exact measurement.
+- `chat/turn-metrics.js`: TTFT is the turn's lowest-step reading, valid only when the turn start is inside the loaded
+window (callers gate on `turnTimings`); throughput divides summed output tokens by summed decode time of steps
+carrying both.
+- `chat/MessageItem.js`: user-bubble `/name` and `@name` tokens decorate by shape alone (validated at compose
+time); the logged model text stays the single truth.
+- `chat/ChatView.js`: only `order.slice(windowStart, windowEnd)` mounts; revealing above uses the same anchor
+mechanism as loading an older page, revealing below needs none. The window resets on open/session change.
+- `chat/AssistantMarkdown.js`: stateless function component; MarkdownText/JsonBlock element identity is cached
+externally because it has no instance to hold the cache.
+- `conversation-nodes/common.js` and `turn-max-tokens.js`: the max-tokens notice sits between the closing Assistant
+and the turn-tail so the tail stays the turn's last node and keeps branch enabled; with no closing text Assistant it
+anchors at the `turn/end` seq.
+- `conversation-nodes/turn-error.js`: retries run inside the failing turn, so `llm/retry` history never suppresses
+the terminal error row; the retry node renders that history separately.
+- `contract/slots.js`: the approval face forwards render identity and question material from the carrier; `answer`
+owns the wire encoding, throws on a rejected carrier receipt, and panel removal stays frame-driven via the broadcast
+`approval/resolved`.
+- Source files carry no comments (only `v8 ignore` pragmas); the JSDoc typedef contracts were dropped because nothing
+consumes them.
+- Input visibility tiers: business packages see `InputState` through the InputZone currency; scoped input events carry the mutation verbs; only the conversation wiring layer sees the full `SessionInput`; `InputMachine` (`input/machine.js`) is package-private.
