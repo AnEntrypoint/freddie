@@ -1,6 +1,3 @@
-/** `goal` namespace dictionaries. */
-
-/** English dictionary. */
 export const en = {
   'phase.active': 'Ongoing Goal',
   'phase.paused': 'Paused Goal',

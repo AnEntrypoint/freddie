@@ -1,13 +1,3 @@
-/**
- * Goal surface plugin, browser half: the GoalBar entry in the
- * conversation.input.dock strip. Projection-mode surface — the live goal
- * arrives through `useProjection('goal')` (seeded by the history tail page,
- * updated by session/projection frames), so this plugin owns no store, no
- * refresh chain, and no event listener. The inject face carries only the
- * four mutation verbs through the generated Goal Remote API;
- * their CAS ref reads the session's current projected value at call time.
- * Goal creation stays on the /goal host command.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { GoalCommandInputView } from './GoalCommandInputView.js'
 import { goalCommandInputDefinition } from './goal-command-input.js'
@@ -15,16 +5,10 @@ import { en } from './locales.js'
 
 export { GoalBar, GoalDock } from './GoalBar.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'goal'
 
-/** Required services for the Goal dock, command-input projection, Remote mutations, and copy. */
 export const inject = ['slots', 'sessions', 'remote', 'remote.goals', 'locale', 'conversationEvents']
 
-/**
- * Client plugin body: the GoalBar dock entry with its mutation verbs.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.conversationEvents.register(goalCommandInputDefinition)
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-goal: dictionaries')
@@ -37,7 +21,6 @@ export function apply(ctx) {
 
   const sessions = ctx.sessions
 
-  /** The session's current projected CAS ref, read at verb call time (no staleness fence: the RPC's CAS is the guard). */
   const refOf = (sessionId) => {
     const face = sessions.binding(sessionId)?.session.projections.faceOf('goal')
     const projection = face?.getSnapshot()

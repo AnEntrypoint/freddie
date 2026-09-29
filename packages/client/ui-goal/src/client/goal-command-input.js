@@ -1,13 +1,7 @@
-/**
- * Derive the visible command line from its structured durable run.
- * @param event - `/goal` command run.
- * @returns command text with trailing parser whitespace removed.
- */
 export function goalCommandText(event) {
   return `/${event.data.name}${(event.data.args ?? '').trimEnd()}`
 }
 
-/** Goal-owned command input projection; the generic command Definition retains the result row. */
 export const goalCommandInputDefinition = {
   kind: 'goal-command-input',
   target: 'chat',

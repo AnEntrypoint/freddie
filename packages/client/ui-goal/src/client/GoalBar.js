@@ -1,18 +1,3 @@
-/**
- * GoalBar: the goal indicator docked above the message composer (input dock
- * strip). A present goal shows a goal glyph, a phase label, the truncated
- * objective, and icon actions — resume when paused, edit (inline form in the
- * same strip), and clear. Goal creation lives on the `/goal` command, not
- * here: loading (undefined), no goal (null), and complete goals render
- * nothing. Live state arrives as the projected whole snapshot; the verbs are
- * the injected face.
- *
- * Converted from a React hooks component to a webjsx custom element:
- * editing/draft/pending/actionError/clearedGoalId become instance fields,
- * the goal-identity reset effect becomes an explicit check in setProps, and
- * re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
-
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconCheckOutline16, IconCloseOutline16, IconEditOutline16, IconGoalOutline16,
@@ -21,7 +6,6 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './GoalBar.css.js'
 
-/** Strip label keys per visible phase; complete goals render nothing. */
 const PHASE_LABELS = {
   active: 'phase.active',
   paused: 'phase.paused',
@@ -37,7 +21,6 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-/** Goal indicator strip custom element. */
 export class FreddieGoalBar extends HTMLElement {
   #props = DEFAULT_PROPS
   #editing = false
@@ -205,15 +188,6 @@ export class FreddieGoalBar extends HTMLElement {
 
 defineElement('freddie-goal-bar', FreddieGoalBar)
 
-/**
- * Dock adapter custom element: reads the host-computed 'goal' projection
- * (whole value; absent or null renders nothing) and hosts a FreddieGoalBar.
- * Converted from a React hooks component (useProjection subscription) to a
- * webjsx custom element: `useProjection` is read directly inside `#render()`
- * on every `setProps` call (the WebjsxBridge re-invokes `setProps` on every
- * host re-render), matching ui-plan's `FreddiePlanChip` pattern — no separate
- * subscription lifecycle is needed.
- */
 export class FreddieGoalDock extends HTMLElement {
   #props = null
   #bar = null
@@ -246,78 +220,22 @@ export class FreddieGoalDock extends HTMLElement {
 
 defineElement('freddie-goal-dock', FreddieGoalDock)
 
-/**
- * One goal, as FreddieGoalBar reads it: identity for reset/clear tracking,
- * the visible phase, the objective text, and the blocked-phase reason shown
- * as the strip's title.
- * @typedef {object} GoalBarGoal
- * @property {string} id
- * @property {'active'|'paused'|'blocked'|'complete'} phase
- * @property {string} objective
- * @property {{message: string}} [blockedReason]
- */
-
-/**
- * Outcome of a goal action call (edit/pause/resume/clear).
- * @typedef {object} GoalBarActionResult
- * @property {boolean} ok
- * @property {{code: string, message: string, details: object}} [error]
- */
-
-/**
- * Props for the standalone `freddie-goal-bar` element.
- * @typedef {object} GoalBarFullProps
- * @property {GoalBarGoal|null} [goal] - undefined while loading, null when there is no current goal.
- * @property {function(string): Promise<GoalBarActionResult>} onEdit - persist an edited objective.
- * @property {function(): Promise<GoalBarActionResult>} onPause - pause the active goal.
- * @property {function(): Promise<GoalBarActionResult>} onResume - resume a paused goal.
- * @property {function(): Promise<GoalBarActionResult>} onClear - clear the current goal.
- * @property {function(string): string} t - label lookup by key.
- */
-
-/**
- * Create and mount (or update) a GoalBar element for a given goal snapshot.
- * @param el - an existing `freddie-goal-bar` element to update, or null to create one.
- * @param props - see {@link GoalBarFullProps}.
- * @returns the `freddie-goal-bar` element; keep it and pass it back in to update.
- */
 export function renderGoalBar(el, props) {
   const target = el ?? document.createElement('freddie-goal-bar')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function GoalBar(props) {
   return renderGoalBar(null, props)
 }
 
-/**
- * Props for the `freddie-goal-dock` adapter element: a `goal` projection
- * reader plus the same action/label callbacks GoalBarFullProps takes, passed
- * straight through to the hosted `freddie-goal-bar`.
- * @typedef {object} GoalDockProps
- * @property {function(string): ({goal: GoalBarGoal|null}|null|undefined)} useProjection - reads the named host projection; undefined while loading.
- * @property {function(string): Promise<GoalBarActionResult>} onEdit
- * @property {function(): Promise<GoalBarActionResult>} onPause
- * @property {function(): Promise<GoalBarActionResult>} onResume
- * @property {function(): Promise<GoalBarActionResult>} onClear
- * @property {function(string): string} t
- */
-
-/**
- * Create and mount (or update) a GoalDock element.
- * @param el - an existing `freddie-goal-dock` element to update, or null to create one.
- * @param props - see {@link GoalDockProps}.
- * @returns the `freddie-goal-dock` element; keep it and pass it back in to update.
- */
 export function renderGoalDock(el, props) {
   const target = el ?? document.createElement('freddie-goal-dock')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function GoalDock(props) {
   return renderGoalDock(null, props)
 }

@@ -2,7 +2,6 @@ import { createElement as h } from '@freddie/webjsx'
 import { MessageText } from '@freddie/freddie-client-ui-primitives'
 import css from './GoalCommandInputView.css.js'
 
-/** Right-aligned `/goal` input bubble without ordinary message actions. */
 export function GoalCommandInputView({
   node, t,
 }) {
