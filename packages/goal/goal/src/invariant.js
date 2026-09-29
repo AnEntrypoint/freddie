@@ -1,15 +1,10 @@
-/** Package-owned durable goal-stream invariants. @module @freddie/freddie-goal/invariant */
-
 import { applyGoalEvent, emptyGoalFoldState } from './fold.js'
 
 const PACKAGE_NAME = '@freddie/freddie-goal'
 
-/** Cordis companion plugin name. */
 export const name = 'goal-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Copy the independent fold before validating one candidate event. */
 function cloneState(state) {
   return {
     goal: state.goal,
@@ -21,7 +16,6 @@ function cloneState(state) {
   }
 }
 
-/** Apply one event through the strict goal decoder and attribute failures. */
 function applyChecked(state, event, fail) {
   try {
     applyGoalEvent(state, event)
@@ -32,7 +26,6 @@ function applyChecked(state, event, fail) {
   }
 }
 
-/** Install an independent incremental fold over every attached session. */
 const install = Object.assign((ctx, fail) => {
   const states = new WeakMap()
   const staged = new WeakMap()
@@ -66,10 +59,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/**
- * Register the goal-stream invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

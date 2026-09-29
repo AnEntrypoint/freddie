@@ -1,5 +1,3 @@
-/** Pure replay fold and strict decoder for durable goal changes. */
-
 import { GOAL_CHANGE_VERSION, GoalId } from './runtime.js'
 
 const SNAPSHOT_OPERATIONS = new Set([
@@ -12,10 +10,6 @@ const SNAPSHOT_OPERATIONS = new Set([
 ])
 const PHASES = new Set(['active', 'paused', 'blocked', 'complete'])
 
-/**
- * Build an empty replay accumulator.
- * @returns mutable state with no current goal or prior ref.
- */
 export function emptyGoalFoldState() {
   return {
     goal: undefined,
@@ -27,12 +21,10 @@ export function emptyGoalFoldState() {
   }
 }
 
-/** Whether a value is a JSON record rather than an array. */
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-/** Require one positive safe integer. */
 function positiveInteger(value, field) {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
     throw new Error(`goal change ${field} must be a positive safe integer`)
@@ -40,7 +32,6 @@ function positiveInteger(value, field) {
   return value
 }
 
-/** Require one non-negative safe integer. */
 function nonNegativeInteger(value, field) {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
     throw new Error(`goal change ${field} must be a non-negative safe integer`)
@@ -48,7 +39,6 @@ function nonNegativeInteger(value, field) {
   return value
 }
 
-/** Decode one canonical blocker explanation. */
 function decodeBlockReason(value) {
   if (!isRecord(value) || Object.keys(value).sort().join(',') !== 'code,message') {
     throw new Error('goal change goal.blockedReason must have exactly code and message fields')
@@ -63,7 +53,6 @@ function decodeBlockReason(value) {
   return { code: value['code'], message: value['message'] }
 }
 
-/** Decode and validate one snapshot. */
 function decodeSnapshot(value) {
   if (!isRecord(value)) throw new Error('goal change goal must be a record')
   if (typeof value['id'] !== 'string' || value['id'].length === 0) {
@@ -93,7 +82,6 @@ function decodeSnapshot(value) {
   }
 }
 
-/** Decode and validate one ref. */
 function decodeRef(value) {
   if (!isRecord(value) || Object.keys(value).sort().join(',') !== 'id,revision') {
     throw new Error('goal clear tombstone must have exactly id and revision fields')
@@ -104,12 +92,6 @@ function decodeRef(value) {
   return { id: GoalId(value['id']), revision: positiveInteger(value['revision'], 'cleared.revision') }
 }
 
-/**
- * Decode a value that declares itself as a goal change. Unrelated values
- * return `undefined`; malformed goal changes fail replay loudly.
- * @param value - candidate source change.
- * @returns validated goal change or `undefined` for another value kind.
- */
 export function decodeGoalChange(value) {
   if (!isRecord(value) || value['kind'] !== 'goal/change') return undefined
   if (value['version'] !== GOAL_CHANGE_VERSION) {
@@ -150,7 +132,6 @@ export function decodeGoalChange(value) {
   }
 }
 
-/** Narrow model attribution to a valid goal source. */
 function goalSource(source) {
   if (source.kind !== 'goal') return undefined
   if (typeof source.goalId !== 'string' || source.goalId.length === 0
@@ -161,21 +142,18 @@ function goalSource(source) {
   return source
 }
 
-/** Require two snapshots to retain fields that only `edit` may replace. */
 function requireSameDefinition(current, next, operation) {
   if (next.objective !== current.objective || next.maxGoalRounds !== current.maxGoalRounds) {
     throw new Error(`goal ${operation} cannot change objective or maxGoalRounds`)
   }
 }
 
-/** Require one exact next revision of the current goal. */
 function requireNextRevision(current, next, operation) {
   if (next.id !== current.id || next.revision !== current.revision + 1) {
     throw new Error(`goal ${operation} must advance the current goal by one revision`)
   }
 }
 
-/** Validate one non-create snapshot operation against the preceding projection. */
 function validateSnapshotTransition(state, change, current) {
   const next = change.goal
   requireNextRevision(current, next, change.operation)
@@ -226,22 +204,12 @@ function validateSnapshotTransition(state, change, current) {
   }
 }
 
-/**
- * Return the revision identity carried by a snapshot or tombstone.
- * @param change - decoded goal mutation.
- * @returns stable identity used to reconcile a deferred change with its log event.
- */
 export function goalChangeRef(change) {
   return change.operation === 'clear'
     ? change.cleared
     : { id: change.goal.id, revision: change.goal.revision }
 }
 
-/**
- * Validate and apply one decoded change to a mutable accumulator.
- * @param state - preceding durable goal projection.
- * @param change - decoded full snapshot or clear tombstone.
- */
 export function applyGoalChange(state, change) {
   const ref = goalChangeRef(change)
   if (change.operation === 'clear') {
@@ -279,11 +247,6 @@ export function applyGoalChange(state, change) {
   state.lastRef = ref
 }
 
-/**
- * Apply one session event to the strict durable goal fold.
- * @param state - mutable fold accumulator.
- * @param event - next event in sequence order.
- */
 export function applyGoalEvent(state, event) {
   if (event.type === 'goal/change') {
     const change = decodeGoalChange(event.data)
@@ -305,11 +268,6 @@ export function applyGoalEvent(state, event) {
   }
 }
 
-/**
- * Fold current goal state from a contiguous session event log.
- * @param events - session events in sequence order.
- * @returns a fresh durable projection; activation is deliberately absent.
- */
 export function foldGoal(events) {
   const state = emptyGoalFoldState()
   for (const event of events) applyGoalEvent(state, event)
