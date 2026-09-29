@@ -1,18 +1,3 @@
-/** Draft-attachment thumbnail rail: scrollbar-less horizontal overflow paged
- * by edge arrows, hover-revealed per-item remove, single-click open.
- *
- * Converted from a React hooks component to a webjsx custom element: the
- * ResizeObserver/wheel-listener mount effect becomes connectedCallback/
- * disconnectedCallback, the edge-recompute layout effect becomes an explicit
- * call after each mutation, and re-render is an explicit applyDiff(this,
- * vdom) call (Toast.tsx's pattern) instead of implicit re-render on
- * setState. The original generic `<T extends AttachmentRailItem>` function
- * component cannot survive as a custom element class (DOM elements are not
- * generic): the class holds non-generic `AttachmentRailItem[]` state, and
- * the exported `AttachmentRail<T>()` wrapper stays a thin one-shot creator
- * (Modal.tsx's `Modal()` pattern) that pre-binds the generic payload into
- * plain callbacks before handing items to the element.
- */
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
@@ -22,44 +7,23 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './AttachmentRail.css.js'
 
-/** Approximate pixels per wheel step for `deltaMode` LINE deltas (Firefox
- * notch wheels report lines, not pixels). */
 const WHEEL_LINE_PX = 16
 const WHEEL_TICK_CAP_PX = 60
 const SCROLL_EDGE_SLACK_PX = 1
 const PAGE_CARD_OVERLAP_PX = 64
 const PAGE_MIN_DISTANCE_PX = 200
 
-/** Smooth paging unless the user asked for reduced motion. */
 function pageBehavior() {
   // oxlint-disable-next-line typescript/no-unnecessary-condition
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
-/**
- * Horizontal thumbnail rail over the caller's draft attachments, as a custom
- * element.
- *
- * The rail scrolls with its scrollbar hidden; overflow is announced by edge
- * arrows recomputed from scroll geometry on scroll, item-count changes, and
- * rail size changes (a ResizeObserver on the rail element, so sidebar or
- * panel resizes count, not only window resizes). A vertical wheel pans the
- * rail horizontally and is consumed exclusively (non-passive listener), a
- * newly added item is revealed at the rail's end while a rail that mounts
- * over an existing draft keeps its start position, and each thumbnail opens
- * on a single click while its remove control sits inside the card and
- * reveals on hover or focus. The owner decides mounting; it renders the rail
- * only while items exist.
- */
 export class FreddieAttachmentRail extends HTMLElement {
   #props = {
     items: [], labels: { group: '', open: '', scrollLeft: '', scrollRight: '' }, onOpen: () => {}, onRemove: () => {},
   }
 
   #edges = { left: false, right: false }
-  /** null marks the first layout pass: a rail that MOUNTS over an existing
-   * draft (session switch back to held images) is initial display, not
-   * growth, and must not jump to the end. */
   #prevCount = null
   #resizeObserver = null
   #wheelHandler = null
@@ -206,31 +170,12 @@ export class FreddieAttachmentRail extends HTMLElement {
 
 defineElement('freddie-attachment-rail', FreddieAttachmentRail)
 
-/**
- * @typedef {object} AttachmentRailProps
- * @property {Array<{id: string, previewUrl: string, alt: string, removeLabel: string}>} items - draft attachments to show as thumbnails.
- * @property {{group: string, open: string, scrollLeft: string, scrollRight: string}} labels - rail group/thumbnail-title/arrow accessibility text.
- * @property {(item: object) => void} onOpen - called with the item whose thumbnail was clicked.
- * @property {(item: object) => void} onRemove - called with the item whose remove control was clicked.
- */
-
-/** Create (if needed) and update an AttachmentRail mounted in place.
- * @param el - an existing rail element (from a prior call), or null to create one.
- * @param props - see {@link AttachmentRailProps}.
- * @returns the `freddie-attachment-rail` element; keep it and pass it back in to update. */
 export function renderAttachmentRail(el, props) {
   const target = el ?? document.createElement('freddie-attachment-rail')
   target.setProps(props)
   return target
 }
 
-/**
- * Convenience wrapper preserving the original generic function-component call
- * shape for simple one-shot usage: pre-binds each generic item's open/remove
- * callbacks into plain `AttachmentRailItem` entries, creates the element, and
- * returns it cast to `JSX.Element` (Modal.tsx's wrapper pattern) so `<AttachmentRail .../>`
- * typechecks as a JSX component call.
- */
 export function AttachmentRail({ items, labels, onOpen, onRemove }) {
   const byId = new Map()
   for (const item of items) byId.set(item.id, item)

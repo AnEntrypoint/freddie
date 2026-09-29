@@ -13,3 +13,9 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 
 - `DropOverlay.css`: `pointer-events: none` because the layer is decoration; drag events must keep hitting the page so the owner's enter/leave count stays balanced.
 - `ImageLightbox.css`: the mask is a separate layer, not a background on `.backdrop`, because `backdrop-filter` there would blur the previewed image and the close control along with the page.
+
+- `AttachmentRail.js` is a webjsx custom element with explicit `applyDiff` re-render; edges recompute from scroll geometry on scroll, item-count change and rail resize (ResizeObserver, so panel resizes count). `#prevCount === null` marks the first layout pass: a rail mounting over an existing draft keeps its start position, while a newly added item is revealed at the end. `WHEEL_LINE_PX` converts `deltaMode` LINE deltas (Firefox notch wheels).
+- `DropOverlay.js` and `ImageLightbox.js` mount directly on `document.body`: a transformed or filtered ancestor would otherwise trap the fixed layer in its box. The lightbox closes on Escape, backdrop press or close control and restores focus to the opener on disconnect.
+- `MessageImage.js` `singleFit`: a lone image has a 240px long edge, aspect ratio clamped to [0.25, 4] with the overflow cropped by `object-fit: cover`, never upscaled past natural size; the crop anchor keeps the top of very tall and the left of very wide images. Several images render as 64px square tiles.
+- `src/client/ComposerAttachments.js` exports a plain slot component: the slot renderer calls it on every re-render with fresh props, so each call creates a fresh element whose `setProps` diffs in place.
+- `src/invariant.js` installs nothing: the package contributes only effect-owned slot entries whose lifecycle the slot registry owns.

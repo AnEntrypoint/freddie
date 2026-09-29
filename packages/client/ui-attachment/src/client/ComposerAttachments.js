@@ -6,7 +6,6 @@ import { attachmentRailLabels, dropOverlayLabels, lightboxLabels } from './label
 import css from './ComposerAttachments.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** Draft-image rail, document drop target, and original-image preview slot entry. */
 export class FreddieComposerAttachments extends HTMLElement {
   #props = null
   #preview = null
@@ -154,25 +153,12 @@ export class FreddieComposerAttachments extends HTMLElement {
 
 defineElement('freddie-composer-attachments', FreddieComposerAttachments)
 
-/** Create (if needed) and update a ComposerAttachments element in place.
- * @param el - an existing `freddie-composer-attachments` element to update, or null to create one.
- * @param props - the slot-composed props contract.
- * @returns the `freddie-composer-attachments` element; keep it and pass it back in to update. */
 export function renderComposerAttachments(el, props) {
   const target = el ?? document.createElement('freddie-composer-attachments')
   target.setProps(props)
   return target
 }
 
-/**
- * Slot component entry point: a plain function honoring the slot registry's
- * `SlotComponent<P> = (props: P) => ReactNode` contract (that contract lives
- * in `@freddie/freddie-client-ui-slots`, a package not yet converted off
- * React — see the conversion report). Each call creates a fresh element,
- * since the slot renderer calls this on every re-render with fresh props
- * rather than holding a persistent handle; the element's own `setProps`
- * still diffs its subtree in place via webjsx.
- */
 export function ComposerAttachments(props) {
   return renderComposerAttachments(null, props)
 }

@@ -2,13 +2,6 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './ImageLightbox.css.js'
 
-/**
- * Document-level original-image preview opened by clicking a thumbnail.
- * Closes on Escape, backdrop press, or the close control, and restores focus
- * to the opener on disconnect. Mounted directly on `document.body`: an
- * opener inside a transformed or filtered ancestor would otherwise trap the
- * fixed backdrop in that ancestor's box instead of covering the viewport.
- */
 export class FreddieImageLightbox extends HTMLElement {
   #props = { src: '', alt: '', labels: { dialog: '', close: '' }, onClose: () => {} }
   #restore = null
@@ -51,18 +44,6 @@ export class FreddieImageLightbox extends HTMLElement {
 
 defineElement('freddie-image-lightbox', FreddieImageLightbox)
 
-/**
- * @typedef {object} ImageLightboxProps
- * @property {string} src - the full-resolution image URL to display.
- * @property {string} alt - alt text for the displayed image.
- * @property {{dialog: string, close: string}} labels - dialog aria-label and close-button aria-label text.
- * @property {() => void} onClose - called on Escape, backdrop press, or the close control.
- */
-
-/** Create (if needed) and update an ImageLightbox mounted on `document.body`.
- * @param el - an existing mounted lightbox (from a prior call), or null to create one.
- * @param props - see {@link ImageLightboxProps}.
- * @returns the mounted `freddie-image-lightbox` element; keep it and pass it back in to update, `.remove()` when done with it. */
 export function renderImageLightbox(el, props) {
   const target = el ?? (() => {
     const created = document.createElement('freddie-image-lightbox')
@@ -73,7 +54,6 @@ export function renderImageLightbox(el, props) {
   return target
 }
 
-/** Convenience one-shot wrapper preserving the original function-component call shape. */
 export function ImageLightbox(props) {
   return renderImageLightbox(null, props)
 }

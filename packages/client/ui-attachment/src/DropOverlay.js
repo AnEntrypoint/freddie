@@ -2,14 +2,6 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './DropOverlay.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/**
- * Full-viewport invitation shown while a file drag is over the page
- * (DeepSeek Chat's DragMask). Decoration only: `pointer-events: none` keeps
- * drag targeting on the page below, so the owner's document-level listeners
- * keep an accurate enter/leave count and own accept/reject. Mounted directly
- * on `document.body` for the same transformed-ancestor reason as the
- * lightbox.
- */
 export class FreddieDropOverlay extends HTMLElement {
   #props = { disabled: false, labels: { title: '' } }
 
@@ -41,16 +33,6 @@ export class FreddieDropOverlay extends HTMLElement {
 
 defineElement('freddie-drop-overlay', FreddieDropOverlay)
 
-/**
- * @typedef {object} DropOverlayProps
- * @property {boolean} disabled - whether the drop target rejects the current drag (shows the disabled illustration and hides the description line).
- * @property {{title: string, desc?: string}} labels - overlay title text, plus an optional description shown only while not disabled.
- */
-
-/** Create (if needed) and update a DropOverlay mounted on `document.body`.
- * @param el - an existing mounted overlay (from a prior call), or null to create one.
- * @param props - see {@link DropOverlayProps}.
- * @returns the mounted `freddie-drop-overlay` element; keep it and pass it back in to update, `.remove()` when done with it. */
 export function renderDropOverlay(el, props) {
   const target = el ?? (() => {
     const created = document.createElement('freddie-drop-overlay')
@@ -61,12 +43,10 @@ export function renderDropOverlay(el, props) {
   return target
 }
 
-/** Convenience one-shot wrapper preserving the original function-component call shape. */
 export function DropOverlay(props) {
   return renderDropOverlay(null, props)
 }
 
-/** Tilted photo-and-note cards (DeepSeek Chat upload illustration). */
 function UploadIllustration() {
   return (
     h('svg', {width: '115', height: '84', viewBox: '0 0 115 84', fill: 'none', xmlns: 'http://www.w3.org/2000/svg'},
@@ -90,7 +70,6 @@ function UploadIllustration() {
   )
 }
 
-/** Greyed cards with a blocked badge (DeepSeek Chat disabled illustration). */
 function UploadDisabledIllustration() {
   return (
     h('svg', {width: '115', height: '84', viewBox: '0 0 115 84', fill: 'none', xmlns: 'http://www.w3.org/2000/svg'},

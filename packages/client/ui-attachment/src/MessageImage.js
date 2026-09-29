@@ -3,28 +3,24 @@ import { renderImageLightbox } from './ImageLightbox.js'
 import css from './MessageImage.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** Display box for a lone image (DeepSeek Chat rule): long edge 240px with
- * the rendered aspect ratio clamped to [0.25, 4] — the overflow is cropped by
- * `object-fit: cover` — and never upscaled past the image's natural size. The
- * crop anchor keeps the top of very tall images and the left of very wide
- * ones, where the informative content usually starts. */
+const LONE_IMAGE_LONG_EDGE_PX = 240
+const MIN_ASPECT_RATIO = 0.25
+const MAX_ASPECT_RATIO = 4
+
 function singleFit(attachment) {
   const natural = attachment.width / attachment.height
-  const ratio = Math.min(4, Math.max(0.25, natural))
-  const box = ratio >= 1 ? { width: 240, height: 240 / ratio } : { width: 240 * ratio, height: 240 }
+  const ratio = Math.min(MAX_ASPECT_RATIO, Math.max(MIN_ASPECT_RATIO, natural))
+  const box = ratio >= 1
+    ? { width: LONE_IMAGE_LONG_EDGE_PX, height: LONE_IMAGE_LONG_EDGE_PX / ratio }
+    : { width: LONE_IMAGE_LONG_EDGE_PX * ratio, height: LONE_IMAGE_LONG_EDGE_PX }
   const scale = Math.min(1, attachment.width / box.width, attachment.height / box.height)
   return {
     width: Math.max(1, Math.round(box.width * scale)),
     height: Math.max(1, Math.round(box.height * scale)),
-    objectPosition: natural < 0.25 ? 'center top' : natural > 4 ? 'left center' : 'center',
+    objectPosition: natural < MIN_ASPECT_RATIO ? 'center top' : natural > MAX_ASPECT_RATIO ? 'left center' : 'center',
   }
 }
 
-/**
- * Compact history renderer with retryable loading and click-to-open original
- * preview. A lone image renders at its `singleFit` size; an image among
- * several renders as a fixed 64px square tile.
- */
 export class FreddieMessageImage extends HTMLElement {
   #props = null
   #src = null
@@ -117,31 +113,16 @@ export class FreddieMessageImage extends HTMLElement {
 
 defineElement('freddie-message-image', FreddieMessageImage)
 
-/**
- * @typedef {object} MessageImageProps
- * @property {{width: number, height: number, name?: string}} attachment - the image attachment to display.
- * @property {(attachment: object) => Promise<string>} load - resolves the attachment to a displayable object URL.
- * @property {'single'|'tile'} variant - 'single' sizes the frame via singleFit; 'tile' renders a fixed 64px square.
- * @property {{image: string, loading: string, loadFailed: string, open: string, openNamed: (label: string) => string, lightbox: {dialog: string, close: string}}} labels - display and accessibility text, including the nested lightbox labels.
- */
-
-/** Create (if needed) and update a MessageImage element in place.
- * @param el - an existing `freddie-message-image` element to update, or null to create one.
- * @param props - see {@link MessageImageProps}.
- * @returns the `freddie-message-image` element; keep it and pass it back in to update. */
 export function renderMessageImage(el, props) {
   const target = el ?? document.createElement('freddie-message-image')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function MessageImage(props) {
   return renderMessageImage(null, props)
 }
 
-/** Wrapping image group shared by user and assistant history: a lone image
- * renders large, several render as 64px square tiles (DeepSeek Chat rule). */
 export function ImageGallery({ images, load, align, labels }) {
   if (images.length === 0) return null
   const variant = images.length === 1 ? 'single' : 'tile'
