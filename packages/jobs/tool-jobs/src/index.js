@@ -1,12 +1,3 @@
-/**
- * Model-facing `job_output`, `job_list`, and `job_kill` tools over
- * `ctx.jobs`. Loading the plugin attaches the controller required by
- * producers. It also delivers unreported completions to the owning agent:
- * injected into a busy owner's next step, or opening a turn on an idle one
- * under the default `wakeup` delivery, bounded per owner.
- * @module @freddie/freddie-tool-jobs
- */
-
 import z from '@freddie/schemastery'
 import { boundContextSummary, createUserMessage } from '@freddie/freddie-llm'
 import { TextRetainer } from '@freddie/freddie-output-retention'
@@ -23,7 +14,6 @@ export const Config = z.object({
   maxConsecutiveWakes: z.number().min(1).default(3),
 })
 
-/** Shared schema for job-control outputs. */
 const PUBLIC_TASK_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -42,7 +32,6 @@ const PUBLIC_TASK_SCHEMA = {
   },
 }
 
-/** Remove job ownership and notification bookkeeping from a registry snapshot. */
 function publicJob(snapshot) {
   return {
     id: snapshot.id,
@@ -55,11 +44,6 @@ function publicJob(snapshot) {
   }
 }
 
-/**
- * Render generic status with optional producer detail.
- * @param snapshot - job state to render.
- * @returns a bracketed status line.
- */
 export function statusLine(snapshot) {
   return snapshot.detail !== undefined
     ? `[status: ${snapshot.status}, ${snapshot.detail}]`
@@ -89,11 +73,6 @@ function fitWithSuffix(content, suffix, maxBytes, omitted) {
   return `${retainTail(content, maxBytes - fixedBytes)}${fixed}`
 }
 
-/**
- * One-line account of a settled job for the `notice` form's collapsed row.
- * @param snapshot - the settled job.
- * @returns its kind, label, and status, bounded like every notice summary.
- */
 function completionSummary(snapshot) {
   return boundContextSummary(`${snapshot.kind} ${snapshot.label} ${statusLine(snapshot)}`)
 }
@@ -144,7 +123,6 @@ function visibleOutputLimit(ctx, exec) {
   return ctx.jobs.list(exec.agent).find(snapshot => snapshot.id === jobId)?.outputLimitBytes
 }
 
-/** Validate the non-empty constraint that ParameterSchemaSpec cannot express. */
 function validateJobId(value) {
   if (value.length === 0) {
     throw new Error(`invalid job_id: expected a non-empty string, got ${JSON.stringify(value)}`)
@@ -152,7 +130,6 @@ function validateJobId(value) {
   return JobId(value)
 }
 
-/** Pending presentation shared by the three generic job controls. */
 function presentTaskCall(title, kind, rawInput) {
   return { card: 'generic', title, kind, ...rawInput !== undefined ? { rawInput } : {} }
 }

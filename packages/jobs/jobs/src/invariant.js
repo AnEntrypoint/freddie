@@ -1,14 +1,9 @@
-/** Package-owned background-job snapshot invariants. @module @freddie/freddie-jobs/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-jobs'
 const TERMINAL_STATUSES = new Set(['completed', 'killed', 'failed'])
 
-/** Cordis companion plugin name. */
 export const name = 'jobs-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate the cross-field relationships in one registry snapshot. */
 function validateSnapshot(snapshot, owner, fail) {
   const id = String(snapshot.id)
   const prefix = `${snapshot.kind}-`
@@ -37,16 +32,10 @@ function validateSnapshot(snapshot, owner, fail) {
   }
 }
 
-/** Install checks over current unowned records and every terminal snapshot. */
 const install = Object.assign((ctx, fail) => {
   for (const snapshot of ctx.jobs.list()) validateSnapshot(snapshot, undefined, fail)
   ctx.jobs.onJobDone((snapshot, owner) => { validateSnapshot(snapshot, owner, fail) })
 }, { inject: ['jobs'] })
 
-/**
- * Register the job-registry invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
