@@ -15,7 +15,8 @@ export function renderGoalRoundPrompt(goal, round) {
       + 'Continue working toward the objective in this same session. Treat the current workspace, '
       + 'tool results, and durable session state as authoritative; inspect them instead of assuming '
       + 'earlier narration is still current. Make concrete progress and verify the result. Before '
-      + 'claiming completion, gather evidence that the whole objective is achieved, read the current '
+      + 'claiming completion, finish the in-spirit closure of the request (cleanup, follow-on steps, leftovers you '
+      + 'noted), gather evidence that the whole objective is achieved, read the current '
       + 'goal, and mark it complete. If work remains, leave the goal active for the next round. Follow '
       + 'the configured goal-tool policy before reporting a blocker.\n'
       + '</goal_round>',
