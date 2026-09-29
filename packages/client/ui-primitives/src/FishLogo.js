@@ -1,11 +1,5 @@
 import { createElement as h } from '@freddie/webjsx'
 
-/**
- * Render the mustache logo.
- * @param props.size - width in px (default 24; height keeps the 500:220 ratio).
- * @param props.className - extra class for layout placement.
- * @returns the logo svg (aria-hidden; pair with the wordmark for accessibility).
- */
 export function FishLogo({ size = 24, className }) {
   return h(
     'svg',

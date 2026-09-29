@@ -4,26 +4,13 @@ import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './DiffBlock.css.js'
 import { defineElement } from './define-element.js'
 
-/**
- * Output lines shown before the height cap collapses the middle. Matches
- * {@link import('./TerminalBlock.js').DEFAULT_TERMINAL_MAX_LINES} so a diff
- * card and a terminal card cut a long body at the same place.
- */
 export const DEFAULT_DIFF_MAX_LINES = 16
 
-/**
- * Local exhaustiveness helper for the closed diff-row-kind union. Defined
- * locally, not imported from a shared helper, because this package does not
- * depend on `freddie-llm`.
- * @param value - a row kind that should be unreachable.
- * @returns never returns; always throws.
- */
-/* v8 ignore next 3 -- closed-union backstop; only reached if a row kind is forged */
+/* v8 ignore next 3 */
 function assertNever(value) {
   throw new Error(`unreachable diff row kind: ${String(value)}`)
 }
 
-/** The dim class per row kind (path/gap chrome vs the diff's own +/- colors). */
 const ROW_CLASS = {
   path: css.path,
   del: css.del,
@@ -31,16 +18,6 @@ const ROW_CLASS = {
   gap: css.gap,
 }
 
-/**
- * Flatten the hunks into the body's rows plus the footer counts. A path header
- * opens each new file; a same-file second hunk (a scattered edit) opens with a
- * `⋯` gap instead of repeating the path. Every old-side line counts toward
- * `removed` and every new-side line toward `added`. The file count is of
- * DISTINCT paths, matching the TUI diff card's footer, so two hunks in one file
- * read as `1 file` on both front ends.
- * @param diffs - the hunks to render.
- * @returns the body rows, the +/- totals, and the distinct-file count.
- */
 function buildRows(diffs) {
   const rows = []
   const paths = new Set()
@@ -66,28 +43,12 @@ function buildRows(diffs) {
   return { rows, added, removed, files: paths.size }
 }
 
-/**
- * Split a side's text into its content lines. Empty text is zero lines (a full
- * deletion's `newText` or a create's absent `oldText` side draws nothing), and a
- * single trailing newline is a line terminator rather than an extra empty line —
- * the same terminator rule TerminalBlock applies to command output. An interior
- * blank line (a genuine `\n\n`) survives.
- * @param text - the removed or added side's text.
- * @returns the content lines, without the terminating newline.
- */
 function contentLines(text) {
   if (text === '') return []
   const body = text.endsWith('\n') ? text.slice(0, -1) : text
   return body.split('\n')
 }
 
-/**
- * The diff text a reader copies: each row's `-`/`+`/path/gap prefix and its
- * content, exactly what the card shows. The removed and added blocks are the
- * change; the path headers keep a multi-file copy attributable.
- * @param rows - the flattened body rows.
- * @returns the diff as plain text.
- */
 function copyText(rows) {
   return rows.map((row) => {
     switch (row.kind) {
@@ -95,7 +56,7 @@ function copyText(rows) {
       case 'add': return `+ ${row.text}`
       case 'path': return row.text
       case 'gap': return row.text
-      /* v8 ignore next -- closed-union backstop; only reached if a row kind is forged */
+      /* v8 ignore next */
       default: return assertNever(row.kind)
     }
   }).join('\n')
@@ -103,7 +64,6 @@ function copyText(rows) {
 
 const DEFAULT_PROPS = { diffs: [] }
 
-/** File-mutation inline-diff surface, as a custom element. */
 export class FreddieDiffBlock extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
@@ -190,31 +150,12 @@ export class FreddieDiffBlock extends HTMLElement {
 
 defineElement('freddie-diff-block', FreddieDiffBlock)
 
-/**
- * @typedef {object} DiffBlockProps
- * @property {Array<{path: string, oldText: (string|null), newText: string}>} [diffs=[]] - the hunks to
- *   render, in display order; a hunk with `oldText: null` renders as a pure addition.
- * @property {number} [maxLines] - lines shown before the height cap collapses the middle; defaults to
- *   {@link DEFAULT_DIFF_MAX_LINES}.
- * @property {string} [className] - additional class name(s) merged onto the root element.
- */
-
-/**
- * Create (if needed) or update a DiffBlock element in place.
- * @param el - an existing `freddie-diff-block` element to update, or null to create one.
- * @param props - see {@link DiffBlockProps}.
- * @returns the `freddie-diff-block` element; keep it and pass it back in to update.
- */
 export function renderDiffBlock(el, props) {
   const target = el ?? document.createElement('freddie-diff-block')
   target.setProps(props)
   return target
 }
 
-/**
- * One-shot creation helper preserving the original function-component call
- * shape.
- */
 export function DiffBlock(props) {
   return renderDiffBlock(null, props)
 }

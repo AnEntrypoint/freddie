@@ -15,7 +15,10 @@
 ` text node, inline-code line endings become spaces, and list-item `
 ` placement follows tight/loose rules; keep these when touching `renderNode`.
 - `inlineCodeHttpUrl`: the case-insensitive `HTTP_URL_PREFIX` gate runs before `new URL()` (a throwing parse is far costlier, and this runs per inline code span per render); the value is authored text, so it skips `normalizeUri`. File-mention buttons are suppressed inside an anchor (`inLink`; a button cannot nest in `<a>`); an unresolved link reference reverts to its bracketed source without setting `inLink`.
-- `DiffBlock.js` `#render`: head/tail split (`ceil(maxLines / 2)` head) must match `TerminalBlock` and the TUI transcript's collapsed card so slices agree across front ends.
+- `DiffBlock.js` `#render`: head/tail split (`ceil(maxLines / 2)` head) must match `TerminalBlock` and the TUI transcript's collapsed card so slices agree across front ends. A path header opens each new
+file and a same-file second hunk opens with a `⋯` gap; the footer counts DISTINCT paths (TUI
+parity). Side text splits like TerminalBlock output: empty is zero lines, one trailing newline is
+a terminator. `freddie-llm` is not a dependency, so the exhaustiveness helper is local.
 - `ansi.js` `replayLine`: erase-in-line `K` is needed or a shorter redraw leaves the previous frame's tail; `1K` blanks line start through the cursor column inclusive (cells blanked, cursor unmoved) and only the first `;` parameter selects the mode. A wide char is a lead cell plus a `spacer`; overwriting either half blanks the other, and an orphaned spacer still emits one space or later columns shift left. `ZERO_WIDTH` marks attach to the previous cell and are dropped with none.
 - `ansi.js` `WIDE_SCRIPT_RANGES` (used by `WIDE_CHAR`): the double-width ranges are a numeric code point table, not `\p{Script=...}` properties, so the character set is pinned and reviewable in source; it was generated from the Unicode script data and checked equal to the property form over every code point.
 - `ansi.js` closing convergence: the emitted state must converge to the state the scan ENDED in, not the last written cell's; a trailing `\x1b[0m` changes no cell but ends the run, else a color leaks into the DOM and the next line.

@@ -328,7 +328,6 @@ function copyText(target, mode) {
 
 const DEFAULT_PROPS = { data: {} }
 
-/** Read-only, keyboard-accessible JSON inspector tree custom element. */
 export class FreddieJsonTree extends HTMLElement {
   #props = DEFAULT_PROPS
   #activeRow
@@ -629,31 +628,12 @@ export class FreddieJsonTree extends HTMLElement {
 
 defineElement('freddie-json-tree', FreddieJsonTree)
 
-/**
- * @typedef {object} JsonTreeProps
- * @property {(object|Array<*>)} [data={}] - the JSON-like value to inspect; rendered as an expandable tree.
- * @property {string} [label='JSON'] - accessible name for the tree's `role="tree"` container.
- * @property {string} [className] - additional class name(s) merged onto the root element.
- * @property {boolean} [copyable=true] - shows the hover copy button and its context menu.
- * @property {boolean} [expandTopLevel=true] - renders the root's own entries already expanded, without a
- *   collapsible root node.
- * @property {object} [labels] - label overrides merged over the built-in English defaults (copy actions,
- *   collapse/expand node labels).
- */
-
-/**
- * Create (if needed) or update a JsonTree element in place.
- * @param el - an existing `freddie-json-tree` element to update, or null to create one.
- * @param props - see {@link JsonTreeProps}.
- * @returns the `freddie-json-tree` element; keep it and pass it back in to update.
- */
 export function renderJsonTree(el, props) {
   const target = el ?? document.createElement('freddie-json-tree')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function JsonTree(props) {
   return renderJsonTree(null, props)
 }

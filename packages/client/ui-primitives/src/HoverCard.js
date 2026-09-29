@@ -5,7 +5,6 @@ import { defineElement } from './define-element.js'
 
 const DEFAULT_PROPS = { anchor: '', content: '' }
 
-/** Anchor-with-hover-triggered-preview-card custom element. */
 export class FreddieHoverCard extends HTMLElement {
   #props = DEFAULT_PROPS
   #open = false
@@ -210,31 +209,12 @@ export class FreddieHoverCard extends HTMLElement {
 
 defineElement('freddie-hover-card', FreddieHoverCard)
 
-/**
- * @typedef {object} HoverCardProps
- * @property {*} [anchor=''] - the always-visible trigger content the card is anchored to.
- * @property {*} [content=''] - the popover content shown while the card is open.
- * @property {number} [openDelayMs=500] - hover delay before the card opens, in ms.
- * @property {boolean} [disabled=false] - closes and suppresses the card while true.
- * @property {string} [copyText] - text copied to the clipboard when the open card is clicked; omitting it
- *   disables the copy affordance.
- * @property {string} [copyLabel='Copy'] - accessible label shown while idle.
- * @property {string} [copiedLabel='Copied'] - label and status text shown after a successful copy.
- */
-
-/**
- * Create (if needed) or update a HoverCard element in place.
- * @param el - an existing `freddie-hover-card` element to update, or null to create one.
- * @param props - see {@link HoverCardProps}.
- * @returns the `freddie-hover-card` element; keep it and pass it back in to update.
- */
 export function renderHoverCard(el, props) {
   const target = el ?? document.createElement('freddie-hover-card')
   target.setProps(props)
   return target
 }
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function HoverCard(props) {
   return renderHoverCard(null, props)
 }

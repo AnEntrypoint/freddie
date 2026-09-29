@@ -3,11 +3,6 @@ import clsx from 'clsx'
 import { IconChevronDownOutline14 } from './icons/index.js'
 import css from './DisclosureRow.css.js'
 
-/**
- * Render one disclosure header and its controlled expanded content.
- * @param props - Visual content, controlled state, and interaction policy.
- * @returns the disclosure row.
- */
 export function DisclosureRow({
   icon,
   title,
