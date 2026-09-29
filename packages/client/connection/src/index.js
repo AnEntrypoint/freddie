@@ -190,6 +190,7 @@ export const UNPINNED_BY_DECISION = Object.freeze([
   'sessionArtifacts.list',
   'sessionArtifacts.put',
   'sessionArtifacts.deleteArtifact',
+  'sessionArtifacts.checkpoints',
 ])
 
 for (const method of UNPINNED_BY_DECISION) {

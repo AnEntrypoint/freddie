@@ -5,5 +5,6 @@ export const sessionArtifactsDomainSpec = defineDomain({
   version: 0,
   tables: {
     sessions: domainTable({ parse: value => value }),
+    checkpoints: domainTable({ parse: value => value }),
   },
 })

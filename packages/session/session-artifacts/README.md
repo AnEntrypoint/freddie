@@ -9,6 +9,8 @@
 - `deleteArtifact({ sessionId, id, ifRevision })` removes an owned item at its observed session revision.
 - `share({ sessionId, id, targetSessionId, grant, ifRevision })` adds or removes an explicit target-session grant; a grant requires an existing target session and is bounded per item. A grant exposes the source item to its receiver on the next list read; revocation removes that receiver view without deleting the source. Neither operation injects content into a model request.
 
+- `checkpoints({ sessionId, refresh? })` returns the derived plan, decision, evidence, and activity views with a `watermark` (`sourceSeq`, `headSeq`, `lag`, `fresh`); `refresh` folds the unfolded event tail first.
+
 `list` also returns the owner's bounded `audit` of create, revise, forget, delete, grant, and revoke entries, so ownership history survives revocation. Full reference: [conversation artifacts](../../../docs/subsystems/conversation-artifacts.md).
 
 Each mutation serializes behind the owning session, persists the complete sidecar row before publishing it, and appends the current metadata-only view as an ignorable `session-artifacts/changed` event to the owner and every affected grantee that is live. The `artifacts` projection makes that event durable, replayable, cached, and realtime through the standard session-projection transport.

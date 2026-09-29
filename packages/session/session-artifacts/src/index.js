@@ -4,6 +4,7 @@ import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
+import { EMPTY_CHECKPOINT, foldCheckpointRange, freshness } from './checkpoint.js'
 import { sessionArtifactsProjection } from './projection.js'
 import { sessionArtifactsDomainSpec } from './spec.js'
 
@@ -97,6 +98,8 @@ export class SessionArtifactsService extends TypertRemoteService {
   })
 
   table
+  checkpointTable
+  pendingCheckpoints = new Set()
   tails = new Map()
   accepting = true
 
@@ -117,6 +120,7 @@ export class SessionArtifactsService extends TypertRemoteService {
       const capture = await this.captureMemory(agent, signal)
       return capture === undefined ? decision : { kind: 'enter', messages: [...decision.messages, capture] }
     }, { prepend: true })
+    ctx.on('session/event', session => { this.scheduleCheckpoint(session.header.id) })
     ctx.inject(['sessionProjections'], projectionCtx => {
       projectionCtx.sessionProjections.register(sessionArtifactsProjection)
     })
@@ -125,6 +129,7 @@ export class SessionArtifactsService extends TypertRemoteService {
   async [Service.init]() {
     const domain = await this.ctx.storageDomain.open(sessionArtifactsDomainSpec)
     this.table = domain.table('sessions')
+    this.checkpointTable = domain.table('checkpoints')
     this.ctx.effect(() => async () => {
       this.accepting = false
       await Promise.all(this.tails.values())
@@ -187,6 +192,18 @@ export class SessionArtifactsService extends TypertRemoteService {
     })
   }
 
+  checkpoints(request) {
+    return this.enqueue(request.sessionId, async () => {
+      const known = await this.inspectSession(request.sessionId)
+      if (!known.ok) return known
+      const meta = known.value.meta
+      const events = this.ctx.sessions.get(request.sessionId)?.events ?? known.value.events
+      const headSeq = events.at(-1)?.seq ?? -1
+      const row = request.refresh === true ? await this.catchUp(request.sessionId, meta, events) : this.checkpointRow(request.sessionId, meta)
+      return success({ session: row.session, revision: row.revision, updatedAt: row.updatedAt, artifactsRevision: row.artifactsRevision, views: row.views, watermark: freshness(row.sourceSeq, headSeq) })
+    })
+  }
+
   deleteArtifact(request) {
     return this.enqueue(request.sessionId, async () => {
       const known = await this.inspectSession(request.sessionId)
@@ -225,6 +242,39 @@ export class SessionArtifactsService extends TypertRemoteService {
       const items = row.items.map(candidate => candidate === item ? replacement : candidate)
       return await this.commit(known.value, row, items, { op, itemId: item.id, target: request.targetSessionId }, [request.targetSessionId])
     })
+  }
+
+  checkpointRow(sessionId, header) {
+    const stored = this.checkpointTable.get(sessionId)
+    if (stored !== undefined && sameIdentity(stored, header)) return stored
+    return Object.freeze({ session: identityOf(header), revision: 0, updatedAt: null, ...EMPTY_CHECKPOINT })
+  }
+
+  async catchUp(sessionId, header, events) {
+    const row = this.checkpointRow(sessionId, header)
+    const tail = events.filter(event => event.seq > row.sourceSeq)
+    if (tail.length === 0) return row
+    const folded = foldCheckpointRange(row, tail)
+    const next = Object.freeze({
+      session: row.session,
+      revision: row.revision + 1,
+      updatedAt: tail.at(-1).time ?? null,
+      sourceSeq: folded.sourceSeq,
+      artifactsRevision: folded.artifactsRevision,
+      views: folded.views,
+    })
+    await this.checkpointTable.put(sessionId, next)
+    return next
+  }
+
+  scheduleCheckpoint(sessionId) {
+    if (!this.accepting || this.checkpointTable === undefined || this.pendingCheckpoints.has(sessionId)) return
+    this.pendingCheckpoints.add(sessionId)
+    this.enqueue(sessionId, async () => {
+      this.pendingCheckpoints.delete(sessionId)
+      const live = this.ctx.sessions.get(sessionId)
+      if (live !== undefined) await this.catchUp(sessionId, live.header, live.events)
+    }).catch(error => this.ctx.logger?.warn?.(`session-artifacts: checkpoint fold failed for ${sessionId}: ${error?.message ?? error}`))
   }
 
   async inspectSession(sessionId) {
@@ -353,6 +403,7 @@ export class SessionArtifactsService extends TypertRemoteService {
 
 Remote('list')(SessionArtifactsService.prototype.list, { name: 'list', private: false, static: false, addInitializer: fn => { fn.call(Object.create(SessionArtifactsService.prototype)) } })
 Remote('put')(SessionArtifactsService.prototype.put, { name: 'put', private: false, static: false, addInitializer: fn => { fn.call(Object.create(SessionArtifactsService.prototype)) } })
+Remote('checkpoints')(SessionArtifactsService.prototype.checkpoints, { name: 'checkpoints', private: false, static: false, addInitializer: fn => { fn.call(Object.create(SessionArtifactsService.prototype)) } })
 Remote('deleteArtifact')(SessionArtifactsService.prototype.deleteArtifact, { name: 'deleteArtifact', private: false, static: false, addInitializer: fn => { fn.call(Object.create(SessionArtifactsService.prototype)) } })
 Remote('share')(SessionArtifactsService.prototype.share, { name: 'share', private: false, static: false, addInitializer: fn => { fn.call(Object.create(SessionArtifactsService.prototype)) } })
 
