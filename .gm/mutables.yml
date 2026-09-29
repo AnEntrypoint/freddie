@@ -2527,7 +2527,8 @@
 - id: remote-push-credentials
   subject: 'Unknown: a credential authorized to publish local main to origin is available to this session. Current witness: git_push HEAD failed before remote mutation because GitHub HTTPS could not read a username.'
   SESSION_ID: root-178993588923673451
-  status: unknown
+  status: witnessed
+  witness_evidence: 'git push --dry-run origin HEAD:main from C:/dev/freddie exited 0 (receive-pack auth accepted); gh auth status: account lanmower, scopes repo/workflow (GH_TOKEN and keyring); remote main e686d1e confirms earlier push landed. No real push made this session.'
 - id: goal-terminal-driver-contract
   prd_id: goal-terminal-continuation
   obligation_kind: precondition

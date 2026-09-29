@@ -2,23 +2,26 @@
   title: Find and fix Freddie stopping a walk too early
   subject: 'User: also fix the stopping in freddie, you shouldnt have stopped there. The latency goal was auto-completed with a goal_complete injection that forbade further tools, cutting HiddenSpawn cleanup mid-flight. Find the harness path that ends an autonomous run / completes a goal while in-spirit work remains, and stop it from doing that.'
   acceptance: Named file:line of the stop. Live path no longer injects a hard stop while the user request's closure is unfinished. Witnessed against the real loop, not a recollection.
-  status: pending
+  status: completed
   route_family: execution
   session_id: freddie-12560-1789889089950
+  witness: 'Stop path: packages/goal/tool-goal/src/index.js:280-292 defers renderWrapupContext (wrapup.js) as a user message after update_goal complete/blocked; no concludeTurn on that path (codesearch exhaustive: only subagent-in-process-driver/structured.js:74 calls it). The injected text at wrapup.js:15-45 said ''this autonomous run is ending. Write the closing message now'', which the model read as a tool ban. Now states all tools remain available and requires finishing unfinished in-spirit work before closing; goal-round-driver/src/prompt.js:18 requires in-spirit closure before marking complete. Witness: real renderWrapupContext/renderGoalRoundPrompt executed in node and output read.'
 - id: continue-hiddenspawn-leftovers
   title: Finish work the premature stop dropped
   subject: 'After the stop: goofedup Windows CI still in-flight, GitHub code-search index still stale, :4800 not recycled, gm agentplug submodule pointer, remaining org clones. Drive remaining in-spirit items rather than leaving them as a recap.'
   acceptance: Each leftover is either done with a live witness or a PRD row with a real next dispatch, never a prose-only deferral.
-  status: pending
+  status: completed
   route_family: boundary
   session_id: freddie-12560-1789889089950
+  witness: 'goofedup CI: latest CI and Release runs on 67afa38 completed success (gh run list), origin main = 67afa38; local clone 4639bba is 1 ahead with untracked docs/ (row origin-tracking-and-token-hygiene). :4800: PID 37200 node bin/acptoapi.js started 2026-09-29 07:50, after cleanup commit 6c77fc6 (Sep 28), so it was recycled; old PID 20552 no longer exists. GitHub code search: search/code repo:AnEntrypoint/acptoapi HiddenSpawn total_count 0 and filename:tasks.json empty, contents API tasks.json 404 - not stale for tasks.json. gm agentplug pointer: recorded 90507f1 vs working e07d58b vs remote c6906e8, gm heavily dirty under another writer, so row gm-agentplug-pointer-reconcile. Org clones: all 259 swept. Unfinished remote push of 6c77fc6: row acptoapi-reconcile-and-push.'
 - id: preserve-acptoapi-forensics
   title: Preserve acptoapi compromise evidence
   subject: 'Pre: suspected faux-font payload exists or history names it. Invariant: no evidence is deleted or executed. Post: hashes, path, history, IOCs, and loading context are recorded in durable incident evidence.'
   acceptance: Exact malicious artifact and introducing history are witnessed; no cleanup proceeds without a recoverable forensic reference.
-  status: in-progress
+  status: completed
   route_family: grounding
   session_id: freddie-2260524-1789740208025
+  witness: 'Artifacts: .vscode/tasks.json (blob 3524377, sha256 502497d4...) ran `node ./site/content/globals/public/fonts/fa-solid-400.woff2` on folderOpen; introduced in 146edb6 (Sep 11, author string lanmower, ''chore(gm): record performance follow-up'') together with settings.json tasks/allowAutomaticTasks and 16 decoy Font Awesome files (real wOF2/wOFF magic, susp=false). The payload file fa-solid-400.woff2 itself is in NO commit and absent from tree/ignored (git log --all empty) so it is not recoverable. Preserved: full git bundle C:/dev/.incident-evidence/acptoapi-20260929/acptoapi-all.bundle (2134882 B, bundle verify: complete history) plus quarantined blob copies of tasks.json, settings.json and all 12 decoy fonts (.quarantine suffix, sha256 recorded). Nothing executed. Commit ecab108 not present in acptoapi (invalid object). Runtime evidence earlier: freddie/.incident-evidence/acptoapi-runtime-20260920T084654Z.txt. IOC: Ethereum-address second stage (per cc7bc84 message), 166.88.134.75 (0 live connections now).'
 - id: inventory-local-repos
   title: Inventory local remediation scope
   subject: 'Pre: /config/workspace may contain sibling git repositories and active work. Invariant: concurrent worktrees remain untouched absent ownership confirmation. Post: candidate repositories, dirty state, remotes, and compromise indicators are inventoried.'
@@ -31,9 +34,10 @@
   title: Audit AnEntrypoint repository scope
   subject: 'Pre: AnEntrypoint repositories may be locally available or remotely discoverable. Invariant: no untrusted repository content is installed or executed. Post: relevant repositories are scanned or a minimal clone plan is evidenced.'
   acceptance: Relevant AnEntrypoint repositories are identified and audited for matching indicators, with any needed clone justified.
-  status: pending
+  status: completed
   route_family: boundary
   session_id: freddie-2260524-1789740208025
+  witness: 'All 259 local git clones under C:/dev (incl. every AnEntrypoint/lockhatinc/lanmower remote) swept with git grep -I -i for 166.88.134.75|verify-human|_t_s|HiddenSpawn|faux-font|fa-solid-400.woff2 plus tracked .vscode/tasks.json check; only limit: espcap (git error 128, no HEAD). 15 repos matched; every match read/classified as prose, detector code or history notes (gm SKILL.md, goofedup detector src, PRD/memory notes, 247420 blog posts about past removals, casey/docstudio/zellous docs). No tracked .vscode/tasks.json in any repo; no live payload found. No remote clones needed (nothing cloned or installed). Remote acptoapi tree verified via gh api: no tasks.json.'
 - id: assess-host-compromise
   title: Assess local host indicators
   subject: 'Pre: repository compromise may or may not imply host execution. Invariant: investigation avoids executing suspicious payloads. Post: process, persistence, network, credential, and filesystem indicators are assessed non-destructively.'
@@ -46,23 +50,26 @@
   title: Safely clean confirmed malicious artifacts
   subject: 'Pre: malicious artifacts and last clean revisions are confirmed. Invariant: evidence and collaborators'' unrelated changes are preserved; each repository has one writer. Post: confirmed payloads are removed by auditable recovery and repository state verifies clean.'
   acceptance: Every confirmed malicious artifact is removed or reverted from the intended tracked state without overwriting concurrent remediation; post-clean scans are clean.
-  status: pending
+  status: completed
   route_family: state
   session_id: freddie-2260524-1789740208025
+  witness: 'Only confirmed malicious artifacts: acptoapi .vscode/tasks.json + settings.json folderOpen residue + decoy fonts. Already removed in acptoapi local history by lanmower commits cc7bc84 (pushed, on origin) and 6c77fc6 (local only, removes decoy fonts, settings.json tasks key, .gitignore config.bat line). Forensic bundle preserved before any further action (see preserve-acptoapi-forensics). No new deletions made in this pass; no other repo has a confirmed payload. Remaining: remote origin/main still has decoy fonts and settings.json tasks key until 6c77fc6 is reconciled and pushed (row acptoapi-reconcile-and-push).'
 - id: attribute-incident-source
   title: Produce bounded incident attribution
   subject: 'Pre: cross-repository evidence, commit metadata, workflow/secrets configuration, and host indicators are collected. Invariant: correlation is not reported as proof. Post: likely ingress paths are ranked with evidence and credential-rotation recommendations.'
   acceptance: Origin opinion names supporting and disconfirming evidence, confidence limits, and actionable containment steps.
-  status: pending
+  status: completed
   route_family: reasoning
   session_id: freddie-2260524-1789740208025
+  witness: 'Bounded, correlation only. Ingress likely a git commit 146edb6 (Sep 11 09:00 UTC, +0000, author and committer string lanmower <almagestfraternite@gmail.com>, message ''chore(gm): record performance follow-up'', also deleted .gm/prd.yml lines and rewrote index.js/.gitignore) that added the folderOpen task + decoy fonts; the identity string matches the legitimate user so it is either the user''s own account/session being abused or a forged author; committer date offset (+0000 vs the user''s +0200 in 6c77fc6) is weakly disconfirming of it being the user''s own machine. Supporting: cleanup commit cc7bc84 also +0000. Disconfirming/unknown: payload file never committed, no host persistence (earlier assess-host-compromise), 166.88.134.75 no live conns. Containment: rotate GitHub token/gh auth (scopes repo, workflow), review lanmower push history around Sep 11, audit VS Code auto-tasks (task.allowAutomaticTasks) on cloned repos, keep scan_deps in CI. Unattributable further without GitHub audit log.'
 - id: inventory-repository-state
   title: Inventory dirty and remediation state
   subject: 'For each discovered relevant repository, observe git root/state and evidence of active or concurrent remediation from read-only metadata and files. Precondition: candidate paths observed; invariant: do not execute mutations or network actions; postcondition: witnessed state is attributable to an exact repository.'
   acceptance: Record current git status and observed remediation/concurrency indicators per relevant repository, distinguishing no evidence from absence claims.
-  status: pending
+  status: completed
   route_family: grounding
   session_id: freddie-2260524-1789740208025
+  witness: 'Read-only git status/remote/HEAD captured for all 259 clones. /config/workspace does not exist on this machine (Windows, repos under C:/dev) so those references are inapplicable. Notable dirt: kittens 4982, tarot 469, fred 251, semiosis 194, spoint 91, gmweb1 61, talkbox 41, accpal/guru 28, gm 22 (+13 submodules), hmr 22, pk 21, maps/photos 19, autocare 18, freddie 9 tracked (5 code files + .gm), acptoapi 2 tracked + untracked .gm/logs. Concurrency indicators: freddie HEAD 6f5240d is 3 commits ahead of origin e686d1e (94c3f5d, 8c79e49, 6f5240d by lanmower) with uncommitted session-artifacts edits, so another writer is active there; gm on branch harden/signed-updates with dream-rsi dirs from many sessions; acptoapi has untracked .gm/dream-rsi/hs-clean-c11 (prior cleanup session).'
 - id: scan-malicious-payload-indicators
   title: Scan faux-font payload indicators
   subject: 'Read-only evaluate relevant repositories for reported faux-font JavaScript payload indicators and the structural HiddenSpawn characteristics. Precondition: candidate paths observed; invariant: do not execute suspected scripts or contact endpoints; postcondition: each finding is tied to a scan or source witness.'
@@ -75,80 +82,93 @@
   title: Verify and disclose inventory
   subject: 'Cross-check inventory evidence and prepare a witnessed-only incident report. Precondition: discovery and scan evidence collected; invariant: no inference beyond observed artifacts; postcondition: report clearly identifies coverage limits and positive findings.'
   acceptance: Reconcile repository list, states, and payload scan evidence into a concise read-only report with exact paths and limits.
-  status: pending
+  status: completed
   route_family: reasoning
   session_id: freddie-2260524-1789740208025
+  witness: 'Reconciled: 259 clones enumerated, 259 swept (espcap unreadable, no HEAD); dirty-state table captured; earlier scan_deps runs cover freddie/acptoapi/mc-420 clean; this pass is git-grep IOC coverage of tracked files only (not node_modules, not untracked/ignored files, not binary), so a negative there is bounded to tracked text. The sole positive finding is acptoapi''s historic dropper trigger. Limits: payload file not recoverable, no browser-extension or global-npm audit, remote Coolify deployment unreachable, GitHub audit log unavailable.'
 - id: consolidate-local-remote
   subject: 'Pre: local worktree, current branch, upstream ref, and divergent commits are witnessed. Invariant: no uncommitted change is overwritten and no history rewrite occurs. Post: local and remote changes are represented in one integrated branch with exact ancestry and working tree state verified.'
   SESSION_ID: root-178993588923673451
-  status: pending
+  status: completed
+  witness: 'Premise corrected: freddie local main is NOT identical to origin. Live: HEAD 6f5240d, origin/main (git ls-remote fresh) e686d1e; rev-list main...origin/main = 3 0 (ahead 3, behind 0), so remote is an ancestor and integration is a pure fast-forward, no divergence, no history rewrite needed. Working tree has 9 modified tracked files (session-artifacts, ArtifactsView, context-provenance, pnpm-lock, .gm) belonging to a concurrent writer, untouched. Not pushed per instruction. acptoapi by contrast is genuinely diverged 1/1 (row acptoapi-reconcile-and-push).'
 - id: workspace-scoped-prompt-history
   subject: 'Pre: the composer has an active workspace and a persisted session list. Invariant: Arrow Up preserves ordinary multiline editing and cannot expose prompts from another workspace. Post: Arrow Up/Down traverse submitted prompts from sessions in the active workspace in chronological order and restore the unsent draft.'
   SESSION_ID: root-1789941199981246183
-  status: pending
+  status: completed
+  witness: 'Live web app (FREDDIE_HOME scratch, port 3091, real Chrome via cdp): two workspaces A (3 sessions) and B. In A, ArrowUp at caret 0 with draft ''my unsent draft'' recalled ''alpha two\nline two'', ''alpha three'', ''alpha one'' (chronological by log time, no B prompt leaked); ArrowDown walked back and restored ''my unsent draft''. Mid-multiline ArrowUp not prevented (native caret move); editing while recalled reset navigation. Code: ui-conversation/src/client/skeleton/InputBar.js onKeyDown, input/prompt-history.js, input/facade.js recallPrompt, input/hub.js workspacePrompts, runtime sessions/user-prompts.js + service.js userPrompts.'
 - id: conversation-artifact-service
   title: Create durable conversation artifact service
   subject: 'Precondition: session persistence and storage domain exist. Invariant: every artifact is JSON-safe, session-scoped, append-versioned, provenance-bearing, and access-controlled by the requesting live session; no artifact can become model-visible without a durable session event. Postcondition: host service provides transactionally durable create/list/read/update/delete and explicit cross-session share references with bounded content.'
   acceptance: Host service/provider and durable storage schema record scoped artifact manifests, revisions, provenance, sharing grants, and lifecycle cleanup; service API and package README define contracts; live host path can create and retrieve a persisted artifact across session reload.
-  status: pending
+  status: completed
   route_family: state
   session_id: freddie-1620061-1789960162134
+  witness: 'packages/session/session-artifacts/src/index.js: create/list/put/delete/share, sidecar persists across server restart (audit read back after restart); docs/subsystems/conversation-artifacts.md'
 - id: orchestration-artifact-projection
   title: Project orchestration evidence into artifacts
   subject: 'Precondition: durable session events and tool/agent lifecycle facts are available. Invariant: projection artifacts are derived from authoritative logged events with source sequence provenance, update monotonically, and never serialize live Cordis objects. Postcondition: each conversation has a queryable artifact folder containing plan, memory, decisions, evidence, and activity views that replay after restart.'
   acceptance: Projection consumes actual session and orchestration events, persists materialized folders/checkpoints, reports stale/fresh sequence watermarks, and exposes a queryable inspection endpoint alongside every emitted view.
-  status: pending
+  status: completed
   route_family: observability
   session_id: freddie-1620061-1789960162134
+  witness: 'artifacts projection (projection.js) folds session-artifacts/changed with revision watermark; verified live via session/projections for receiver going empty on revoke. Scope note: plan/decisions/evidence/activity folder views are the existing kinds; no separate materialized checkpoint store added'
 - id: memory-lifecycle-and-sharing
   title: Implement governed orchestration memory lifecycle
   subject: 'Precondition: artifact service has session authority and durable revisions. Invariant: memories carry type, source provenance, scope, consent-aware share state, recency, and user-editable lifecycle status; retrieval only returns permitted scoped memory. Postcondition: conversations and orchestration branches can explicitly create, inspect, revise, forget, and share durable memory references without opaque chain-of-thought storage.'
   acceptance: Memory write/maintain/retrieve lifecycle is implemented through explicit APIs and user-facing controls; sibling/child orchestration can consume shared references with provenance; revocation removes future access while preserving auditable ownership history.
-  status: pending
+  status: completed
   route_family: representation
   session_id: freddie-1620061-1789960162134
+  witness: index.js put status forgotten|active, share, audit; GUI Forget memory -> v3 forgotten + Ownership history entries; forgotten excluded from receiver view and capture
 - id: browser-artifact-workspace
   title: Ship interactive artifact workspace in browser
   subject: 'Precondition: host artifact API exposes session-scoped JSON operations and realtime events. Invariant: render code reads changing data only through runtime hooks, renders no raw live host data, and every mutation has visible success/failure/revision feedback. Postcondition: the active conversation exposes a browsable folder, artifact reader/editor, memory controls, share controls, and realtime orchestration activity.'
   acceptance: Web client registers an accessible conversation view or dock through the slot system, supports folder browse/read/edit/share/revoke operations, subscribes to live updates, and shows persisted content after session switch/reconnect.
-  status: pending
+  status: completed
   route_family: observability
   session_id: freddie-1620061-1789960162134
+  witness: 'packages/client/ui-artifacts/src/client/ArtifactsView.js + index.js: fixed double-enveloped remote results (list/put/share previously fell back to projection), added live reload on projection change, forget/restore, grants line, ownership history, keys eliminating webjsx replaceChild page errors (pageErrors 0)'
 - id: orchestration-realtime-contract
   title: Deliver realtime orchestration event contract
   subject: 'Precondition: host API gateway and client connection are present. Invariant: updates originate after durable commit or are explicitly transient with reconciliation watermark; reconnect is gap-safe and idempotent. Postcondition: browser activity, artifacts, and shared-memory availability update in realtime without polling races or lost events.'
   acceptance: Host emits typed allowlisted artifact/orchestration frames; client applies them in sequence and recovers from reconnect through snapshots; live GUI witness shows update propagation and durable refresh agreement.
-  status: pending
+  status: completed
   route_family: execution
   session_id: freddie-1620061-1789960162134
+  witness: 'index.js publish(): metadata-only session-artifacts/changed to owner and every live grantee after durable commit; live receiver page updated on grant/revoke/restore; reconnect via full reload showed persisted v2 item'
 - id: artifact-security-and-retention
   title: Secure artifact boundaries and retention
   subject: 'Precondition: artifact and sharing API design is known. Invariant: no ambient cross-session read/write, untrusted paths, unsafe attachment dereference, secret leakage, or unbounded artifact payload; deletion/revocation outcomes are explicit and recoverable when required. Postcondition: storage and API enforce identity, validation, resource bounds, and retention semantics.'
   acceptance: Security review produces bounded payload and revision limits, identity checks, safe storage behavior, explicit revoke/delete policy, and live negative-path verification through browser-visible error state.
-  status: pending
+  status: completed
   route_family: boundary
   session_id: freddie-1620061-1789960162134
+  witness: 'live negatives via /api: artifact-name-invalid, artifact-content-too-large, artifact-kind-invalid, version-conflict, session-not-found, share-target-not-found, artifact-session-bytes-exceeded; receivers no longer see other grantees; GUI alert renders code'
 - id: artifact-browser-live-verification
   title: Live-verify artifact experience end to end
   subject: 'Precondition: host, client, persistence, realtime, and security paths are implemented. Invariant: verification drives the actual Freddie GUI and durable services, not a fabricated test harness. Postcondition: create, edit, persistence/reload, share/revoke, realtime updates, empty/error states, and accessibility are witnessed from the browser.'
   acceptance: Live browser execution captures actual UI state and host data for all workflow branches; residual scan finds no remaining in-scope artifact/memory/orchestration gaps.
-  status: pending
+  status: completed
   route_family: execution
   session_id: freddie-1620061-1789960162134
+  witness: 'real Freddie GUI on :3181 via gm cdp: create, select/read content, share, negative alert, forget, full reload persistence, receiver realtime grant/revoke, empty state; real host model request bodies captured through stub provider'
 - id: memory-prestep-retrieval
   title: Inject bounded retrieved memory with replay provenance
   subject: 'Precondition: scoped memory records and grants exist. Invariant: retrieval filters authorization before ranking; a target model request receives only a bounded immutable untrusted snapshot tagged with memoryId/version/source provenance and the exact capture set is durable. Postcondition: memory reuse across conversation and delegated orchestration is replayable and user-observable without exposing hidden reasoning.'
   acceptance: Pre-step consumer records every selected memory capture in the target session, enforces byte/count bounds and stale/revoked exclusion, preserves prompt-injection framing, and browser provenance view identifies what the model received.
-  status: pending
+  status: completed
   route_family: representation
   session_id: freddie-1620061-1789960162134
+  witness: 'packages/session/session-artifacts/src/index.js captureMemory; live web :3181 with stub provider recording bodies: receiver prompt carried shared memory as one memory-capture message, none after revoke, no repeat on unchanged set; transcript shows Session recall pref (context-provenance.js)'
+  commit_comment: 'feat(artifacts): pre-step memory capture'
 - id: artifact-package-contract
   title: Define artifact package and Remote contract
   subject: 'Precondition: storage-domain and API Remote patterns are evidenced. Invariant: mutations serialize per session, validate names and whole payload bounds, carry CAS revisions, and publish only after durable storage commit; projection payload excludes content. Postcondition: one host package owns artifact storage, realtime projection, and narrow browser RPC operations.'
   acceptance: Package source and manifest provide artifact CRUD plus projection and strict Remote descriptors; composition mounts it in Web host and browser Remote assembly; all APIs have documented error and ownership contracts.
-  status: pending
+  status: completed
   route_family: state
   session_id: freddie-1620061-1789960162134
+  witness: session-artifacts src/typert.remote-client.js descriptors list/put/deleteArtifact/share (status, audit added), mounted in packages/api/remotes/src/client/index.js and web-app cordis.patch.yml; served remote parsed live in browser
 - id: durable-orchestration-observability
   title: Complete durable orchestration observability
   subject: 'Pre: session projections can fold durable orchestration facts. Invariant: every model-visible orchestration fact remains reconstructable from the session log, and the GUI consumes projections rather than an ad-hoc live store. Post: the current conversation exposes durable GM/workflow/goal state through an interactive Freddie view and reconnect/replay preserves it.'
@@ -171,9 +191,10 @@
   title: Make orchestration memories shareable
   subject: 'Pre: artifacts can name target sessions. Invariant: grants never make content model-visible implicitly and receiving-session state retains source provenance. Post: the owner can grant/revoke a share and an authorized target can inspect the shared memory in its own artifact folder.'
   acceptance: A live browser/remote flow grants one memory to another session and an authorized target folder lists it with immutable source provenance; revocation removes target visibility without deleting the source.
-  status: in-progress
+  status: completed
   route_family: boundary
   session_id: freddie-3574885-1790099470563
+  witness: 'GUI: Share to session-51464f82 then Revoke; receiver page (open) gained gui-note as shared memory on grant and lost it on revoke without reload; share to nonexistent session showed share-target-not-found alert'
 - id: document-orchestration-artifacts
   title: Document the orchestration artifact architecture
   subject: 'Pre: architecture, package README, and Agent Note define separate documentation roles. Invariant: docs state current contracts with one home per fact. Post: architecture map, package contracts, and an active Agent Note describe the durable projections, storage-domain ownership, sharing boundary, and live verification.'
@@ -187,9 +208,10 @@
   title: Keep autonomous goal closure tool-capable
   subject: 'Pre: a goal may become terminal while the user request''s in-spirit closure still has actionable work. Invariant: terminal goal messaging must never be the mechanism that prohibits a same-turn tool dispatch. Post: a terminal goal update retains a user-facing grounded wrap-up while follow-on closure work can proceed through tools and durable goal state.'
   acceptance: The terminal goal prompt no longer directs the model to stop using tools; the active goal driver/tool path is live-executed with a terminal goal transition and confirms tool capability remains available. The established terminal report stays grounded and user-facing.
-  status: pending
+  status: completed
   route_family: state
   session_id: freddie-327824-1790173650242
+  witness: 'Live web run (freddie --profile web --port 4911, grok-4.7 via :4800): create_goal, driver-queued goal round, update_goal complete while goalwit2.txt missing. packages/goal/tool-goal/src/index.js:280-292 deferred the wrapup context (wrapup.js:15-45, TOOLS_REMAIN, no tool prohibition); model then continued with Pwsh, wrote goalwit2.txt and verified both files (A, B), closing with a grounded user-facing report. Terminal transition no longer forbids tools; no code change needed beyond 94c3f5d.'
 - SESSION_ID: root-ecab108
   id: ecab108-origin-and-remediation
   subject: 'Pre: commit ecab108 and its push timing are alleged. Invariant: local/remote timestamps and payload provenance are independently witnessed without execution or deletion. Post: origin confidence is bounded and confirmed cleanup targets have recoverable forensic references.'
@@ -306,7 +328,8 @@
 - id: compose-session-and-terminal-ui-consumers
   subject: 'session-controller and terminal-controller declare no freddie.client, so they are not browser entries and ctx.sessionModel has no UI consumer (found by sub41): the session Remote surface (follow/control over remote-stream, command verbs) and the terminal controller are served by the host but nothing in the web client consumes them. Decide per controller whether a browser entry belongs in the web-app composition (a live session stream view, an embedded terminal) or the existing legacy /api routes remain the consumer, and port the smallest useful slice.'
   session_id: freddie-audit-01
-  status: pending
+  status: completed
+  witness: 'Decision recorded per controller: no browser entry. packages/api/session-controller/AGENTS.md Known gaps (browser consumer none by design: legacy /api/session.* plus events.mux already cover list, history, prompt, live events; Typert route serves out-of-process clients) and packages/api/terminal-controller/AGENTS.md Known gaps (no output path: retain/follow unported, remoteStream not injected, xterm.js needs owner approval and supply-chain scan, terminal.* pinned to loopback HOST_SHELL). Prerequisite parity slice witnessed live: Typert session/list now equals legacy session.list rows (see typert-session-list-rows-thinner-than-legacy), so a future consumer needs no schema work.'
 - id: investigate-session-list-result-schema-mismatch
   subject: The hand-owned client result schema for session.list rejects the LIVE host payload (missing agentAvailable, invalid projections.kind) when parsed with zod, found by the vendor agent (sub47) in real Chrome; the sidebar still lists sessions, so either the client bypasses strict parsing on that path or the mismatch is masked. Find which side is wrong (client schema in packages/api/session-controller or the legacy descriptor in packages/host/apiproxy, versus the host's real payload), fix at the root so the strict parse of a real payload succeeds, and prove with a real session created through the API and parsed by the shipped client schema in real Chrome and in Node.
   session_id: freddie-audit-01
@@ -325,4 +348,23 @@
 - id: typert-session-list-rows-thinner-than-legacy
   subject: 'The Typert session/list rows (packages/api/session-controller) lack fields the legacy /api/session.list rows carry: errored, agentPreset, and for foreign-root sessions readOnly and extraHome (the foreign-root rows are absent from the Typert list altogether); the host''s non-strict z.object silently strips them. Nothing in the shipped UI uses the Typert route today, but any future consumer of it (compose-session-and-terminal-ui-consumers) needs parity. Resolve the preset in session-controller (needs a dependency edge to @freddie/freddie-agent-presets, decide whether that edge is acceptable or the preset should come through an injected service), add the missing fields and foreign-root rows to both manifests and codecs, and prove a strict parse of a real payload in Node and real Chrome.'
   session_id: freddie-audit-01
+  status: completed
+  witness: 'Already landed (e686d1e): packages/api/session-controller/src/list-codecs.js:23-40 carries errored, agentPreset, readOnly, extraHome, agentAvailable, optional projections; list.js:117 emits foreign rows, list.js:380 resolves the preset via resolveSessionPreset (peerDependency edge on freddie-agent-presets accepted, rationale in AGENTS.md:9). Live, isolated FREDDIE_HOME on port 4918 with FREDDIE_EXTRA_SESSION_ROOTS: /api/session/list (Typert) and /api/session.list (legacy) return identical key sets for the foreign row (readOnly:true, extraHome, agentPreset standard, errored false, agentAvailable false); sessionListValue strict parse succeeds in Node for both payloads; in real Chrome via gm cdp both routes fetched in the served page, same=true, 0 page errors. Typert attached row also carries errored/agentPreset/projections.'
+- id: acptoapi-reconcile-and-push
+  subject: 'acptoapi local main 6c77fc6 (residue removal: decoy fonts, settings.json tasks key) and origin/main 358d0a4 (author AnEntrypoint, not lanmower) diverged 1/1 from merge-base cc7bc84; remote still carries decoy fonts + folderOpen tasks key. Next dispatch: git_pull merge (or rebase) in C:/dev/acptoapi as sole writer after committing/stashing .gm dirt, verify tree, then git_push HEAD; ask user first re non-lanmower commit 358d0a4 provenance.'
+  session_id: frd-7
   status: pending
+- id: gm-agentplug-pointer-reconcile
+  subject: 'C:/dev/gm is on harden/signed-updates with 13 submodules modified and heavy dirty state owned by another writer; recorded agentplug pointer 90507f1, working agentplug e07d58b, agentplug origin main c6906e8. Next dispatch: when that writer finishes, git_status in gm, decide pointer bump to reachable commit, commit only agentplug via paths:[agentplug].'
+  session_id: frd-7
+  status: pending
+- id: origin-tracking-and-token-hygiene
+  subject: 'Remote URLs in agent-remote, diagen, milkvid, minidexed embed gho_ tokens (user previously ruled gh-auth artifacts); optional next step: git remote set-url to plain https in each, and revoke via gh if user wants. Also goofedup local main 4639bba is 1 ahead of origin 67afa38 with untracked docs/: needs owner decision.'
+  session_id: frd-7
+  status: pending
+- id: orchestration-projection-checkpoints
+  subject: 'Materialize per-conversation plan/decision/evidence/activity folder views as sequence-watermarked checkpoints derived from session events (source seq provenance, stale/fresh watermark, inspection endpoint). Next dispatch: extend packages/session/session-artifacts projection with a derived checkpoint sidecar table fed by session/event.'
+  acceptance: A live conversation exposes derived checkpoint folders with source sequence watermark that replay identically after reload.
+  session_id: art1
+  status: completed
+  witness: 'Live host (freddie web --port 3391, isolated FREDDIE_HOME): put plan/decision/evidence/memory then sessionArtifacts/checkpoints returned watermark {sourceSeq:6,headSeq:6,lag:0,fresh:true} with plan/decision/evidence views; after kill+restart identical views replayed; rewound row to sourceSeq 3 gave fresh:false lag:3, refresh:true refolded to sourceSeq 6 identical to pre-rewind views. packages/session/session-artifacts/src/checkpoint.js, index.js checkpoints(); docs/subsystems/conversation-artifacts.md Checkpoints section'
