@@ -1,6 +1,3 @@
-/** `feedback` namespace dictionaries. */
-
-/** English dictionary. */
 export const en = {
   'action.like': 'Good response',
   'action.likeActive': 'Remove rating',

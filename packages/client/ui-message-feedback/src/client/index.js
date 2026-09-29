@@ -1,28 +1,12 @@
-/**
- * Message feedback plugin, browser half: the Like/Dislike entry in the
- * conversation.chat.assistant-actions strip. One MessageFeedbackController per
- * Session backs every message control in that Session, so a single list read
- * seeds the whole transcript. Mutations go through the generated
- * messageFeedback Remote; the Host owns per-item compare-and-set.
- * @module @freddie/freddie-client-ui-message-feedback/client
- */
-
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { MessageFeedbackController } from './controller.js'
 export { MessageFeedbackActions } from './MessageFeedbackActions.js'
 import { en } from './locales.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'feedback'
 
-/** Required services: the slot registry, the Remote namespace, and the copy. */
 export const inject = ['slots', 'remote', 'remote.messageFeedback', 'locale']
 
-/**
- * Client plugin body: the per-message feedback entry and its per-session
- * object layer.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-message-feedback: dictionaries')
 

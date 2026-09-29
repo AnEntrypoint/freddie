@@ -1,23 +1,3 @@
-/**
- * Per-message feedback controls: a Like/Dislike pair plus an optional note.
- * The buttons render inside the assistant message's IconActions row, so they
- * reuse that row's chrome and sit between copy and branch. The note editor is
- * a popover (portaled to `document.body`) anchored to the note trigger, not an
- * inline expansion: a 260px textarea plus buttons cannot fit the row at any
- * viewport, and an inline element pushed the branch action and clock out of the
- * conversation column. Portaling out of the column also escapes its `overflow`
- * clip, so the panel cannot be cropped or detached from the message it annotates.
- *
- * Converted from a React hooks component to a webjsx custom element: every
- * useState/useRef becomes a private instance field, the `feedback` hook
- * subscription becomes a direct store subscription bound in
- * connectedCallback, useAnchoredPosition becomes createAnchoredPosition
- * (ui-primitives' factory-function conversion of the same hook), the note
- * popover's document.body mount replaces createPortal, and re-render is an
- * explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- * @module @freddie/freddie-client-ui-message-feedback/client/MessageFeedbackActions
- */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
   createAnchoredPosition, IconDislikeOutline16, IconLikeOutline16, renderTooltip,
@@ -25,34 +5,22 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './MessageFeedbackActions.css.js'
 
-/** Safe distance kept between the panel and the viewport edges (the Menu portal margin). */
 const PANEL_MARGIN = 12
 
-/** Distance between the trigger's bottom edge and the panel's top. */
 const PANEL_GAP = 4
 
-/**
- * One message's feedback controls, as a custom element.
- */
 export class FreddieMessageFeedbackActions extends HTMLElement {
   #props = null
   #noteOpen = false
   #draft = ''
   #pending = false
-  /** A rating or load failure surfaces beside the rating buttons, always legible
-   * whether or not the note popover is open. */
   #rowFailure = null
-  /** A note save failure surfaces inside the note popover, where the human is
-   * looking; it stays open so the draft survives to be corrected. */
   #noteFailure = null
   #triggerEl = null
   #panelEl = null
   #inputEl = null
-  /** The controls mount for every settled message in the transcript, so the
-   * Session's feedback is read once on first hover/focus rather than on mount. */
   #seeded = false
   #alive = true
-  /** Bumped whenever an editing session ends, so a late save can tell it is stale. */
   #noteGeneration = 0
   #wasOpen = false
   #pos = null
@@ -63,7 +31,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
   #likeTooltipEl = null
   #dislikeTooltipEl = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -347,7 +314,6 @@ export class FreddieMessageFeedbackActions extends HTMLElement {
 
 defineElement('freddie-message-feedback-actions', FreddieMessageFeedbackActions)
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function MessageFeedbackActions(props) {
   const el = document.createElement('freddie-message-feedback-actions')
   el.setProps(props)

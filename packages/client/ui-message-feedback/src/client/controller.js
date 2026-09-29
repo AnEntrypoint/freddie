@@ -1,15 +1,4 @@
-/**
- * Browser-local object layer over one Session's durable message-feedback
- * sidecar. The Host owns per-item compare-and-set: every mutation carries the
- * version this controller last observed, and a `version-conflict` reply carries
- * the authoritative item, so a lost race reconciles from the reply itself
- * instead of refetching the whole Session.
- * @module @freddie/freddie-client-ui-message-feedback/client/controller
- */
-
 import { singleFlight } from '@freddie/freddie-client-runtime/client'
-
-/** Load state of the one list read that seeds every per-message control. */
 
 const EMPTY_ITEMS = new Map()
 
@@ -26,7 +15,6 @@ const DISPOSED = Object.freeze({
   error: Object.freeze({ code: 'disposed', message: 'feedback controller is disposed' }),
 })
 
-/** Human-readable text for one business failure code. */
 function describe(code) {
   switch (code) {
     case 'session-not-found': return 'this session is no longer persisted'
@@ -38,20 +26,14 @@ function describe(code) {
   }
 }
 
-/** Build the rejected branch for one business failure code. */
 function fail(code) {
   return { ok: false, error: { code, message: describe(code) } }
 }
 
-/** Carrier failure rendered with the Host-supplied code and message. */
 function carrierFailure(error) {
   return { ok: false, error: { code: error.code, message: error.message } }
 }
 
-/**
- * Per-session feedback object layer. One instance backs every per-message
- * control in that Session, so a single list read seeds them all.
- */
 export class MessageFeedbackController {
   view = INITIAL_VIEW
   listeners = new Set()
@@ -59,43 +41,23 @@ export class MessageFeedbackController {
   operationTail = Promise.resolve()
   disposed = false
 
-  /**
-   * @param remote - the messageFeedback Remote namespace.
-   * @param sessionId - Session owning every addressed assistant message.
-   */
   constructor(remote, sessionId) {
     this.remote = remote
     this.sessionId = sessionId
   }
 
-  /** Return the cached immutable view. */
   getSnapshot = () => this.view
 
-  /** Subscribe to view replacement. */
   subscribe = (listener) => {
     this.listeners.add(listener)
     return () => { this.listeners.delete(listener) }
   }
 
-  /**
-   * Load once; a failed load stays retryable.
-   * @returns the settled load result, shared by concurrent callers.
-   */
   ensure() {
     if (this.view.status === 'ready') return Promise.resolve(OK)
     return this.refresh()
   }
 
-  /**
-   * Re-read the authoritative list, collapsing concurrent callers onto one
-   * in-flight read.
-   *
-   * This is the unserialized read used to seed a cold controller, where no
-   * mutation can be in flight yet. A reconnect must use {@link resync} instead:
-   * an unserialized list response can otherwise arrive after a newer mutation's
-   * reply and overwrite the version that mutation just committed.
-   * @returns the settled reload result.
-   */
   refresh() {
     if (this.loadPromise !== null) return this.loadPromise
     this.publish({ status: 'loading', items: this.view.items, error: null })
@@ -104,29 +66,10 @@ export class MessageFeedbackController {
     return pending.finally(() => { this.loadPromise = null })
   }
 
-  /**
-   * Re-read the list behind this Session's queued mutations, so a reconnect
-   * cannot resurrect a version an in-flight mutation already replaced.
-   * @returns the settled reload result.
-   */
   resync() {
     return this.mutate(() => this.refresh(), { seed: false })
   }
 
-  /**
-   * Create or replace feedback for one message, comparing against the version
-   * this controller last observed.
-   *
-   * The note is resolved here rather than by the caller: `mutate` awaits the
-   * one list read first, so this body always sees the committed item, while a
-   * control that rendered before that read completed would still be holding
-   * `undefined`. Omitting `note` therefore keeps whatever is stored; only
-   * {@link clearNote} removes one.
-   * @param messageId - target assistant message.
-   * @param rating - desired judgment.
-   * @param note - replacement explanation; omitted keeps the stored note.
-   * @returns the settled mutation result.
-   */
   rate(messageId, rating, note) {
     return this.mutate(async () => {
       const observed = this.view.items.get(messageId)
@@ -134,16 +77,6 @@ export class MessageFeedbackController {
     })
   }
 
-  /**
-   * Replace one message's rating with the opposite judgment, or retract it when
-   * the committed rating already matches. The decision reads the committed item
-   * inside the serialized mutation, so a click that lands before the first list
-   * read still toggles against the stored value rather than the empty view a
-   * cold control rendered.
-   * @param messageId - target assistant message.
-   * @param rating - the judgment the human asked for.
-   * @returns the settled mutation result.
-   */
   toggle(messageId, rating) {
     return this.mutate(async () => {
       const observed = this.view.items.get(messageId)
@@ -152,11 +85,6 @@ export class MessageFeedbackController {
     })
   }
 
-  /**
-   * Drop the note while keeping the rating. Absent feedback needs no call.
-   * @param messageId - target assistant message.
-   * @returns the settled mutation result.
-   */
   clearNote(messageId) {
     return this.mutate(async () => {
       const observed = this.view.items.get(messageId)
@@ -165,12 +93,6 @@ export class MessageFeedbackController {
     })
   }
 
-  /**
-   * Remove feedback for one message. A message with no known item is already
-   * in the requested state, so no call is made.
-   * @param messageId - target assistant message.
-   * @returns the settled mutation result.
-   */
   clear(messageId) {
     return this.mutate(async () => {
       const observed = this.view.items.get(messageId)
@@ -179,7 +101,6 @@ export class MessageFeedbackController {
     })
   }
 
-  /** Commit one put against the observed version and reconcile a conflict. */
   async putCommitted(messageId, rating, note, observed) {
     const carried = await this.remote.put({
       sessionId: this.sessionId,
@@ -198,7 +119,6 @@ export class MessageFeedbackController {
     return fail(result.error.code)
   }
 
-  /** Commit one delete against the observed version and reconcile a conflict. */
   async deleteCommitted(messageId, observed) {
     const carried = await this.remote.delete({
       sessionId: this.sessionId,
@@ -215,13 +135,11 @@ export class MessageFeedbackController {
     return fail(result.error.code)
   }
 
-  /** Drop subscribers and refuse further work when the owning fiber unloads. */
   dispose() {
     this.disposed = true
     this.listeners.clear()
   }
 
-  /** Fetch the whole sidecar and publish it as the seeded view. Single-flighted: a mount, a reconnect, and a caller-triggered refresh can each call load() independently. */
   load = singleFlight(async () => {
     try {
       const carried = await this.remote.list({ sessionId: this.sessionId })
@@ -247,11 +165,6 @@ export class MessageFeedbackController {
     }
   })
 
-  /**
-   * Serialize one mutation behind this Session's prior mutation so queued
-   * operations always compare against the committed version, and translate a
-   * transport throw into the same settled shape the controls already render.
-   */
   mutate(operation, options = {}) {
     const guarded = async () => {
       if (this.disposed) return DISPOSED
@@ -278,12 +191,6 @@ export class MessageFeedbackController {
     return result
   }
 
-  /**
-   * Replace one message's entry, keeping every other entry's identity. Only a
-   * `mutate` operation reaches this, and `mutate` refuses admission once the
-   * controller is disposed, so no disposal guard belongs here; `publish` is
-   * the single place that stops notifying after listeners are dropped.
-   */
   commit(messageId, item) {
     const items = new Map(this.view.items)
     if (item === null) items.delete(messageId)
@@ -291,7 +198,6 @@ export class MessageFeedbackController {
     this.publish({ status: 'ready', items, error: null })
   }
 
-  /** Replace the view and contain subscriber failures at the observable boundary. */
   publish(view) {
     this.view = Object.freeze(view)
     for (const listener of this.listeners) {
