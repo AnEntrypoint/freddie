@@ -1,5 +1,3 @@
-/** GitHub HTTP authentication, parsing, and fire-and-forget dispatch. */
-
 import { Webhooks } from '@octokit/webhooks'
 import { snapshotJsonValue } from '@freddie/freddie-values'
 import { WebhookDeliveryId, WebhookSourceId } from '@freddie/freddie-webhook'
@@ -10,7 +8,6 @@ import { readBoundedUtf8Body, WebhookHttpError } from './body.js'
  *   Handler values validated once at plugin load. `secretEnv` is an already-branded `CredentialRef`.
  */
 
-/** Require one unambiguous non-empty request header. */
 function requiredHeader(request, name) {
   const values = request.headersDistinct[name]
   const value = values?.[0]
@@ -20,7 +17,6 @@ function requiredHeader(request, name) {
   return value
 }
 
-/** Whether Content-Type names JSON with at most one UTF-8 charset parameter. */
 function isJsonContentType(value) {
   if (value === undefined) return false
   const parts = value.split(';').map(part => part.trim())
@@ -30,7 +26,6 @@ function isJsonContentType(value) {
   return extra.length === 0 && /^charset=(?:utf-8|"utf-8")$/i.test(parameter)
 }
 
-/** Send one empty or plain-text response exactly once. */
 function respond(response, status, message) {
   if (message === undefined) {
     response.writeHead(status)
@@ -41,7 +36,6 @@ function respond(response, status, message) {
   response.end(message)
 }
 
-/** Convert a parsed value into the adapter's generic signed-object guarantee. */
 function parsePayload(body) {
   let parsed
   try {

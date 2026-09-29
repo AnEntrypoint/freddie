@@ -1,12 +1,8 @@
-/** Signed GitHub HTTP adapter for the provider-neutral webhook runtime. */
-
 import { credentialRef } from '@freddie/freddie-credentials'
 import z from '@freddie/schemastery'
 import { createGitHubWebhookHandler } from './handler.js'
 
-/** Cordis function-plugin name. */
 export const name = 'webhook-github'
-/** Host services required before the exact route can register. */
 export const inject = ['webServer', 'webhookRuntime', 'credentials']
 
 /**
@@ -23,7 +19,6 @@ export const Config = z.object({
   maxBodyBytes: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).required(),
 })
 
-/** Validate route and source facts that Schemastery cannot express. */
 function assertConfig(config) {
   if (config.source.trim() !== config.source || config.source === '') {
     throw new Error('webhook-github source must be a non-empty trimmed string')

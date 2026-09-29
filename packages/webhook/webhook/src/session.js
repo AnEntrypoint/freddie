@@ -1,11 +1,8 @@
-/** Workspace-backed Session creation for one settled webhook rule result. */
-
 import { randomUUID } from 'node:crypto'
 import { isAbsolute } from 'node:path'
 import { boundContextSummary, createUserMessage, errorChain } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
 
-/** Require one non-empty string field from an untyped rule result. */
 function requiredString(record, field) {
   const value = record[field]
   if (typeof value !== 'string' || value.trim() === '') {
@@ -14,7 +11,6 @@ function requiredString(record, field) {
   return value
 }
 
-/** Snapshot and validate a same-process rule result before crossing awaits. */
 function resolveRequest(ctx, input) {
   const candidate = input
   if (candidate === null || typeof candidate !== 'object' || Array.isArray(candidate)) {
@@ -58,12 +54,10 @@ function resolveRequest(ctx, input) {
   return { workspacePath, title, prompt, agentPreset, permissionPreset, modelSelection, agentOptions }
 }
 
-/** Log a rollback failure without replacing the operation's original failure. */
 function reportRollbackFailure(ctx, subject, error) {
   ctx.logger.warn(`webhook: ${subject} rollback failed: ${errorChain(error)}`)
 }
 
-/** Apply the creation-time selection until its first durable request header exists. */
 function installInitialModelSelection(agentCtx, selection) {
   agentCtx.on('agent/request', async ({ agent }, next) => {
     const resolved = await next()

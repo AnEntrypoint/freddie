@@ -35,7 +35,6 @@ export * from './brand.js'
  * @property {Promise<void>} [disposal] - the memoized teardown, once started.
  */
 
-/** Validate and detach one delivery before sharing it across arbitrary rules. */
 function snapshotDelivery(delivery) {
   if (typeof delivery.kind !== 'string' || delivery.kind.trim() === '') {
     throw new TypeError('webhook delivery kind must be a non-empty string')
@@ -54,7 +53,6 @@ function snapshotDelivery(delivery) {
   return deepFreeze(snapshot)
 }
 
-/** Fire-and-forget rule runtime. Session creation is the only built-in action. */
 export class WebhookRuntime extends Service {
   static inject = [
     'agents',
@@ -128,7 +126,6 @@ export class WebhookRuntime extends Service {
     }
   }
 
-  /** Start one contained invocation and attach it to registration teardown. */
   startInvocation(registration, delivery) {
     const tracked = Promise.resolve().then(async () => {
       registration.controller.signal.throwIfAborted()
@@ -157,7 +154,6 @@ export class WebhookRuntime extends Service {
     registration.active.add(tracked)
   }
 
-  /** Memoized registration teardown: hide, abort, then drain. */
   disposeRegistration(registration) {
     registration.disposal ??= (async () => {
       registration.closing = true

@@ -1,6 +1,3 @@
-/** Bounded raw HTTP body intake for GitHub signature verification. */
-
-/** HTTP refusal whose message is safe to return without request data. */
 export class WebhookHttpError extends Error {
   name = 'WebhookHttpError'
 
@@ -14,7 +11,6 @@ export class WebhookHttpError extends Error {
   }
 }
 
-/** Parse a decimal Content-Length or reject an ambiguous header. */
 function contentLength(request) {
   const value = request.headers['content-length']
   if (value === undefined) return undefined

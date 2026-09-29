@@ -1,16 +1,8 @@
-/**
- * Package-owned relationship invariant for webhook-origin prompt admission.
- * @module @freddie/freddie-webhook/invariant
- */
-
 const PACKAGE_NAME = '@freddie/freddie-webhook'
 
-/** Cordis invariant-companion plugin name. */
 export const name = 'webhook-invariant'
-/** Registry required before reserving this package's invariant ownership. */
 export const inject = ['invariants']
 
-/** Verify that one webhook-origin message already belongs to its cwd Workspace. */
 const install = Object.assign(function installWebhookMessages(ctx, fail) {
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
