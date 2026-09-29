@@ -1,7 +1,3 @@
-/**
- * Lossless-JSON snapshots for the dependency-free source worker closure.
- * @module @freddie/freddie-code-runtime-worker-thread/worker-json
- */
 
 /* jscpd:ignore-start -- the source worker mirrors session JSON helpers without workspace runtime imports */
 const intrinsicFunctionToString = Reflect.get(Function.prototype, 'toString')
@@ -26,14 +22,12 @@ const intrinsicSetAdd = Reflect.get(Set.prototype, 'add')
 const intrinsicSetDelete = Reflect.get(Set.prototype, 'delete')
 const intrinsicSetHas = Reflect.get(Set.prototype, 'has')
 
-/** Build a data descriptor that cannot inherit model-defined accessor fields. */
 function dataDescriptor(value) {
   const descriptor = intrinsicObjectCreate(null)
   descriptor.value = value
   return descriptor
 }
 
-/** Define an ordinary enumerable data slot without a prototype-bearing descriptor. */
 function defineEnumerableDataProperty(target, key, value) {
   const descriptor = dataDescriptor(value)
   descriptor.enumerable = true
@@ -42,12 +36,10 @@ function defineEnumerableDataProperty(target, key, value) {
   intrinsicObjectDefineProperty(target, key, descriptor)
 }
 
-/** Append without consulting a model-mutated `Array.prototype`. */
 function append(target, value) {
   defineEnumerableDataProperty(target, target.length, value)
 }
 
-/** Pop without consulting a model-mutated `Array.prototype`. */
 function takeLast(target) {
   if (target.length === 0) return undefined
   const index = target.length - 1
@@ -56,22 +48,18 @@ function takeLast(target) {
   return value
 }
 
-/** Whether one captured-intrinsic Set contains a value. */
 function setHas(target, value) {
   return intrinsicReflectApply(intrinsicSetHas, target, [value])
 }
 
-/** Add to one captured-intrinsic Set. */
 function setAdd(target, value) {
   intrinsicReflectApply(intrinsicSetAdd, target, [value])
 }
 
-/** Delete from one captured-intrinsic Set. */
 function setDelete(target, value) {
   intrinsicReflectApply(intrinsicSetDelete, target, [value])
 }
 
-/** Whether a realm-owned intrinsic prototype is backed by its native constructor. */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = intrinsicObjectGetOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -85,12 +73,10 @@ function hasIntrinsicConstructor(prototype, name) {
   }
 }
 
-/** Whether a candidate is a foreign realm's intrinsic `Object.prototype`. */
 function isForeignIntrinsicObjectPrototype(value) {
   return intrinsicObjectGetPrototypeOf(value) === null && hasIntrinsicConstructor(value, 'Object')
 }
 
-/** Whether an array uses one realm's intrinsic `Array.prototype`, not a subclass or forged prototype. */
 function hasPlainArrayPrototype(value) {
   const prototype = intrinsicObjectGetPrototypeOf(value)
   if (prototype === intrinsicArrayPrototype) return true
@@ -101,7 +87,6 @@ function hasPlainArrayPrototype(value) {
     && isForeignIntrinsicObjectPrototype(objectPrototype)
 }
 
-/** Whether an object is a plain or null-prototype record from any JavaScript realm. */
 function hasPlainObjectPrototype(value) {
   const prototype = intrinsicObjectGetPrototypeOf(value)
   return prototype === null
@@ -109,7 +94,6 @@ function hasPlainObjectPrototype(value) {
     || typeof prototype === 'object' && isForeignIntrinsicObjectPrototype(prototype)
 }
 
-/** Return every JSON-visible object key, or reject own data JSON would discard. */
 function enumerableStringKeys(value) {
   const keys = intrinsicReflectOwnKeys(value)
   for (let index = 0; index < keys.length; index++) {
@@ -119,15 +103,6 @@ function enumerableStringKeys(value) {
   return keys
 }
 
-/**
- * Validate and detach one worker-boundary value without loading another
- * workspace package at runtime. This mirrors the session-owned canonical
- * JSON boundary while remaining safe to import from the unbuilt worker.
- * Its iterative traversal adds no JavaScript call-stack depth limit.
- *
- * @param value - the candidate completion value.
- * @returns a detached lossless-JSON snapshot, or `undefined` when invalid.
- */
 export function snapshotCodeJsonValue(value) {
   const active = new IntrinsicSet()
   let root
@@ -213,11 +188,6 @@ export function snapshotCodeJsonValue(value) {
   return root
 }
 
-/**
- * Flatten one validated JSON value for the worker-thread message port.
- * @param value - the lossless JSON value to transport.
- * @returns a pre-order token stream whose own nesting is bounded.
- */
 export function encodeWorkerJson(value) {
   const wire = []
   const pending = [value]
@@ -249,7 +219,6 @@ export function encodeWorkerJson(value) {
   return wire
 }
 
-/** Whether an array contains exactly its dense indexed slots and `length`. */
 function isDenseArray(value) {
   if (!hasPlainArrayPrototype(value) || intrinsicReflectOwnKeys(value).length !== value.length + 1) return false
   for (let index = 0; index < value.length; index++) {
@@ -258,7 +227,6 @@ function isDenseArray(value) {
   return true
 }
 
-/** Whether one exact string-key list contains a key, without consulting its prototype. */
 function keysContain(keys, expected) {
   for (let index = 0; index < keys.length; index++) {
     if (keys[index] === expected) return true
@@ -266,7 +234,6 @@ function keysContain(keys, expected) {
   return false
 }
 
-/** Return one exact container marker, or reject any extra/missing fields. */
 function containerToken(value) {
   if (intrinsicArrayIsArray(value) || !hasPlainObjectPrototype(value)) return undefined
   const keys = enumerableStringKeys(value)
@@ -297,13 +264,6 @@ function containerToken(value) {
   return undefined
 }
 
-/**
- * Rebuild one lossless JSON value from the flat worker-thread wire format.
- * Malformed or incomplete traffic returns `undefined`; traversal is iterative
- * and therefore independent of the transported value's application depth.
- * @param input - untrusted message-port payload.
- * @returns the detached JSON value, or `undefined` when the wire is invalid.
- */
 export function decodeWorkerJson(input) {
   try {
     if (!intrinsicArrayIsArray(input) || !isDenseArray(input) || input.length === 0) return undefined

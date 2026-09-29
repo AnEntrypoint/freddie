@@ -1,4 +1,3 @@
-/** JSON string-prefix accounting for the outer-output ledger. @module @freddie/freddie-code-runtime-worker-thread/output-json */
 
 const intrinsicReflectApply = Reflect.apply
 const intrinsicArrayIsArray = Array.isArray
@@ -12,14 +11,12 @@ const intrinsicStringCharCodeAt = Reflect.get(String.prototype, 'charCodeAt')
 const intrinsicStringCodePointAt = Reflect.get(String.prototype, 'codePointAt')
 const intrinsicStringSlice = Reflect.get(String.prototype, 'slice')
 
-/** Build a data descriptor that cannot inherit model-defined accessor fields. */
 function dataDescriptor(value) {
   const descriptor = intrinsicObjectCreate(null)
   descriptor.value = value
   return descriptor
 }
 
-/** Define an ordinary enumerable data slot without a prototype-bearing descriptor. */
 function defineEnumerableDataProperty(target, key, value) {
   const descriptor = dataDescriptor(value)
   descriptor.enumerable = true
@@ -28,17 +25,14 @@ function defineEnumerableDataProperty(target, key, value) {
   intrinsicObjectDefineProperty(target, key, descriptor)
 }
 
-/** UTF-8 byte length through the module-captured Node intrinsic. */
 function byteLength(text) {
   return intrinsicReflectApply(intrinsicBufferByteLength, IntrinsicBuffer, [text, 'utf8'])
 }
 
-/** Append without consulting a model-mutated `Array.prototype`. */
 function append(target, value) {
   defineEnumerableDataProperty(target, target.length, value)
 }
 
-/** Pop without consulting a model-mutated `Array.prototype`. */
 function takeLast(target) {
   if (target.length === 0) return undefined
   const index = target.length - 1
@@ -47,14 +41,12 @@ function takeLast(target) {
   return value
 }
 
-/** One code-point-aligned character from a string. */
 function characterAt(text, index) {
   const codePoint = intrinsicReflectApply(intrinsicStringCodePointAt, text, [index])
   const width = codePoint > 0xffff ? 2 : 1
   return intrinsicReflectApply(intrinsicStringSlice, text, [index, index + width])
 }
 
-/** Serialized bytes contributed by one complete Unicode code point inside JSON quotes. */
 function serializedCharacterBytes(character) {
   if (character.length === 2) return 4
   if (character === '"' || character === '\\') return 2
@@ -64,18 +56,10 @@ function serializedCharacterBytes(character) {
   return byteLength(character)
 }
 
-/** Serialized size of an empty JSON array, `[]`: where every logs-array byte count starts. */
 export const EMPTY_JSON_ARRAY_BYTES = 2
 
-/** Serialized size of the double quotes around a JSON string. */
 export const JSON_STRING_QUOTES_BYTES = 2
 
-/**
- * Measure one JSON string without materializing its complete escaped form.
- * @param text - the candidate string.
- * @param maxBytes - largest serialized size the caller can admit.
- * @returns Exact serialized bytes, or `undefined` as soon as the cap is crossed.
- */
 export function jsonStringBytesUpTo(text, maxBytes) {
   if (maxBytes < 2) return undefined
   let bytes = 2
@@ -88,12 +72,6 @@ export function jsonStringBytesUpTo(text, maxBytes) {
   return bytes
 }
 
-/**
- * Measure one lossless JSON value without allocating its serialized form.
- * @param value - already validated lossless JSON.
- * @param maxBytes - largest serialized size the caller can admit.
- * @returns Exact serialized bytes, or `undefined` as soon as the cap is crossed.
- */
 export function jsonValueBytesUpTo(value, maxBytes) {
   let bytes = 0
   const add = (cost) => {
@@ -148,14 +126,6 @@ export function jsonValueBytesUpTo(value, maxBytes) {
   return bytes
 }
 
-/**
- * Return the longest code-point-aligned prefix whose JSON string encoding,
- * including its surrounding quotes, fits `maxBytes`.
- *
- * @param text - the candidate string.
- * @param maxBytes - serialized JSON-string bytes available.
- * @returns the fitting prefix, or an empty string when even useful content cannot fit.
- */
 export function truncateJsonStringBytes(text, maxBytes) {
   if (maxBytes < 2) return ''
   let bytes = 2

@@ -1,10 +1,3 @@
-/**
- * Worker-thread code runtime: a fresh worker runs each host-type-stripped TypeScript program
- * and bridges bindings over its message port. This is containment, not a security boundary:
- * model code has bash-equivalent trust despite an empty environment, a heap cap, measured
- * event-loop busy-time and wall-time budgets, and termination that also stops synchronous loops.
- * @module @freddie/freddie-code-runtime-worker-thread
- */
 
 import { Worker } from 'node:worker_threads'
 import { stripTypeScriptTypes } from 'node:module'
@@ -17,55 +10,28 @@ import { snapshotJsonValue } from '@freddie/freddie-session'
 import { EMPTY_JSON_ARRAY_BYTES, JSON_STRING_QUOTES_BYTES, jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
 import { decodeWorkerJson, encodeWorkerJson } from './worker-json.js'
 
-/**
- * How often the host samples the worker's event-loop utilization for the
- * `computeMs` budget. An internal cadence, not config: the only effect of
- * the interval is budget-expiry granularity (a run can overshoot by up to
- * one interval), and nothing a deployment could tune here improves that
- * without burning host CPU.
- */
 const ELU_POLL_INTERVAL_MS = 25
 
-/** Smallest cap that can represent the counted payloads: an empty logs array plus an empty JSON failure message. */
 const MIN_OUTPUT_BYTES = 4
 
-/**
- * The seam's language-portable identifier subset (see
- * `CodeBindingNamespace.global`): no `$`, which is JS-only spelling — the same
- * namespace list must be usable against every backend regardless of language.
- */
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/
 
-/**
- * The shell a program is wrapped in for the type-strip, matching the
- * grammatical context it will execute in (an async function body, where
- * top-level `return` and `await` are legal — a bare module parse would
- * reject the `return`). Strip mode is position-preserving (removed syntax
- * becomes whitespace, nothing shifts), so the wrapper survives the strip
- * byte-identical and the body slices back out with the model's own
- * line/column positions intact.
- */
 const STRIP_WRAP = { prefix: 'async function __dsh_program__() {\n', suffix: '\n}' }
 
-/** The worker entry path: `src/worker.js`, loadable directly (buildless, no compiled sibling). */
 const WORKER_PATH = fileURLToPath(new URL('./worker.js', import.meta.url))
 
-/** Render an unknown thrown value as a message, `Error` or not. */
 function messageOf(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** Resolve on the next event-loop turn, after the poll phase has delivered already-queued I/O. */
 function yieldToPollPhase() {
   return new Promise((resume) => { setImmediate(resume) })
 }
 
-/** The binding function the consumer declared under `name`, never one inherited through the record's prototype chain. */
 function ownDeclaredFunction(record, name) {
   return record && Object.hasOwn(record, name) ? record[name] : undefined
 }
 
-/** Resolve after a worker pipe emits all queued data, or closes/errors during termination. */
 function waitForPipeDrain(stream) {
   if (stream.readableEnded || stream.destroyed) return Promise.resolve()
   return new Promise((resolve) => {
@@ -83,15 +49,6 @@ function waitForPipeDrain(stream) {
   })
 }
 
-/**
- * Runtime shape gate for inbound port traffic. The peer runs MODEL CODE and
- * can post anything — `null`, primitives, objects with poisoned fields — so
- * nothing about it can be trusted here: everything is re-validated and
- * REBUILT field by field (a forged extra field never rides along; a
- * non-number call id can never be echoed into a reply). Junk returns
- * `undefined` and is dropped — a throw in the host's `message` listener would
- * crash the host process.
- */
 function parseWorkerMessage(raw) {
   if (typeof raw !== 'object' || raw === null) return undefined
   const m = raw
@@ -117,8 +74,6 @@ function parseWorkerMessage(raw) {
   }
 }
 
-
-/** One run's combined outer-output ledger; binding values never enter it. */
 class OutputLedger {
   bytes = EMPTY_JSON_ARRAY_BYTES
   entries = 0
@@ -127,7 +82,6 @@ class OutputLedger {
     this.maxBytes = maxBytes
   }
 
-  /** Admit one exact log entry, or report that the hard cap was crossed. */
   admit(text, sink) {
     const separatorBytes = this.entries > 0 ? 1 : 0
     const stringBytes = jsonStringBytesUpTo(text, this.maxBytes - this.bytes - separatorBytes)
@@ -138,19 +92,16 @@ class OutputLedger {
     return true
   }
 
-  /** Finalize a successful absent-or-JSON completion against the combined cap. */
   success(logs, value) {
     if (value !== undefined && jsonValueBytesUpTo(value, this.maxBytes - this.bytes) === undefined) return this.limit(logs)
     return { logs, ...value !== undefined ? { value } : {} }
   }
 
-  /** Finalize a failure diagnostic, with output-limit taking precedence when combined bytes exceed the cap. */
   failure(logs, error) {
     if (jsonStringBytesUpTo(error.message, this.maxBytes - this.bytes) === undefined) return this.limit(logs)
     return { logs, error }
   }
 
-  /** Build the explicit output-limit failure while retaining a fitting prefix of the final log. */
   limit(logs) {
     const fullMessage = `outer output exceeded ${this.maxBytes} bytes`
     const asciiMessageBytes = fullMessage.length + JSON_STRING_QUOTES_BYTES
@@ -182,13 +133,6 @@ class OutputLedger {
   }
 }
 
-/**
- * The shipped {@link CodeRuntime} backend (`ctx.codeRuntime`). Registers as
- * the `codeRuntime` service; every cap comes from validated config. See the
- * module doc for the containment model and the Service Definition's class JSDoc for
- * the contract this implements (error-as-field, hostile-peer port,
- * no cross-run state, dispose to quiescence).
- */
 export class WorkerThreadCodeRuntime extends CodeRuntime {
   static Config = z.object({
     computeMs: z.number().default(60_000),
@@ -219,11 +163,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     ctx.effect(() => () => this.teardown(), 'worker code-runtime teardown')
   }
 
-  /**
-   * Dispose to quiescence: mark the service unusable, fail every in-flight
-   * run as aborted, and AWAIT each worker's exit so no worker outlives the
-   * fiber.
-   */
   async teardown() {
     this.disposed = true
     const runs = [...this.live]
@@ -231,14 +170,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     await Promise.all(runs.map(run => run.finished))
   }
 
-  /**
-   * Execute one program in a fresh worker. Program outcomes — including a
-   * type-strip syntax error, which never spawns a worker — resolve with
-   * `result.error`; the method rejects only for Service Definition contract misuse (a disposed
-   * runtime, an invalid binding namespace).
-   * @param request - the program, its bindings, and the abort signal.
-   * @returns the run's outcome per the seam contract.
-   */
   async run(request) {
     if (this.disposed) throw new Error('freddie-code-runtime-worker-thread: run() after disposal')
     const bindings = this.validateBindings(request)
@@ -257,12 +188,10 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     return await this.execute(request, code, bindings)
   }
 
-  /** Apply the outer-output ledger to failures that occur before a worker owns one. */
   failureBeforeWorker(error) {
     return new OutputLedger(this.config.maxOutputBytes).failure([], error)
   }
 
-  /** Reject malformed binding globals or typed-error declarations as Service Definition contract misuse. */
   validateBindings(request) {
     const bindings = new Map()
     for (const namespace of request.bindings) {
@@ -300,7 +229,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
     return bindings
   }
 
-  /** Spawn the worker for one validated, type-stripped run and drive it to settlement. */
   execute(request, code, bindings) {
     const bootData = {
       code,
