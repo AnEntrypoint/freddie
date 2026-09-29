@@ -1,6 +1,3 @@
-/** `settings.permission` namespace dictionaries (the Permission row's copy). */
-
-/** English dictionary. */
 export const en = {
   'title': 'Permission',
   'description': 'Choose the default permission mode for new sessions',
@@ -13,7 +10,6 @@ export const en = {
   'confirm.enable': 'Enable Full access',
 }
 
-/** English dictionary for the current-session popup gate. */
 export const accessEn = {
   'confirm.title': 'Enable Full access?',
   'confirm.description': 'Full access reduces confirmation steps and lets the agent perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust the current task.',

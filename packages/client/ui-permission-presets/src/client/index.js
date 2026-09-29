@@ -1,18 +1,3 @@
-/**
- * Permission preset plugin, browser half — a popupSelect DECORATION hung on
- * the host `/permission` command: one flat list of presets, current value
- * marked active, a pick executes the switch. The decoration owns only the
- * bare invocation; the host command keeps its catalog row, the argued path
- * (`/permission <preset>` still switches directly), and the lifecycle
- * logging. Options and the active mark read the session's `permissions`
- * projection (the same host-computed select the composer chip renders); a
- * pick submits the `/permission <preset>` command line, so both surfaces
- * write through one path and the pushed projection frame is the one
- * confirmation. The Full access row carries the same explicit risk gate as
- * the composer chip; the shared popup shell owns the modal mechanics.
- * The General-settings row separately writes the default preset for sessions
- * created later through the host Settings API.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 export { PermissionRow } from './PermissionRow.js'
 import {
@@ -23,17 +8,14 @@ import {
 } from './presentation.js'
 import { PermissionPresetSettingsController } from './settings-store.js'
 
-/** Required services (cordis fiber inject). */
 export const inject = ['commandUi', 'sessions', 'slots', 'locale', 'connection', 'remote', 'settingsScope', 'settingsSchema']
 
 const ACCESS_NS = 'permission.access'
 
-/** Read one session's current permissions projection value (undefined = capability absent). */
 function selectOf(session) {
   return session?.projections.faceOf('permissions').getSnapshot()
 }
 
-/** Flatten the projection select into popup rows; `custom` is display state, never a target. */
 function optionsOf(value, t) {
   return value.options
     .filter(option => option.value !== 'custom')
@@ -56,11 +38,6 @@ function optionsOf(value, t) {
     }))
 }
 
-/**
- * Client plugin body: register the /permission popup picker over the
- * permissions projection.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   const command = ctx.get('commandUi')
   const sessions = ctx.sessions

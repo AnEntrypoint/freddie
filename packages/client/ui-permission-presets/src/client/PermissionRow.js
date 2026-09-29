@@ -1,13 +1,3 @@
-/**
- * Permission preference row: the default preset for subsequently created
- * sessions. Current-session switches remain on the composer `/permission`
- * control.
- *
- * Converted from a React hooks component to a webjsx custom element:
- * open/confirmingFullAccess/acknowledged state become instance fields, the
- * settings-status-driven effect becomes logic inside `#derive`/`#render`, and
- * re-render is an explicit applyDiff(this, vdom) call (Toast.tsx's pattern).
- */
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import {
   IconChevronDownOutline14, renderMenu, renderRiskConfirmation,
@@ -16,9 +6,6 @@ import {
 import { FULL_ACCESS_PRESET } from './presentation.js'
 import css from './PermissionRow.css.js'
 
-/**
- * Render the new-session Permission default selector.
- */
 export class FreddiePermissionRow extends HTMLElement {
   #props = null
   #open = false
@@ -30,7 +17,6 @@ export class FreddiePermissionRow extends HTMLElement {
   #menu = null
   #confirmModal = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     if (!this.#loaded) {
@@ -140,7 +126,6 @@ export class FreddiePermissionRow extends HTMLElement {
 
 defineElement('freddie-permission-row', FreddiePermissionRow)
 
-/** One-shot creation helper preserving the original function-component call shape. */
 export function PermissionRow(props) {
   const el = document.createElement('freddie-permission-row')
   el.setProps(props)

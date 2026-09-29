@@ -1,23 +1,8 @@
-/**
- * Permission default-settings controller. The permission descriptor comes
- * from the shared describe mirror (the dynamic preset enum lives in the
- * namespace schema, which per-namespace scopes do not carry); writes target
- * only `defaultPreset`, carry the descriptor revision, and fold their answer
- * back into the mirror.
- */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { displayPermissionPreset } from './presentation.js'
 
-/** Permission's settings namespace on the host wire. */
 export const PERMISSION_SETTINGS_NS = 'permission'
 
-/**
- * Read the dynamic preset enum encoded by the host's `defaultPreset` schema.
- * @param view - permission namespace descriptor.
- * @param schema - settings schema operations.
- * @returns current value and selectable options.
- */
 export function permissionDefaultOf(view, schema) {
   const value = (view.value)?.defaultPreset
   if (typeof value !== 'string') throw new Error('permission settings has no defaultPreset value')
@@ -43,9 +28,7 @@ export function permissionDefaultOf(view, schema) {
   return { currentValue: value, options }
 }
 
-/** Controller deriving the row from the shared mirror and writing the default through it. */
 export class PermissionPresetSettingsController {
-  /** Row snapshot consumed through a bound selector hook. */
   store = createSnapshotStore({
     status: 'idle',
     error: null,
@@ -59,21 +42,12 @@ export class PermissionPresetSettingsController {
   saving = false
   disposed = false
 
-  /**
-   * @param describeFace - the shared mirror's read/fold face (descriptor and schema source).
-   * @param api - settings wire face for the `defaultPreset` write.
-   * @param schema - settings-owned schema operations.
-   */
   constructor(describeFace, api, schema) {
     this.describeFace = describeFace
     this.api = api
     this.schema = schema
   }
 
-  /**
-   * Begin following the mirror (idempotent) and reflect its current answer.
-   * @returns settlement once the snapshot reflects the mirror.
-   */
   async load() {
     if (this.disposed) return
     this.following ??= this.describeFace.subscribe(() => { this.derive() })
@@ -85,14 +59,6 @@ export class PermissionPresetSettingsController {
     this.derive()
   }
 
-  /**
-   * Persist one preset as the default for subsequently created sessions.
-   * A selection made while one is already saving is ignored — the row's
-   * control is disabled during the save, so this only drops programmatic
-   * double-submits rather than user intent.
-   * @param preset - advertised preset key.
-   * @returns nothing; {@link store} carries success or failure.
-   */
   async select(preset) {
     const state = this.store.getSnapshot()
     const view = this.describeFace.getSnapshot().view?.namespaces
@@ -120,7 +86,6 @@ export class PermissionPresetSettingsController {
     }
   }
 
-  /** Stop following the mirror; later publishes leave the snapshot alone. */
   dispose() {
     this.disposed = true
     this.following?.()
