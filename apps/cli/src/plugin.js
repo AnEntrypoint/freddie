@@ -1,15 +1,3 @@
-/**
- * `freddie plugin --profile <name> <args...>` — profile plugin management as a
- * thin pnpm forwarder: initialize the profile on first use, run
- * `pnpm <args...>` in the profile directory, then reconcile the
- * `freddie.profile.bundles` layer list against the installed state (a dependency
- * resolving to a package that declares `freddie.bundle` joins the layer stack; a
- * removed or bundle-less dependency leaves it). Reconciling by installed
- * state, not by dependency diff, means `update` activates a package that
- * gained its `freddie.bundle` declaration in a newer version.
- * @module @freddie/freddie/plugin
- */
-
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -26,12 +14,6 @@ import { INSTALL_ANCHOR } from './profile-boot.js'
 
 const NAME = 'freddie'
 
-/**
- * Whether a resolved dependency exports a profile patch, i.e. is a bundle.
- * @param packageName - the dependency's package name.
- * @param profileDir - the profile directory (resolution anchor).
- * @returns true when the package manifest declares `freddie.bundle`.
- */
 function exportsPatch(packageName, profileDir) {
   let dir
   try {
@@ -43,18 +25,6 @@ function exportsPatch(packageName, profileDir) {
   return manifest.freddie?.bundle?.patch !== undefined
 }
 
-/**
- * Reconcile `freddie.profile.bundles` against the installed state: pnpm has
- * already written the real installed names (so a git/path/tarball/alias spec
- * on the command line reconciles by its true package name) and materialized
- * the packages. A dependency that resolves to a `freddie.bundle`-declaring
- * package joins the layer stack (appended in dependency order); a
- * dependency-listed name that no longer does — removed, or the installed
- * version dropped the declaration — leaves it. In-box bundles from the
- * profile template are not dependencies and are never touched. Warns once
- * per newly-added bundle-less dependency (a plain library is fine; the
- * warning is orientation).
- */
 function reconcilePlugins(before, profileDir) {
   const after = readProfileManifest(NAME, profileDir)
   const beforeDeps = new Set(Object.keys(before.dependencies ?? {}))
@@ -87,17 +57,6 @@ function reconcilePlugins(before, profileDir) {
   writeProfileManifest(profileDir, after)
 }
 
-/**
- * Rewrite relative filesystem specs against the user's invoking directory.
- * pnpm runs with cwd = the profile directory, so a bare `.` or `../plugin`
- * (or their `file:`/`link:` forms) would silently resolve inside the profile
- * — `add .` from a plugin checkout would self-link the profile. Absolute
- * specs, registry names, and every other pnpm argument pass through
- * untouched.
- * @param argument - one pnpm argument, verbatim from argv.
- * @param cwd - the directory `freddie` was invoked from.
- * @returns the argument with a relative path spec anchored to `cwd`.
- */
 function anchorPathSpec(argument, cwd) {
   const match = /^(?<prefix>(?:file|link):)?(?<path>\.{1,2}(?:[/\\].*)?)$/.exec(argument)
   if (match?.groups?.path === undefined) return argument
@@ -105,12 +64,6 @@ function anchorPathSpec(argument, cwd) {
   return `${prefix}${resolve(cwd, match.groups.path)}`
 }
 
-/**
- * Run one `freddie plugin` invocation: init if needed, forward to pnpm, reconcile.
- * @param profile - the profile name.
- * @param args - pnpm arguments with relative path specs anchored to the invoking directory.
- * @returns the pnpm exit code.
- */
 export function runPlugin(profile, args) {
   const dir = resolveProfileDir(profile)
   if (!existsSync(join(dir, 'package.json'))) {

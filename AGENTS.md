@@ -74,3 +74,11 @@ JSDoc states non-obvious contracts. Prose, budgets, and placement live in [docs/
 ## Framework layer
 
 `framework/` is first-party; edit it like `packages/`. Record surprising departures in [framework/README.md](framework/README.md) and verify live ([verification policy](#verify-before-pushing)).
+
+## Boot packages (`packages/boot`)
+
+- Profile module resolution has two anchors: the freddie installation first (so in-box bundles never come from a profile-local copy), then the profile directory. `$FREDDIE_HOME/profiles/node_modules` is a flat symlink fallback covering the app's full dependency closure (peer deps of out-of-tree plugins name Service Definition packages reached only transitively).
+- `installFailLoud`: write the diagnostic before awaiting `release`, keep the handler installed and the timeout timer referenced during release, so a wedged disposer delays but never cancels the exit(1) and later rejections cannot kill the process mid-teardown. `.env` files may not set bootstrap-only names (process, runtime, VCS, network); both files are checked before either is applied.
+- `cmdline` detects commander errors structurally, not `instanceof`: out-of-tree plugins bundle their own commander copy. `--help`/errors never run the action, so an action must reject before it publishes.
+- Config-editor writes the profile patch layer under the profile file lock (shared with `freddie plugin`), holds HMR reloads for the transaction, and restores the previous document if apply rejects. `disabled: false` is written explicitly so a profile can re-enable a bundle's disabled row.
+- Each package's `invariant.js` declares no runtime invariant: contracts are IO/lifecycle effects proven by running against a real profile.

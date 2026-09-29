@@ -1,14 +1,3 @@
-/**
- * Persistent edits to one profile's own patch layer, applied to the live tree.
- *
- * `cordis.patch.yml` is the layer a person owns, so an edit is written there as
- * one id-targeted row and then applied through the same Loader path a file
- * change takes. The entry's own fiber validates the value first, the write is
- * atomic under the profile's file lock, and HMR reloads are held back for the
- * whole transaction.
- * @module @freddie/freddie-config-editor
- */
-
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { isDeepStrictEqual } from 'node:util'
@@ -20,19 +9,10 @@ import { load } from 'js-yaml'
 import { isMap, isSeq, parseDocument, Scalar, visit } from 'yaml'
 import z from '@freddie/schemastery'
 
-/** The YAML tag freddie resolves against the loader context at mount time. */
 const JS_TAG = 'tag:yaml.org,2002:js'
 
-/** An absent patch document is an empty row list, which is what a new profile ships. */
 const EMPTY_DOCUMENT = '[]\n'
 
-/**
- * Parse a patch document with freddie's own entry-list dialect, so `!!js`
- * fields and row validation match what the Include will mount.
- * @param source - document text.
- * @returns the row list.
- * @throws when the document is not a sequence of patch rows.
- */
 export function readRows(source) {
   const rows = load(source, { schema: entryListSchema })
   if (!Array.isArray(rows)) {
@@ -41,14 +21,6 @@ export function readRows(source) {
   return rows
 }
 
-/**
- * Set row fields on the last row of a patch document that addresses one entry,
- * leaving every other node — and its comments — as it was.
- * @param source - current document text.
- * @param target - `id` and optional `name` addressing the row.
- * @param fields - row fields to set; every value is written as given.
- * @returns the next document text, or `undefined` when the write changes nothing.
- */
 export function setEntryFields(source, target, fields) {
   const document = parseDocument(source, {
     customTags: [{ tag: JS_TAG, resolve: value => value }],
@@ -93,7 +65,6 @@ export function setEntryFields(source, target, fields) {
   return String(document)
 }
 
-/** Writes one profile's own patch layer and applies each edit to the live tree. */
 export class ConfigEditor extends Service {
   static inject = ['loader']
 
@@ -106,16 +77,10 @@ export class ConfigEditor extends Service {
     this.config = config
   }
 
-  /** The patch file this service writes. */
   get documentPath() {
     return join(resolveProfileDir(this.config.profile), PROFILE_PATCH_FILENAME)
   }
 
-  /**
-   * Entries the profile layer can address. Rows are id-targeted, so an id the
-   * tree mounts more than once has no unambiguous target.
-   * @returns active entries mounted by the profile's root include, uniquely addressed.
-   */
   entries() {
     const candidates = [...this.ctx.loader.entries()]
       .filter(entry => entry.parent.tree.ctx.fiber.entry?.id === 'include')
@@ -126,11 +91,6 @@ export class ConfigEditor extends Service {
     return candidates.filter(entry => counts.get(entry.options.id) === 1)
   }
 
-  /**
-   * The patch layer's own rows, read fresh per call: another writer (a person,
-   * or another process) can change this file at any time.
-   * @returns the document text and its parsed rows.
-   */
   async document() {
     let source
     try {
@@ -142,11 +102,6 @@ export class ConfigEditor extends Service {
     return { source, rows: readRows(source) }
   }
 
-  /**
-   * Effective configuration and the profile layer's own override, per
-   * addressable entry.
-   * @returns detached values alongside their Loader entries.
-   */
   async configuration() {
     const { rows } = await this.document()
     return this.entries().map(entry => ({
@@ -158,13 +113,6 @@ export class ConfigEditor extends Service {
     }))
   }
 
-  /**
-   * Validate, persist, and apply one entry's complete configuration.
-   * @param entry - the entry to configure; also proves it was not replaced mid-write.
-   * @param change - derive the next raw config from the entry's effective config
-   *   and the override this write replaces.
-   * @returns fulfillment after the Loader has applied the new configuration.
-   */
   async edit(entry, change) {
     return await this.write(entry, async (override) => {
       const fiber = entry.fiber
@@ -179,14 +127,6 @@ export class ConfigEditor extends Service {
     })
   }
 
-  /**
-   * Persist and apply the `disabled` state of one entry. The value is written
-   * explicitly rather than cleared: a row carrying `disabled: false` is how a
-   * profile turns a bundle's disabled row back on.
-   * @param entry - the entry to switch.
-   * @param disabled - the state to persist.
-   * @returns fulfillment after the Loader has applied the new state.
-   */
   async setDisabled(entry, disabled) {
     return await this.write(entry, async () => ({
       fields: { disabled },
@@ -194,18 +134,6 @@ export class ConfigEditor extends Service {
     }))
   }
 
-  /**
-   * One profile-patch transaction: write the row, then apply it, and restore
-   * the previous document if the apply rejects. HMR holds its reloads for the
-   * whole transaction, so a debounced reload cannot dispose the fibers the
-   * apply just restarted. The profile lock is the same one the CLI takes when
-   * it reconciles installed bundles, so an install cannot interleave with an
-   * edit of the rows it rewrites.
-   * @param entry - the entry the row addresses.
-   * @param prepare - derive the row fields and the apply step from the override
-   *   this write replaces.
-   * @returns fulfillment after the Loader has applied the change.
-   */
   async write(entry, prepare) {
     const run = async () => {
       const path = this.documentPath

@@ -1,27 +1,3 @@
-/**
- * Profile discovery, initialization, and patch-layer composition for the
- * `freddie --profile` launcher family.
- *
- * A profile is a directory under `$FREDDIE_HOME/profiles/<name>` holding a
- * `package.json` (out-of-tree plugin dependencies plus the profile manifest
- * `freddie.profile` with its ordered `bundles` list) and a `cordis.patch.yml`
- * (the user's own patch layer, applied after every bundle layer). Bundles are
- * npm packages whose manifest declares
- * `"freddie": { "bundle": { "patch": "./cordis.patch.yml" } }`; the tree is
- * composed by applying each bundle's patch list in `freddie.profile.bundles` order over
- * an empty entry list, then the profile's own patches, then any launcher
- * layers (`--patch` files and flag-derived patches).
- *
- * Module resolution is two-anchor by construction: a bundle name resolves
- * first from the freddie installation (the launcher's own package), then from the
- * profile directory. The Loader's `baseUrl` is the profile directory, whose
- * `node_modules` pnpm manages for out-of-tree plugins, while the maintained
- * flat fallback directory `$FREDDIE_HOME/profiles/node_modules` (one symlink per
- * package the installation's app and bundles depend on) makes every in-box
- * plugin Node-resolvable from any profile through the ordinary parent-walk.
- * @module @freddie/freddie-app-boot/profile
- */
-
 import { createRequire } from 'node:module'
 import {
   existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync,
@@ -31,18 +7,10 @@ import { applyEntryPatches } from '@freddie/cordis-plugin-include'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'
 import { loadOverlayPatches } from './index.js'
 
-/** Directory under the Harness home holding every profile. */
 export const PROFILES_DIR = 'profiles'
 
-/** The user patch layer inside a profile directory (hot-reloaded on long-lived surfaces). */
 export const PROFILE_PATCH_FILENAME = 'cordis.patch.yml'
 
-/**
- * Resolve a profile's directory under the Harness home.
- * @param name - the profile name (`freddie --profile <name>`).
- * @param home - the Harness home; defaults to {@link resolveFreddieHome}.
- * @returns the absolute profile directory (which may not exist yet).
- */
 export function resolveProfileDir(name, home = resolveFreddieHome()) {
   if (name === '' || name.includes('/') || name.includes('\\') || name === '.' || name === '..'
     || name === 'node_modules') {
@@ -53,7 +21,6 @@ export function resolveProfileDir(name, home = resolveFreddieHome()) {
 
 const DEFAULT_ON_BUNDLES = ['@freddie/freddie-agent-team-profile', '@freddie/freddie-dream-rsi']
 
-/** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES = {
   web: ['@freddie/freddie-base', '@freddie/freddie-web-app', ...DEFAULT_ON_BUNDLES],
   headless: ['@freddie/freddie-base', '@freddie/freddie-headless', ...DEFAULT_ON_BUNDLES],
@@ -61,7 +28,6 @@ export const PROFILE_TEMPLATES = {
   sdk: ['@freddie/freddie-base', '@freddie/freddie-sdk-app', ...DEFAULT_ON_BUNDLES],
 }
 
-/** Installation-owned bundle tuples normalized to the shipped template. */
 const INSTALLATION_OWNED_PROFILE_TUPLES = {
   web: [['@freddie/freddie-base', '@freddie/freddie-web-app']],
   headless: [
@@ -72,7 +38,6 @@ const INSTALLATION_OWNED_PROFILE_TUPLES = {
   sdk: [['@freddie/freddie-base', '@freddie/freddie-sdk-app']],
 }
 
-/** The bundle list a `freddie plugin` init uses for a name with no shipped template. */
 export const DEFAULT_PROFILE_BUNDLES = ['@freddie/freddie-base']
 
 const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this freddie profile, applied after every bundle layer:
@@ -88,13 +53,6 @@ nodeLinker: hoisted
 autoInstallPeers: false
 `
 
-/**
- * Initialize a profile directory: manifest, empty user patch layer, and the
- * pnpm settings out-of-tree plugins need. Existing files are never touched,
- * so re-running is a no-op on an initialized profile.
- * @param dir - the profile directory from {@link resolveProfileDir}.
- * @param bundles - the initial `freddie.profile.bundles` layer list.
- */
 export function initProfile(dir, bundles) {
   mkdirSync(dir, { recursive: true })
   const manifestPath = join(dir, 'package.json')
@@ -113,7 +71,6 @@ export function initProfile(dir, bundles) {
   if (!existsSync(workspacePath)) writeFileSync(workspacePath, PROFILE_PNPM_WORKSPACE)
 }
 
-/** Ensure `link` is a symlink to `target`, replacing a wrong or dangling link; a real directory throws. */
 function ensureSymlink(link, target) {
   let stat
   try {
@@ -139,36 +96,17 @@ function ensureSymlink(link, target) {
   }
 }
 
-/**
- * Maintain the flat module fallback `$FREDDIE_HOME/profiles/node_modules`: one
- * symlink per package in the freddie app's resolvable dependency CLOSURE (BFS
- * over `dependencies` from the app manifest), each resolved from its own
- * real location. Node's parent-directory walk from any profile finds this
- * directory after the profile's own `node_modules`, so every in-box plugin
- * resolves without pnpm ever managing it — the exact "bundles come from the
- * installation" contract. The closure (not just direct dependencies) is
- * required for out-of-tree plugins: their peer dependencies name Service
- * Definition packages (`freddie-compaction`, `freddie-invariants`, ...) that the app
- * reaches only through its Service Provider packages. Symlinked packages
- * resolve their own dependencies from their real directories (Node's default
- * symlink-following), so each package needs only its one flat link.
- * Idempotent: correct links are kept and moved installations are
- * re-pointed; a stale link to a vanished package stays until its name is
- * reused (dangling links are invisible to resolution).
- * @param installAnchor - absolute path of the freddie app's package.json.
- * @param home - the Harness home; defaults to {@link resolveFreddieHome}.
- */
 export function healProfilesModuleFallback(installAnchor, home = resolveFreddieHome()) {
   const profilesDir = join(home, PROFILES_DIR)
   const modulesDir = join(profilesDir, 'node_modules')
   mkdirSync(modulesDir, { recursive: true })
   const appManifest = JSON.parse(readFileSync(installAnchor, 'utf8'))
   const links = new Map()
-  /* v8 ignore next -- a real app manifest always declares its name */
+  /* v8 ignore next */
   if (appManifest.name !== undefined) links.set(appManifest.name, dirname(installAnchor))
   const queue = [{ anchor: installAnchor, manifest: appManifest }]
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    /* v8 ignore next -- a real app manifest always declares dependencies */
+    /* v8 ignore next */
     for (const dep of [...Object.keys(next.manifest.dependencies ?? {}), ...Object.keys(next.manifest.peerDependencies ?? {})]) {
       if (links.has(dep)) continue
       const dir = packageDirFromAnchor(next.anchor, dep)
@@ -185,12 +123,6 @@ export function healProfilesModuleFallback(installAnchor, home = resolveFreddieH
   }
 }
 
-/**
- * Read a profile's manifest.
- * @param binName - the diagnostic prefix on the thrown error.
- * @param dir - the profile directory.
- * @returns the parsed manifest.
- */
 export function readProfileManifest(binName, dir) {
   const path = join(dir, 'package.json')
   let raw
@@ -206,24 +138,14 @@ export function readProfileManifest(binName, dir) {
   return parsed
 }
 
-/**
- * Write a profile's manifest back (2-space JSON, trailing newline).
- * @param dir - the profile directory.
- * @param manifest - the manifest value to persist.
- */
 export function writeProfileManifest(dir, manifest) {
   writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest, undefined, 2) + '\n')
 }
 
-/** Return whether two bundle lists have the same values in the same order. */
 function sameBundles(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index])
 }
 
-/**
- * Normalize an exact installation-owned bundle tuple to its shipped template
- * while preserving every other manifest field. Any other list is user-owned.
- */
 function normalizeShippedProfile(name, dir, manifest) {
   const installationOwned = INSTALLATION_OWNED_PROFILE_TUPLES[name]
   const current = PROFILE_TEMPLATES[name]
@@ -241,14 +163,6 @@ function normalizeShippedProfile(name, dir, manifest) {
   return normalized
 }
 
-/**
- * Resolve a package's root directory from one anchor without depending on the
- * package exporting `./package.json` (`require.resolve` would need that):
- * probe the require resolution paths for a directory holding the named
- * manifest. This is Node's own node_modules lookup order, so the result
- * matches what the Loader would import from the same anchor, and
- * `existsSync` follows the symlinks pnpm's isolated layout uses.
- */
 function packageDirFromAnchor(anchor, packageName) {
   /* v8 ignore next */
   for (const searchPath of createRequire(anchor).resolve.paths(packageName) ?? []) {
@@ -258,18 +172,6 @@ function packageDirFromAnchor(anchor, packageName) {
   return undefined
 }
 
-/**
- * Resolve one bundle package's directory: installation anchor first, then the
- * profile directory. The installation-first order is the contract that
- * `@freddie/freddie-base` (and every other in-box bundle) always comes from
- * the same installation as the running freddie, never from a profile-local copy.
- * Resolution does not require the package to export `./package.json`.
- * @param binName - the diagnostic prefix on the thrown error.
- * @param packageName - the bundle's package name from `freddie.profile.bundles`.
- * @param installAnchor - absolute path of a file inside the freddie app package (its package.json).
- * @param profileDir - the profile directory (second anchor).
- * @returns the bundle package's absolute directory.
- */
 export function resolveBundleDir(
   binName, packageName, installAnchor, profileDir,
 ) {
@@ -283,20 +185,6 @@ export function resolveBundleDir(
   )
 }
 
-/**
- * Load a profile: resolve every `freddie.profile.bundles` entry to its patch
- * layer and parse the profile's own patch file. A listed bundle without a
- * `freddie.bundle` manifest fails loud — naming a bundle-less package as a layer
- * is a misconfiguration, not "no patches".
- * @param binName - the diagnostic prefix on thrown errors.
- * @param name - the profile name.
- * @param installAnchor - absolute path of the freddie app's package.json (first resolution anchor).
- * @param home - the Harness home; defaults to {@link resolveFreddieHome}.
- * @param options - `userLayer: false` skips reading `cordis.patch.yml`, so a
- * bundles-only consumer (`--dump-default-config`, a recovery diagnostic)
- * cannot fail on a broken user layer.
- * @returns the loaded profile (empty `patches` when the user layer is skipped).
- */
 export function loadProfile(
   binName, name, installAnchor, home = resolveFreddieHome(),
   options = {},
@@ -330,14 +218,6 @@ export function loadProfile(
   return { name, dir, layers, patchPath, patches }
 }
 
-/**
- * Compose patch layers into the effective entry list over an empty root —
- * the same single `applyEntryPatches` call the boot include makes, so flag
- * derivation and config dumps see exactly what mounts.
- * @param layers - patch lists in application order.
- * @param warn - sink for skipped-patch diagnostics; defaults to silent (boot repeats them).
- * @returns the composed entry list.
- */
 export function composeEntries(
   layers, warn = () => {},
 ) {

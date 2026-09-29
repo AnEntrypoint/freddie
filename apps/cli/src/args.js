@@ -1,29 +1,7 @@
-/**
- * Commander adapter for the `freddie` command line.
- *
- * The launcher parses only what it owns — which profile to boot, which extra
- * patch overlays to apply, and the config dumps — and hands **everything after
- * its own flags** to the booted tree verbatim, where injected app plugins parse
- * their own flag families and print their own `--help` (see
- * `@freddie/freddie-cmdline`). Launcher flags therefore come first: the first
- * token this parser does not recognize starts the inner arguments, so
- * `freddie --profile tui --resume abc` boots the tui profile with `--resume abc`,
- * and `freddie --profile web -h` prints the web app's help, not this one's.
- *
- * `web` is a hardcoded alias for `--profile web`; `plugin` manages a profile's
- * plugin dependencies by forwarding to pnpm.
- * @module @freddie/freddie/args
- */
-
 import { Command, CommanderError } from 'commander'
 
-/**
- * Repeatable single-value collector: `--patch a.yml --patch b.yml`. Never
- * variadic — a variadic `--patch` would swallow the inner arguments.
- */
 const collect = (value, previous = []) => [...previous, value]
 
-/** The launcher's own help text; each app prints its own. */
 const HELP_EXAMPLES = `
 Examples:
   freddie --profile web                          boot the web profile (same as: freddie web)
@@ -34,15 +12,6 @@ Examples:
   freddie plugin --profile tui add <package>     install a plugin into the tui profile
 `
 
-/**
- * Resolve a boot or dump invocation from the launcher flags and the leftover
- * inner arguments.
- * @param program - the command whose options were parsed (the root, or the `web` alias).
- * @param profile - the profile these flags boot.
- * @param options - the launcher flags commander collected.
- * @param args - the leftover arguments, in argv order.
- * @returns the resolved invocation.
- */
 function resolveBoot(program, profile, options, args) {
   const patches = options.patch ?? []
   if (patches.includes('')) program.error('error: --patch needs a path')
@@ -62,13 +31,6 @@ function resolveBoot(program, profile, options, args) {
   return { mode: 'dump-config', profile, defaultOnly, patches }
 }
 
-/**
- * Resolve argv into one invocation, or print and exit for help, version, or an
- * error.
- * @param argv - arguments after the Node binary and script.
- * @param version - version string printed by `--version`.
- * @returns the resolved invocation.
- */
 export function parseDshArgs(argv, version) {
   let resolved
   const program = new Command()
@@ -97,7 +59,6 @@ export function parseDshArgs(argv, version) {
       resolved = resolveBoot(program, profile, options, args)
     })
 
-  /** Reject parent options supplied before a subcommand. */
   const rejectParentOptions = (command) => {
     const parent = program.opts()
     if (parent.profile !== undefined || parent.patch !== undefined
@@ -138,7 +99,7 @@ export function parseDshArgs(argv, version) {
   } catch (error) {
     return process.exit(error instanceof CommanderError ? error.exitCode : 1)
   }
-  /* v8 ignore next -- an action resolves or Commander throws */
+  /* v8 ignore next */
   if (resolved === undefined) throw new Error('freddie: no invocation resolved')
   return resolved
 }

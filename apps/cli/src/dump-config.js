@@ -1,11 +1,3 @@
-/**
- * Config-dump entry for `freddie --profile <name> --dump-config`: compose the
- * profile's patch layers through the include plugin's patch algorithm without
- * booting or evaluating `!!js`, with one source layer per bundle, the
- * profile's own patch file, and each `--patch` overlay.
- * @module @freddie/freddie/dump-config
- */
-
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import {
@@ -18,14 +10,6 @@ import { homePatchPath, prepareProfile, PROFILE_ROOT_FILENAME } from './profile-
 const NAME = 'freddie'
 
 /* v8 ignore start -- built-bin acceptance drives this boot-free dispatch */
-/**
- * Print a profile composition with comments naming each source file and patch layer.
- * @param profile - the profile name.
- * @param defaultOnly - omit the profile's user layer and `--patch` overlays
- * (the recovery diagnostic for a broken `cordis.patch.yml`, which is then
- * never parsed).
- * @param patches - `--patch` overlay paths, in argv order.
- */
 export function runDumpConfig(profile, defaultOnly, patches) {
   const loaded = prepareProfile(profile, !defaultOnly)
   const layers = loaded.layers.map(layer => ({

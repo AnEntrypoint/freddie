@@ -1,12 +1,6 @@
 #!/usr/bin/env node
-/**
- * freddie — command-line entry. Dynamic imports per mode keep unrelated modes out
- * of each dispatch path; the adapter prints and exits for
- * `--help`/`--version`/a parse error, so only a valid mode reaches the switch.
- * @module @freddie/freddie/bin
- */
 
-/* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
+/* v8 ignore file */
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -14,7 +8,6 @@ import { loadLayeredEnv } from '@freddie/freddie-app-boot'
 import { parseDshArgs } from './args.js'
 import { reexecWithExposeInternals } from './expose-internals.js'
 
-/** This app's version, read from its checked-in package.json. */
 function readVersion() {
   const manifest = JSON.parse(
     readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'),
