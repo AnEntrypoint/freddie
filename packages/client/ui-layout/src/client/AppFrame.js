@@ -1,28 +1,8 @@
-/**
- * Three-column shell frame, registered into the built-in 'root' slot (the web
- * shell renders only 'root'). Owns the grid tracks (sidebar | center |
- * details), the drag handles (pointer capture + rAF throttle), the concession
- * chain (columns.ts), and the child-slot render decisions: the sidebar slot
- * renders HERE with live parameters from the concession solve, and the
- * session-aware occupants render in fixed column positions; strict entries
- * gate themselves on current-session availability while session-maybe
- * entries retain identity. Pure component: everything arrives
- * through the three framework shares — zero cordis or framework imports,
- * zero self-made hooks.
- *
- * Converted from a React hooks component to webjsx custom elements:
- * AppFrame's useState/useRef/useEffect/useLayoutEffect become instance
- * fields plus connectedCallback/disconnectedCallback with an explicit
- * ResizeObserver teardown; the drag handle's per-gesture pointer-capture
- * state becomes its own FreddieDragHandle custom element (dragging/origin/
- * latest/frame as instance fields, rAF-throttled pointer events unchanged).
- */
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { computeColumns, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_DEFAULT } from './columns.js'
 import css from './AppFrame.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** Cast a renderSlot() ReactNode result into a webjsx-embeddable child (matches ui-conversation's FreddieConversationRoot). */
 function asChild(node) {
   return node
 }
@@ -37,11 +17,6 @@ function connectionLabel(state) {
   }
 }
 
-/**
- * One drag handle custom element: pointer capture, rAF-throttled dx reports
- * against the drag-start origin. `side` keys the hover-reveal CSS to the
- * owning column.
- */
 export class FreddieDragHandle extends HTMLElement {
   #props = null
   #dragging = false
@@ -116,19 +91,12 @@ export class FreddieDragHandle extends HTMLElement {
 
 defineElement('freddie-drag-handle', FreddieDragHandle)
 
-/**
- * Create or update a drag handle element in place.
- * @param el - a previously created element, or null to create one.
- * @param props - the current drag props.
- * @returns the handle element.
- */
 function renderDragHandle(el, props) {
   const target = el ?? document.createElement('freddie-drag-handle')
   target.setProps(props)
   return target
 }
 
-/** The three-column frame custom element (see module doc). */
 export class FreddieAppFrame extends HTMLElement {
   #props = null
   #frameEl = null
@@ -270,11 +238,6 @@ export class FreddieAppFrame extends HTMLElement {
 
 defineElement('freddie-app-frame', FreddieAppFrame)
 
-/**
- * Render the three-column frame.
- * @param props - composed slot props (runtime + child-slot render + store shares).
- * @returns the frame element.
- */
 export function AppFrame(props) {
   const el = document.createElement('freddie-app-frame')
   el.setProps(props)
