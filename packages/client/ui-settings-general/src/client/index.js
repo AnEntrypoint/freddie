@@ -1,12 +1,3 @@
-/**
- * Settings shell and ownerless-copy plugin, browser half: renders the
- * `sidebar.settings` occupant — panel chrome, section navigation, and the
- * onboarding stage — and registers everything on the Settings pages that
- * belongs to no single feature: the trigger/header chrome content,
- * local-document action, General section, and `settings` dictionaries.
- * Feature-owned rows and sections stay with their features.
- * Export discipline: packages/client/AGENTS.md.
- */
 import { resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './SettingsRoot.js'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.js'
@@ -17,21 +8,10 @@ import { en } from './locales.js'
 
 export { SettingsDocumentStore } from './settings-document-store.js'
 
-/** Dictionary namespace owned by this plugin (shell chrome + General copy). */
 const NS = 'settings'
 
-/**
- * Required services (cordis fiber inject). The target slots are declared by
- * ui-settings' apply, whose activation order relative to this one is NOT
- * constrained; registrations depend on their slots through `slots.inject()`.
- */
 export const inject = ['slots', 'locale', 'connection', 'settingsScope']
 
-/**
- * Register the `settings` dictionaries, the chrome content, and the General
- * section, each once its slot declaration is on the ledger.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-settings-general: dictionaries')
 
@@ -63,7 +43,7 @@ export function apply(ctx) {
             rowsRevision = revision
             rows = ctx.slots.entries('settings.section')
               .map(e => ({
-                /* v8 ignore next -- list-slot registration requires id (SlotCore rejects an entry without one) */
+                /* v8 ignore next */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
                 label: resolveSlotLabel(e.options.label) ?? '',
@@ -88,7 +68,7 @@ export function apply(ctx) {
             onboardingVersion = version
             onboardingSteps = ctx.slots.entries('settings.onboarding')
               .map(e => ({
-                /* v8 ignore next -- list-slot registration requires id */
+                /* v8 ignore next */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
               }))

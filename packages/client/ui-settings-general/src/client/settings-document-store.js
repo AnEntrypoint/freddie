@@ -1,34 +1,21 @@
-/** State owner for the optional local settings-document action. */
-
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 
 function messageOf(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** Derives local-document availability from the shared mirror and invokes the pathless Host-owned open operation. */
 export class SettingsDocumentStore {
-  /** uSES-safe state source shared by the registered header action. */
   store = createSnapshotStore({
     status: 'idle', opening: false, error: null,
   })
 
   #following
 
-  /**
-   * @param api - loopback settings wire face that opens the provider document.
-   * @param describeFace - the shared mirror's describe face (`hasDocument` source).
-   */
   constructor(api, describeFace) {
     this.api = api
     this.describeFace = describeFace
   }
 
-  /**
-   * Begin following the mirror (idempotent) and reflect whether the current
-   * provider owns a local document.
-   * @returns settlement once the snapshot reflects the mirror.
-   */
   async load() {
     this.#following ??= this.describeFace.subscribe(() => { this.#derive() })
     this.store.update((state) => {
@@ -39,10 +26,6 @@ export class SettingsDocumentStore {
     this.#derive()
   }
 
-  /**
-   * Open the loaded document once; concurrent gestures collapse behind the in-flight action.
-   * @returns after the native-open request settles, or immediately when unavailable/already opening.
-   */
   async open() {
     const current = this.store.getSnapshot()
     if (current.status !== 'ready' || current.opening) return
@@ -60,7 +43,6 @@ export class SettingsDocumentStore {
     }
   }
 
-  /** Stop following the mirror. */
   dispose() {
     this.#following?.()
     this.#following = undefined

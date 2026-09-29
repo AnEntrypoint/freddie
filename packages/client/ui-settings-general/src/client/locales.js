@@ -1,6 +1,3 @@
-/** Shell chrome and General-nav dictionaries; feature rows own their copy. */
-
-/** English dictionary. */
 export const en = {
   'trigger': 'Settings',
   'title': 'Settings',

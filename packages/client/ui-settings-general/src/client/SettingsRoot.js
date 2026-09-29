@@ -1,21 +1,3 @@
-/**
- * Settings shell root: the sidebar-foot trigger row plus the centered modal
- * panel (figma 501:29947, 1080x700) with the section nav rail. The shell is
- * a pure composition face — every piece of text (trigger label, panel title,
- * close label, sections) arrives from registrants through slots; accessible
- * names resolve to that content (trigger: its own text; dialog:
- * aria-labelledby the title node; close: visually-hidden slot text). Modal
- * open state and the active section id are component-local viewing state;
- * the onboarding coordinator mounts exactly one ordered registrant while the
- * sessions-derived empty-Hero fact is active. Visible dialog chrome belongs
- * to the step, so a mounted-but-deciding step paints nothing here.
- *
- * Converted from a React hooks component to a webjsx custom element:
- * open/activeId/completedOnboarding become instance fields; the Escape-key
- * listener and initial-focus effects become connectedCallback/
- * disconnectedCallback bookkeeping tied to the panel's own open/close
- * transitions; re-render is an explicit applyDiff(this, vdom) call.
- */
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -25,12 +7,10 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsRoot.css.js'
 
-/** Cast a renderSlot() RenderOutput result into a webjsx-embeddable child (matches AppFrame's asChild). */
 function asChild(node) {
   return node
 }
 
-/** Nav glyph by section id; unknown ids fall back to the settings gear. */
 function navIcon(id) {
   if (id === 'models') return h(IconDataOutline16, {className: css.navIcon, size: 16})
   if (id === 'agent-presets') return h(IconAgentPresetOutline16, {className: css.navIcon, size: 16})
@@ -38,7 +18,6 @@ function navIcon(id) {
   return h(IconSettingsOutline16, {className: css.navIcon, size: 16})
 }
 
-/** Settings shell root custom element, owning open/active-section/onboarding-progress state. */
 export class FreddieSettingsRoot extends HTMLElement {
   #props = null
   #open = false
@@ -49,7 +28,6 @@ export class FreddieSettingsRoot extends HTMLElement {
   #closeButtonFocused = false
   #returnFocusTo = null
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -219,11 +197,6 @@ export class FreddieSettingsRoot extends HTMLElement {
 
 defineElement('freddie-settings-root', FreddieSettingsRoot)
 
-/**
- * Render the settings trigger and panel.
- * @param props - composed slot props (contract/slots.ts).
- * @returns the settings shell element.
- */
 export function SettingsRoot(props) {
   const el = document.createElement('freddie-settings-root')
   el.setProps(props)

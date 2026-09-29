@@ -1,15 +1,11 @@
-/** Optional settings-header action for opening a file-backed Host document. */
-
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { Button, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsDocumentAction.css.js'
 
-/** Header-action custom element: renders only after Host metadata confirms document availability. */
 export class FreddieSettingsDocumentAction extends HTMLElement {
   #props = null
   #loaded = false
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     if (!this.#loaded) {
@@ -51,11 +47,6 @@ export class FreddieSettingsDocumentAction extends HTMLElement {
 
 defineElement('freddie-settings-document-action', FreddieSettingsDocumentAction)
 
-/**
- * Render the open-document action only after Host metadata confirms document availability.
- * @param props - header owner props, localized copy, and injected document state.
- * @returns the action element.
- */
 export function SettingsDocumentAction(props) {
   const el = document.createElement('freddie-settings-document-action')
   el.setProps(props)
