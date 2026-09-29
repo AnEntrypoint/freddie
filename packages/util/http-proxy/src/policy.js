@@ -19,47 +19,26 @@
  *   A resolved policy plus every candidate value that was rejected on the way to it.
  */
 
-/**
- * Loopback entries merged into every policy's `noProxy`. A proxy that also serves the harness's own
- * loopback traffic turns the Web UI, the Connection transport, and every local test server into a
- * routing loop, so the bypass is not optional.
- *
- * `::1` and `[::1]` are both listed because the resolved string is also handed to undici, whose
- * matcher reads a bare `::1` as host `:` port `1` and therefore never bypasses it.
- */
 export const LOOPBACK_NO_PROXY = ['localhost', '127.0.0.1', '::1', '[::1]']
 
-/**
- * The environment names each policy field owns, lowercase first — undici reads the lowercase name
- * first, so both casings are always written or cleared together.
- */
 export const POLICY_ENV_NAMES = {
   httpProxy: ['http_proxy', 'HTTP_PROXY'],
   httpsProxy: ['https_proxy', 'HTTPS_PROXY'],
   noProxy: ['no_proxy', 'NO_PROXY'],
 }
 
-/**
- * Every environment name that carries proxy configuration, including the `ALL_PROXY` fallback this
- * package resolves but never writes back. A caller that must isolate a child from the machine's
- * network policy clears exactly these.
- */
 export const PROXY_ENV_NAMES = [
   ...Object.values(POLICY_ENV_NAMES).flat(),
   'all_proxy',
   'ALL_PROXY',
 ]
 
-/** Proxy URL schemes this package routes through. Everything else is reported, never silently dropped. */
 const SUPPORTED_PROTOCOLS = new Set(['http:', 'https:'])
 
-/** Schemes recognised well enough to name in a diagnostic instead of calling them malformed. */
 const SOCKS_PROTOCOLS = new Set(['socks:', 'socks4:', 'socks4a:', 'socks5:', 'socks5h:'])
 
-/** A policy that proxies nothing. Callers that have not installed a policy resolve URLs against this. */
 export const DIRECT_POLICY = { noProxy: '', source: 'none' }
 
-/** A slot nobody filled. */
 const ABSENT = { kind: 'absent' }
 
 /**
@@ -182,10 +161,8 @@ function splitHostPort(entry) {
   return { host: entry }
 }
 
-/** One IPv4 octet, so a loopback match cannot accept `127.999.1.1`. */
 const OCTET = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)'
 
-/** The whole `127.0.0.0/8` block, not just its first address. */
 const LOOPBACK_IPV4 = new RegExp(`^127\\.${OCTET}\\.${OCTET}\\.${OCTET}$`)
 
 /**

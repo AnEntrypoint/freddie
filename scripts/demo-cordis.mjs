@@ -1,6 +1,3 @@
-/**
- * Boot the self-referential Cordis tools under Web or ACP, defaulting to Web. This is a repository demo wrapper, not a product CLI feature.
- */
 import { spawn } from 'node:child_process'
 
 const WEB_DEMO_PORT = 3081

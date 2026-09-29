@@ -2,43 +2,19 @@ import { defineProperty } from '@freddie/cosmokit'
 import { Context } from './context.js'
 import { createCallable, joinPrototype, symbols } from './utils.js'
 
-/**
- * Base class for services that expose a named API on `ctx`.
- *
- * Subclasses call `super(ctx, name)` from their constructor. The service is
- * registered immediately and is automatically removed with the owning fiber.
- */
 export class Service {
-  /** Symbol key of an instance method run after construction (class plugins). */
   static init = symbols.init
-  /** Symbol key of the availability predicate passed to `ctx.provide()`. */
   static check = symbols.check
-  /** Symbol key of the phantom intercept-config type parameter. */
   static config = symbols.config
-  /** Symbol key of the call body making a service callable (e.g. `ctx.logger()`). */
   static invoke = symbols.invoke
-  /** Symbol key of the helper deriving an extended service instance. */
   static extend = symbols.extend
-  /** Symbol key of the tracker metadata used for context tracing. */
   static tracker = symbols.tracker
-  /** Symbol key of the intercept-config resolution helper below. */
   static resolveConfig = symbols.resolveConfig
 
-  /** The service name this instance is registered under. */
   name
 
   ctx
 
-  /**
-   * Register this instance as `name` in the current context.
-   *
-   * Calls `ctx.reflect.provide(name, this, this[Service.check])`, so the
-   * service is unregistered automatically when the owning fiber unloads.
-   * Services with a `[Service.invoke]` body return a callable instance.
-   *
-   * @param ctx — the context to register in (stored as `this.ctx`).
-   * @param name — the service name; defaults to the static `provide` field.
-   */
   constructor(ctx, name) {
     name ??= this.constructor['provide']
 
@@ -72,17 +48,6 @@ export class Service {
     return Object.assign(self, props)
   }
 
-  /**
-   * Merge intercept config from ancestors with optional base and head values.
-   *
-   * Entries added closer to the root apply first; `base` is prepended and
-   * `head` appended. Uses `Config.merge` when the service declares one,
-   * otherwise a shallow `Object.assign`.
-   *
-   * @param base — lowest-precedence config merged before all intercepts.
-   * @param head — highest-precedence config merged after all intercepts.
-   * @returns the merged config.
-   */
   [symbols.resolveConfig](base, head) {
     let intercept = this.ctx[Context.intercept]
     const configs = []

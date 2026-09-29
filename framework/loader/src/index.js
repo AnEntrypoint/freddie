@@ -7,24 +7,13 @@ import isolate from './config/isolate.js'
 import { EntryTree } from './config/tree.js'
 import { interpolate } from './config/utils.js'
 
-/** Re-export entry node APIs. */
 export * from './config/entry.js'
-/** Re-export nested entry group APIs. */
 export * from './config/group.js'
-/** Re-export service isolation helpers. */
 export * from './config/isolate.js'
-/** Re-export entry tree persistence APIs. */
 export * from './config/tree.js'
-/** Re-export loader config expression helpers. */
 export * from './config/utils.js'
-/** Re-export Node internal module loader compatibility types. */
 export * from './internal.js'
 
-/**
- * Service that owns a loader entry tree and imports configured plugins.
- *
- * Subclasses provide persistence by implementing `write()` on `EntryTree`.
- */
 export class Loader extends EntryTree {
   envData = process.env.CORDIS_SHARED
     ? JSON.parse(process.env.CORDIS_SHARED)
@@ -119,7 +108,6 @@ export class Loader extends EntryTree {
     this.ctx.root.logger?.('loader').info('%s plugin %C', type, entry.options.name)
   }
 
-  /** Return the loader entry id that owns `fiber`, if any. */
   locate(fiber = this.ctx.fiber) {
     while (1) {
       if (fiber.entry) return fiber.entry.id
@@ -129,11 +117,9 @@ export class Loader extends EntryTree {
     }
   }
 
-  /** Hook for hosts that can restart the process on full-reload requests. */
   exit() {
   }
 
-  /** Normalize ESM/CJS/default export shapes before applying a plugin. */
   unwrapExports(exports) {
     if (isNullable(exports)) return exports
     exports = exports.default ?? exports

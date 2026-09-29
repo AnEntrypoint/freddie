@@ -1,23 +1,19 @@
 import { Service } from '@freddie/cordis'
 
-/** Disposable timer helpers mixed into Cordis contexts. */
 export class TimerService extends Service {
   constructor(ctx) {
     super(ctx, 'timer')
     ctx.mixin('timer', ['timeout', 'interval', 'throttle', 'debounce', 'setTimeout', 'setInterval'])
   }
 
-  /** @deprecated use `ctx.timeout()` instead */
   setTimeout(callback, delay) {
     return this.timeout(callback, delay)
   }
 
-  /** @deprecated use `ctx.interval()` instead */
   setInterval(callback, delay) {
     return this.interval(callback, delay)
   }
 
-  /** Run a callback once, or return a promise that resolves after `delay`. */
   timeout(...args) {
     const callback = typeof args[0] === 'function' ? args.shift() : undefined
     const delay = args[0]
@@ -43,7 +39,6 @@ export class TimerService extends Service {
     }
   }
 
-  /** Run a callback repeatedly, or return an async iterator of ticks. */
   interval(...args) {
     const callback = typeof args[0] === 'function' ? args.shift() : undefined
     const delay = args[0]
@@ -105,7 +100,6 @@ export class TimerService extends Service {
     return wrapper
   }
 
-  /** Return a throttled function whose timer is disposed with the current fiber. */
   throttle(callback, delay, noTrailing) {
     let lastCall = -Infinity
     const execute = (...args) => {
@@ -123,7 +117,6 @@ export class TimerService extends Service {
     }, noTrailing)
   }
 
-  /** Return a debounced function whose timer is disposed with the current fiber. */
   debounce(callback, delay) {
     return this._schedule('ctx.debounce()', (args, isDisposed) => {
       if (isDisposed) return

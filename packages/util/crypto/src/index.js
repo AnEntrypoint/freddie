@@ -1,12 +1,4 @@
 /**
- * UUID minting and base64 encoding that work in every JavaScript context this
- * repository ships to. `crypto.randomUUID` is a secure-context Web API — a page
- * or worker served over plain HTTP on a LAN address has no such method — while
- * `crypto.getRandomValues` is unrestricted everywhere (browsers, workers,
- * Node). One implementation here replaces per-caller polyfills.
- */
-
-/**
  * Generate an RFC 4122 version 4 UUID without requiring a secure context.
  * @returns {string} a UUID backed by `crypto.getRandomValues()`, which browsers expose on insecure origins.
  */

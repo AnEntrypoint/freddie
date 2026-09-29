@@ -4,15 +4,9 @@ import { buildOuterStack, composeError, DisposableList, getTraceable, isConstruc
 
 const kValidationError = Symbol.for('ValidationError')
 
-/** Error raised when plugin configuration fails standard-schema validation. */
 export class ValidationError extends TypeError {
   name = 'ValidationError'
 
-  /**
-   * Build the aggregated message from schema issues.
-   *
-   * @param issues — the standard-schema issues, one message line each.
-   */
   constructor(issues) {
     super(`invalid config:\n` + issues.map(issue => {
       if (issue.path) {
@@ -28,14 +22,6 @@ Object.defineProperty(ValidationError.prototype, kValidationError, {
   value: true,
 })
 
-/**
- * Validate and normalize config for a plugin runtime before it starts.
- *
- * @param runtime — the plugin runtime whose `Config` schema to apply.
- * @param config — the raw user config.
- * @returns the validated config, or `config` unchanged if the runtime has no schema.
- * @throws {ValidationError} when validation reports issues.
- */
 export function resolveConfig(runtime, config) {
   if (!runtime.Config) return config
   const result = runtime.Config['~standard'].validate(config)
@@ -56,7 +42,6 @@ function runDisposable(dispose) {
   return effectInertia.get(dispose)?.() ?? result
 }
 
-/** Notify plugin teardown without allowing one observer to break ownership cleanup. */
 function emitPluginDisposed(context, fiber) {
   const args = ['internal/plugin', fiber]
   let callbacks
@@ -76,14 +61,6 @@ function emitPluginDisposed(context, fiber) {
   }
 }
 
-/**
- * Lifecycle state for one plugin fiber.
- *
- * `PENDING` — waiting for required services; `LOADING` — the plugin callback
- * is running; `ACTIVE` — loaded and providing; `FAILED` — the callback or its
- * config threw; `UNLOADING` — disposers are running; `DISPOSED` — the fiber
- * was removed and cannot restart.
- */
 export const FiberState = {
   PENDING: 0,
   LOADING: 1,
@@ -93,21 +70,15 @@ export const FiberState = {
   UNLOADING: 5,
 }
 
-/** Cordis error code definitions. */
 const CordisErrorCode = {
   INACTIVE_EFFECT: 'cannot create effect on inactive context',
 }
 
-/** Framework error with a stable machine-readable code. */
 export class CordisError extends Error {
   static Code = CordisErrorCode
 
   code
 
-  /**
-   * @param code — the stable error code; also the default message.
-   * @param message — optional human-readable override.
-   */
   constructor(code, message) {
     super(message ?? CordisErrorCode[code])
     this.code = code
@@ -116,28 +87,14 @@ export class CordisError extends Error {
 
 const INACTIVE = '__INACTIVE__'
 
-/**
- * Runtime instance of one plugin application.
- *
- * A fiber tracks dependency state, validated config, lifecycle effects, and
- * cleanup for the plugin context returned by `ctx.plugin()`.
- */
 export class Fiber {
-  /** Unique id within the registry; 0 for the root fiber, `null` once disposed. */
   uid
-  /** The context this fiber's plugin runs in (extends the parent context). */
   ctx
-  /** The validated plugin config (updated by `update()`). */
   config
-  /** The raw plugin config, re-resolved before each activation. */
   _config
-  /** Current lifecycle state; transitions emit `internal/status`. */
   state = FiberState.PENDING
-  /** Dispose this fiber: unload the plugin, then settle once cleanup finished. */
   dispose
-  /** Snapshot of required service implementations while loaded; `undefined` otherwise. */
   store
-  /** The in-flight load/unload transition, if one is currently running. */
   inertia
 
   _hooks = Object.create(null)
@@ -153,16 +110,6 @@ export class Fiber {
   inject
   runtime
 
-  /**
-   * Create a fiber. Plugin authors normally obtain fibers from `ctx.plugin()`
-   * rather than constructing them directly.
-   *
-   * @param parent — the context the plugin was loaded from.
-   * @param config — raw config, validated against the runtime's schema.
-   * @param inject — resolved dependency map (service name → intercept config).
-   * @param runtime — the shared plugin runtime, or `null` for the root fiber.
-   * @param getOuterStack — captures the caller stack for effect diagnostics.
-   */
   constructor(
     parent,
     config,
@@ -261,7 +208,6 @@ export class Fiber {
     }
   }
 
-  /** The plugin's display name, inherited from the nearest named ancestor, else `'root'`. */
   get name() {
     let fiber = this
     do {
@@ -271,12 +217,6 @@ export class Fiber {
     return 'root'
   }
 
-  /**
-   * Throw if the fiber has already been disposed.
-   *
-   * @returns nothing when the fiber is still active.
-   * @throws {CordisError} `INACTIVE_EFFECT` when the fiber's uid has been cleared.
-   */
   assertActive() {
     if (this.uid !== null) return
     throw new CordisError('INACTIVE_EFFECT')
@@ -326,20 +266,6 @@ export class Fiber {
     }, runner.getOuterStack)
   }
 
-  /**
-   * Register a cleanup-aware effect on this fiber.
-   *
-   * `execute` runs immediately; the disposers it produces are collected and
-   * run (in reverse order) either when the returned disposer is called or
-   * when the fiber unloads, whichever comes first. Calling the disposer twice
-   * is a no-op. Throws `CordisError('INACTIVE_EFFECT')` if the fiber is
-   * already disposed, and `TypeError` if `execute` returns an invalid shape.
-   *
-   * @param execute — the effect body; accepts a disposer, a promise of one, or
-   *   a (possibly async) iterable yielding several.
-   * @param label — effect label shown in `getEffects()` diagnostics.
-   * @returns a disposer that tears the effect down and settles once done.
-   */
   effect(execute, label = 'anonymous') {
     this.assertActive()
     if (this.state === FiberState.UNLOADING) {
@@ -477,11 +403,6 @@ export class Fiber {
     return wrapper
   }
 
-  /**
-   * Return metadata for currently registered effects.
-   *
-   * @returns one effect-meta tree per labeled live effect.
-   */
   getEffects() {
     return [...this._disposables]
       .map(dispose => dispose[symbols.effect])
@@ -606,12 +527,6 @@ export class Fiber {
     })
   }
 
-  /**
-   * Wait for current lifecycle work and rethrow startup errors.
-   *
-   * @returns this fiber, once it has settled into a stable state.
-   * @throws the config-validation or plugin-startup error, if any.
-   */
   async await() {
     while (this.inertia) {
       await this.inertia
@@ -620,12 +535,6 @@ export class Fiber {
     return this
   }
 
-  /**
-   * Dispose and immediately reload this plugin with its current config.
-   *
-   * @returns a promise resolving once the reload settled.
-   * @throws {CordisError} `INACTIVE_EFFECT` when the fiber is already disposed.
-   */
   async restart() {
     this.assertActive()
     this._setEpoch(INACTIVE)
@@ -633,17 +542,6 @@ export class Fiber {
     await this.await()
   }
 
-  /**
-   * Validate and apply new config, then restart the plugin.
-   *
-   * Runs the `internal/update` waterfall first, so update hooks (and HMR)
-   * can veto or replace the restart.
-   *
-   * @param config — the new raw config; validated before anything restarts.
-   * @param noSave — hint for persistence hooks not to write the change back.
-   * @returns the update waterfall result; the default restart returns a promise.
-   * @throws when validation, an update listener, or the restarted plugin fails.
-   */
   update(config, noSave = false) {
     this.assertActive()
     this._config = config

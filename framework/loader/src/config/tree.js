@@ -2,7 +2,6 @@ import { composeError } from '@freddie/cordis'
 import { isNonNullable } from '@freddie/cosmokit'
 import { EntryGroup } from './group.js'
 
-/** Mutable tree of loader entries. Persistence is supplied by subclasses. */
 export class EntryTree {
   static sep = ':'
 
@@ -22,7 +21,6 @@ export class EntryTree {
     return this.ctx
   }
 
-  /** Iterate entries in this tree and any nested subtrees. */
   * entries() {
     for (const entry of Object.values(this.store)) {
       yield entry
@@ -31,17 +29,12 @@ export class EntryTree {
     }
   }
 
-  /** Return pending import and lifecycle tasks owned by this tree. */
   getTasks() {
     return [...this.entries()]
       .map(entry => entry._initTask || entry.fiber?.inertia)
       .filter(isNonNullable)
   }
 
-  /**
-   * Wait until this tree has no active import or lifecycle tasks.
-   * @throws a settled fiber failure, or an aggregate when several fibers failed.
-   */
   async await() {
     while (true) {
       const tasks = this.getTasks()
@@ -71,7 +64,6 @@ export class EntryTree {
     return options.id
   }
 
-  /** Resolve an entry by id, including nested ids separated by `EntryTree.sep`. */
   resolve(id) {
     const parts = id.split(EntryTree.sep)
     let tree = this
@@ -92,7 +84,6 @@ export class EntryTree {
     return entry.subgroup
   }
 
-  /** Create an entry in the root group or a nested group. */
   async create(options, parent = null, position = Infinity) {
     const group = this.resolveGroup(parent)
     const id = await group.create(options)
@@ -102,14 +93,12 @@ export class EntryTree {
     return id
   }
 
-  /** Stop and remove an entry from its parent group. */
   async remove(id) {
     const entry = this.resolve(id)
     await entry.parent.remove(id)
     entry.parent.tree.write()
   }
 
-  /** Update an entry and optionally move it to another group. */
   async update(id, options, parent, position) {
     const entry = this.resolve(id)
     const source = entry.parent
@@ -140,7 +129,6 @@ export class EntryTree {
     if (target !== source) target.tree.write()
   }
 
-  /** Import a plugin module from a specifier or `cordis:` builtin. */
   import(name, getOuterStack) {
     if (name.startsWith('cordis:')) {
       return this.ctx.loader.builtins[name.slice(7)]
@@ -157,7 +145,6 @@ export class EntryTree {
     }, getOuterStack)
   }
 
-  /** Persist current tree state. In-memory trees may implement this as a no-op. */
   write() {
     throw new Error('not implemented')
   }

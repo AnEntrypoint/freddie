@@ -1,61 +1,13 @@
-/**
- * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
- * owns: `freddie` and `vendor`. Each family carries its own version baseline, tag
- * naming, and publish set, so releasing one never republishes another
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
- *
- * The family dimension lives here only. A new sequence adds a subclass and a
- * `releaseFamilies()` entry; nothing else in the release scripts branches on it.
- */
-
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { validateTarballPayload } from '../publication-payload.js'
 
-/**
- * Dependency sections a consumer must publish after, because npm resolves them
- * when the package is installed: publishing a consumer first would leave a
- * window where its own tree cannot be assembled.
- */
 const INSTALL_SECTIONS = ['dependencies', 'optionalDependencies']
 
-/**
- * Peer declarations also order the publication, but they cannot constrain it.
- * npm never installs a peer on the package's behalf — an unmet peer is a
- * warning, not a resolution failure — and sibling packages legitimately declare
- * each other as peers, which makes these edges the ones that close cycles. They
- * order what they can and are dropped where they would deadlock.
- */
 const PEER_SECTIONS = ['peerDependencies']
 
-/** The workspace root manifest, which is never a release member. */
 const WORKSPACE_ROOT_PACKAGE = '@freddie/freddie-root'
 
-/**
- * One peer declaration the publish order leaves unordered.
- * @typedef {{ consumer: string, peer: string }} DroppedPeerEdge
- */
-
-/**
- * A family's publish order together with the ordering it could not honour.
- *
- * The dropped edges are part of the result rather than a detail of forming it:
- * a release drops real ordering constraints, and the operator reading the pack
- * log is the only one who can judge whether a newly dropped edge is expected.
- * @typedef {{ order: ReleaseMember[], droppedPeerEdges: DroppedPeerEdge[] }} PublishOrderResult
- */
-
-/**
- * One publishable package of a release family.
- * @typedef {{ directory: string, name: string, version: string, manifest: object }} ReleaseMember
- */
-
-/**
- * Read and parse a JSON file.
- * @param path - absolute file path.
- * @returns The parsed object.
- */
 function readManifest(path) {
   const parsed = JSON.parse(readFileSync(path, 'utf8'))
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -64,51 +16,16 @@ function readManifest(path) {
   return parsed
 }
 
-/**
- * Read a required string field.
- * @param manifest - parsed manifest.
- * @param field - field name.
- * @param context - manifest path for the error message.
- * @returns The field value.
- */
 function requireString(manifest, field, context) {
   const value = manifest[field]
   if (typeof value !== 'string' || value === '') throw new Error(`${context} must declare a string ${field}`)
   return value
 }
 
-/** A release sequence: its members, its version baseline, and its tag naming. */
 export class ReleaseFamily {
-  /**
-   * Workflow-facing identifier, also the `--family` argument.
-   * @name ReleaseFamily#id
-   * @type {string}
-   */
 
-  /**
-   * Glob patterns, relative to the repository root, that select this family's manifests.
-   * @name ReleaseFamily#patterns
-   * @type {string[]}
-   */
-
-  /**
-   * Git tag prefix this family publishes from.
-   * @name ReleaseFamily#tagPrefix
-   * @type {string}
-   */
-
-  /**
-   * Assert that built artifacts match this release family's required profile.
-   * Families without environment-selected artifacts accept every build tree.
-   * @param _root - repository root containing generated artifacts.
-   */
   verifyBuildArtifacts(_root) {}
 
-  /**
-   * Discover this family's members.
-   * @param root - repository root.
-   * @returns {ReleaseMember[]} Members sorted by directory, with names validated and deduplicated.
-   */
   members(root) {
     const manifestPaths = globSync([...this.patterns], { cwd: root }).sort()
     if (manifestPaths.length === 0) throw new Error(`release family ${this.id} matched no manifests`)
@@ -134,22 +51,6 @@ export class ReleaseFamily {
     return members
   }
 
-  /**
-   * Order members so every package publishes after the family members it
-   * depends on, which is what makes a partial publication self-consistent: an
-   * interrupted run leaves a prefix whose packages never point at something
-   * absent from the registry.
-   *
-   * Install edges are honoured absolutely — a cycle among them is a defect this
-   * reports rather than works around. Peer edges order what they can and are
-   * dropped where honouring one would deadlock: sibling packages declare each
-   * other as peers, and npm treats an unmet peer as a warning rather than a
-   * resolution failure ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
-   * Every dropped edge is reported, because dropping one is a decision about a
-   * real release rather than an implementation detail.
-   * @param members - this family's members.
-   * @returns {PublishOrderResult} The order, ties broken by name for determinism, and the peer edges it left unordered.
-   */
   publishOrder(members) {
     const byName = new Map(members.map(member => [member.name, member]))
     const byNameSorted = [...members].sort((left, right) => left.name.localeCompare(right.name))
@@ -218,13 +119,6 @@ export class ReleaseFamily {
     return { order: ordered, droppedPeerEdges }
   }
 
-  /**
-   * The family members one member declares in the given sections.
-   * @param member - the dependent member.
-   * @param byName - every family member by package name.
-   * @param sections - manifest sections to read.
-   * @returns Members of this family named there, sorted by name.
-   */
   orderEdges(
     member,
     byName,
@@ -242,58 +136,17 @@ export class ReleaseFamily {
     return edges.sort((left, right) => left.name.localeCompare(right.name))
   }
 
-  /**
-   * Assert this family's version baseline holds across its members.
-   * @param members - this family's members.
-   * @name ReleaseFamily#verifyVersions
-   * @function
-   */
-
-  /**
-   * The tag prefix a member's versions are tagged under. Every tag for that
-   * member starts with it, which is how the last published version is found.
-   * @param member - the member being published.
-   * @returns The prefix, ending in `-v`.
-   * @name ReleaseFamily#tagPrefixFor
-   * @function
-   */
-
-  /**
-   * The tag a member publishes from.
-   * @param member - the member being published.
-   * @returns The full tag name, without `refs/tags/`.
-   */
   tagFor(member) {
     return `${this.tagPrefixFor(member)}${member.version}`
   }
 
-  /**
-   * Check what a member's packed tarball carries.
-   * @param member - the packed member.
-   * @param files - every path inside its tarball.
-   * @name ReleaseFamily#validatePayload
-   * @function
-   */
-
-  /**
-   * The executable that proves this family's artifacts install and run, or
-   * `undefined` for a family that publishes no executable — the entry
-   * `verify-packed-install.js` drives after installing the family's packed tarballs.
-   * @name ReleaseFamily#installedEntry
-   * @type {{ packageName: string, binPath: string } | undefined}
-   */
 }
 
-/** Release packages and apps: one shared version across the whole family. */
 class FreddieFamily extends ReleaseFamily {
   id = 'freddie'
   patterns = ['packages/!(experimental)/*/package.json', 'apps/*/package.json']
   tagPrefix = 'freddie-v'
 
-  /**
-   * Require one version across the family, the way a single tag can name it.
-   * @param members - this family's members.
-   */
   verifyVersions(members) {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
@@ -302,19 +155,10 @@ class FreddieFamily extends ReleaseFamily {
     }
   }
 
-  /**
-   * The single family prefix: every member shares one version, so one tag names it.
-   * @returns `freddie-v`.
-   */
   tagPrefixFor() {
     return this.tagPrefix
   }
 
-  /**
-   * Reject source and declaration-map members, the repository's publication policy.
-   * @param member - the packed member.
-   * @param files - every path inside its tarball.
-   */
   validatePayload(member, files) {
     validateTarballPayload(files, member.name)
   }
@@ -322,16 +166,11 @@ class FreddieFamily extends ReleaseFamily {
   installedEntry = { packageName: '@freddie/freddie', binPath: 'lib/bin.js' }
 }
 
-/** `framework/*`: every package keeps its own version line, so every package has its own tag. */
 class VendorFamily extends ReleaseFamily {
   id = 'vendor'
   patterns = ['framework/*/package.json']
   tagPrefix = 'vendor-'
 
-  /**
-   * Accept independent versions; only reject a version this repository cannot publish.
-   * @param members - this family's members.
-   */
   verifyVersions(members) {
     for (const member of members) {
       if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(member.version)) {
@@ -340,45 +179,21 @@ class VendorFamily extends ReleaseFamily {
     }
   }
 
-  /**
-   * A prefix per member, because one vendor release can carry several versions.
-   * @param member - the member being published.
-   * @returns `vendor-<unscoped name>-v`.
-   */
   tagPrefixFor(member) {
     return `${this.tagPrefix}${member.name.replace('@freddie/', '')}-v`
   }
 
-  /**
-   * Require the payload the vendored manifest declares, including upstream's
-   * `src` tree and declaration maps.
-   *
-   * The harness policy that rejects both does not apply here: these manifests
-   * export `./src/*` for source navigation, so dropping `src` would publish a
-   * package whose export map points at absent files. What must hold instead is
-   * that every path the manifest selects is present, which `files` already
-   * decides and `pnpm pack` already enforces.
-   * @param member - the packed member.
-   * @param files - every path inside its tarball.
-   */
   validatePayload(member, files) {
     if (files.length === 0) throw new Error(`${member.name} packed an empty tarball`)
   }
 
-  /** No installed-entry probe: these are libraries a consumer imports, with no executable. */
   installedEntry = undefined
 }
 
-/** Every release family this module owns, in workflow order. */
 function releaseFamilies() {
   return [new FreddieFamily(), new VendorFamily()]
 }
 
-/**
- * Resolve a family by its `--family` identifier.
- * @param id - family identifier.
- * @returns The family.
- */
 export function releaseFamily(id) {
   const family = releaseFamilies().find(candidate => candidate.id === id)
   if (family === undefined) {
@@ -388,11 +203,6 @@ export function releaseFamily(id) {
   return family
 }
 
-/**
- * The npm tarball filename `pnpm pack` writes for a member.
- * @param member - the packed member.
- * @returns The tarball filename.
- */
 export function tarballName(member) {
   const unscoped = member.name.startsWith('@') ? member.name.slice(1).replace('/', '-') : member.name
   return `${unscoped}-${member.version}.tgz`

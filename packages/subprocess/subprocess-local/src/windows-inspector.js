@@ -1,14 +1,3 @@
-/**
- * Windows process-table operations for terminal readiness, signalling, and
- * teardown: Toolhelp32 snapshot enumeration with GetProcessTimes creation-time
- * identity and process-handle wait-state liveness, the shell pid as a pseudo
- * process group (Windows has no POSIX groups), and taskkill tree signalling.
- * The koffi bindings load lazily so
- * non-Windows processes never touch Win32 libraries; all decision logic takes
- * an injectable internals boundary so suites can pin it on any host.
- * @module freddie-subprocess-local/windows-inspector
- */
-
 import { spawnSync } from 'node:child_process'
 import koffi from 'koffi'
 
@@ -32,17 +21,6 @@ import koffi from 'koffi'
  * @property {(pid: number, force: boolean) => void} taskkill - Terminate one process tree; `force` maps to taskkill `/F`.
  */
 
-/**
- * Walk a process table from one root in children-first order, retaining only
- * members whose start identity is readable (unreadable members are detector
- * misses, exactly like an unreadable `/proc` entry on Linux).
- * @param entries - the process table snapshot.
- * @param rootPid - the tree root to descend from.
- * @param started - creation-time identity resolver for one member.
- * @returns the root and its current transitive descendants, children first.
- * @name windowsProcessTree
- * @function
- */
 /* jscpd:ignore-start -- the Windows inspector deliberately mirrors process-inspector.ts:
    the decision logic (tree walk, identity fencing, group signalling) is the same contract over
    Win32 primitives, per the persistent-pty note 2026-08-11-pwsh-persistent-pty. */
@@ -69,13 +47,6 @@ export function windowsProcessTree(entries, rootPid, started) {
   return result
 }
 
-/**
- * Windows {@link import('./process-inspector.js').ProcessInspector}. The shell pid stands in for a foreground
- * process group: it is a stable pseudo-group that lets the prompt-marker
- * readiness path compare foreground identities, while every actual signal
- * targets the console-wide tree through taskkill (SIGINT is delivered by the
- * terminal handle as a `\x03` input write and never reaches this layer).
- */
 export class WindowsProcessInspector {
   constructor(internals = defaultWindowsProcessInternals()) {
     this.internals = internals
@@ -112,26 +83,15 @@ export class WindowsProcessInspector {
 }
 /* jscpd:ignore-end */
 
-/**
- * Create the Windows process inspector.
- * @param internals - injectable process operations; defaults to the koffi-backed table.
- * @returns the Windows inspector.
- */
 export function createWindowsProcessInspector(internals = defaultWindowsProcessInternals()) {
   return new WindowsProcessInspector(internals)
 }
 
-/** Terminate one Windows process tree with taskkill, contained like POSIX group signalling. */
 function taskkillTree(pid, force) {
   if (pid <= 0) return
   spawnSync('taskkill', ['/PID', String(pid), '/T', ...(force ? ['/F'] : [])], { stdio: 'ignore' })
 }
 
-/**
- * True for NULL and INVALID_HANDLE_VALUE returns from Win32 handle APIs.
- * @param value - a handle as koffi may hand it back (pointer, null, or 0n).
- * @returns whether the value signals an invalid handle.
- */
 export function isInvalidHandle(value) {
   if (value === null || value === undefined) return true
   const asBigInt = value
@@ -152,12 +112,6 @@ export function isInvalidHandle(value) {
 
 const PVOID = koffi.pointer('void')
 
-/**
- * Resolve the koffi Win32 struct types once. Registration is lazy and cached
- * because koffi's type registry is global per process: test runners that
- * re-evaluate this module (a hoisted `vi.mock` re-imports the graph) must not
- * re-register the names.
- */
 function win32Structs() {
   if (cachedStructs !== undefined) return cachedStructs
   const PROCESSENTRY32W = koffi.struct('PROCESSENTRY32W', {
@@ -195,10 +149,6 @@ const WAIT_TIMEOUT = 0x102
 
 let cachedBindings
 
-/**
- * Resolve the lazy Win32 bindings (throws the first binding failure, fail-closed).
- * @returns the cached binding table.
- */
 function win32Bindings() {
   if (cachedBindings !== undefined) return cachedBindings
   const { PROCESSENTRY32W, FILETIME } = win32Structs()
@@ -222,17 +172,10 @@ function win32Bindings() {
   return cachedBindings
 }
 
-/**
- * Allocate koffi memory as a native pointer.
- * @param type - the koffi type to allocate.
- * @param count - element count.
- * @returns the allocation pointer.
- */
 function allocNative(type, count) {
   return koffi.alloc(type, count)
 }
 
-/** Enumerate the current process table through Toolhelp32. */
 function snapshotWindowsProcesses(bindings) {
   const { PROCESSENTRY32W } = win32Structs()
   const snapshot = bindings.createToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
@@ -255,7 +198,6 @@ function snapshotWindowsProcesses(bindings) {
   return entries
 }
 
-/** Read one process's creation identity and current wait state. */
 function windowsProcessState(bindings, pid) {
   const { FILETIME } = win32Structs()
   const handle = bindings.openProcess(PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE, 0, pid)
@@ -283,7 +225,6 @@ function windowsProcessState(bindings, pid) {
   }
 }
 
-/** The koffi-backed default internals; bindings resolve lazily on first use. */
 function defaultWindowsProcessInternals() {
   return {
     snapshot: () => snapshotWindowsProcesses(win32Bindings()),

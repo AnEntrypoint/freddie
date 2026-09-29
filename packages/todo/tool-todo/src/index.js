@@ -1,20 +1,11 @@
-/**
- * Model-facing whole-list replacement. Each call appends a `todo/write` snapshot to the calling
- * agent's session; replay is last-write-wins, and UIs render from session events. A non-agent
- * caller has no owning list and is rejected. Named exports preserve loader injection metadata.
- * @module @freddie/freddie-tool-todo
- */
-
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 
 export const name = 'tool-todo'
 export const inject = ['tools']
 
-/** The valid TodoItem statuses, as a runtime set for input narrowing. */
 const STATUSES = ['pending', 'in_progress', 'completed']
 
-/** Schemastery configuration for the todo tool consumer. */
 export const Config = z.object({
   allowParallelInProgress: z.boolean().required(),
 })
@@ -42,29 +33,12 @@ const DESCRIPTION_TAIL =
   + 'single-step tasks. Statuses: `pending` (not started), `in_progress` (being '
   + 'worked on now), `completed` (finished).'
 
-/**
- * The model-facing description for one activation. The active-status clause is the only part that
- * varies, because it is the only instruction the parallel policy changes.
- * @param allowParallel - whether several todos may be `in_progress` at once.
- * @returns the composed tool description.
- */
 function describe(allowParallel) {
   return DESCRIPTION_HEAD
     + (allowParallel ? DESCRIPTION_PARALLEL : DESCRIPTION_SINGLE)
     + DESCRIPTION_TAIL
 }
 
-/**
- * Validate the value constraints the ParameterSchemaSpec can't express and build the canonical
- * TodoItem[]: trimmed non-empty unique content, and at most one `in_progress` item unless the
- * deployment allows parallel work. The registry has already enforced the status enum and rejected
- * unknown item keys (`additionalProperties: false` — the logged snapshot must equal what the model
- * believes it wrote, so a nested/extended item shape fails loud at the schema boundary instead of
- * silently flattening).
- * @param raw - the model-supplied list, already schema-checked.
- * @param allowParallel - whether several items may be `in_progress` at once.
- * @returns the canonical list.
- */
 function toTodoList(raw, allowParallel) {
   const todos = []
   const seen = new Set()
@@ -87,12 +61,6 @@ function toTodoList(raw, allowParallel) {
   return todos
 }
 
-/**
- * Register the `todo_write` tool on `ctx.tools` and, when the session-projection seam is composed,
- * the `todos` unit.
- * @param ctx - registrant context carrying the tool registry.
- * @param config - deployment's explicit todo policy.
- */
 export function apply(ctx, config) {
   const allowParallel = config.allowParallelInProgress
   ctx.inject(['sessionProjections'], (projectionCtx) => {

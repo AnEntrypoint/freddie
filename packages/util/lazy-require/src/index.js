@@ -1,5 +1,3 @@
-/** Caller-relative lazy loading for CommonJS-compatible Host dependencies. */
-
 import { createRequire } from 'node:module'
 
 /**

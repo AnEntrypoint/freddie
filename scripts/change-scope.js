@@ -1,5 +1,3 @@
-/** Report the explicit committed and worktree scope of a repository change. */
-
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
@@ -185,12 +183,6 @@ function collectReport(options, cwd) {
   }
 }
 
-/**
- * Validate arguments and render one complete versioned report.
- * @param args - Command-line arguments after the script path.
- * @param cwd - Directory whose containing Git worktree is inspected.
- * @returns JSON report with a trailing newline.
- */
 export function renderChangeScope(args, cwd) {
   const options = parseOptions(args)
   const report = collectReport(options, cwd)

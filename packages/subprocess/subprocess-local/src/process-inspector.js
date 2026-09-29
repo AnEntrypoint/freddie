@@ -1,5 +1,3 @@
-/** Platform process-table inspection for terminal readiness, signals, and teardown. */
-
 import { closeSync, openSync, readFileSync, readdirSync, readSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createWindowsProcessInspector } from './windows-inspector.js'
@@ -56,11 +54,6 @@ const DEFAULT_INTERNALS = {
  * @property {string} started
  */
 
-/**
- * Parse fields used from Linux `/proc/<pid>/stat`, including parenthesized comm text.
- * @param text - complete stat line.
- * @returns Parsed identity/group fields, or undefined for malformed input.
- */
 export function parseProcStat(text) {
   const open = text.indexOf('(')
   const close = text.lastIndexOf(')')
@@ -86,14 +79,6 @@ function readLinuxStat(internals, pid) {
   }
 }
 
-/**
- * Report whether a Linux process group has an executing member. `false`
- * means the group contains only zombie/dead entries; `undefined` means the
- * process table could not prove either outcome.
- * @param processGroupId - POSIX process-group id to inspect.
- * @param internals - injectable process-table operations.
- * @returns Live-member presence, or `undefined` when unavailable/absent.
- */
 export function linuxProcessGroupHasLiveMembers(
   processGroupId,
   internals = DEFAULT_INTERNALS,
@@ -212,7 +197,6 @@ function syscallWaitsOnStdin(internals, pid, syscall, table) {
   return false
 }
 
-/** @implements {ProcessInspector} */
 class PosixProcessInspector {
   constructor(internals) {
     this.internals = internals
@@ -339,13 +323,6 @@ class MacProcessInspector extends PosixProcessInspector {
   }
 }
 
-/**
- * Create the supported platform inspector or fail at plugin load.
- * @param platform - target Node platform.
- * @param arch - target CPU architecture for Linux syscall numbers.
- * @param internals - filesystem/process boundary, injectable for deterministic tests.
- * @returns Platform process inspector.
- */
 export function createProcessInspector(
   platform = process.platform,
   arch = process.arch,

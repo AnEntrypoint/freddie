@@ -1,5 +1,3 @@
-/** Build, publish, and verify one commit-addressed npm workspace baseline. */
-
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
@@ -85,7 +83,6 @@ if actual_exit != 0:
     sys.exit(125)
 `
 
-/** Fixes the identity of one pack attempt before any expensive work begins. */
 class BaselinePackPlan {
   constructor(
     commit,
@@ -124,7 +121,6 @@ class BaselinePackPlan {
   }
 }
 
-/** Runs child processes without involving a command shell. */
 class CommandRunner {
   run(
     command,
@@ -171,7 +167,6 @@ class CommandRunner {
   }
 }
 
-/** Owns a temporary detached worktree and removes it after staging. */
 class DetachedWorktree {
   constructor(
     path,
@@ -211,7 +206,6 @@ class DetachedWorktree {
   }
 }
 
-/** Discovers and stages every package published in one repository baseline. */
 class WorkspacePackageSet {
   constructor(
     packages,
@@ -272,7 +266,6 @@ class WorkspacePackageSet {
   }
 }
 
-/** Immutable local release bundle consumed by publish and verify. */
 class ReleaseBundle {
   constructor(
     directory,
@@ -403,7 +396,6 @@ class ReleaseBundle {
   }
 }
 
-/** Installs one complete bundle outside the workspace and probes the shipped freddie entry. */
 class InstalledBundleSmoke {
   constructor(
     bundle,
@@ -476,7 +468,6 @@ class InstalledBundleSmoke {
   }
 }
 
-/** Builds a release bundle without mutating the caller's checkout. */
 class BaselinePackager {
   constructor(
     repositoryRoot,
@@ -596,7 +587,6 @@ class BaselinePackager {
   }
 }
 
-/** Publishes and verifies a release bundle against its recorded registry. */
 class RegistryPublication {
   npmEnvironment = npmClientEnvironment()
   npmWorkingDirectory = tmpdir();

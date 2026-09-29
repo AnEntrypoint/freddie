@@ -18,14 +18,7 @@ function isSpecialProperty(prop) {
     || prop.startsWith('_')
 }
 
-/**
- * Reflection and service-resolution layer installed as `ctx.reflect`.
- *
- * This service powers the context proxy, service registration, accessors, and
- * the mixins that expose core service methods directly on `ctx`.
- */
 export class ReflectService {
-  /** Proxy traps implementing service resolution for every context object. */
   static handler = {
     get: (target, prop, ctx) => {
       if (isSpecialProperty(prop)) {
@@ -99,9 +92,7 @@ export class ReflectService {
     },
   }
 
-  /** Service implementations, keyed by isolation label. */
   store = Object.create(null)
-  /** Declared context properties (services and accessors), by name. */
   props = Object.create(null)
   ctx
 
@@ -118,14 +109,6 @@ export class ReflectService {
     this.mixin('events', ['on', 'once', 'parallel', 'emit', 'serial', 'bail', 'waterfall'])
   }
 
-  /**
-   * Read a service from the store without the inject requirement.
-   *
-   * @param name — the service name.
-   * @param strict — when `true`, only return implementations whose providing
-   * fiber is currently active.
-   * @returns the service value, or `undefined` when not (yet) provided.
-   */
   get(name, strict = true) {
     return getTraceable(this.ctx, this._getImpl(name, strict)?.value)
   }
@@ -138,15 +121,6 @@ export class ReflectService {
     return impl
   }
 
-  /**
-   * Overwrite a provided service's value.
-   *
-   * @param name — the service name.
-   * @param value — the new service value.
-   * @param error — carrier for the caller stack in diagnostics.
-   * @returns `true` on success.
-   * @throws when `name` was never provided, or was provided by another fiber.
-   */
   set(name, value, error) {
     const key = this.ctx[symbols.isolate][name]
     const impl = this.store[key]
@@ -160,16 +134,6 @@ export class ReflectService {
     return true
   }
 
-  /**
-   * Register a service implementation owned by the current fiber.
-   *
-   * See the `ctx.provide()` overload above for the full contract.
-   *
-   * @param name — the service name.
-   * @param value — the service value.
-   * @param check — optional availability predicate for dependents.
-   * @returns a disposer that unregisters the service.
-   */
   provide(name, value, check) {
     return this.ctx.fiber.effect(() => {
       if (!this.props[name]) {
@@ -199,13 +163,6 @@ export class ReflectService {
     }, `ctx.provide(${JSON.stringify(name)})`)
   }
 
-  /**
-   * Re-evaluate every fiber that requires one of the given services.
-   *
-   * @param names — the service names that changed.
-   * @param filter — restricts notification to matching isolation scopes.
-   * @returns the fibers whose dependency state was refreshed.
-   */
   notify(names, filter = (ctx, name) => ctx[symbols.isolate][name] === this.ctx[symbols.isolate][name]) {
     const fibers = []
     for (const runtime of this.ctx.registry.values()) {
@@ -230,13 +187,6 @@ export class ReflectService {
     return fibers
   }
 
-  /**
-   * Define a computed context property backed by get/set hooks.
-   *
-   * @param name — the context property name.
-   * @param options — the `get` hook and optional `set` hook.
-   * @returns a disposer that removes the accessor.
-   */
   accessor(name, options) {
     return this.ctx.fiber.effect(() => {
       if (name in this.props) {
@@ -247,15 +197,6 @@ export class ReflectService {
     }, `ctx.accessor(${JSON.stringify(name)})`)
   }
 
-  /**
-   * Expose selected members of a service directly on `ctx`.
-   *
-   * See the `ctx.mixin()` overload above for the full contract.
-   *
-   * @param source — a context property name or a source object.
-   * @param mixins — keys to forward, or a source-key → ctx-key map.
-   * @returns a disposer that removes all created accessors.
-   */
   mixin(source, mixins) {
     const self = this
     return this.ctx.fiber.effect(function* () {
@@ -283,22 +224,10 @@ export class ReflectService {
     }, `ctx.mixin(${JSON.stringify(source)})`)
   }
 
-  /**
-   * Attach this context's tracing wrapper to a value.
-   *
-   * @param value — the value to wrap.
-   * @returns the traceable wrapper (or the value itself when not applicable).
-   */
   trace(value) {
     return getTraceable(this.ctx, value)
   }
 
-  /**
-   * Wrap a callback so calls trace `this` and arguments to this context.
-   *
-   * @param callback — the function to wrap.
-   * @returns a proxy delegating to `callback` with traced values.
-   */
   bind(callback) {
     return new Proxy(callback, {
       apply: (target, thisArg, args) => {

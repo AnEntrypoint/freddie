@@ -1,5 +1,3 @@
-/** Zero-dependency circular deque for queues that retain entries across asynchronous work. */
-
 const MIN_CAPACITY = 16
 
 /**
@@ -16,7 +14,6 @@ export class Deque {
     this.count = 0
   }
 
-  /** Number of entries available to remove. */
   get size() {
     return this.count
   }
@@ -60,7 +57,6 @@ export class Deque {
     return value
   }
 
-  /** Drop every entry and release the current backing storage. */
   clear() {
     this.buffer = new Array(MIN_CAPACITY)
     this.head = 0

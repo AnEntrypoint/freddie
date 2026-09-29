@@ -10,10 +10,6 @@ import picomatch from 'picomatch'
 import z from '@freddie/schemastery'
 import { AsyncLocalStorage } from 'node:async_hooks'
 
-/**
- * Recursively collect all module dependencies from a ModuleJob.
- * Skips node: builtins and node_modules to focus on user code.
- */
 async function loadDependencies(job, ignored = new Set()) {
   const dependencies = new Set()
   async function traverse(job) {
@@ -60,60 +56,24 @@ class Hmr extends Service {
   configRefreshes = new WeakMap()
   refreshTasks = new Set()
 
-  /**
-   * Dependency tree of the CLI worker entry. Reloads in-process like any
-   * other accepted module; the process does not exit (divergence log 21).
-   */
   externals
 
-  /**
-   * Files that should be reloaded (accepted changes).
-   * Includes all stashed files and their dependents.
-   */
   accepted
 
-  /**
-   * Files that should NOT be reloaded: residue of analyzeChanges (dependents
-   * all declined) plus plugin entry URLs already claimed for this pass.
-   */
   declined
 
-  /** Stashed file changes waiting to be processed */
   stashed = new Set()
 
-  /**
-   * Set while a reload is deferred because a listener reported busy work.
-   * Reloading disposes fibers, and a disposed fiber aborts whatever its
-   * plugin had in flight — for the agent loop that means killing a running
-   * turn mid-tool-call. Stashed changes survive in `stashed`, so a deferred
-   * pass reloads the same files once the work reports quiescent.
-   */
   deferredReload = null
 
-  /**
-   * Bounded journal of reload decisions. Leaf fields only — never live
-   * fibers, registry entries, or module jobs.
-   */
   journal = []
 
   config
 
-  /**
-   * Tail of the one serialized mutation queue. Automatic module reloads and
-   * config refreshes join it, and so does every `runExclusive` transaction, so
-   * a caller that rewrites a watched file never races the reload its own write
-   * triggers.
-   */
   operations = Promise.resolve()
 
-  /**
-   * Marks the async call stack of a `runExclusive` transaction. Nesting is
-   * rejected rather than queued: the outer transaction holds the queue tail an
-   * inner one would wait on, so queueing it deadlocks.
-   */
   executing = new AsyncLocalStorage()
 
-  /** Set by the disposal effect so a transaction cannot outlive the service. */
   closing = false
 
   constructor(ctx, config) {
@@ -126,40 +86,18 @@ class Hmr extends Service {
     this.baseDir = fileURLToPath(new URL(config.base || '.', ctx.baseUrl))
   }
 
-  /**
-   * Append one operation to the mutation queue and let the caller await it.
-   * Automatic reloads use this directly: a chokidar callback can inherit the
-   * async context of a transaction that wrote the file it reports, so an
-   * automatic reload must queue rather than assert it is not nested.
-   * @param operation - the work to serialize.
-   * @returns a promise settling with `operation`.
-   */
   joinQueue(operation) {
     const run = this.operations.then(operation)
     this.operations = run.then(() => {}, () => {})
     return run
   }
 
-  /**
-   * Run one caller-owned mutation with every automatic reload held back, and
-   * hold it back from any automatic reload already running.
-   * @param operation - the mutation to serialize.
-   * @returns whatever `operation` resolves to.
-   * @throws when called inside another transaction, or after disposal.
-   */
   async runExclusive(operation) {
     if (this.closing) throw new Error('HMR is disposing')
     if (this.executing.getStore() !== undefined) throw new Error('HMR transactions cannot be nested')
     return await this.joinQueue(() => this.executing.run(true, operation))
   }
 
-  /**
-   * Watch one exact config path outside the configured module roots.
-   * @param filename - Config path, resolved against the HMR base directory.
-   * @param refresh - Refresh callback run serially on add, change, or unlink.
-   * @returns an asynchronous disposer once the exact watch is ready.
-   * @throws when HMR is inactive, the path is already registered, or watcher startup fails.
-   */
   async registerConfig(filename, refresh) {
     if (!this.watcher) throw new Error('HMR is not active')
     filename = resolve(this.baseDir, filename)
@@ -215,9 +153,6 @@ class Hmr extends Service {
     }
   }
 
-  /**
-   * Resolve a module specifier to a URL, compatible with Node 22-24.
-   */
   async _resolve(specifier, parentURL, attrs) {
     switch (this.internal.version) {
       case 'v1': return await this.internal.resolve(specifier, parentURL, attrs)
@@ -355,13 +290,6 @@ class Hmr extends Service {
     return Array.prototype.map.call(linked, (job) => job.url)
   }
 
-  /**
-   * Classify changed files into accepted (should reload) and declined (should not).
-   *
-   * A file is accepted if it's directly changed (stashed) or if any of its
-   * dependents are accepted. A file is declined if all remaining dependents
-   * are declined.
-   */
   async analyzeChanges() {
     const pending = []
     const queued = new Set()
@@ -421,7 +349,6 @@ class Hmr extends Service {
     }
   }
 
-  /** Drop the `hmr/idle` subscription a deferred pass installed, if any. */
   stopDeferring() {
     if (this.deferredReload === null) return
     this.deferredReload()
@@ -484,22 +411,6 @@ class Hmr extends Service {
       })
     }
 
-    /**
-     * Clear module caches for all accepted files before re-importing.
-     *
-     * We need to clear both:
-     * 1. ESM loadCache — managed by Node's internal ModuleLoader
-     * 2. CJS Module._cache — for CJS modules that were imported via import()
-     *
-     * In Node 24, CJS modules loaded via import() appear in both caches.
-     * If we only clear loadCache, the CJS cache may serve stale modules.
-     *
-     * We use Map.prototype methods directly on loadCache because:
-     * - In Node 22/23, loadCache is a plain Map<url, ModuleJob>
-     * - In Node 24, loadCache is a LoadCache extends Map<url, { [type]: ModuleJob }>
-     *   where .delete() only sets the type slot to undefined (doesn't remove the entry)
-     * Using Map.prototype.delete ensures complete removal in both versions.
-     */
     const esmBackup = Object.create(null)
     const cjsBackup = Object.create(null)
     const require = createRequire(import.meta.url)
@@ -589,12 +500,6 @@ class Hmr extends Service {
     this.stashed = new Set()
   }
 
-  /**
-   * Append one journal row, dropping the oldest when the bound is reached,
-   * and emit it as `hmr/journal` so a forwarder (the client-hmr node half's
-   * SSE channel) can relay reload decisions without reading this service.
-   * @param event - leaf-only reload decision.
-   */
   recordJournal(event) {
     const row = { ts: Date.now(), ...event }
     this.journal.push(row)
@@ -602,10 +507,6 @@ class Hmr extends Service {
     this.ctx.emit('hmr/journal', row)
   }
 
-  /**
-   * Queryable HMR snapshot for inspect/debug. Owned leaf data only.
-   * @returns deferred flag, stashed URLs, and recent journal rows.
-   */
   snapshot() {
     return {
       deferred: this.deferredReload !== null,

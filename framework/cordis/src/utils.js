@@ -1,6 +1,5 @@
 import { defineProperty } from '@freddie/cosmokit'
 
-/** Ordered collection of disposable values with O(1) deletion by value. */
 export class DisposableList {
   sn = 0
   map = new Map()
@@ -38,7 +37,6 @@ export class DisposableList {
   }
 }
 
-/** Shared symbols used to avoid public property-name collisions. */
 export const symbols = {
   shadow: Symbol.for('cordis.shadow'),
   receiver: Symbol.for('cordis.receiver'),
@@ -64,7 +62,6 @@ export const symbols = {
 const GeneratorFunction = function* () {}.constructor
 const AsyncGeneratorFunction = async function* () {}.constructor
 
-/** Return true when a plugin callback should be constructed with `new`. */
 export function isConstructor(func) {
   if (!func.prototype) return false
   if (func instanceof GeneratorFunction) return false
@@ -72,7 +69,6 @@ export function isConstructor(func) {
   return true
 }
 
-/** Merge two prototype chains while preserving descriptors from `proto1`. */
 export function joinPrototype(proto1, proto2) {
   if (proto1 === Object.prototype) return proto2
   const result = Object.create(joinPrototype(Object.getPrototypeOf(proto1), proto2))
@@ -82,12 +78,10 @@ export function joinPrototype(proto1, proto2) {
   return result
 }
 
-/** Return true for non-null objects and functions. */
 export function isObject(value) {
   return value && (typeof value === 'object' || typeof value === 'function')
 }
 
-/** Find a property descriptor by walking an object's prototype chain. */
 export function getPropertyDescriptor(target, prop) {
   let proto = target
   while (proto) {
@@ -97,7 +91,6 @@ export function getPropertyDescriptor(target, prop) {
   }
 }
 
-/** Wrap services/functions so method calls see the caller's active context. */
 export function getTraceable(ctx, value) {
   if (!isObject(value)) return value
   if (Object.hasOwn(value, symbols.shadow)) {
@@ -108,7 +101,6 @@ export function getTraceable(ctx, value) {
   return createTraceable(ctx, value, tracker)
 }
 
-/** Return a proxy that overlays readonly or writable properties onto a target. */
 export function withProps(target, props) {
   if (!props) return target
   return new Proxy(target, {
@@ -202,7 +194,6 @@ function applyTraceable(proxy, value, thisArg, args) {
   return value[symbols.invoke].apply(proxy, args)
 }
 
-/** Create a callable service object that dispatches through `symbols.invoke`. */
 export function createCallable(name, proto, tracker) {
   const self = function (...args) {
     const proxy = createTraceable(self['ctx'], self, tracker)
@@ -237,7 +228,6 @@ function handleError(info, reason, getOuterStack) {
   throw reason
 }
 
-/** Run a callback and splice outer call-site frames into thrown async errors. */
 export function composeError(callback, getOuterStack = buildOuterStack()) {
   const info = { offset: 1, error: new Error() }
 
@@ -253,7 +243,6 @@ export function composeError(callback, getOuterStack = buildOuterStack()) {
   }
 }
 
-/** Capture a lazy stack-frame supplier for later error composition. */
 export function buildOuterStack(offset = 0) {
   const outerError = new Error()
   return () => outerError.stack.split('\n').slice(3 + offset)

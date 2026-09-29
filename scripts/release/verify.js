@@ -1,27 +1,7 @@
-/**
- * Verify a release family's version baseline, and — when publishing — that the
- * run comes from the family's tag and its members are publishable.
- *
- * Publication happens only from GitHub Actions, so the tag and publishability
- * checks are gates on the workflow, not advisory local warnings
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
- */
-
 import { parseArgs } from 'node:util'
 import { isEntry } from './process.js'
 import { releaseFamily } from './families.js'
 
-/**
- * Print the publish order the release will follow, and the peer declarations it
- * leaves unordered.
- *
- * The order is the release's own plan: an interrupted publication leaves exactly
- * a prefix of it, so reading it is how anyone judges what a partial run left on
- * the registry, and printing it on every pull request is what makes a change to
- * the order reviewable rather than only observable during a publication.
- * @param family - the release family.
- * @param plan - the resolved order and its dropped edges.
- */
 function reportPublishOrder(family, plan) {
   console.log(`release verify: publish order for family ${family.id}, ${String(plan.order.length)} member(s):`)
   const width = String(plan.order.length).length
@@ -37,10 +17,6 @@ function reportPublishOrder(family, plan) {
   for (const edge of plan.droppedPeerEdges) console.log(`  ${edge.consumer} -> ${edge.peer}`)
 }
 
-/**
- * Assert every member may be published: npm refuses a `private` package.
- * @param members - the family's members.
- */
 function verifyPublishable(members) {
   const priv = members.filter(member => member.manifest.private === true)
   if (priv.length > 0) {
@@ -48,13 +24,6 @@ function verifyPublishable(members) {
   }
 }
 
-/**
- * Assert the workflow runs from a tag this family publishes from, and that the
- * tag names a version the family actually carries.
- * @param family - the release family.
- * @param members - the family's members.
- * @param ref - the `GITHUB_REF` value.
- */
 function verifyTag(family, members, ref) {
   const prefix = 'refs/tags/'
   if (!ref.startsWith(prefix)) {
@@ -70,7 +39,6 @@ function verifyTag(family, members, ref) {
   }
 }
 
-/** Run the verification for the family named by `--family`. */
 function main() {
   const { values } = parseArgs({
     options: { family: { type: 'string' } },

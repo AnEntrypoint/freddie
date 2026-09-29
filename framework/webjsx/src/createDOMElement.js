@@ -1,12 +1,6 @@
 import { setAttributes } from "./attributes.js";
 import { SVG_NAMESPACE } from "./constants.js";
 import { assignRef, isVElement, setWebJSXChildNodeCache, setWebJSXProps, } from "./utils.js";
-/**
- * Creates a real DOM node from a virtual node representation.
- * @param velement Virtual node to convert
- * @param parentNamespaceURI Namespace URI from parent element, if any
- * @returns Created DOM node
- */
 export function createDOMElement(velement, parentNamespaceURI) {
     const namespaceURI = velement.props.xmlns !== undefined
         ? velement.props.xmlns

@@ -1,27 +1,8 @@
-/**
- * Shared workspace-package graph discovery and Mermaid identifier helpers for
- * the generated module graph and relationship-diagram generators. Each caller
- * supplies its own group ordering because the documents use different visual
- * priorities; manifest parsing and dependency-safe ordering have one owner.
- */
-
 import { globSync, readFileSync } from 'node:fs'
 import { dirname, resolve, sep } from 'node:path'
 
 const SCOPE = '@freddie/freddie-'
 
-/**
- * One harness package and its in-repo peer-dependency edges.
- * @typedef {{ short: string, name: string, group: string, rel: string, deps: string[] }} PackageGraphNode
- */
-
-/**
- * Read every harness package manifest and return dependency-safe graph nodes.
- * @param root - absolute repository root.
- * @param groupOrder - caller-specific tiebreak order for packages in the same dependency layer.
- * @param gate - command name used in structural error messages.
- * @returns {PackageGraphNode[]} package nodes ordered after all of their in-repo dependencies.
- */
 export function collectPackageGraph(root, groupOrder, gate) {
   const packages = []
   for (const rel of globSync('packages/*/*/package.json', { cwd: root }).map(path => path.split(sep).join('/')).sort()) {
@@ -70,12 +51,10 @@ function comparePackages(a, b, groupOrder) {
   return normA - normB || a.group.localeCompare(b.group) || a.short.localeCompare(b.short)
 }
 
-/** Stable Mermaid id for a graph value. */
 export function graphNodeId(prefix, value) {
   return `${prefix}_${value.replace(/[^a-zA-Z0-9_]/g, '_')}`
 }
 
-/** Escape a value embedded in a quoted Mermaid label. */
 export function escapeMermaidLabel(value) {
   return value.replace(/"/g, '\\"')
 }

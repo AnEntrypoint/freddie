@@ -9,7 +9,6 @@ function swap(target, source) {
   }
 }
 
-/** Symbol realm used to isolate service implementations by entry or label. */
 export class Realm {
   store = Object.create(null)
 
@@ -34,7 +33,6 @@ export class Realm {
   }
 }
 
-/** Entry-local isolation realm. */
 export class LocalRealm extends Realm {
   entry
 
@@ -48,7 +46,6 @@ export class LocalRealm extends Realm {
   }
 }
 
-/** Named isolation realm shared by entries that use the same label. */
 export class GlobalRealm extends Realm {
   label
 
@@ -62,7 +59,6 @@ export class GlobalRealm extends Realm {
   }
 }
 
-/** Install loader hooks that apply `intercept` and `isolate` entry options. */
 export default function isolate(ctx) {
   const realms = Object.create(null)
   const delims = Object.create(null)

@@ -1,7 +1,6 @@
 import { defineProperty, hyphenate } from '@freddie/cosmokit'
 import { createCallable, joinPrototype, symbols } from './utils.js'
 
-/** Numeric severity used when exporters decide whether to emit a message. */
 export const LoggerLevel = {
   ERROR: 0,
   INFO: 1,
@@ -9,7 +8,6 @@ export const LoggerLevel = {
   DEBUG: 3,
 }
 
-/** Built-in placeholder formatters used by `Logger.format()`. */
 export const defaultFormatters = {
   s: (value) => String(value),
   d: (value) => Math.trunc(Number(value)),
@@ -27,7 +25,6 @@ function isAggregateError(error) {
   return error instanceof Error && Array.isArray(error['errors'])
 }
 
-/** Logger facade for one named subsystem. */
 export class Logger {
   static color(exporter, code, value, decoration = '') {
     if (!exporter.colors) return '' + value
@@ -112,9 +109,7 @@ export class Logger {
   }
 }
 
-/** ANSI 16-color palette indexes used for logger name coloring. */
 export const c16 = [6, 2, 3, 4, 5, 1]
-/** ANSI 256-color palette indexes used for logger name coloring. */
 export const c256 = [
   20, 21, 26, 27, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 56, 57, 62,
   63, 68, 69, 74, 75, 76, 77, 78, 79, 80, 81, 92, 93, 98, 99, 112, 113,
@@ -123,12 +118,6 @@ export const c256 = [
   201, 202, 203, 204, 205, 206, 207, 208, 209, 214, 215, 220, 221,
 ]
 
-/**
- * Built-in logging service.
- *
- * Call `ctx.logger()` to create a named logger, or call `ctx.logger.info()`
- * directly to log with the current fiber-derived name.
- */
 export class LoggerService {
   bufferSize = 1000
   buffer = []
@@ -161,12 +150,6 @@ export class LoggerService {
     return self
   }
 
-  /**
-   * Register an exporter and dispose it with the current fiber.
-   *
-   * @param exporter — the sink that receives structured log messages.
-   * @returns a disposer that removes the exporter.
-   */
   exporter(exporter) {
     return this.ctx.effect(() => {
       this.exporters.set(++this._snExporter, exporter)

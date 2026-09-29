@@ -1,9 +1,4 @@
 import { HTML_NAMESPACE } from "./constants.js";
-/**
- * Flattens nested virtual nodes by replacing Fragments with their children.
- * @param vnodes Virtual nodes to flatten
- * @returns Array of flattened virtual nodes
- */
 export function flattenVNodes(vnodes, result = []) {
     if (Array.isArray(vnodes)) {
         for (const vnode of vnodes) {
@@ -33,11 +28,6 @@ export function getChildNodes(parent) {
     }
     return nodes;
 }
-/**
- * Assigns a ref to a DOM node.
- * @param node Target DOM node
- * @param ref Reference to assign (function or object with current property)
- */
 export function assignRef(node, ref) {
     if (typeof ref === "function") {
         ref(node);

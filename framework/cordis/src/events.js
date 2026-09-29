@@ -2,22 +2,10 @@ import { defineProperty } from '@freddie/cosmokit'
 import { Context } from './context.js'
 import { DisposableList, symbols } from './utils.js'
 
-/**
- * Return whether an event result should stop a bail-style dispatch.
- *
- * @param value — a listener's return value.
- * @returns `true` unless `value` is `null`, `false`, or `undefined`.
- */
 export function isBailed(value) {
   return value !== null && value !== false && value !== undefined
 }
 
-/**
- * Event bus installed as `ctx.events` and mixed into every context.
- *
- * The service supports concurrent, synchronous, serial, bail, and waterfall
- * dispatch and automatically disposes listeners with their owning fiber.
- */
 export class EventsService {
   _hooks = {}
   ctx
@@ -47,13 +35,6 @@ export class EventsService {
     }, { global: true, prepend: true })
   }
 
-  /**
-   * Resolve listeners for one dispatch and apply context filtering.
-   *
-   * @param type — the dispatch mode, reported on `internal/dispatch`.
-   * @param args — the raw dispatch arguments; consumed up to the event name.
-   * @returns the matching listener callbacks, bound to the dispatch `this`.
-   */
   dispatch(type, args) {
     const thisArg = typeof args[0] === 'object' || typeof args[0] === 'function' ? args.shift() : null
     const name = args.shift()
@@ -66,33 +47,16 @@ export class EventsService {
       .map(hook => hook.callback.bind(thisArg))
   }
 
-  /**
-   * Run listeners concurrently and wait for all of them.
-   *
-   * @param args — optional `this`, the event name, then listener arguments.
-   * @returns a promise resolving once every listener has settled.
-   */
   async parallel(...args) {
     const results = await Promise.allSettled(this.dispatch('emit', args).map(async cb => cb(...args)))
     const errors = results.filter((result) => result.status === 'rejected')
     if (errors.length) throw new AggregateError(errors.map(error => error.reason))
   }
 
-  /**
-   * Run listeners synchronously without waiting for returned promises.
-   *
-   * @param args — optional `this`, the event name, then listener arguments.
-   */
   emit(...args) {
     this.dispatch('emit', args).map(cb => cb(...args))
   }
 
-  /**
-   * Run listeners in order, awaiting each, until one returns a bail value.
-   *
-   * @param args — optional `this`, the event name, then listener arguments.
-   * @returns the first bail value (see {@link isBailed}), if any.
-   */
   async serial(...args) {
     for (const cb of this.dispatch('serial', args)) {
       const result = await cb(...args)
@@ -100,12 +64,6 @@ export class EventsService {
     }
   }
 
-  /**
-   * Run listeners synchronously until one returns a bail value.
-   *
-   * @param args — optional `this`, the event name, then listener arguments.
-   * @returns the first bail value (see {@link isBailed}), if any.
-   */
   bail(...args) {
     for (const cb of this.dispatch('bail', args)) {
       const result = cb(...args)
@@ -113,16 +71,6 @@ export class EventsService {
     }
   }
 
-  /**
-   * Compose listeners around the final `next` callback.
-   *
-   * The last dispatch argument is treated as the innermost `next`. Listeners
-   * run outermost-first; a listener that does not call `next()` vetoes the
-   * rest of the chain, including the built-in behavior.
-   *
-   * @param args — optional `this`, the event name, listener arguments, then `next`.
-   * @returns the outermost listener's return value.
-   */
   waterfall(...args) {
     const cbs = this.dispatch('waterfall', args)
     const inner = args.pop()
@@ -134,15 +82,6 @@ export class EventsService {
     return next()
   }
 
-  /**
-   * Store a listener record as an effect on the current fiber.
-   *
-   * @param label — effect label shown in fiber diagnostics.
-   * @param hooks — the listener list for one event.
-   * @param callback — the listener to store.
-   * @param options — placement and filtering options.
-   * @returns a disposer that unregisters the listener.
-   */
   register(label, hooks, callback, options) {
     const method = options.prepend ? 'unshift' : 'push'
     return this.ctx.fiber.effect(() => {
@@ -151,13 +90,6 @@ export class EventsService {
     }, label)
   }
 
-  /**
-   * Remove a stored listener record.
-   *
-   * @param hooks — the listener list for one event.
-   * @param callback — the listener to remove.
-   * @returns `true` if the listener was found and removed.
-   */
   unregister(hooks, callback) {
     const index = hooks.findIndex(hook => hook.callback === callback)
     if (index >= 0) {
@@ -166,17 +98,6 @@ export class EventsService {
     }
   }
 
-  /**
-   * Register an event listener owned by the current fiber.
-   *
-   * The listener is removed automatically when the fiber unloads. Throws
-   * `CordisError('INACTIVE_EFFECT')` if the fiber is already disposed.
-   *
-   * @param name — the event name to listen for.
-   * @param listener — called with the dispatch arguments.
-   * @param options — listener options; a boolean is shorthand for `prepend`.
-   * @returns a disposer removing the listener; `true` if it was still registered.
-   */
   on(name, listener, options) {
     if (typeof options !== 'object') {
       options = { prepend: options }
@@ -192,14 +113,6 @@ export class EventsService {
     return this.register(label, hooks, listener, options)
   }
 
-  /**
-   * Register an event listener that disposes itself after the first call.
-   *
-   * @param name — the event name to listen for.
-   * @param listener — called at most once with the dispatch arguments.
-   * @param options — listener options; a boolean is shorthand for `prepend`.
-   * @returns a disposer removing the listener; `true` if it was still registered.
-   */
   once(name, listener, options) {
     const dispose = this.on(name, function (...args) {
       dispose()

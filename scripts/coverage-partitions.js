@@ -1,19 +1,14 @@
-/** Coordinate single-worker Vitest coverage partitions and one merged report. */
 import { spawn } from 'node:child_process'
 import { lstat, mkdir, readdir, rm, unlink } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import { pnpmInvocation } from './pnpm-invocation.js'
 
-/** Environment variable selecting the number of instrumented coverage processes. */
 export const COVERAGE_PARTITIONS_ENV = 'FREDDIE_COVERAGE_PARTITIONS'
 
-/** Internal marker that suppresses reports and thresholds inside a partition process. */
 export const COVERAGE_PARTITION_MODE_ENV = 'FREDDIE_COVERAGE_PARTITION_MODE'
 
-/** Environment variable overriding instrumented test and polling timeouts. */
 export const COVERAGE_TEST_TIMEOUT_ENV = 'FREDDIE_COVERAGE_TEST_TIMEOUT_MS'
 
-/** Parse an optional coverage partition count. */
 export function parseCoveragePartitionCount(raw) {
   if (raw === undefined || raw === '') return undefined
   const parsed = Number.parseInt(raw, 10)
@@ -23,7 +18,6 @@ export function parseCoveragePartitionCount(raw) {
   return parsed
 }
 
-/** Resolve the paired Vitest timeout arguments used by coverage partitions. */
 export function coverageTestTimeoutArgs(raw) {
   if (raw === undefined || raw === '') return []
   const parsed = Number.parseInt(raw, 10)
@@ -33,12 +27,10 @@ export function coverageTestTimeoutArgs(raw) {
   return [`--testTimeout=${raw}`, `--expect.poll.timeout=${raw}`]
 }
 
-/** Remove pnpm's package-script separator before forwarding Vitest arguments. */
 export function forwardedCoverageArgs(args) {
   return [...args.slice(args[0] === '--' ? 1 : 0)]
 }
 
-/** Run instrumented partitions, validate their blobs, and merge once. */
 export class CoveragePartitionCoordinator {
   root
   partitions
@@ -48,7 +40,6 @@ export class CoveragePartitionCoordinator {
   temporaryRoot
   blobsRoot
 
-  /** Create a coordinator from validated process-independent inputs. */
   constructor(options) {
     if (!Number.isSafeInteger(options.partitions) || options.partitions < 2) {
       throw new Error(`coverage partitions must be an integer greater than 1, got ${String(options.partitions)}.`)
@@ -62,10 +53,6 @@ export class CoveragePartitionCoordinator {
     this.blobsRoot = join(this.temporaryRoot, 'blobs')
   }
 
-  /**
-   * Run every partition before one merged threshold check.
-   * @returns zero only when every partition and the merge command succeed.
-   */
   async run() {
     await removeOwnedTree(join(this.root, 'coverage'))
     await mkdir(this.blobsRoot, { recursive: true })
@@ -162,7 +149,6 @@ export class CoveragePartitionCoordinator {
   }
 }
 
-/** Spawn one pnpm-backed command without a platform shell. */
 function runCoverageCommand(command) {
   return new Promise((resolveCommand) => {
     let outputTail = ''

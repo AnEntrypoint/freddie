@@ -12,12 +12,6 @@ const JsExpr = yaml.defineScalarTag('tag:yaml.org,2002:js', {
   represent: (data) => data['__jsExpr'],
 })
 
-/**
- * The entry-list YAML dialect: `!!js` scalars round-trip as expression nodes
- * the Loader evaluates at entry activation. Exported so config tooling
- * (`freddie --dump-config`) parses and prints exactly the dialect this include
- * mounts.
- */
 export const entryListSchema = new yaml.Schema([...yaml.JSON_SCHEMA.tags, JsExpr])
 
 const schema = entryListSchema
@@ -38,21 +32,6 @@ function retryableWriteError(error) {
   return code === 'EACCES' || code === 'EBUSY' || code === 'EPERM'
 }
 
-/**
- * Apply patch lists to an entry list — THE patch semantics of this include,
- * shared by mounting (`applyPatches`) and offline config tooling
- * (`freddie --dump-config`) so a dump can never drift from what boots. The input
- * is never mutated and the result is always detached from it (even with no
- * patches): patching or mounting shared entry objects would bake earlier
- * values into the cached parse, so repeated application (config hot-reloads)
- * could never revert a removed or changed patch. Inserted entries are indexed
- * as they are added, so a later patch in the same list can target a row an
- * earlier patch inserted. A patch that matches nothing warns and is skipped.
- * @param data - the parsed entry list (JSON-safe plain data).
- * @param patches - the patch list to apply, in order.
- * @param warn - sink for skipped-patch diagnostics (printf-style, `%C` = code).
- * @returns a detached entry list with every applicable patch applied.
- */
 export function applyEntryPatches(data, patches, warn) {
   data = structuredClone(data)
   if (!patches?.length) return data
@@ -126,7 +105,6 @@ class ConfigFileError extends Error {
   }
 }
 
-/** Loader entry tree backed by a YAML or JSON file. */
 export class Include extends EntryTree {
   static inject = ['loader']
 
@@ -167,15 +145,6 @@ export class Include extends EntryTree {
     })
   }
 
-  /**
-   * Serialize one child-tree mutation behind every earlier one. The group's
-   * transactional `update` is not reentrant: two concurrent applies (the init
-   * apply racing an HMR-triggered refresh from the watcher's initial scan)
-   * interleave create and rollback on the same entries and strand the include
-   * fiber without settling, so every apply path funnels through this queue.
-   * A predecessor's failure is its own caller's outcome and never gates the
-   * next task.
-   */
   enqueue(task) {
     const run = this.applyQueue.then(task, task)
     this.applyQueue = run.then(() => {}, () => {})
@@ -247,11 +216,6 @@ export class Include extends EntryTree {
     await this.flushWrite()
   }
 
-  /**
-   * Re-read the file and transactionally refresh child entries when content changed.
-   * @returns a promise resolving after the new tree commits, or immediately when unchanged.
-   * @throws when reading, parsing, validation, application, or rollback fails; the last good tree remains active when rollback succeeds.
-   */
   async refresh() {
     await this.enqueue(async () => {
       const candidate = await this.read()
@@ -319,7 +283,6 @@ export class Include extends EntryTree {
     return run
   }
 
-  /** Schedule a write of the current root entry data. */
   write() {
     this.context.emit('loader/config-update')
     return this.writeFile(this.root.data)

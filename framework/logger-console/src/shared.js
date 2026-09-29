@@ -2,7 +2,6 @@ import { Logger } from '@freddie/cordis'
 import { Time } from '@freddie/cosmokit'
 import z from '@freddie/schemastery'
 
-/** Shared console log exporter implementation used by Node and browser builds. */
 export class ConsoleExporter {
   static name = 'logger-console'
 

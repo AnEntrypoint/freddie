@@ -5,7 +5,6 @@ function isBuildFailure(e) {
   return Array.isArray(e?.errors) && e.errors.every((error) => error.text)
 }
 
-/** Log HMR build failures with code frames when source locations are available. */
 export function handleError(ctx, e) {
   if (!isBuildFailure(e)) {
     ctx.logger.warn(e)

@@ -1,5 +1,3 @@
-/** Persistent append-only lists with bounded copying and JSON checkpoint validation. */
-
 import { z } from 'zod'
 
 const CHUNK_CAPACITY = 64

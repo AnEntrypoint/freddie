@@ -1,33 +1,3 @@
-/**
- * Rescope the vendored Cordis packages into the `@freddie` scope, and undo
- * that rescope with `--reverse`. Every harness package declares `cordis` as a
- * peer dependency, so publication carries this framework layer too; publishing
- * it under the upstream names would squat them on the registry
- * ([rationale](../.agents/notes/implemented/process/2026-08-10-vendor-package-rescope.md),
- * [name mapping](../docs/rescope.md)).
- *
- * The generic pass rewrites ONLY delimited, complete package-name tokens:
- * `'old'` / `"old"` / `` `old` `` / `'old/subpath'`, plus a YAML `name: old`
- * scalar. A match needs a quote (or `name: `) immediately left and the matching
- * quote — optionally after a `/subpath` — immediately right, which excludes
- * `cordis.yml`, the Loader's `cordis:` builtin prefix, `cordis-config-entry`,
- * `@freddie/freddie-tool-cordis`, and `cordiverse/cordis`, and makes the
- * rewrite idempotent because the scoped name's `cordis` is preceded by `/`.
- * Markdown follows the rename inside every fence, and in `docs/` prose too:
- * a tutorial that teaches an unresolvable name is wrong, while prose elsewhere
- * records what was true when it was written.
- *
- * Sites the token rule cannot express (dot-notation access, unquoted object
- * keys, regex literals, the vendored-manifest table) are listed in
- * {@link EXACT_EDITS} with an exact hit count, so an upstream change to one of
- * them fails loudly instead of being silently skipped.
- *
- * Usage: `pnpm run rescope-vendor [--apply|--check] [--reverse]`. Without a
- * mode it reports what would change. `--check` asserts the post-state: no
- * residue, every exact edit landed, every postcondition holds, and a second
- * `--apply` would be a no-op.
- */
-
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -35,15 +5,6 @@ import { fileURLToPath } from 'node:url'
 
 const root = resolve(import.meta.dirname, '..')
 
-/**
- * One vendored package's directory, upstream npm name, and rescoped name.
- * @typedef {{ directory: string, upstream: string, scoped: string }} VendorRename
- */
-
-/**
- * The mapping this codemod applies; `framework/README.md` carries the same table.
- * @type {VendorRename[]}
- */
 const RENAMES = [
   { directory: 'cordis', upstream: 'cordis', scoped: '@freddie/cordis' },
   { directory: 'cosmokit', upstream: 'cosmokit', scoped: '@freddie/cosmokit' },
@@ -57,17 +18,6 @@ const RENAMES = [
 ]
 
 const EXTENSIONS = ['.ts', '.tsx', '.js', '.mjs', '.cjs', '.tpl', '.json', '.yml', '.yaml', '.md']
-
-/**
- * An exact-string edit the token rule cannot express, with its required hit count.
- * @typedef {{ id: string, file: string, find: string, replace: string, expect: number }} ExactEdit
- */
-
-/**
- * A file where an upstream name also appears as a vendor DIRECTORY name or an
- * upstream runtime identifier: the generic pass is disabled for the listed
- * names and {@link EXACT_EDITS} renames the real package-name occurrences.
- */
 
 const GENERIC_SKIPS = [
   { file: 'framework/schemastery/src/index.js', upstream: ['schemastery'] },
@@ -96,8 +46,6 @@ const GENERIC_SKIPS = [
   { file: 'packages/runtime-diagnostics/inspector/src/shared.js', upstream: ['cordis'] },
 ]
 
-/** A string that must appear exactly `count` times once the rescope has run. */
-
 const POSTCONDITIONS = [
   { file: 'framework/cordis/package.json', text: '"name": "@freddie/cordis"', count: 1 },
   { file: 'framework/hmr/package.json', text: '"name": "@freddie/cordis-plugin-hmr"', count: 1 },
@@ -107,12 +55,6 @@ const POSTCONDITIONS = [
   { file: 'apps/cli/config/agent-presets/cordis/agent.cordis.yml', text: 'corrupting the `cordis` preset', count: 1 },
 ]
 
-/**
- * Every exact edit, in application order. Each `find` is written against the
- * PRE-rename text because these run before the generic pass, so no `find` may
- * quote a neighbouring line the generic pass would rewrite.
- * @type {ExactEdit[]}
- */
 const EXACT_EDITS = [
   {
     id: 'pnpm-release-age',
@@ -204,7 +146,6 @@ const EXACT_EDITS = [
   })),
 ]
 
-/** Files the rescope must never rewrite. */
 function excluded(file) {
   if (file === 'scripts/rescope-vendor.js') return true
   if (file.startsWith('.agents/notes/')) return true
@@ -218,8 +159,6 @@ function excluded(file) {
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
-
-/** One name's rewrite, precompiled for both delimited forms. */
 
 function patterns(reverse) {
   return RENAMES
@@ -250,17 +189,6 @@ function rewriteLine(line, file, all) {
   return out
 }
 
-/**
- * Rewrite a file's eligible lines.
- *
- * Markdown splits in two. Every fence is code a reader copies or a
- * configuration they mount, so every fence follows the rename regardless of its
- * info string. Prose follows it only under `docs/`, where a sentence quoting
- * `` `cordis` `` teaches a name this repository no longer resolves; elsewhere
- * prose is a record of what was true when it was written, and the same spelling
- * can mean something else entirely — the Python SDK's `cordis` option, or the
- * unvendored `@cordisjs/plugin-http`.
- */
 function rewrite(text, file, all) {
   const markdown = file.endsWith('.md')
   const prose = markdown && file.startsWith('docs/')
@@ -290,26 +218,6 @@ function classify(file) {
   return 'Markdown fences and docs prose'
 }
 
-/**
- * One exact edit's state in the text it targets. `pending` means the source
- * form is present and the target form absent; `applied` means the reverse;
- * anything else — a partial application, a moved site, or a DUPLICATED
- * insertion — is `invalid`, so it fails the run instead of being applied again.
- * @typedef {'pending' | 'applied' | 'invalid'} ExactEditState
- */
-
-/**
- * Classify one exact edit against its target text.
- *
- * An insertion keeps its anchor (`replace` contains `find`) and a deletion
- * keeps its remainder (`find` contains `replace`), so neither can be judged by
- * the source form alone: the surviving side counts the target form instead.
- * @param text - the complete current text of the edited file.
- * @param find - the source form, already oriented for the running direction.
- * @param replace - the target form, already oriented for the running direction.
- * @param expect - how many occurrences one complete application produces.
- * @returns {ExactEditState} Whether the edit is pending, already applied, or invalid.
- */
 export function exactEditState(text, find, replace, expect) {
   const hits = text.split(find).length - 1
   const landed = text.split(replace).length - 1

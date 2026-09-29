@@ -1,5 +1,3 @@
-/** Canonical packed-row and envelope projection helpers for repository session fixtures. */
-
 import { deepStrictEqual } from 'node:assert'
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
@@ -33,16 +31,6 @@ function withoutEnvelope(events) {
   })
 }
 
-/**
- * Canonicalize one JSONL document when its first record is a session header.
- * The header line remains byte-identical; body records decode to logical events,
- * re-encode with {@link packChunkRuns}, and omit storage sequence/time envelopes.
- * Non-session JSONL returns undefined.
- *
- * @param content - JSONL source text.
- * @param label - path-like diagnostic label.
- * @returns Canonical text for a session fixture, otherwise undefined.
- */
 export function canonicalSessionFixture(content, label = '<session-fixture>') {
   const headerLine = content.split(/\r?\n/).find(line => line.trim().length > 0)
   if (headerLine === undefined) return undefined
@@ -75,12 +63,6 @@ export function canonicalSessionFixture(content, label = '<session-fixture>') {
   return canonical
 }
 
-/**
- * Discover tracked and unignored untracked JSONL files through Git.
- *
- * @param root - repository root.
- * @returns Stable repository-relative paths.
- */
 function discoverJsonlFiles(root) {
   return execFileSync(
     'git',
@@ -91,12 +73,6 @@ function discoverJsonlFiles(root) {
     .sort()
 }
 
-/**
- * Inspect every repository JSONL whose first record is a session header.
- *
- * @param root - repository root.
- * @returns Session fixtures with current and canonical text.
- */
 export function inspectSessionFixtureLayouts(root) {
   return discoverJsonlFiles(root).flatMap((path) => {
     const source = readFileSync(resolve(root, path), 'utf8')

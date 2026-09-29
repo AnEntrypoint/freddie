@@ -29,7 +29,6 @@ function replaceKeys(target, source) {
   return Object.assign(target, source)
 }
 
-/** One configured plugin node inside an `EntryTree`. */
 export class Entry {
   static key = Symbol.for('cordis.entry')
 
@@ -63,7 +62,6 @@ export class Entry {
     return id
   }
 
-  /** True when this entry or any owning parent entry is disabled. */
   get disabled() {
     return this._disabled(this.options)
   }
@@ -79,10 +77,6 @@ export class Entry {
     return false
   }
 
-  /**
-   * Effective disabled state: a `!!js` expression evaluates against the loader
-   * context. The raw node stays in the options, so write-back keeps the form.
-   */
   disabledOf(options) {
     return isJsExpr(options.disabled)
       ? Boolean(this.evaluate(options.disabled.__jsExpr))
@@ -120,7 +114,6 @@ export class Entry {
     }
   }
 
-  /** Merge new options, restart as needed, and persist through the parent tree. */
   async update(options, create = false, force = false) {
     const previousOptions = this.options
     const legacy = { ...previousOptions }
@@ -237,7 +230,6 @@ export class Entry {
     return result
   }
 
-  /** Import and start the configured plugin if it is not already running. */
   async init() {
     try {
       await (this._initTask ??= this._init())

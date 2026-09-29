@@ -1,20 +1,10 @@
-/** Shared repository file discovery and line-oriented reference scanning. */
-
 import { globSync, readFileSync, realpathSync } from 'node:fs'
 import { relative, resolve, sep } from 'node:path'
 
-/** Whether a repository path is frozen Agent Note history, not evolving source prose. */
 export function isArchivedAgentNotePath(path) {
   return path.replaceAll('\\', '/').startsWith('.agents/notes/archived/')
 }
 
-/**
- * Expand repository-relative globs and deduplicate symlinked files.
- * @param root - absolute repository root.
- * @param patterns - repository-relative glob patterns, processed in order.
- * @param isExcluded - optional predicate over each matched relative path.
- * @returns matched files in stable first-seen order.
- */
 export function uniqueRepoFiles(
   root,
   patterns,
@@ -36,16 +26,6 @@ export function uniqueRepoFiles(
   return files
 }
 
-/**
- * Scan regex matches line by line and return the normalized matches rejected by
- * a caller predicate.
- * @param root - absolute repository root used for violation paths.
- * @param absPath - absolute text-file path to scan.
- * @param pattern - global regex matched independently against each line.
- * @param normalize - maps raw regex text to the reference the gate evaluates.
- * @param isViolation - returns true when the normalized reference is invalid.
- * @returns every rejected reference in source order.
- */
 export function findReferenceViolations(
   root,
   absPath,

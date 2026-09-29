@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Vendored upstream paths follow vendor/README.md instead of repository naming policy.
 root=$(git rev-parse --show-toplevel)
 candidate_file=$(mktemp)
 trap 'unlink "$candidate_file"' EXIT

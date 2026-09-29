@@ -1,21 +1,3 @@
-/**
- * Install packed tarballs into a throwaway consumer outside the repository and
- * drive the installed executable with plain Node.
- *
- * Every tarball the installed tree needs comes from `--from`, so the only
- * registry traffic is for external dependencies. That matters beyond hermetic
- * verification: the harness packages declare the vendored framework as a peer,
- * those packages live in another release sequence, and this job must not depend
- * on the registry already carrying versions that match — one pull request may
- * bump both families before either publishes — so a freddie verification passes the
- * vendored family's pack output too, while publishing only its own
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
- *
- * What this proves is that `files` selected a complete payload and that the
- * published dependency ranges resolve. A workspace link or a stale `lib/` in the
- * checkout cannot stand in for a missing file here.
- */
-
 import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -27,12 +9,6 @@ import { packedIdentity } from './tarball.js'
 
 const OMIT_LANDLOCK_PLATFORM_PACKAGES = '--omit=optional'
 
-/**
- * Environment for the installed artifact: no host Node hooks, no host DeepSeek
- * Harness home, and no ambient npm user agent that would confuse npm.
- * @param consumerRoot - the throwaway consumer directory.
- * @returns The child environment.
- */
 function consumerEnvironment(consumerRoot) {
   const environment = { ...process.env }
   delete environment.npm_config_user_agent
@@ -45,15 +21,6 @@ function consumerEnvironment(consumerRoot) {
   return environment
 }
 
-/**
- * Every packed tarball in the given directories, as `file:` dependency entries.
- *
- * The directories are read by their contents rather than a pack order file: a
- * directory here can hold tarballs packed only to satisfy a cross-sequence
- * dependency, which no release order describes.
- * @param directories - absolute directories holding packed tarballs.
- * @returns Package name to tarball file URL, and the version each carries.
- */
 function packedDependencies(directories) {
   const dependencies = new Map()
   for (const directory of directories) {
@@ -68,7 +35,6 @@ function packedDependencies(directories) {
   return dependencies
 }
 
-/** Install every tarball under `--from` and drive the `--family` entry. */
 function main() {
   const { values } = parseArgs({
     options: { family: { type: 'string' }, from: { type: 'string', multiple: true } },

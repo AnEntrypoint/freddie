@@ -1,5 +1,3 @@
-/** Local node-pty terminal-process implementation for the subprocess seam. */
-
 import { Buffer } from 'node:buffer'
 import { constants } from 'node:os'
 import { PassThrough } from 'node:stream'
@@ -16,15 +14,6 @@ function signalName(number) {
   return null
 }
 
-/**
- * A local terminal whose process-session ownership stays below the PTY backend.
- * The seam's terminate() promise — no write, inspection, or signal in flight
- * after settlement — holds here only because every handle call completes
- * synchronously under the hood (node-pty write, ps-based inspection). A first
- * genuinely asynchronous step in any handle call must add the tracking a
- * remote provider needs.
- * @implements {import('@freddie/freddie-subprocess').SubprocessTerminalHandle}
- */
 export class LocalTerminalHandle {
   pid
   output = new PassThrough()
@@ -36,15 +25,8 @@ export class LocalTerminalHandle {
   cleanup
   exited = false
   trackedDescendants = []
-  /** The spawned shell's start identity; scans stop adopting members once the root pid no longer carries it. */
   rootIdentity
 
-  /**
-   * @param terminal - allocated node-pty process.
-   * @param inspector - platform process/session operations.
-   * @param graceMs - TERM-to-KILL and exit-wait grace.
-   * @param platform - host platform; defaults to the running platform, injectable for deterministic tests.
-   */
   constructor(terminal, inspector, graceMs, platform = process.platform) {
     this.terminal = terminal
     this.inspector = inspector
@@ -120,10 +102,6 @@ export class LocalTerminalHandle {
     return cleanup
   }
 
-  /**
-   * Force-terminate the observable session synchronously during Node's exit
-   * event. This does not claim quiescence and does not replace terminate().
-   */
   terminateForHostExit() {
     this.forceStopDescendants()
     this.forceStopShell()

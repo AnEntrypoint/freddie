@@ -1,5 +1,3 @@
-/** Repository-wide canonical-layout check for committed session snapshots. */
-
 import { resolve } from 'node:path'
 import { expect, it } from 'vitest'
 import { inspectSessionFixtureLayouts } from './session-fixture-layout.js'

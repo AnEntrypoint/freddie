@@ -1,11 +1,4 @@
 /**
- * The `freddie-resource://file/…` address grammar: how a file is named across the
- * Sidebar and the resource model, built and parsed without touching a
- * filesystem.
- * @module
- */
-
-/**
  * A file resource address, in one of two scopes.
  *
  * Every resource address is `freddie-resource://<type>/…`, the URI host naming
@@ -28,41 +21,25 @@
  *   | { readonly scope: 'absolute', readonly path: string }} FileAddress
  */
 
-/** The scheme and type every file address opens with. */
 const FILE_ADDRESS_PREFIX = 'freddie-resource://file/'
 
-/** Component-encode one id or path segment, keeping `:` literal for drive letters. */
 function encodeSegment(segment) {
   return encodeURIComponent(segment).replace(/%3A/gi, ':')
 }
 
-/** Encode a `/`-separated path segment by segment. */
 function encodePath(path) {
   return path.split('/').map(encodeSegment).join('/')
 }
 
-/** Whether a decoded first path segment is a Windows drive (`C:`). */
 function isDriveSegment(segment) {
   return segment !== undefined && /^[A-Za-z]:$/.test(segment)
 }
 
-/**
- * Build the address of a file read through one Session.
- * @param sessionId - the Session whose Host workspace resolves the path.
- * @param path - absolute or workspace-relative path; backslashes are normalized to `/`, and leading `./` prefixes are dropped.
- * @returns the `freddie-resource://file/session/<sessionId>/<path>` address.
- */
 export function sessionFileAddress(sessionId, path) {
   const normalized = path.replace(/\\/g, '/').replace(/^(?:\.\/)+/, '')
   return `${FILE_ADDRESS_PREFIX}session/${encodeSegment(sessionId)}/${encodePath(normalized)}`
 }
 
-/**
- * Build the address of a file by its absolute path.
- * @param path - absolute path; backslashes are normalized to `/` and the leading `/` is dropped,
- *   except that a UNC path (`\\server\share`) keeps one empty first segment.
- * @returns the `freddie-resource://file/absolute/<path>` address.
- */
 export function absoluteFileAddress(path) {
   const normalized = path.replace(/\\/g, '/')
   const unc = normalized.startsWith('//')
@@ -70,12 +47,6 @@ export function absoluteFileAddress(path) {
   return `${FILE_ADDRESS_PREFIX}absolute/${unc ? '/' : ''}${encodePath(absolute)}`
 }
 
-/**
- * Read a file address back into its parts without resolving `.` or `..`.
- * Query and fragment suffixes are ignored; encoded path segments are decoded.
- * @param address - a candidate address.
- * @returns the parts, or `undefined` when the string is not a `freddie-resource://file/` URI in a known scope with a path, or a segment is not validly encoded.
- */
 export function parseFileAddress(address) {
   try {
     if (!address.startsWith(FILE_ADDRESS_PREFIX)) return undefined

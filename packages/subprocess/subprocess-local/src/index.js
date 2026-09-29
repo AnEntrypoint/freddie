@@ -1,13 +1,3 @@
-/**
- * Local Service Provider for the subprocess capability seam. Each spawn is a detached
- * process tree with the spec's per-stream stdio dispositions. Normal disposal
- * terminates and joins live trees; Node's synchronous exit phase force-stops
- * any trees the service still owns. It has no config: every disposition and
- * limit arrives on the spec, so the deployment-varying choices stay with the
- * caller's config (the bash executor's, the LSP host's, …).
- * @module @freddie/freddie-subprocess-local
- */
-
 import { constants } from 'node:fs'
 import { access, stat } from 'node:fs/promises'
 import { delimiter, extname, isAbsolute, resolve } from 'node:path'
@@ -17,21 +7,10 @@ import { childEnv, spawnSubprocess } from './spawn.js'
 import { createProcessInspector } from './process-inspector.js'
 import { LocalTerminalHandle } from './terminal.js'
 
-/**
- * Local subprocess service: detached process trees, Node-shaped stdio
- * dispositions (raw pipes, inherit, bounded tail-keep collection with spill
- * files), credential-scrubbed environment, and tree-scoped signalling with
- * SIGTERM→grace→SIGKILL escalation, plus synchronous final termination during
- * JavaScript-observable host exit.
- */
 export class LocalSubprocessRuntime extends SubprocessRuntime {
-  /** Live handles retained for normal disposal and synchronous host-exit finalization. */
   live = new Set()
-  /** Live terminals retained through normal quiescence or host-exit finalization. */
   terminals = new Set()
-  /** Test hook: spill and platform knobs forwarded to spawnSubprocess. */
   internals = {}
-  /** Test hook for platform process inspection; production resolves lazily on terminal spawn. */
   terminalInspector
 
   constructor(ctx) {
@@ -157,7 +136,6 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
   }
 }
 
-/** Read a Windows environment key using the platform's case-insensitive semantics. */
 function environmentValue(env, name) {
   const exact = env[name]
   if (exact !== undefined || process.platform !== 'win32') return exact

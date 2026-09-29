@@ -1,17 +1,3 @@
-/**
- * Publish one packed release family from the tarballs the pack step produced.
- *
- * Publication is decided per package against the registry, never from a list of
- * "what this release includes": a version the registry lacks is published, a
- * version whose published tarball has the same integrity is skipped, and a
- * version whose published tarball differs fails the run — that last case means
- * the content changed without a version bump
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
- *
- * Skipping on identical integrity is what makes re-running the publish step over
- * the same artifact safe.
- */
-
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -21,50 +7,20 @@ import { releaseFamily } from './families.js'
 import { attempt, attemptEchoed, isEntry } from './process.js'
 import { packedIdentity, readPublishOrder } from './tarball.js'
 
-/**
- * Registry codes that answer a write which did not settle, rather than a
- * rejection of what was sent. `E409 Failed to save packument` is the one this
- * sequence actually hits: publishing several packages in a row can outrun the
- * registry's own processing. A rejected payload (`E403` over an existing
- * version, a malformed manifest) never clears on a retry and must surface.
- */
 const TRANSIENT_PUBLISH_CODES = ['E409', 'E429', 'E500', 'E502', 'E503', 'E504', 'ETIMEDOUT', 'ECONNRESET', 'EAI_AGAIN']
 
-/** How many times one tarball's publish is attempted before the run fails. */
 const PUBLISH_ATTEMPTS = 4
 
-/**
- * Shortest gap between two publishes, and the first retry backoff.
- *
- * The registry needs a moment to commit a packument before the next write; back
- * to back publishes are what produce `E409`.
- */
 const PUBLISH_SPACING_MS = 2_000
 
-/**
- * Whether a failed publish is worth another attempt.
- * @param output - combined npm output.
- * @returns True when the registry reported a write it did not commit.
- */
 function isTransientFailure(output) {
   return TRANSIENT_PUBLISH_CODES.some(code => output.includes(`code ${code}`))
 }
 
-/**
- * The subresource integrity string npm records for a tarball.
- * @param tarball - absolute tarball path.
- * @returns A `sha512-<base64>` string.
- */
 function integrityOf(tarball) {
   return `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`
 }
 
-/**
- * Ask the registry whether a version exists, and with what integrity.
- * @param name - package name.
- * @param version - package version.
- * @returns The registry state for that version.
- */
 function registryState(name, version) {
   const result = attempt('npm', ['view', `${name}@${version}`, 'dist.integrity', '--json'])
   if (result.status !== 0) {
@@ -79,16 +35,6 @@ function registryState(name, version) {
   return { kind: 'present', integrity: parsed }
 }
 
-/**
- * Publish one tarball, retrying a registry write that did not settle.
- *
- * Every retry re-reads the registry first, because `E409` can answer a write
- * that landed anyway: republishing a version that now exists fails permanently,
- * so the same integrity appearing under the failed attempt counts as success.
- * @param tarball - absolute tarball path.
- * @param name - package name the tarball declares.
- * @param version - package version the tarball declares.
- */
 async function publishTarball(tarball, name, version) {
   const tagArgs = version.includes('-') ? ['--tag', 'next'] : []
   for (let tries = 1; tries <= PUBLISH_ATTEMPTS; tries += 1) {
@@ -113,7 +59,6 @@ async function publishTarball(tarball, name, version) {
   }
 }
 
-/** Publish the family named by `--family` from the directory named by `--from`. */
 async function main() {
   const { values } = parseArgs({
     options: { family: { type: 'string' }, from: { type: 'string' } },

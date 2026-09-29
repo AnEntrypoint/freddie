@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module'
 
-/** @see https://github.com/nodejs/node/blob/main/src/module_wrap.h */
 export const ModulePhase = {
   Source: 1,
   Evaluation: 2,
@@ -33,7 +32,6 @@ function fromInternal() {
   }
 }
 
-/** Helpers for locating the current Node internal module loader. */
 export const ModuleLoader = {
   fromInternal,
 }

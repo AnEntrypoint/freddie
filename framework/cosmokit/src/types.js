@@ -1,13 +1,5 @@
 import { isNullable } from './misc.js'
 
-/**
- * Test whether a value matches a global constructor name, using `instanceof` with a
- * `toStringTag` fallback. Called with a single argument, returns a reusable predicate for that
- * constructor name instead of testing a value immediately.
- * @param type - global constructor name to test against.
- * @param [value] - the value to test; omit to get back a predicate for `type`.
- * @returns the boolean test result, or (when `value` is omitted) a predicate function.
- */
 export function is(type, value) {
   if (arguments.length === 1) return (value) => is(type, value)
   return type in globalThis && value instanceof globalThis[type]
@@ -64,7 +56,6 @@ function fromHex(source) {
   return Uint8Array.from(buffer).buffer
 }
 
-/** Binary source detection and base64/hex conversion helpers. */
 export const Binary = {
   is: isArrayBufferLike,
   isSource: isArrayBufferSource,
@@ -75,16 +66,11 @@ export const Binary = {
   fromHex,
 }
 
-/** Decode a base64 string into binary data. */
 export const base64ToArrayBuffer = Binary.fromBase64
-/** Encode binary data as base64. */
 export const arrayBufferToBase64 = Binary.toBase64
-/** Decode a hex string into binary data. */
 export const hexToArrayBuffer = Binary.fromHex
-/** Encode binary data as hex. */
 export const arrayBufferToHex = Binary.toHex
 
-/** Deep-clone common JavaScript values while preserving prototypes and cycles. */
 export function clone(source, refs = new Map()) {
   if (!source || typeof source !== 'object') return source
   if (is('Date', source)) return new Date(source.valueOf())
@@ -113,7 +99,6 @@ export function clone(source, refs = new Map()) {
   return result
 }
 
-/** Deeply compare arrays, dates, regexps, buffers, and plain object fields. */
 export function deepEqual(a, b, strict) {
   if (a === b) return true
   if (!strict && isNullable(a) && isNullable(b)) return true

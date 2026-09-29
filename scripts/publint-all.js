@@ -1,5 +1,3 @@
-/** Run publint over the exact manifest-declared publication view of every package. */
-
 import {
   globSync,
   readdirSync,
@@ -86,7 +84,6 @@ function addPath(path, paths) {
   }
 }
 
-/** Return relative imports whose targets are absent from the publication view. */
 function publicationClosureViolations(target, files) {
   const published = new Set(files.map(file => file.name))
   const violations = []
@@ -107,7 +104,6 @@ function publicationClosureViolations(target, files) {
   return violations
 }
 
-/** Paths a relative JavaScript module request can resolve to in a published package. */
 function resolutionCandidates(target) {
   const base = target.replace(/\/+$/, '')
   return [
@@ -116,7 +112,6 @@ function resolutionCandidates(target) {
   ]
 }
 
-/** Extract relative static imports, re-exports, dynamic imports, and requires. */
 function relativeImports(file, sourceText) {
   const source = ts.createSourceFile(file, sourceText, ts.ScriptTarget.Latest, false, ts.ScriptKind.JS)
   const imports = []

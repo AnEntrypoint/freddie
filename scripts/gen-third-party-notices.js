@@ -1,13 +1,3 @@
-/**
- * Generate `THIRD_PARTY_NOTICES.md` from the workspace manifests: every
- * external dependency named by a workspace `package.json`, the vendored-package
- * manifest in `framework/README.md`, and the pnpm patch list. License and
- * repository metadata come from the installed store, so the tree must be
- * installed. `--check` verifies the committed artifact. Tier policy and
- * ownership live in
- * `.agents/notes/implemented/process/2026-07-30-generated-third-party-notices.md`.
- */
-
 import { existsSync, globSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as yaml from 'js-yaml'
@@ -16,19 +6,9 @@ import parseSpdx from 'spdx-expression-parse'
 const root = resolve(import.meta.dirname, '..')
 const OUT = 'THIRD_PARTY_NOTICES.md'
 
-/** Dependency-declaration kinds a consumer resolves at runtime. */
 const RUNTIME_KINDS = ['dependencies', 'optionalDependencies']
-/** All manifest sections that name an external package this file must disclose. */
 const ALL_KINDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
 
-/**
- * Workspace areas that never reach a user: repository tooling and gates (the
- * root manifest), test infrastructure, the documentation site, the runnable
- * demo leaves, and the native launcher's build workspace. A runtime
- * declaration by anything outside these areas is a disclosure-relevant
- * runtime dependency because any plugin package can be mounted from a user's
- * `cordis.yml`.
- */
 const DEV_ONLY_AREAS = [
   'package.json',
   'packages/test-support/',
@@ -38,24 +18,16 @@ const DEV_ONLY_AREAS = [
   'native/',
 ]
 
-/** First-party public native packages: reachable at runtime but not third-party. */
 const FIRST_PARTY = new Set([
   '@freddie/node-addon-landlock-run',
   '@freddie/node-addon-landlock-run-linux-arm64',
   '@freddie/node-addon-landlock-run-linux-x64',
 ])
 
-/** Official SDK identity covered by the project's narrow owner authorization. */
 export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
 
-/**
- * Whether a non-permissive runtime declaration has an identity-scoped owner
- * authorization. This does not reclassify its terms as permissive.
- * @param name - exact npm package identity.
- * @returns true only for the official Claude Agent SDK package.
- */
 export function isOwnerAuthorizedRuntime(name) {
   return name === CLAUDE_AGENT_SDK_PACKAGE
 }
@@ -74,28 +46,18 @@ const MANIFESTS_WITHOUT_REPOSITORY_FIELD = {
   'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
 }
 
-/**
- * Metadata overrides where the installed manifest is wrong or unreachable.
- * Each entry documents why the store cannot answer.
- */
 const OVERRIDES = {
   ...RUST_WORKSPACE_BINS_WITHOUT_LICENSE_FIELD,
   ...SERVERS_REPO_MID_RELICENSING_WITH_PER_CONTRIBUTION_TERMS,
   ...MANIFESTS_WITHOUT_REPOSITORY_FIELD,
 }
 
-/** Read and parse a workspace-relative `package.json`. */
 function readManifest(rel) {
   return JSON.parse(readFileSync(resolve(root, rel), 'utf8'))
 }
 
 const DEMO_LEAF_MANIFESTS_REACHED_ONLY_THROUGH_EXAMPLES_PACKAGE = ['examples/*/package.json']
 
-/**
- * Manifest globs, derived from the workspace declarations rather than listed
- * here, so a new member area (`tools/*`) is read the day it is declared.
- * @returns one glob per manifest-bearing location, repository-relative.
- */
 export function manifestPatterns(rootMembers) {
   return [
     'package.json',
@@ -104,7 +66,6 @@ export function manifestPatterns(rootMembers) {
   ]
 }
 
-/** The `packages:` member globs declared by one pnpm workspace file. */
 function workspaceMembers(rel) {
   const declared = (yaml.load(readFileSync(resolve(root, rel), 'utf8'))).packages
   if (!Array.isArray(declared) || declared.length === 0) {
@@ -113,13 +74,6 @@ function workspaceMembers(rel) {
   return declared.map(member => String(member))
 }
 
-/**
- * Every workspace manifest, keyed by repository-relative path, plus the set of
- * workspace package names. Paths are normalized to `/` at ingestion: Node's
- * `fs.globSync` returns OS-native separators, and the area matching in
- * `tierExternalDeps` compares `/`-suffixed prefixes, so Windows backslashes
- * would silently push dev-area manifests into the runtime tier.
- */
 function loadWorkspaceManifests() {
   const patterns = manifestPatterns(workspaceMembers('pnpm-workspace.yaml'))
   const manifests = new Map()
@@ -136,16 +90,6 @@ function loadWorkspaceManifests() {
   return { manifests, names }
 }
 
-/**
- * One platform payload declared by the official Claude Agent SDK.
- * @typedef {{ name: string, version: string }} ClaudePlatformPayload
- */
-
-/**
- * Current SDK and CLI distribution facts derived from the installed SDK manifest.
- * @typedef {{ sdkVersion: string, claudeCodeVersion: string, payloads: ClaudePlatformPayload[] }} ClaudeDistribution
- */
-
 function requiredManifestString(
   value,
   field,
@@ -156,12 +100,6 @@ function requiredManifestString(
   return value
 }
 
-/**
- * Derive the official platform payload set without a version or platform
- * allowlist. Only identities in the SDK's own package namespace are covered.
- * @param manifest - installed official SDK manifest.
- * @returns {ClaudeDistribution} current SDK, CLI, and optional platform payload facts.
- */
 export function claudeDistributionFromManifest(
   manifest,
 ) {
@@ -195,18 +133,6 @@ export function claudeDistributionFromManifest(
   return { sdkVersion, claudeCodeVersion, payloads }
 }
 
-/**
- * Resolve one package's manifest inside a pnpm virtual store. The prefix scan
- * matches ordinary `@scope+name@version` directory names; pnpm 11 truncates
- * long names (a peer-suffixed name past the length limit becomes
- * `<prefix>_<hash>`), so a content scan falls back over the whole store when
- * the prefix misses.
- *
- * @param virtual - the `.pnpm` virtual store directory to scan.
- * @param name - the external package name, exactly as `node_modules` spells it.
- * @returns the parsed manifest, or `undefined` when neither the prefix match
- *   nor the content scan finds the package's `package.json`.
- */
 export function virtualManifest(virtual, name) {
   const prefix = `${name.replace('/', '+')}@`
   const entry = readdirSync(virtual).find(dir => dir.startsWith(prefix))
@@ -224,7 +150,6 @@ export function virtualManifest(virtual, name) {
 
 const INSTALLED_PACKAGE_STORES = ['node_modules', 'native/landlock-run/node_modules']
 
-/** Resolve one installed external package manifest from either pnpm store. */
 function installedManifest(name) {
   let manifest
   for (const store of INSTALLED_PACKAGE_STORES) {
@@ -241,7 +166,6 @@ function installedManifest(name) {
   return manifest
 }
 
-/** License and repository URL for an installed external package, from the pnpm store. */
 function installedMetadata(name) {
   const override = OVERRIDES[name]
   const manifest = installedManifest(name)
@@ -285,7 +209,6 @@ function collectClaudeDistribution() {
   return distribution
 }
 
-/** Normalize a manifest repository/homepage value to a browsable https URL. */
 function normalizeRepo(raw) {
   if (raw === undefined || raw === '') return undefined
   let url = raw
@@ -298,13 +221,6 @@ function normalizeRepo(raw) {
   return url
 }
 
-/**
- * External npm dependencies, tiered by which workspace area declares them at
- * runtime: a package is runtime when any manifest outside `DEV_ONLY_AREAS`
- * names it in `dependencies`/`optionalDependencies`. A package declared only
- * by tooling, test infrastructure, the website, or the demo leaves — whatever
- * the declaring section is called — is development-only.
- */
 function collectNpmDeps() {
   const { manifests, names } = loadWorkspaceManifests()
   return [...tierExternalDeps(manifests, names)]
@@ -313,12 +229,6 @@ function collectNpmDeps() {
     .map(([name, runtime]) => ({ name, ...installedMetadata(name), runtime }))
 }
 
-/**
- * Tier every external dependency the workspace declares.
- * @param manifests - workspace manifests keyed by repository-relative path.
- * @param names - every workspace package name, which never counts as external.
- * @returns each external package mapped to whether it is a runtime dependency.
- */
 export function tierExternalDeps(manifests, names) {
   const tiers = new Map()
   for (const [path, manifest] of manifests) {
@@ -334,16 +244,6 @@ export function tierExternalDeps(manifests, names) {
   return tiers
 }
 
-/**
- * A vendored package row parsed out of the `framework/README.md` manifest table.
- * @typedef {{ npmName: string, upstreamName: string, upstream: string }} VendoredRow
- */
-
-/**
- * Parse the vendored-package manifest table out of `framework/README.md`.
- * @param text - the complete `framework/README.md` contents.
- * @returns {VendoredRow[]} one row per manifest-table entry, in table order.
- */
 export function parseVendoredRows(text) {
   const rows = []
   for (const line of text.split('\n')) {
@@ -357,12 +257,6 @@ export function parseVendoredRows(text) {
   return rows
 }
 
-/**
- * Parse the vendored manifest table and confirm it accounts for every vendored
- * directory. The `vendor/` tree — not the table — is the set that must be
- * disclosed, so a row that stops matching the table format is a hard error
- * rather than a package that quietly vanishes from the notices.
- */
 function collectVendored() {
   const rows = parseVendoredRows(readFileSync(resolve(root, 'framework/README.md'), 'utf8'))
   const onDisk = new Map()
@@ -388,21 +282,17 @@ function collectVendored() {
   return rows
 }
 
-/** pnpm-patched external packages, from `pnpm-workspace.yaml`. */
 function collectPatched() {
   const workspace = yaml.load(readFileSync(resolve(root, 'pnpm-workspace.yaml'), 'utf8'))
   return Object.entries(workspace.patchedDependencies ?? {}).map(([spec, patch]) => ({ spec, patch }))
 }
 
-/** SPDX identifiers this project may ship without further review. */
 const PERMISSIVE_LICENSES = new Set(['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0'])
 
-/** Some npm manifests write a choice with a slash although SPDX requires `OR`. */
 function slashChoiceAsSpdxOr(license) {
   return license.replace(/\s*\/\s*/g, ' OR ').trim()
 }
 
-/** Evaluate a parsed SPDX expression under the repository's license policy. */
 function isPermissiveSpdx(expression) {
   if ('conjunction' in expression) {
     return expression.conjunction === 'and'
@@ -414,16 +304,6 @@ function isPermissiveSpdx(expression) {
     && PERMISSIVE_LICENSES.has(expression.license)
 }
 
-/**
- * Whether an SPDX expression grants terms this project may ship under.
- * `OR` needs one permissive alternative, because the consumer chooses; `AND`
- * needs all of them, because every obligation applies. Anything that is not a
- * recognized permissive identifier — copyleft, an exception clause, or a
- * license this list has never seen — evaluates to false, so an unfamiliar
- * expression fails closed rather than passing on a partial match.
- * @param license - the SPDX expression from the package manifest.
- * @returns true when the expression's obligations are all permissive.
- */
 export function isPermissive(license) {
   const normalized = slashChoiceAsSpdxOr(license)
   try {
@@ -433,12 +313,6 @@ export function isPermissive(license) {
   }
 }
 
-/**
- * Render the sentence that isolates non-permissive development tooling, or
- * nothing at all when every development dependency is permissive.
- * @param deps - development dependencies whose license is not permissive.
- * @returns the paragraph to place after the development table.
- */
 function renderNonPermissiveNote(deps) {
   if (deps.length === 0) return ''
   const named = deps.map(dep => `\`${dep.name}\` (${dep.license})`)
@@ -446,7 +320,6 @@ function renderNonPermissiveNote(deps) {
   return `\n${subject} ${named.length === 1 ? 'runs' : 'run'} only as development tooling; their code is not linked into or distributed with any Freddie artifact.\n`
 }
 
-/** Render one npm dependency table. */
 function renderNpmTable(deps) {
   const lines = ['| Package | License |', '| --- | --- |']
   for (const dep of deps) lines.push(`| [\`${dep.name}\`](${dep.repo}) | ${dep.license} |`)
@@ -473,11 +346,6 @@ ${rows.join('\n')}
 `
 }
 
-/**
- * Refuse to render while a runtime dependency carries non-permissive terms that
- * no owner authorization covers: reaching a shipped surface makes that a
- * distribution decision the notices must not quietly absorb.
- */
 function requirePermissiveOrAuthorizedRuntime(runtimeDeps) {
   const nonPermissiveRuntime = runtimeDeps.filter(dep =>
     !isPermissive(dep.license)
@@ -488,10 +356,6 @@ function requirePermissiveOrAuthorizedRuntime(runtimeDeps) {
   }
 }
 
-/**
- * Render the complete notices document.
- * @returns the exact bytes `THIRD_PARTY_NOTICES.md` must hold.
- */
 export function render() {
   const npm = collectNpmDeps()
   const runtimeDeps = npm.filter(dep => dep.runtime)
@@ -557,9 +421,6 @@ function committedNoticesOrNullWhenUnreadable() {
   }
 }
 
-/** CLI entry: default writes the notices, `--check` fails if the committed copy
- * is stale. Guarded behind an entry-point check so importing this module for
- * tests neither regenerates the committed file nor calls process.exit. */
 function main() {
   const content = render()
   if (process.argv.includes('--check')) {

@@ -1,70 +1,29 @@
-/**
- * Bump one release family's version and commit it, so the published version is
- * readable from the repository rather than derived inside CI
- * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
- *
- * The freddie family shares one version across its publishable members, private
- * package manifests, and the workspace root:
- * `major`, `minor`, `patch`, or an explicit `x.y.z` (including a prerelease such
- * as `0.0.1-rc.1`). The vendored family has one version line per package, but
- * every release advances and publishes the complete family so the next release
- * never reuses an unchanged member's existing version from a different
- * repository state.
- *
- * The version lands in the manifests, the lockfile follows, and a human creates
- * the tag after the commit merges. CI never writes to the repository.
- */
-
 import { globSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, matchesGlob } from 'node:path'
 import { parseArgs } from 'node:util'
 import { releaseFamily } from './families.js'
 import { capture, isEntry } from './process.js'
 
-/** Files npm publishes whether or not `files` lists them. */
 const ALWAYS_PUBLISHED = ['package.json', 'README*', 'LICENSE*', 'LICENCE*']
 
-/**
- * Inputs that decide what a built payload contains. A package whose `files`
- * selects `lib/` publishes build output that git does not track, so a change to
- * the sources changes the tarball while no published path appears in the diff.
- */
 const BUILD_INPUTS = ['src/**']
 
-/** Release types the freddie family accepts besides an explicit version. */
 const RELEASE_TYPES = ['major', 'minor', 'patch']
 
-/** The workspace root manifest, which carries the freddie family's version. */
 const ROOT_MANIFEST = 'package.json'
 
-/**
- * Split a version into its release numbers, discarding any prerelease segment.
- * @param version - the current version.
- * @returns Major, minor, and patch.
- */
 function releaseNumbers(version) {
   const match = /^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z.-]+)?$/.exec(version)
   if (match === null) throw new Error(`cannot read release numbers from version ${version}`)
   return [Number(match[1]), Number(match[2]), Number(match[3])]
 }
 
-/**
- * Order two versions by their release numbers alone.
- * @param left - one version.
- * @param right - the other version.
- * @returns Negative when `left` is lower, positive when higher, zero when equal.
- */
 function compareReleaseNumbers(left, right) {
   const [leftMajor, leftMinor, leftPatch] = releaseNumbers(left)
   const [rightMajor, rightMinor, rightPatch] = releaseNumbers(right)
   return leftMajor - rightMajor || leftMinor - rightMinor || leftPatch - rightPatch
 }
 
-/**
- * The prerelease segment of a version, or undefined when it has none.
- * @param version - the version to read.
- * @returns The segment after the first `-`.
- */
 function prereleaseOf(version) {
   const index = version.indexOf('-')
   return index === -1 ? undefined : version.slice(index + 1)
@@ -72,7 +31,6 @@ function prereleaseOf(version) {
 
 const SHORTER_IDENTIFIER_LIST_RANKS_LOWER = -1
 
-/** Order two differing prerelease fields: numerics numerically and below alphanumerics. */
 function comparePrereleaseFields(leftField, rightField) {
   const leftNumeric = /^\d+$/.test(leftField)
   const rightNumeric = /^\d+$/.test(rightField)
@@ -82,17 +40,6 @@ function comparePrereleaseFields(leftField, rightField) {
   return leftField < rightField ? -1 : 1
 }
 
-/**
- * Order two versions by semver precedence.
- *
- * Git's version sort cannot stand in for this: `--sort=v:refname` places
- * `4.0.1-rc.1` above `4.0.1`, while semver gives a prerelease lower precedence
- * than the release it precedes. Prerelease identifiers compare field by field,
- * numeric fields numerically, so `rc.10` outranks `rc.1`.
- * @param left - one version.
- * @param right - the other version.
- * @returns Negative when `left` is lower, positive when higher, zero when equal.
- */
 export function compareVersions(left, right) {
   const numbers = compareReleaseNumbers(left, right)
   if (numbers !== 0) return numbers
@@ -115,12 +62,6 @@ export function compareVersions(left, right) {
   return 0
 }
 
-/**
- * The next freddie version.
- * @param current - the family's current shared version.
- * @param request - `major`, `minor`, `patch`, or an explicit version.
- * @returns The target version.
- */
 function nextSharedVersion(current, request) {
   if (!RELEASE_TYPES.includes(request)) {
     if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(request)) {
@@ -134,22 +75,6 @@ function nextSharedVersion(current, request) {
   return `${String(major)}.${String(minor)}.${String(patch + 1)}`
 }
 
-/**
- * The version a vendored package publishes next.
- *
- * The baseline is the higher of the manifest version and the last tagged
- * version: a vendor re-sync restores upstream's version, which is lower than
- * the release version this repository already reserved, and incrementing that
- * would reuse an existing version.
- *
- * A prerelease does not consume its own release numbers. Publishing
- * `4.0.1-rc.1` leaves `4.0.1` free, so the next stable version is `4.0.1`
- * rather than `4.0.2`, and a second prerelease keeps those numbers too.
- * @param current - the package's manifest version.
- * @param tagged - the version its newest tag names, when it has one.
- * @param prerelease - prerelease identifier to append, for a rehearsal publication.
- * @returns The target version.
- */
 export function nextVendorVersion(
   current,
   tagged,
@@ -168,12 +93,6 @@ export function nextVendorVersion(
   return prerelease === undefined ? numbers : `${numbers}-${prerelease}`
 }
 
-/**
- * Whether a repository-relative path reaches the member's published payload.
- * @param member - the member the path belongs to.
- * @param path - repository-relative path.
- * @returns True when `files`, npm's always-published set, or a build input selects it.
- */
 export function reachesPayload(member, path) {
   const relative = path.slice(member.directory.length + 1)
   const files = member.manifest.files
@@ -184,12 +103,6 @@ export function reachesPayload(member, path) {
     matchesGlob(relative, pattern) || matchesGlob(relative, `${pattern}/**`) || relative === pattern)
 }
 
-/**
- * The newest version a member tagged.
- * @param family - the member's family.
- * @param member - the member.
- * @returns The version, or undefined when the member has no release tag.
- */
 function lastTaggedVersion(family, member) {
   const prefix = family.tagPrefixFor(member)
   const versions = capture('git', ['tag', '--list', `${prefix}*`])
@@ -198,13 +111,6 @@ function lastTaggedVersion(family, member) {
   return versions.reduce((newest, candidate) => compareVersions(candidate, newest) > 0 ? candidate : newest)
 }
 
-/**
- * Write a version into a manifest, preserving formatting and key order.
- * @param root - repository root.
- * @param manifestPath - repository-relative manifest path.
- * @param from - the version the manifest currently carries.
- * @param to - the target version.
- */
 function writeVersion(root, manifestPath, from, to) {
   const path = join(root, manifestPath)
   const text = readFileSync(path, 'utf8')
@@ -213,11 +119,6 @@ function writeVersion(root, manifestPath, from, to) {
   writeFileSync(path, text.replace(line, `"version": "${to}"`))
 }
 
-/**
- * Read the workspace root version.
- * @param root - repository root.
- * @returns The root manifest version.
- */
 function rootVersion(root) {
   const manifest = JSON.parse(readFileSync(join(root, ROOT_MANIFEST), 'utf8'))
   const version = manifest.version
@@ -225,12 +126,6 @@ function rootVersion(root) {
   return version
 }
 
-/**
- * Discover private package manifests that share the freddie version without joining
- * its publish set.
- * @param root - repository root.
- * @returns Private package manifests sorted by path.
- */
 function privateDshVersions(root) {
   return globSync('packages/*/*/package.json', { cwd: root })
     .map(path => path.replaceAll('\\', '/'))
@@ -253,15 +148,6 @@ function privateDshVersions(root) {
     })
 }
 
-/**
- * Plan the freddie family's rewrite: one version for every publishable member,
- * private package, and the root.
- * @param family - the freddie family.
- * @param root - repository root.
- * @param members - the family's members.
- * @param request - `major`, `minor`, `patch`, or an explicit version.
- * @returns The manifests to rewrite and the shared target version.
- */
 export function planShared(
   family,
   root,
@@ -296,14 +182,6 @@ export function planShared(
   return { planned, version }
 }
 
-/**
- * Plan the vendored family's rewrite: every package advances together while
- * retaining its own version line and tag.
- * @param family - the vendored family.
- * @param members - the family's members.
- * @param prerelease - prerelease identifier to append, for a rehearsal publication.
- * @returns The manifests to rewrite.
- */
 function planPerPackage(
   family,
   members,
@@ -324,11 +202,6 @@ function planPerPackage(
   return planned
 }
 
-/**
- * Bump the family named by `--family` and commit; `--dry-run` only reports the
- * plan. `--prerelease rc.1` makes the vendored family publish a rehearsal
- * version, which never takes the stable dist-tag.
- */
 function main() {
   const { values, positionals } = parseArgs({
     options: {

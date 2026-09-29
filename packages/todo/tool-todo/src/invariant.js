@@ -1,22 +1,9 @@
-/** Package-owned durable todo-snapshot invariants. @module @freddie/freddie-tool-todo/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-tool-todo'
 const TODO_STATUSES = new Set(['pending', 'in_progress', 'completed'])
 
-/** Cordis companion plugin name. */
 export const name = 'tool-todo-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/**
- * Validate one whole-list todo snapshot before it reaches the durable log.
- *
- * Deliberately silent on how many items are `in_progress`. That is the tool's
- * per-deployment policy (`Config.allowParallelInProgress`), not a durable-shape
- * rule: a log written while parallel work was allowed must still replay after a
- * deployment tightens the policy, so tying the invariant to the current config
- * would reject history that was valid when it was written.
- */
 function validateTodos(value, fail) {
   if (!Array.isArray(value)) fail('todo/write todos must be an array')
   const seen = new Set()
@@ -35,12 +22,10 @@ function validateTodos(value, fail) {
 }
 
 /* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
-/** Validate the package-owned event fields and ignore unrelated events. */
 function validateEvent(event, fail) {
   if (event.type === 'todo/write') validateTodos(event.data.todos, fail)
 }
 
-/** Install validation for loaded and newly appended whole-list todo snapshots. */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) {
     for (const event of session.events) validateEvent(event, fail)
@@ -53,10 +38,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the todo invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

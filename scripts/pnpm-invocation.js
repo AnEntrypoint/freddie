@@ -1,11 +1,3 @@
-/** Resolve shell-free child-process invocations for the pnpm process that launched a package script. */
-
-/**
- * Resolve pnpm's executable and arguments from its lifecycle environment.
- * @param args - Arguments to pass to pnpm.
- * @param environment - Lifecycle environment containing `npm_execpath`.
- * @returns A command and argument array suitable for `spawn` or `spawnSync` without a shell.
- */
 export function pnpmInvocation(
   args,
   environment = process.env,

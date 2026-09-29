@@ -1,29 +1,13 @@
-/**
- * Browser-safe Workspace path and display helpers.
- * @module @freddie/freddie-workspace-path
- */
 import { sessionFileAddress } from './file-address.js'
 
-/** Whether a path uses a Windows drive or UNC prefix. */
 function isWindowsStylePath(value) {
   return /^[A-Za-z]:[/\\]/.test(value) || value.startsWith('\\\\')
 }
 
-/**
- * Whether a path is absolute in either spelling the Host accepts: POSIX (`/a/b`) or Windows drive or UNC.
- * @param path - the path to classify.
- * @returns `true` for an absolute path; `false` for a Workspace-relative one.
- */
 export function isAbsoluteWorkspacePath(path) {
   return path.startsWith('/') || isWindowsStylePath(path)
 }
 
-/**
- * Resolve a Workspace-relative path into the Host-facing spelling used by path operations.
- * @param cwd - Session Workspace root, when known.
- * @param path - Absolute or Workspace-relative path.
- * @returns an absolute path when a Workspace root is available, otherwise the original path.
- */
 export function resolveWorkspacePath(cwd, path) {
   if (isAbsoluteWorkspacePath(path)) return path
   if (cwd === undefined || cwd === '') return path
@@ -33,12 +17,6 @@ export function resolveWorkspacePath(cwd, path) {
   return `${base}${separator}${relative}`
 }
 
-/**
- * Abbreviate a POSIX home directory for display.
- * @param path - Absolute or already-short display path.
- * @param home - Host account home; absent skips abbreviation.
- * @returns `~` or `~/…` for the POSIX home and its descendants, otherwise `path`.
- */
 export function abbreviateHomePath(path, home) {
   if (home === undefined || home === '') return path
   if (isWindowsStylePath(path) || isWindowsStylePath(home)) return path
@@ -49,27 +27,12 @@ export function abbreviateHomePath(path, home) {
   return path
 }
 
-/**
- * Read the final non-empty segment of a Workspace path for display.
- * Workspace-label surfaces use this helper instead of deriving another basename.
- * @param path - Workspace directory path using POSIX or Windows separators.
- * @returns the final segment, or an empty string for a separator-only path.
- */
 export function workspaceTitleOf(path) {
   const trimmed = path.replace(/[/\\]+$/, '')
   const separator = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'))
   return trimmed.slice(separator + 1)
 }
 
-/**
- * Split a path for display: the directories through their last separator, and
- * the final segment after it. Both `/` and `\` separate, so a Windows path
- * splits where its own segments end; trailing separators are dropped first, so
- * a directory path names its own last segment. A path with no separator, or a
- * separator-only path, is all name.
- * @param path - file or directory path using POSIX or Windows separators.
- * @returns `{ directory, name }`: the directory prefix (possibly empty) and the final segment.
- */
 export function pathPartsOf(path) {
   const trimmed = path.replace(/[/\\]+$/, '')
   if (trimmed === '') return { directory: '', name: path }
@@ -79,16 +42,6 @@ export function pathPartsOf(path) {
 
 export * from './file-address.js'
 
-/**
- * The address for a path as a caller holds it: a relative path, or an absolute
- * path inside the Session's workspace, becomes a `session`-scoped address; an
- * absolute path outside it, or one whose workspace root is unknown, keeps its
- * absolute path in that Session's address.
- * @param sessionId - the Session the path is read in.
- * @param cwd - that Session's workspace root, when known.
- * @param path - absolute or workspace-relative path, in either separator spelling.
- * @returns the `freddie-resource://file/…` address.
- */
 export function fileAddressFor(sessionId, cwd, path) {
   const normalized = path.replace(/\\/g, '/')
   if (!isAbsoluteWorkspacePath(normalized)) return sessionFileAddress(sessionId, normalized)
@@ -98,12 +51,6 @@ export function fileAddressFor(sessionId, cwd, path) {
   return sessionFileAddress(sessionId, normalized)
 }
 
-/**
- * Strip the workspace root from a workspace-rooted absolute path (display only).
- * @param text - the path to shorten.
- * @param cwd - session workspace root; absent or empty leaves the path unchanged.
- * @returns the path relative to the workspace root, or unchanged when it is not rooted there.
- */
 export function relativizeToCwd(text, cwd) {
   if (cwd === undefined || cwd === '') return text
   const root = cwd.replace(/[/\\]+$/, '')
@@ -111,12 +58,6 @@ export function relativizeToCwd(text, cwd) {
   return text
 }
 
-/**
- * Address a decoded absolute file path through the authenticated file route.
- * @param base - HTTP(S) application base, including its deployment prefix, or `freddie-app://app/`.
- * @param path - Native file path; URL escapes in authored Markdown must already be decoded.
- * @returns File URL, or undefined for unsupported transports and non-absolute paths.
- */
 export function fileMediaUrl(base, path) {
   if ((!/^https?:/u.test(base) && !base.startsWith('freddie-app://app/')) || !isAbsoluteWorkspacePath(path)
     || /^[/\\]{2}/u.test(path) || /[\u0000-\u001f\u007f]/u.test(path)) return undefined

@@ -1,4 +1,3 @@
-/** Time constants plus parsing and formatting helpers. */
 const millisecond = 1
 const second = 1000
 const minute = second * 60

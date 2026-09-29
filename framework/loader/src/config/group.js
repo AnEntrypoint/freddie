@@ -1,7 +1,6 @@
 import { Service } from '@freddie/cordis'
 import { Entry } from './entry.js'
 
-/** Runtime owner for a list of child loader entries. */
 export class EntryGroup {
   static key = Symbol.for('cordis.group')
 
@@ -109,7 +108,6 @@ export class EntryGroup {
   }
 }
 
-/** Plugin that mounts a nested loader entry group. */
 export class Group extends EntryGroup {
   static initial = []
   static [EntryGroup.key] = true

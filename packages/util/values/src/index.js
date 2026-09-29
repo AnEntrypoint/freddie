@@ -265,7 +265,6 @@ export class WeakMapWithValues {
     this.keys = new WeakMap()
     /** @type {Set<Value>} */
     this.valueSet = new Set()
-    /** Live strongly retained values in insertion order. */
     this.values = this.valueSet
   }
 
@@ -317,7 +316,6 @@ export class WeakMapWithValues {
     return deleted
   }
 
-  /** Remove every association and strongly retained value. */
   clear() {
     this.keys = new WeakMap()
     this.valueSet.clear()

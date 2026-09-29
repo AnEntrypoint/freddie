@@ -13,13 +13,6 @@ function assignChildrenUnlessRawHtml(props, flatChildren) {
 function markChildrenForClearing(props) {
     props.children = [];
 }
-/**
- * Creates a virtual element representing a DOM node or Fragment.
- * @param type Element type (tag name) or Fragment
- * @param props Properties and attributes for the element
- * @param children Child elements or content
- * @returns Virtual element representation
- */
 export function createElement(type, props, ...children) {
     if (typeof type === "string") {
         const normalizedProps = props ? props : {};

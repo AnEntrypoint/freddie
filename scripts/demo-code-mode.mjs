@@ -1,4 +1,3 @@
-/** Boot the ACP Code Mode overlay. Requires a DeepSeek API key. */
 import { spawn } from 'node:child_process'
 
 if (process.argv.length > 2) {

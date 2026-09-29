@@ -20,25 +20,12 @@ import {
   resolveProxyPolicy,
 } from './policy.js'
 
-/** The active policy, or `undefined` until one is installed. Process-wide, like the dispatcher it tracks. */
 let active
 
-/**
- * The proxy environment as the user exported it, or `undefined` when no policy is installed.
- *
- * Owned by the OUTERMOST install: one layered over the launcher's would otherwise record the outer
- * policy's published values as if the user had written them, and
- * hand every child a normalization the user never asked for.
- *
- * {@link proxyEnvironmentForChild} keeps a value the user set rather than the one this process resolved from
- * it, so a SOCKS proxy `curl` can use is not replaced by an HTTP proxy named for another scheme.
- */
 let inheritedProxyEnv
 
-/** The dispatcher installed with {@link active}, so a route can hand back the one already routing. */
 let installed
 
-/** A route that sends nothing through a proxy, shared because it carries no per-request state. */
 const DIRECT_ROUTE = { proxied: false }
 
 /**

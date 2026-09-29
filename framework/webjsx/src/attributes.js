@@ -1,12 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { definesRenderSuspension, withRenderSuspension, } from "./renderSuspension.js";
-/**
- * Updates an event listener on an element.
- * @param el Target element
- * @param eventName Name of the event (without 'on' prefix)
- * @param newHandler New event handler function
- * @param oldHandler Previous event handler function
- */
 function updateEventListener(el, eventName, newHandler, oldHandler) {
     if (oldHandler && oldHandler !== newHandler) {
         el.removeEventListener(eventName, oldHandler);
@@ -18,12 +11,6 @@ function updateEventListener(el, eventName, newHandler, oldHandler) {
         el.__webjsx_listeners[eventName] = newHandler;
     }
 }
-/**
- * Updates a single property or attribute on an element.
- * @param el Target element
- * @param key Property or attribute name
- * @param value New value to set
- */
 function updatePropOrAttr(el, key, value) {
     if (el.namespaceURI === "http://www.w3.org/2000/svg") {
         if (value === false || value === undefined || value === null) {
@@ -45,12 +32,6 @@ function updatePropOrAttr(el, key, value) {
         el.setAttribute(key, String(value));
     }
 }
-/**
- * Updates all attributes and properties on a DOM element.
- * @param el Target element
- * @param newProps New properties to apply
- * @param oldProps Previous properties for comparison (default empty object)
- */
 function updateAttributesCore(el, newProps, oldProps = {}) {
     for (const key of Object.keys(newProps)) {
         const value = newProps[key];
@@ -107,11 +88,6 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
         }
     }
 }
-/**
- * Sets initial attributes and properties on a DOM element.
- * @param el Target element
- * @param props Properties to apply
- */
 export function setAttributes(el, props) {
     if (definesRenderSuspension(el)) {
         withRenderSuspension(el, () => {
@@ -122,12 +98,6 @@ export function setAttributes(el, props) {
         updateAttributesCore(el, props);
     }
 }
-/**
- * Updates existing attributes and properties on a DOM element.
- * @param el Target element
- * @param newProps New properties to apply
- * @param oldProps Previous properties for comparison
- */
 export function updateAttributes(el, newProps, oldProps) {
     if (definesRenderSuspension(el)) {
         withRenderSuspension(el, () => {
