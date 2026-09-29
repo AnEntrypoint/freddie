@@ -1,16 +1,3 @@
-/**
- * The agent-preset chip on the new-session screen, beside the workspace
- * picker.
- *
- * It lives here rather than in the composer because the choice is only
- * available before a conversation starts: once a turn has run, the session's
- * history was produced under that preset's tools and the host refuses to swap
- * them. A control that spends most of its life disabled belongs on the screen
- * where it still works.
- *
- * The menu opens on the staged choice, which starts as the deployment default.
- * Picking stages; the choice reaches a session when one becomes current.
- */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { IconAgentPresetOutline16, IconChevronDownOutline14, renderMenu, defineElement } from '@freddie/freddie-client-ui-primitives'
@@ -22,17 +9,11 @@ const INTRO_CHAR_STAGGER_MS = 40
 const INTRO_TEXT_REVEAL_MS = 200
 const INTRO_CHAR_FADE_MS = 400
 
-/**
- * Per-character start offset for the introduce reveal.
- * @param count - character count of the shown preset name.
- * @returns milliseconds between successive character starts.
- */
 function introStaggerMs(count) {
   if (count <= 1) return 0
   return Math.min(INTRO_CHAR_STAGGER_MS, INTRO_TEXT_REVEAL_MS / (count - 1))
 }
 
-/** New-session agent-preset chip, as a custom element. */
 export class FreddieAgentPresetSeat extends HTMLElement {
   #props = null
   #open = false
@@ -42,7 +23,6 @@ export class FreddieAgentPresetSeat extends HTMLElement {
   #introArmedFor
   #menu = null
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     if (!this.#loaded) {
@@ -167,11 +147,6 @@ export class FreddieAgentPresetSeat extends HTMLElement {
 
 defineElement('freddie-agent-preset-seat', FreddieAgentPresetSeat)
 
-/**
- * Render the new-session agent-preset chip.
- * @param props - composed slot props.
- * @returns the chip element.
- */
 export function AgentPresetSeat(props) {
   const el = document.createElement('freddie-agent-preset-seat')
   el.setProps(props)

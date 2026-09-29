@@ -1,23 +1,7 @@
-/**
- * Agent-preset management controller: the roster as a list, a copy dialog as
- * the only way a preset is created, and a read-only viewer over the shipped
- * compositions.
- *
- * The browser edits no composition text. A new preset is a host-side copy of
- * an existing one (`{ from, id, name? }` is all that crosses the wire), and
- * everything after creation happens in the preset's own files — which is why
- * the page's other job is getting the user TO those files: open the directory
- * where the host has a desktop, show its path where it does not.
- *
- * The host stays the single fact source. Every mutation writes through the
- * wire and the page re-reads the roster afterwards, because a copy changes
- * more than the row it targeted.
- */
 
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { beginRosterRead, messageOf, writeDefaultPreset } from './settings-store.js'
 
-/** Ids a preset directory may be named, mirroring the host's own rule. */
 const PRESET_ID = /^[a-z0-9][a-z0-9-]*$/
 
 const INITIAL = {
@@ -33,14 +17,6 @@ const INITIAL = {
   revealedPaths: {},
 }
 
-/**
- * Why this copy cannot be submitted yet, as a locale key, or undefined when
- * it can. Client-side only: the host re-checks the id and its answer is what
- * the dialog reports on failure.
- * @param draft - the open copy dialog.
- * @param rows - the roster, for the collision check.
- * @returns the blocking reason's locale key, or undefined when submittable.
- */
 export function draftBlocker(draft, rows) {
   if (draft.id === '') return 'idRequired'
   if (!PRESET_ID.test(draft.id)) return 'idInvalid'
@@ -48,21 +24,11 @@ export function draftBlocker(draft, rows) {
   return undefined
 }
 
-/** Reads the roster and drives the copy dialog, viewer, and location reveals. */
 export class AgentPresetSectionController {
-  /** Page snapshot the renderer subscribes to. */
   store = createSnapshotStore(INITIAL)
 
   constructor(
     api,
-    /**
-     * Called after this page changes the roster DIRECTORY, so the other
-     * surfaces reading the same roster re-read it. A settings field moving is
-     * already announced by the host through the forwarded
-     * `settings/document-updated`; a directory copied or deleted here is not,
-     * and the new-session chip has no other way to learn a preset it should
-     * offer now exists.
-     */
     rosterChanged = () => {},
   ) {
     this.api = api
@@ -79,12 +45,6 @@ export class AgentPresetSectionController {
     this.set({ copy: { ...copy, ...patch } })
   }
 
-  /**
-   * Load the roster. An empty roster means the deployment composes no
-   * presets, which is a valid deployment rather than a failure — the section
-   * reports `unavailable` and renders nothing.
-   * @returns once the snapshot reflects the host.
-   */
   async load() {
     const roster = await beginRosterRead(this.api, this.store)
     if (roster === undefined) return
@@ -106,11 +66,6 @@ export class AgentPresetSectionController {
     })
   }
 
-  /**
-   * Open one shipped preset's composition in the read-only viewer.
-   * @param id - the preset to view.
-   * @returns once the composition loaded or the failure is on the page.
-   */
   async view(id) {
     this.set({ error: null })
     try {
@@ -126,15 +81,10 @@ export class AgentPresetSectionController {
     }
   }
 
-  /** Close the read-only viewer. */
   closeView() {
     this.set({ view: null })
   }
 
-  /**
-   * Open the copy dialog over one preset.
-   * @param from - the preset the copy will start from.
-   */
   beginCopy(from) {
     const row = this.store.getSnapshot().rows.find(candidate => candidate.id === from)
     this.set({
@@ -143,33 +93,18 @@ export class AgentPresetSectionController {
     })
   }
 
-  /** Close the copy dialog, discarding whatever was typed. */
   cancelCopy() {
     this.set({ copy: null })
   }
 
-  /**
-   * Name the preset the copy creates.
-   * @param id - the id typed into the dialog.
-   */
   setCopyId(id) {
     this.patchCopy({ id, error: null })
   }
 
-  /**
-   * Name the copy's display name.
-   * @param name - the display name typed into the dialog.
-   */
   setCopyName(name) {
     this.patchCopy({ name, error: null })
   }
 
-  /**
-   * Submit the copy, re-read the roster, then take the user to the new
-   * preset's files — the directory opens where the host has a desktop, and
-   * its path appears on the new row where it does not.
-   * @returns once the copy settled and the page reflects it.
-   */
   async confirmCopy() {
     const draft = this.store.getSnapshot().copy
     if (draft === null || draft.saving) return
@@ -195,12 +130,6 @@ export class AgentPresetSectionController {
     }
   }
 
-  /**
-   * Open one preset's directory on the host desktop, or reveal its path on
-   * the row where the deployment has no opener to hand it to.
-   * @param id - the preset whose files the user wants.
-   * @returns once the host answered and the page reflects it.
-   */
   async openLocation(id) {
     try {
       const response = await this.api.agentPresets.openDocument({ agentPreset: id })
@@ -216,22 +145,11 @@ export class AgentPresetSectionController {
     }
   }
 
-  /**
-   * Ask for confirmation before deleting one preset.
-   * @param id - the preset to delete, or null to dismiss the confirmation.
-   */
   confirmDelete(id) {
     if (this.store.getSnapshot().deleting) return
     this.set({ pendingDelete: id })
   }
 
-  /**
-   * Delete the preset awaiting confirmation, then re-read the roster.
-   *
-   * A session already composed from it keeps running: its composition was
-   * mounted at creation and nothing re-reads the file.
-   * @returns once the delete settled and the page reflects it.
-   */
   async remove() {
     const { pendingDelete, deleting } = this.store.getSnapshot()
     if (pendingDelete === null || deleting) return
@@ -250,12 +168,6 @@ export class AgentPresetSectionController {
     }
   }
 
-  /**
-   * Make one preset the default for sessions created later. Running sessions
-   * keep the composition they began with, so this never disturbs work.
-   * @param id - the preset to make default.
-   * @returns once the write settled and the roster was re-read.
-   */
   async makeDefault(id) {
     const failure = await writeDefaultPreset(this.api, id)
     if (failure !== undefined) {

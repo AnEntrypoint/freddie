@@ -1,23 +1,12 @@
-/**
- * The session header's agent-preset label.
- *
- * Read-only by construction: a session's composition is fixed once its
- * conversation starts, and a header is only worth reading after that. Offering
- * a control here would promise a switch the host refuses; naming what the
- * session runs is the honest affordance, and the choice itself lives on the
- * new-session screen ({@link import('./AgentPresetSeat.js').AgentPresetSeat}).
- */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { IconAgentPresetOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetLabel.css.js'
 
-/** Session-header agent-preset label custom element. */
 export class FreddieAgentPresetLabel extends HTMLElement {
   #props = null
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -61,12 +50,6 @@ export class FreddieAgentPresetLabel extends HTMLElement {
 
 defineElement('freddie-agent-preset-label', FreddieAgentPresetLabel)
 
-/**
- * Render this session's agent-preset name beside its title.
- * @param props - composed slot props.
- * @returns the label element; renders nothing visible when the session
- * records no preset.
- */
 export function AgentPresetLabel(props) {
   const el = document.createElement('freddie-agent-preset-label')
   el.setProps(props)

@@ -1,6 +1,4 @@
-/** Locale bundles for the agent-preset settings row, hero chip, header label, and management section. */
 
-/** English copy. */
 export const en = {
   title: 'Agent preset',
   description: 'Applies to sessions you start from now on. Running sessions keep the preset they began with.',
@@ -73,12 +71,6 @@ const BUILT_IN_PRESET_KEYS = {
   cordis: { name: 'presetCordisName', description: 'presetCordisDescription' },
 }
 
-/**
- * Resolve preset display copy without making user-authored metadata translatable.
- * @param preset - roster row whose copy is being rendered.
- * @param t - active Web locale lookup.
- * @returns localized copy for a known shipped preset, otherwise file metadata.
- */
 export function presetDisplayText(preset, t) {
   const keys = preset.trust === 'system' ? BUILT_IN_PRESET_KEYS[preset.id] : undefined
   if (keys !== undefined) return { name: t(keys.name), description: t(keys.description) }

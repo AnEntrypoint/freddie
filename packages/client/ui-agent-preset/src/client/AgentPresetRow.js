@@ -1,8 +1,3 @@
-/**
- * Agent-preset preference row: the preset new sessions are composed from.
- * A running session keeps the composition it began with, so this row never
- * disturbs work in progress.
- */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { presetDisplayText } from './locales.js'
@@ -10,7 +5,6 @@ import { renderPresetMenu } from './PresetMenu.js'
 import css from './AgentPresetRow.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** New-session agent-preset selector row, as a custom element. */
 export class FreddieAgentPresetRow extends HTMLElement {
   #props = null
   #open = false
@@ -18,7 +12,6 @@ export class FreddieAgentPresetRow extends HTMLElement {
   #lastWritable
   #menu = null
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -81,11 +74,6 @@ export class FreddieAgentPresetRow extends HTMLElement {
 
 defineElement('freddie-agent-preset-row', FreddieAgentPresetRow)
 
-/**
- * Render the new-session agent-preset selector.
- * @param props - composed slot props.
- * @returns the row element.
- */
 export function AgentPresetRow(props) {
   const el = document.createElement('freddie-agent-preset-row')
   el.setProps(props)

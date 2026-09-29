@@ -1,21 +1,3 @@
-/**
- * Agent-presets settings section: the roster as cards, a copy dialog as the
- * only way a preset is created, and a read-only viewer over the shipped
- * compositions.
- *
- * The browser edits no composition text — a shipped preset opens read-only to
- * be READ (it is the known-good composition a copy starts from), and a custom
- * preset is edited in its own files, which is what the location action leads
- * to. Deleting a preset leaves running sessions alone: a composition is
- * mounted once at session creation and nothing re-reads the file.
- *
- * Converted from a React hooks component to a webjsx custom element. The
- * `Modal`/`Tooltip` primitives are self-rendering custom elements, not plain
- * VNodes, so they are built once and retained (renderModal/renderTooltip),
- * then attached to the DOM directly rather than embedded in the `applyDiff`
- * vdom tree (Modal.tsx's and Tooltip.tsx's own doc: they are never diffed as
- * a child of the caller's own vdom).
- */
 
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import {
@@ -27,7 +9,6 @@ import { draftBlocker } from './section-store.js'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetSection.css.js'
 
-/** Agent-presets settings section, as a custom element. */
 export class FreddieAgentPresetSection extends HTMLElement {
   #props = null
   #copyModal = null
@@ -37,7 +18,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
   #descriptionTruncated = new Map()
   #descriptionResizeObservers = new Map()
 
-  /** Set/replace props and re-render; the owning renderer calls this on every update. */
   setProps(props) {
     this.#props = props
     this.#render()
@@ -52,14 +32,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
     this.#descriptionResizeObservers.clear()
   }
 
-  /**
-   * Measure whether one card's clamped description is actually cut off, and
-   * keep a ResizeObserver on it (the card width follows the settings pane,
-   * which resizes with the window) — the webjsx replacement for the React
-   * version's per-row `useLayoutEffect` + `useState`.
-   * @param rowId - the preset row this description belongs to.
-   * @param el - the measured description span, once mounted.
-   */
   #trackDescription(rowId, el) {
     if (el === null) return
     const measure = () => {
@@ -76,13 +48,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
     this.#descriptionResizeObservers.set(rowId, observer)
   }
 
-  /**
-   * Build (or update) the tooltip-wrapped description for one card, mounted
-   * directly after its placeholder span (Tooltip is a self-rendering custom
-   * element, not a plain VNode — see the module doc).
-   * @param rowId - the preset row this description belongs to.
-   * @param text - the description text, already localized.
-   */
   #renderDescription(rowId, text) {
     const truncated = this.#descriptionTruncated.get(rowId) ?? false
     const existing = this.#descriptionTooltips.get(rowId) ?? null
@@ -238,7 +203,7 @@ export class FreddieAgentPresetSection extends HTMLElement {
       return
     }
     if (state.status === 'error') {
-      /* v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */
+      /* v8 ignore next */
       const detail = state.error ?? ''
       const vdom = (
         h('div', {class: css.section ?? ''},
@@ -423,11 +388,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
 
 defineElement('freddie-agent-preset-section', FreddieAgentPresetSection)
 
-/**
- * Render the Agent presets section content column.
- * @param props - composed slot props.
- * @returns the section element.
- */
 export function AgentPresetSection(props) {
   const el = document.createElement('freddie-agent-preset-section')
   el.setProps(props)

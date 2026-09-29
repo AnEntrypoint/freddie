@@ -1,15 +1,3 @@
-/**
- * Agent-preset surface plugin, browser half — four surfaces over one roster:
- * a General-settings row for the default preset, a chip on the new-session
- * screen for the session about to start, a read-only label in the session
- * header, and a settings section that manages the roster (copy, delete,
- * default, and the way into a preset's own files).
- *
- * A running session keeps the composition it began with (the host refuses to
- * adopt an existing session under a different preset). That is what splits
- * the choice from the display: the General row and the hero chip are both
- * before-the-fact, while the header only reports what a session already runs.
- */
 
 import { AgentPresetLabel } from './AgentPresetLabel.js'
 import { AgentPresetRow } from './AgentPresetRow.js'
@@ -23,13 +11,8 @@ import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './setti
 export { draftBlocker } from './section-store.js'
 export { AGENT_PRESET_SETTINGS_NS, writeDefaultPreset } from './settings-store.js'
 
-/** Required services (cordis fiber inject). */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
-/**
- * Mount the General-settings row.
- * @param ctx - the browser plugin context.
- */
 export function apply(ctx) {
   const { api } = ctx.get('connection')
   const controller = new AgentPresetSettingsController(api, ctx.settingsScope.describe())
