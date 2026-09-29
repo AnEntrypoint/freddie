@@ -1,20 +1,12 @@
-/**
- * Package-owned request-reconstruction invariant for loop-built LLM calls.
- * @module @freddie/freddie-agent-loop/invariant
- */
-
 import { isAgentLoopRequest } from '@freddie/freddie-llm'
 import { foldRequestHeader } from '@freddie/freddie-session'
 
 const PACKAGE_NAME = '@freddie/freddie-agent-loop'
 const RUN_BEFORE_SHORT_CIRCUITING_LISTENERS = { global: true, prepend: true }
 
-/** Cordis companion plugin name. */
 export const name = 'agent-loop-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Install the request-reconstruction contribution into its child registration fiber. */
 const install = Object.assign((ctx, fail) => {
   ctx.on('llm/stream', (options, next) => {
     if (!isAgentLoopRequest(options)) return next()
@@ -52,10 +44,5 @@ const install = Object.assign((ctx, fail) => {
   }, RUN_BEFORE_SHORT_CIRCUITING_LISTENERS)
 }, { inject: ['sessions'] })
 
-/**
- * Register the agent-loop invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

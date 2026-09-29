@@ -1,10 +1,3 @@
-/**
- * Incremental projection of durable agent inbox events.
- *
- * @module @freddie/freddie-agent/inbox
- */
-
-/** A replay-once projection that incrementally consumes later inbox splices. */
 export class Inbox {
   state = { 'next-turn': [], 'next-step': [] }
 
@@ -21,35 +14,23 @@ export class Inbox {
     }
   }
 
-  /** Prompts awaiting individual turns. */
   get nextTurn() {
     return this.state['next-turn']
   }
 
-  /** Input awaiting the next step boundary. */
   get nextStep() {
     return this.state['next-step']
   }
 
-  /** Whether either pending-message list contains work. */
   get hasPending() {
     return this.nextTurn.length > 0 || this.nextStep.length > 0
   }
 
-  /** Durably cancel all pending input, clearing next-step before next-turn. */
   clear() {
     this.splice('next-step', 0, this.nextStep.length, [])
     this.splice('next-turn', 0, this.nextTurn.length, [])
   }
 
-  /**
-   * Remove and return the complete batch proposed for one step, publishing
-   * each claimed message. The durable splices are pure deletions.
-   * @param target - whether this boundary also consumes one queued turn.
-   * @param turn - turn that will own the claimed batch.
-   * @returns next-step input followed by the queued turn, when requested.
-   * @internal - The agent loop's step-boundary operation, not a plugin extension point.
-   */
   claim(target, turn) {
     const claimed = this.mutate('next-step', 0, this.nextStep.length, [], false)
     if (target === 'next-turn') {
@@ -59,35 +40,14 @@ export class Inbox {
     return claimed
   }
 
-  /**
-   * Append one message to a pending list and durably record the insertion.
-   * @param target - pending list to extend.
-   * @param message - message to append.
-   * @throws if the message identity is already pending.
-   */
   append(target, message) {
     this.splice(target, this.state[target].length, 0, [message])
   }
 
-  /**
-   * Prepend one message to a pending list and durably record the insertion.
-   * @param target - pending list to extend.
-   * @param message - message to prepend.
-   * @throws if the message identity is already pending.
-   */
   prepend(target, message) {
     this.splice(target, 0, 0, [message])
   }
 
-  /**
-   * Replace one pending message in place, possibly changing its identity. A
-   * successful replacement publishes the old message as discarded and the new
-   * message as inserted.
-   * @param messageId - identity of the pending message to replace.
-   * @param newMessage - replacement message.
-   * @returns whether the message was still pending.
-   * @throws if the replacement duplicates another pending message identity.
-   */
   replace(messageId, newMessage) {
     const location = this.locate(messageId)
     if (location === undefined) return false
@@ -95,11 +55,6 @@ export class Inbox {
     return true
   }
 
-  /**
-   * Remove one pending message and durably record its cancellation.
-   * @param messageId - identity of the pending message to remove.
-   * @returns whether the message was still pending.
-   */
   remove(messageId) {
     const location = this.locate(messageId)
     if (location === undefined) return false
@@ -107,22 +62,10 @@ export class Inbox {
     return true
   }
 
-  /**
-   * Apply standard splice semantics and durably record the normalized result.
-   * The durable event commits before the live projection mutates, so synchronous
-   * `session/event` observers see the pre-splice lists and can reconstruct the
-   * removed messages from the normalized coordinates.
-   * @param target - pending list to mutate.
-   * @param start - splice position.
-   * @param deleteCount - maximum number of messages to remove.
-   * @param inserted - messages to insert at the resolved position.
-   * @returns messages removed by the splice.
-   */
   splice(target, start, deleteCount, inserted) {
     return this.mutate(target, start, deleteCount, inserted, true)
   }
 
-  /** Locate one pending identity across both owned lists. */
   locate(messageId) {
     for (const target of ['next-turn', 'next-step']) {
       const index = this.state[target].findIndex(message => message.id === messageId)
@@ -131,7 +74,6 @@ export class Inbox {
     return undefined
   }
 
-  /** Commit one normalized mutation and publish its live notifications. */
   mutate(target, start, deleteCount, inserted, discardRemoved) {
     const inbox = this.state[target]
     const truncatedStart = Math.trunc(start)
@@ -163,14 +105,12 @@ export class Inbox {
     return removed
   }
 
-  /** Apply one normalized durable splice to the projection. */
   apply(splice) {
     this.validate(splice)
     const inbox = this.state[splice.target]
     return inbox.splice(splice.start, splice.removedCount ?? 0, ...splice.inserted)
   }
 
-  /** Validate one normalized splice against the current projection. */
   validate(splice) {
     const inbox = this.state[splice.target]
     const removedCount = splice.removedCount ?? 0

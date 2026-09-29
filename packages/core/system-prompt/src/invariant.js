@@ -1,14 +1,9 @@
-/** Package-owned prompt-assembly invariants. @module @freddie/freddie-system-prompt/invariant */
-
 const PACKAGE_NAME = '@freddie/freddie-system-prompt'
 const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/
 
-/** Cordis companion plugin name. */
 export const name = 'system-prompt-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Validate the authoritative assembly returned by the waterfall. */
 function validateAssembly(assembly, fail) {
   const sectionNames = new Set()
   for (const section of assembly.sections) {
@@ -38,7 +33,6 @@ function validateAssembly(assembly, fail) {
   }
 }
 
-/** Install validation around the authoritative assembly waterfall result. */
 const install = (ctx, fail) => {
   ctx.on('system-prompt/assemble', async (_assembly, _context, next) => {
     const assembled = await next()
@@ -47,10 +41,5 @@ const install = (ctx, fail) => {
   }, { global: true, prepend: true })
 }
 
-/**
- * Register the system-prompt invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

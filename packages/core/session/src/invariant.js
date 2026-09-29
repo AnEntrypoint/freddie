@@ -1,28 +1,17 @@
-/**
- * Package-owned relational invariants for the session event log. Load this
- * companion beside `@freddie/freddie-invariants` to enable the checks.
- *
- * @module @freddie/freddie-session/invariant
- */
-
 import { assertNever } from '@freddie/freddie-llm'
 import { TOOL_NOT_STARTED } from './repair.js'
 
 const PACKAGE_NAME = '@freddie/freddie-session'
 
-/** Cordis companion plugin name. */
 export const name = 'session-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Assert that a step-scoped event names the currently open turn and step. */
 function requireOpenStep(trace, kind, turn, step, fail) {
   if (trace.openTurn !== turn || trace.openStep !== step) {
     fail(`${kind} names turn ${turn}/step ${step} but open is turn ${trace.openTurn}/step ${trace.openStep}`)
   }
 }
 
-/** Validate one candidate event without mutating the committed trace. */
 function validateEvent(trace, event, fail) {
   if (event.seq <= trace.lastSeq) {
     fail(`seq must strictly increase: saw ${event.seq} after ${trace.lastSeq}`)
@@ -126,7 +115,6 @@ function validateEvent(trace, event, fail) {
   }
 }
 
-/** Apply one already-validated transition after its event commits. */
 function applyTransition(trace, transition) {
   Object.assign(trace, transition.scalars)
   switch (transition.pendingCalls.kind) {
@@ -147,7 +135,6 @@ function applyTransition(trace, transition) {
   }
 }
 
-/** Install the session contribution into its child registration fiber. */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
   const stagedTransitions = new WeakMap()
@@ -196,10 +183,5 @@ const install = Object.assign((ctx, fail) => {
   }, { global: true })
 }, { inject: ['sessions'] })
 
-/**
- * Register the session invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

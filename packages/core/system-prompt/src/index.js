@@ -1,37 +1,17 @@
-/**
- * Registry for ordered system sections, dynamic context, tool schemas, and prompt variables.
- *
- * @module @freddie/freddie-system-prompt
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { AnonymousEntries, NamedEntries, ScopedLayers, scopeTarget } from '@freddie/freddie-scope'
 
-/**
- * The deployment persona's section name and order. Exported because a
- * composition can replace this slot — an agent preset shadows the
- * deployment's persona with its own — and both sides naming the same section
- * is what makes the replacement work rather than duplicate.
- */
 export const PERSONA_SECTION = 'deployment:persona'
 
-/** Prompt order of the persona slot; the first section a model reads. */
 export const PERSONA_ORDER = 0
 
-/** Valid variable names: how they are written between the braces. */
 const VARIABLE_NAME = /^[a-z][a-z0-9_]*$/
 
-/** A complete `{{...}}` reference group at the scan position (validated after). */
 const GROUP_AT = /^\{\{([^{}]*)\}\}/
 
-/** Reserved marker for unlisted tools in {@link SystemPrompt.Config}'s `toolOrder`. */
 export const TOOL_ORDER_REST = '<unlisted-tools>'
 
-/**
- * Validate duplicate names and the required {@link TOOL_ORDER_REST} marker.
- * Registered names are checked later because plugins have not loaded yet.
- */
 function validateToolOrder(toolOrder) {
   if (toolOrder === undefined) return undefined
   const seen = new Set()
@@ -45,15 +25,6 @@ function validateToolOrder(toolOrder) {
   return toolOrder
 }
 
-/**
- * Apply configured tool order, inserting unlisted tools lexicographically at
- * {@link TOOL_ORDER_REST}. A configured name no provider registered is skipped
- * (reported through `onUnknown`) rather than fatal: a host hot reload can
- * transiently drop a tool's registration, and killing the whole turn over a
- * name a fresh boot has breaks the invariant that a reload never leaves the
- * agent unable to run a turn it otherwise could. Known but restricted names
- * may also be absent.
- */
 function orderTools(tools, toolOrder, knownNames, onUnknown) {
   const reserved = tools.find(tool => tool.name === TOOL_ORDER_REST)
   if (reserved !== undefined) {
@@ -68,19 +39,10 @@ function orderTools(tools, toolOrder, knownNames, onUnknown) {
     name === TOOL_ORDER_REST ? rest : tools.filter(tool => tool.name === name))
 }
 
-/** Lexicographic (code-unit) name comparison — locale-independent, so the order is identical on every machine. */
 function compareToolNames(a, b) {
   return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
 
-/**
- * Interpolate strict `{{variable}}` references, drop empty sections, and join
- * the rest with blank lines. Malformed, unknown, or undefined references throw;
- * a lone `{{` without any later `}}` is literal prose, and substituted values
- * are not scanned again.
- * @param assembly - the assembly whose sections and variables to render.
- * @returns the rendered prompt, or `''` when all sections are empty.
- */
 export function renderPrompt(assembly) {
   return assembly.sections
     .map(section => section.interpolate === false ? section.text : interpolate(section, assembly.variables, 'section'))
@@ -88,45 +50,22 @@ export function renderPrompt(assembly) {
     .join('\n\n')
 }
 
-/**
- * Render the complete dynamic context snapshot.
- * @param assembly - the assembly whose contexts and variables to render.
- * @returns the current full snapshot, or `''` when no context is active.
- */
 export function renderContextSnapshot(assembly) {
   return joinContextSections(renderContextSections(assembly))
 }
 
-/**
- * The model-facing snapshot text for an already-rendered section list.
- *
- * A caller that also needs the sections renders them once and joins here, so a
- * request does not interpolate every context twice.
- * @param sections - sections from {@link renderContextSections}.
- * @returns the current full snapshot, or `''` when no context is active.
- */
 export function joinContextSections(sections) {
   const body = sections.map(section => section.text).join('\n\n')
   if (body.length === 0) return ''
   return `Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\n${body}`
 }
 
-/**
- * The same snapshot, kept as the named contributions it was assembled from.
- *
- * {@link renderContextSnapshot} joins these for the model; a consumer that
- * presents the snapshot uses them to attribute each part to the subsystem that
- * contributed it, without re-splitting the joined prose.
- * @param assembly - the assembly whose contexts and variables to render.
- * @returns one entry per contributing context that rendered to non-empty text.
- */
 export function renderContextSections(assembly) {
   return assembly.contexts
     .map(context => ({ name: context.name, text: interpolate(context, assembly.variables, 'context') }))
     .filter(section => section.text.length > 0)
 }
 
-/** Interpolate one section or context and attribute diagnostics to its owning input. */
 function interpolate(input, variables, kind) {
   const text = input.text
   let result = ''
@@ -159,7 +98,6 @@ function interpolate(input, variables, kind) {
   return result + text.slice(last)
 }
 
-/** All prompt registrations owned by one global or scoped layer. */
 class PromptLayer {
   sections
   contexts
@@ -167,10 +105,6 @@ class PromptLayer {
   toolProviders = new AnonymousEntries()
   variables
 
-  /**
-   * Create one prompt layer with diagnostics specific to its ownership scope.
-   * @param scope - the scoped owner, or `undefined` for global registrations.
-   */
   constructor(scope) {
     this.sections = new NamedEntries(name => new Error(scope === undefined
       ? `prompt section "${name}" is already registered (for a per-agent override, register through that agent's \`agent.ctx\` instead)`
@@ -183,7 +117,6 @@ class PromptLayer {
       : `prompt variable "${name}" is already registered in this scope`))
   }
 
-  /** @returns whether this layer owns no prompt registrations. */
   isEmpty() {
     return this.sections.isEmpty()
       && this.contexts.isEmpty()
@@ -193,7 +126,6 @@ class PromptLayer {
   }
 }
 
-/** Registry service for the prompt inputs assembled before each model step. */
 export class SystemPrompt extends Service {
   static Config = z.object({
     includeHarnessIdentity: z.boolean().default(true),
@@ -226,17 +158,6 @@ export class SystemPrompt extends Service {
     if (!(config.includeRuntimeContext ?? true)) this.suppressRuntimeContext()
   }
 
-  /**
-   * Register an ordered prompt section in the calling context's scope. A scoped
-   * section shadows a global section with the same name; duplicates within one
-   * layer and non-finite orders throw. Registration and disposal emit
-   * `system-prompt/change`. `interpolate: false` renders the section's text
-   * verbatim, skipping `{{variable}}` scanning — for a section whose text can
-   * legitimately contain literal brace pairs (e.g. echoing caller-supplied
-   * names) that would otherwise misparse as a malformed or unknown reference.
-   * @param section - the section to register.
-   * @returns the exact Cordis effect disposer.
-   */
   section(section) {
     if (!Number.isFinite(section.order)) {
       throw new TypeError(`prompt section "${section.name}" order must be a finite number`)
@@ -248,12 +169,6 @@ export class SystemPrompt extends Service {
     )
   }
 
-  /**
-   * Register ordered dynamic context in the calling context's scope. Scoped
-   * entries shadow global entries with the same name.
-   * @param context - the context contribution to register.
-   * @returns the exact Cordis effect disposer.
-   */
   context(context) {
     if (!Number.isFinite(context.order)) {
       throw new TypeError(`prompt context "${context.name}" order must be a finite number`)
@@ -265,12 +180,6 @@ export class SystemPrompt extends Service {
     )
   }
 
-  /**
-   * Suppress every dynamic runtime-context contribution in the calling
-   * context's scope without changing the services that own or enforce those
-   * facts. Multiple suppressors remain independently disposable.
-   * @returns the exact Cordis effect disposer.
-   */
   suppressRuntimeContext() {
     return this.layers.effect(
       this.ctx,
@@ -279,13 +188,6 @@ export class SystemPrompt extends Service {
     )
   }
 
-  /**
-   * Register a tool-schema provider in the calling context's scope. Global and
-   * matching scoped providers both contribute; returning the reserved
-   * {@link TOOL_ORDER_REST} name makes assembly fail.
-   * @param provider - evaluated for each assembly with its context.
-   * @returns the exact Cordis effect disposer.
-   */
   tools(provider) {
     return this.layers.effect(
       this.ctx,
@@ -294,14 +196,6 @@ export class SystemPrompt extends Service {
     )
   }
 
-  /**
-   * Register a prompt variable in the calling context's scope. Scoped values
-   * shadow globals; invalid or duplicate names throw. A provider may return
-   * `undefined`, but rendering a section that references that value then fails.
-   * @param name - the `[a-z][a-z0-9_]*` reference name.
-   * @param provider - evaluated for each assembly.
-   * @returns the exact Cordis effect disposer.
-   */
   variable(name, provider) {
     if (!VARIABLE_NAME.test(name)) {
       throw new Error(`invalid prompt variable name "${name}" (must match ${String(VARIABLE_NAME)})`)
@@ -313,15 +207,6 @@ export class SystemPrompt extends Service {
     )
   }
 
-  /**
-   * Assemble global and scoped providers, detach tool parameters, apply
-   * canonical ordering, then run the assembly waterfall. Scoped sections and
-   * variables shadow globals. The returned waterfall value is authoritative
-   * except that an effective complete section is restored afterwards as the
-   * sole prompt section.
-   * @param context - the optional scope and plugin-defined assembly fields.
-   * @returns the post-waterfall assembly with any complete prompt enforced.
-   */
   async assemble(context = {}) {
     const scope = context.scope
     const scopeLayers = this.layers.chainLayers(scope)

@@ -1,25 +1,16 @@
-/**
- * Default model selection for an Agent without a session-specific selection.
- *
- * @module @freddie/freddie-agent-default-model
- */
-
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { ReasoningEffortId } from '@freddie/freddie-llm'
 import { installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
 
-/** Settings namespace carrying the default model selection for future Agents. */
 export const AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE = settingsNamespace('agent-default-model')
 
-/** Schema of the default Agent model settings section. */
 export const AGENT_DEFAULT_MODEL_SETTINGS_SCHEMA = z.object({
   provider: z.string().required(),
   model: z.string().required(),
   reasoningEffort: z.string(),
 })
 
-/** Project stored settings onto the Agent-facing selection type. */
 function selection(settings) {
   return {
     provider: settings.provider,
@@ -30,11 +21,6 @@ function selection(settings) {
   }
 }
 
-/**
- * Owns the default model selection independently of any Host or transport.
- * The composition entry remains usable without a settings provider; when one
- * is mounted, its user layer is read live.
- */
 export class AgentDefaultModelConfig extends Service {
   static Config = z.object({
     provider: z.string().required(),
@@ -53,20 +39,10 @@ export class AgentDefaultModelConfig extends Service {
     })
   }
 
-  /**
-   * Read the current default model selection.
-   * @returns a detached provider, model, and optional reasoning selection.
-   */
   currentSelection() {
     return selection(this.source())
   }
 
-  /**
-   * Save the complete default model selection. A deployment without a settings
-   * provider keeps its composition entry.
-   * @param next - resolved selection accepted by an entry point.
-   * @returns fulfillment after the optional settings write settles.
-   */
   async saveSelection(next) {
     await this.ctx.get('settings')?.replace(AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE, {
       provider: next.provider,

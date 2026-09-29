@@ -1,8 +1,3 @@
-/**
- * Durable projection state for dynamic runtime context.
- * @module @freddie/freddie-agent-loop/runtime-context
- */
-
 import { createUserMessage } from '@freddie/freddie-llm'
 import { isReplacementSurfaceEvent } from '@freddie/freddie-session'
 
@@ -18,16 +13,9 @@ function textOf(message) {
   return message.content.length === 1 && block?.type === 'text' ? block.text : undefined
 }
 
-/** Tracks the last retained runtime-context snapshot without owning its commit. */
 export class RuntimeContextProjection {
-  /** `undefined` means no snapshot ever existed; `null` means none is retained. */
   retained
 
-  /**
-   * Restore projection state once, then follow authoritative session events.
-   * @param ctx - agent-scoped event context.
-   * @param session - session receiving projected messages.
-   */
   constructor(ctx, session) {
     const surface = new Set(session.surface.nodes)
     for (let index = session.events.length - 1; index >= 0; index -= 1) {
@@ -52,12 +40,6 @@ export class RuntimeContextProjection {
     })
   }
 
-  /**
-   * Create an uncommitted snapshot only when the retained value differs.
-   * @param current - fully rendered dynamic context.
-   * @param sections - named contributions that formed the current snapshot.
-   * @returns a candidate user message, or `undefined` when no update is needed.
-   */
   project(current, sections) {
     if (this.retained === undefined && current.length === 0) return
     const snapshot = current.length === 0 ? CLEARED : current

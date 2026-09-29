@@ -1,21 +1,5 @@
-/**
- * Request-header reconstruction utilities over full `request/header` session
- * events. Anyone holding a session log reconstructs the {@link import('./types.js').EpochHeader}
- * any request was built under by taking the latest canonical snapshot; the
- * loop uses the same equality helper to avoid logging unchanged headers.
- *
- * @module freddie-session/request-header
- */
-
 import { callConfigEquals } from '@freddie/freddie-llm'
 
-/**
- * Normalize a header to canonical form: an empty system prompt and empty tool
- * list become absent fields, matching how requests are built. Logging, folding,
- * and comparison use this one representation.
- * @param header - the header to normalize (not mutated).
- * @returns the canonical header.
- */
 export function canonicalHeader(header) {
   const adapterDefaults = header.adapterDefaults
   return {
@@ -28,17 +12,10 @@ export function canonicalHeader(header) {
   }
 }
 
-/** Canonical JSON equality for tool schemas assembled through the same path. */
 function sameSchema(a, b) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/**
- * Field-wise equality over canonical headers. Tool schemas compare in order.
- * @param a - one canonical header.
- * @param b - the other.
- * @returns whether config, system, and tools all match.
- */
 export function headerEquals(a, b) {
   if (
     !callConfigEquals(a.config, b.config)
@@ -51,15 +28,6 @@ export function headerEquals(a, b) {
   return at.length === bt.length && at.every((tool, i) => sameSchema(tool, bt[i]))
 }
 
-/**
- * Fold the header events of a log (or any prefix) into the
- * {@link import('./types.js').EpochHeader} in force after the last snapshot. Non-header events are
- * skipped. This is the pure offline reconstruction path; the live session
- * tracks the same fold incrementally.
- * @param events - session events in log order.
- * @param from - a previously folded state to continue from.
- * @returns the latest canonical header, or undefined when none exists yet.
- */
 export function foldRequestHeader(events, from) {
   let state = from
   for (const event of events) {

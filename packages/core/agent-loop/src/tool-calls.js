@@ -1,45 +1,6 @@
-/**
- * Schedules one assistant step's tool calls. Exclusive calls form barriers;
- * parallel calls use a bounded rolling pool and are reclassified before start.
- * Dispatch may overlap, while policy, results, and result context remain
- * model-ordered. Abort or an internal scheduler failure stops replenishment
- * and drains started calls.
- *
- * Abort records synthetic error results for skipped calls so replay stays
- * valid. A terminal scheduler failure preserves already-recorded `tool/call`
- * events without fabricating results.
- * @module freddie-agent-loop/tool-calls
- */
-
 import { assertNever, createToolResultMessage } from '@freddie/freddie-llm'
 import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_RUNTIME_SCHEDULER } from '@freddie/freddie-tools'
 
-/**
- * Schedule one assistant step's tool calls by their live concurrency mode.
- * Ordinary completion and abort commit started-call results in order. Abort
- * drains them, records synthetic results for unstarted calls, and returns with
- * the signal still aborted after accepting started-call context through the
- * caller-supplied acceptor (the machine stages it in its next-step inbox for the
- * step boundary). An internal scheduler failure stops new dispatches, drains
- * already-started dispatches, and rejects with the first failure without
- * fabricating tool results.
- * The committed step's AgentLoop driver boundary supplies the initiating Agent
- * that becomes each explicit {@link ToolExecutionInput#agent}.
- *
- * @typedef {object} ToolExecutionInput
- * @property {import('@freddie/freddie-llm').CallId} callId - the model-assigned tool-call id.
- * @property {string} name - the tool name the model called.
- * @property {*} arguments - parsed JSON arguments (raw text preserved when parsing fails).
- * @property {import('@freddie/freddie-agent').Agent} agent - the initiating Agent, supplied by the driver boundary.
- * @property {AbortSignal} signal - abort signal shared by the whole step.
- *
- * @param ctx - loop context that owns the tool registry and carries the initiating Agent.
- * @param turn - current turn number.
- * @param step - current step number.
- * @param toolCalls - assistant calls in model order.
- * @param signal - abort signal shared by the step.
- * @param acceptContext - accepts committed result context for the next step boundary.
- */
 export async function executeToolCalls(
   ctx,
   turn,
@@ -82,7 +43,6 @@ export async function executeToolCalls(
   return { concluded }
 }
 
-/** Parse model arguments, preserving invalid JSON as text and mapping empty input to `{}`. */
 function parseArguments(raw) {
   try {
     return raw ? JSON.parse(raw) : {}
@@ -91,15 +51,6 @@ function parseArguments(raw) {
   }
 }
 
-/**
- * Run one exclusive barrier or parallel pool. Later calls are reclassified
- * before start; an exclusive reclassification waits for the current pool to
- * drain and remains for the caller's next barrier. Results and contexts commit
- * in model order. Abort stops starts, drains and commits started calls, accepts
- * their contexts into the owning batch, records results for skipped calls, and
- * returns an aborted outcome. Scheduler failure drains dispatches without
- * committing synthetic recovery results.
- */
 async function runGroup(
   ctx,
   turn,
@@ -216,7 +167,6 @@ async function runGroup(
   return { consumed: started, aborted: false, concluded }
 }
 
-/** Append the durable call/result pair for a model call skipped after cancellation. */
 function appendSkippedToolCall(session, turn, step, block) {
   const callSeq = appendToolCall(session, turn, step, block)
   appendToolResult(session, turn, step, block, {
@@ -229,13 +179,11 @@ function appendSkippedToolCall(session, turn, step, block) {
   }, callSeq)
 }
 
-/** Append a started call and return the event seq that its result must cite. */
 function appendToolCall(session, turn, step, block) {
   const event = session.append('tool/call', { turn, step, callId: block.id, name: block.name, arguments: block.arguments })
   return event.seq
 }
 
-/** Append a model-ordered result linked to its call event. */
 function appendToolResult(
   session,
   turn,

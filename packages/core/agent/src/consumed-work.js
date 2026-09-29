@@ -1,26 +1,3 @@
-/**
- * How one agent log accounts for the work it consumed.
- *
- * The turn and step vocabulary alone cannot answer this. A turn that stops
- * before its first step leaves a `turn/end` shaped exactly like the balanced
- * no-op turns a rejection or an empty claim produces, so reading turns in
- * isolation either credits cut-short work as finished or convicts every no-op.
- * The missing fact is the inbox's own record: {@link import('./inbox.js').Inbox} logs each mutation
- * with `removedCount` and marks a cancellation `outcome: 'canceled'`, which
- * separates a turn claiming its input from work being dropped unrun.
- *
- * @module @freddie/freddie-agent/consumed-work
- */
-
-/**
- * Whether a turn that consumed input but never reached a step ends in a way
- * that accounts for that input. Only a `completed` end does not: it had
- * nothing left to run once its claim was rewritten away. A `blocked` end is
- * that input's ending too — the pre-step rejection that produced it discarded
- * the claimed messages, so the work it took will never run.
- * @param reason - the turn's recorded ending.
- * @returns whether the ending accounts for the input the turn took.
- */
 function accountsForClaim(reason) {
   switch (reason.kind) {
     case 'completed':
@@ -39,14 +16,6 @@ function accountsForClaim(reason) {
   }
 }
 
-/**
- * Fold one agent log, or an owned suffix of one, into its account of consumed
- * work. Single pass, and every input is the log itself: no caller has to sample
- * live state before cancelling, so a cancellation issued by anyone — the owner's
- * teardown, an ancestor's interrupt, an unloading plugin — reads the same.
- * @param events - the log, or an owned suffix, to fold.
- * @returns the accounting turn when one closed, and whether work was dropped unrun after it.
- */
 export function foldConsumedWork(events) {
   const stepped = new Set()
   const claimed = new Set()

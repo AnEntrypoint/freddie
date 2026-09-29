@@ -1,78 +1,26 @@
-/**
- * Surface layer on top of the session event log: an ordered view of events
- * that produce LLM messages. The append-only log remains the source of truth.
- *
- * Browser-safe: web clients consume this subpath export, so it must stay free
- * of `node:` imports (they break the vite bundle).
- *
- * @module @freddie/freddie-session/surface
- */
-
-/** Runtime counterpart of the message-producing event union. */
 const SURFACE_EVENT_TYPES = new Set([
   'user/message',
   'assistant/message',
   'tool/result',
 ])
 
-/**
- * Whether an event type can join the model-visible surface.
- * @param type - event type to test.
- * @returns true for one of the three message-producing event types.
- */
 export function isSurfaceEligibleType(type) {
   return SURFACE_EVENT_TYPES.has(type)
 }
 
-/**
- * Narrow an event to a surface-eligible event carrying its required marker.
- * @param event - event to test.
- * @returns true when both the type and marker identify a surface event.
- */
 export function isSurfaceEvent(event) {
   if (!SURFACE_EVENT_TYPES.has(event.type)) return false
   return event.surfaceOp !== undefined
 }
 
-/**
- * Narrow an event to an append-origin surface event: one that entered the
- * surface at its own log position and was never itself a replacement copy.
- *
- * The model-visible surface deliberately shadows replaced ranges, so it is the
- * wrong source for a human transcript — a landed replacement would erase
- * conversation the user already saw. Append-origin events are that transcript's
- * durable source material; replacement copies stay model-only.
- * @param event - event to test.
- * @returns true when the event appended to the surface tail.
- */
 export function isAppendSurfaceEvent(event) {
   return isSurfaceEvent(event) && event.surfaceOp === 'append'
 }
 
-/**
- * Narrow an event to a surface replacement: a node that shadowed an existing
- * surface range instead of appending to the tail. The counterpart of
- * {@link isAppendSurfaceEvent} over the two {@link import('./types.js').SurfaceOp} variants.
- * @param event - event to test.
- * @returns true when the event replaced a surface range.
- */
 export function isReplacementSurfaceEvent(event) {
   return isSurfaceEvent(event) && event.surfaceOp !== 'append'
 }
 
-/**
- * Project a single event into the LLM message it derives to, or null when it
- * produces none — a non-surface event (chunk, boundary, log-only record) or an
- * empty-content assistant/message (which exists only to host usage). This is
- * THE per-node projection rule: `Session.deriveMessages` folds it over the
- * live surface, external reconstructors and pure projections fold the same
- * function over a log prefix's surface to rebuild the exact messages any
- * request was built from. The returned message is the already frozen message
- * nested in the event wrapper and shared by delivery, durable history, and
- * model requests.
- * @param event - the event to project.
- * @returns the derived message, or null when the event produces none.
- */
 export function deriveEventMessage(event) {
   switch (event.type) {
     case 'user/message': {
@@ -90,17 +38,14 @@ export function deriveEventMessage(event) {
   }
 }
 
-/** Create an empty surface fold state. */
 function createFoldState() {
   return { nodes: [], replaceGeneration: 0 }
 }
 
-/** Whether a runtime value is a non-negative safe event sequence. */
 function isEventSeq(value) {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }
 
-/** Whether a runtime value is the exact positional-replacement shape. */
 function isReplaceOp(value) {
   const op = value
   return Object.keys(op).length === 3
@@ -112,7 +57,6 @@ function isReplaceOp(value) {
     && isEventSeq(op['end'])
 }
 
-/** Validate event-local surface eligibility and return its operation. */
 function surfaceOpOf(event) {
   const raw = event
   if (!isSurfaceEligibleType(event.type)) {
@@ -138,7 +82,6 @@ function surfaceOpOf(event) {
   return op
 }
 
-/** Validate cited source-event seqs against prior log entries and the replacement range. */
 function assertProvenance(event, shadowedSeqs) {
   const raw = event.sourceEventSeqs
   const sources = new Set()
@@ -170,7 +113,6 @@ function assertProvenance(event, shadowedSeqs) {
   }
 }
 
-/** Locate one replacement range without mutating the current fold state. */
 function replacementRange(state, op) {
   const startIdx = state.nodes.indexOf(op.start)
   if (startIdx === -1) {
@@ -190,11 +132,6 @@ function replacementRange(state, op) {
   }
 }
 
-/**
- * Deep structural equality over the session-event JSON value domain
- * (null/boolean/number/string, arrays, plain objects). Replaces
- * `node:util`'s isDeepStrictEqual to keep this module browser-safe.
- */
 function isDeepEqualJson(a, b) {
   if (a === b) return true
   if (Array.isArray(a) || Array.isArray(b)) {
@@ -208,7 +145,6 @@ function isDeepEqualJson(a, b) {
   return aKeys.every(key => Object.hasOwn(b, key) && isDeepEqualJson(a[key], bRecord[key]))
 }
 
-/** Restrict a tool-result replacement to one current result's content. */
 function assertToolResultRewrite(event, shadowedSeqs, events, baseSeq) {
   if (event.type !== 'tool/result') return
   if (shadowedSeqs.length !== 1) {
@@ -237,7 +173,6 @@ function assertToolResultRewrite(event, shadowedSeqs, events, baseSeq) {
   }
 }
 
-/** Validate one event at its replay boundary and prepare its atomic fold transition. */
 function planSurfaceEvent(state, event, expectedSeq, events, baseSeq) {
   if (event.seq !== expectedSeq) {
     throw new Error(`session event seq ${event.seq} is not contiguous; expected ${expectedSeq}`)
@@ -260,13 +195,11 @@ function planSurfaceEvent(state, event, expectedSeq, events, baseSeq) {
   }
 }
 
-/** Apply one event and return replacement metadata only when one occurred. */
 function applySurfaceEvent(state, event, expectedSeq, events, baseSeq) {
   const plan = planSurfaceEvent(state, event, expectedSeq, events, baseSeq)
   return applySurfacePlan(state, plan)
 }
 
-/** Commit one previously validated surface transition. */
 function applySurfacePlan(state, plan) {
   if (plan?.kind === 'append') {
     state.nodes.push(plan.seq)
@@ -283,12 +216,6 @@ function applySurfacePlan(state, plan) {
   }
 }
 
-/**
- * Replay a complete session log through the canonical surface fold.
- * @param events - session events in contiguous seq order.
- * @returns detached current sequences and replacement history.
- * @throws when an event violates surface metadata, source-event references, range, or tool-result rewrite rules.
- */
 export function foldSurface(events) {
   const state = createFoldState()
   const replacements = []
@@ -299,29 +226,17 @@ export function foldSurface(events) {
   return { nodes: [...state.nodes], replacements }
 }
 
-/** Incremental ordered surface view and append-boundary validator. */
 export class SurfaceManager {
-  /** Shared transition state; replacement history is not retained. */
   _state = createFoldState()
-  /** Last processed absolute seq. */
   _lastProcessedSeq
-  /** Candidate already validated by `validateNext`, pending exact log admission. */
   _pendingPlan
 
-  /**
-   * @param log - Contiguous complete log or loaded event window.
-   * @param baseSeq - Absolute sequence of the window's first event.
-   */
   constructor(log, baseSeq = 0) {
     this.log = log
     this.baseSeq = baseSeq
     this._lastProcessedSeq = baseSeq - 1
   }
 
-  /**
-   * Validate the next candidate without mutating the committed surface.
-   * @param event - candidate event that has not entered the log yet.
-   */
   validateNext(event) {
     if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
     const expectedSeq = this.baseSeq + this.log.length
@@ -332,19 +247,16 @@ export class SurfaceManager {
     }
   }
 
-  /** Monotonic count of folded positional replacements. */
   get replaceGeneration() {
     if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
     return this._state.replaceGeneration
   }
 
-  /** Surface event sequences in model-visible order. */
   get nodes() {
     if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
     return this._state.nodes
   }
 
-  /** Fold events appended since the previous access. */
   _processDelta() {
     const tailSeq = this.baseSeq + this.log.length - 1
     for (let seq = this._lastProcessedSeq + 1; seq <= tailSeq; seq++) {

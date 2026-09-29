@@ -1,10 +1,3 @@
-/**
- * Concrete agent-loop plugin: creates scoped ReactLoopAgents, publishes them
- * through the agent/session registries, and owns their ordered teardown.
- *
- * @module @freddie/freddie-agent-loop
- */
-
 import { Service } from '@freddie/cordis'
 import { randomUUID } from 'node:crypto'
 import z from '@freddie/schemastery'
@@ -14,37 +7,27 @@ import { installSettingsSection, settingsNamespace } from '@freddie/freddie-sett
 import { SessionId, SessionPreparation } from '@freddie/freddie-session'
 import { ReactLoopAgent } from './agent.js'
 
-/** Runtime mirror: FiberState is a cross-package const enum, erased at compile time by cordis's own build. */
 const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, UNLOADING: 5 }
 import { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from './constants.js'
 
-/** Fiber states that cannot own or serve a new lifecycle. */
 const INACTIVE_STATES = new Set([
   FiberState.UNLOADING,
   FiberState.DISPOSED,
   FiberState.FAILED,
 ])
 
-/** Factory-level ownership: live agent teardowns plus config startup work. */
 class FactoryOwnership {
   accepting = true
   teardown = new AbortController()
   inactive = Promise.withResolvers()
   liveAgents = new Set()
   startupTasks = new Set()
-  /**
-   * Agents currently running a turn. Disposing this factory aborts their
-   * in-flight tool calls, so hot reload consults this set before deleting the
-   * plugin: reloading mid-turn is what makes an agent stop and wait for the
-   * user to say "keep going".
-   */
   busyAgents = new Set()
 
   constructor(fiber) {
     this.fiber = fiber
   }
 
-  /** Aborts (reason: `agent loop is not active` error) when factory teardown begins. */
   get signal() {
     return this.teardown.signal
   }
@@ -53,16 +36,11 @@ class FactoryOwnership {
     return this.accepting && !INACTIVE_STATES.has(this.fiber.state)
   }
 
-  /** Track one live agent's shared teardown until it has run. */
   track(dispose) {
     this.liveAgents.add(dispose)
     return () => { this.liveAgents.delete(dispose) }
   }
 
-  /**
-   * Record whether one agent is mid-turn. Read by the `hmr/before-reload`
-   * listener, which defers a reload rather than aborting the turn.
-   */
   markBusy(agent, busy) {
     const wasBusy = this.busyAgents.size > 0
     if (busy) this.busyAgents.add(agent)
@@ -70,27 +48,22 @@ class FactoryOwnership {
     if (wasBusy && this.busyAgents.size === 0) this.onIdle?.()
   }
 
-  /** Set by the owning service to notify a deferred hot reload. */
   onIdle
 
-  /** Whether any tracked agent is currently running a turn. */
   get busy() {
     return this.busyAgents.size > 0
   }
 
-  /** Join config startup work that begins before an agent exists. */
   trackStartup(job) {
     this.startupTasks.add(job)
     const forget = () => { this.startupTasks.delete(job) }
     void job.then(forget, forget)
   }
 
-  /** Join one public create/resume continuation; factory dispose awaits its settlement. */
   trackWrapper(job) {
     this.trackStartup(job.then(() => undefined, () => undefined))
   }
 
-  /** Resolve `task`, or stop waiting when factory teardown begins. */
   async waitWhileActive(job) {
     await Promise.race([job, this.inactive.promise])
   }
@@ -106,7 +79,6 @@ class FactoryOwnership {
   }
 }
 
-/** Await `operation`, or throw the signal's reason as soon as it aborts. */
 async function raceAbort(operation, signal, id) {
   const toAbortError = () => signal.reason instanceof Error
     ? signal.reason
@@ -122,7 +94,6 @@ async function raceAbort(operation, signal, id) {
   }
 }
 
-/** Start an abortable operation and release a value that arrives after cancellation. */
 async function raceAbortCall(
   operation,
   signal,
@@ -146,7 +117,6 @@ async function raceAbortCall(
   }
 }
 
-/** Resolve the deployment-wide scheduler cap at the owning config boundary. */
 function resolveMaxParallelToolCalls(value) {
   const maxParallelToolCalls = value ?? DEFAULT_MAX_PARALLEL_TOOL_CALLS
   if (!Number.isInteger(maxParallelToolCalls) || maxParallelToolCalls < 1) {
@@ -155,7 +125,6 @@ function resolveMaxParallelToolCalls(value) {
   return maxParallelToolCalls
 }
 
-/** Reject an output-token cap that cannot be represented exactly on the request wire. */
 function assertAgentOptions(options) {
   if (options.maxTokens !== undefined
     && (!Number.isSafeInteger(options.maxTokens) || options.maxTokens <= 0)) {
@@ -165,22 +134,8 @@ function assertAgentOptions(options) {
 
 export { DEFAULT_MAX_PARALLEL_TOOL_CALLS }
 
-/**
- * Context key a launcher sets before any Loader entry mounts
- * (`ctx.provide(CONFIGURED_AGENT_IDENTITIES_KEY, identities)`) to fix
- * configured agents' session identities without a config key, so an overlay
- * repointing the row's model route cannot drop them.
- */
 export const CONFIGURED_AGENT_IDENTITIES_KEY = 'configuredAgentIdentities'
 
-/**
- * Apply launcher-owned identities over the configured agents, replacing both
- * identity keys for every entry the launcher named so a config-supplied
- * identity can never survive alongside a launcher-supplied one.
- * @param agents - the configured agent entries.
- * @param identities - launcher identities keyed by configured agent `id`, or `undefined`.
- * @returns the entries with launcher-owned identities applied.
- */
 function applyLauncherIdentities(
   agents,
   identities,
@@ -196,15 +151,12 @@ function applyLauncherIdentities(
   })
 }
 
-/** Settings namespace carrying the tool-call parallelism a user owns. */
 export const AGENT_LOOP_SETTINGS_NAMESPACE = settingsNamespace('agent-loop')
 
-/** Schema of the agent-loop settings section. */
 export const AGENT_LOOP_SETTINGS_SCHEMA = z.object({
   maxParallelToolCalls: z.number().step(1).min(1).default(DEFAULT_MAX_PARALLEL_TOOL_CALLS),
 })
 
-/** Reject self-contained identity conflicts before any configured agent starts. */
 function validateConfiguredAgents(agents) {
   const exactIdentities = new Map()
   for (const { id, sessionId, resumeSessionId } of agents) {
@@ -222,14 +174,6 @@ function validateConfiguredAgents(agents) {
   }
 }
 
-/**
- * Resume a cold session whose last `turn/end` is `{ kind: 'interrupted' }`.
- * Persistence repair (`interruptedTurnClosers`) synthesizes that closer for
- * a turn that never finished; a live user cancel records `{ kind: 'aborted' }`
- * instead and must not be overridden. `resumeWith` calls this after
- * publication so the next driver turn starts without a further human prompt.
- * @param agent - a freshly published ReactLoopAgent.
- */
 function continueIfInterrupted(agent) {
   const lastTurnEnd = agent.session.events.findLast(event => event.type === 'turn/end')
   if (lastTurnEnd?.data.reason.kind !== 'interrupted') return
@@ -251,11 +195,9 @@ function continueIfInterrupted(agent) {
   }))
 }
 
-/** Concrete agent factory and driver service. */
 export class AgentLoop extends Service {
   static inject = ['agents', 'sessions', 'llm', 'tools', 'systemPrompt']
 
-  /** Runtime schema for declarative agents. */
   static Config = z.object({
     maxParallelToolCalls: z.number().step(1).min(1).default(DEFAULT_MAX_PARALLEL_TOOL_CALLS),
     agents: z.array(z.object({
@@ -269,10 +211,8 @@ export class AgentLoop extends Service {
     })).default([]),
   })
 
-  /** Validated configuration owned by the agent-loop service. */
   config
   ownership
-  /** Plain holder prevents Cordis from re-tracing the factory's dependency context through a caller shadow. */
   runtime
 
   constructor(ctx, config) {
@@ -339,7 +279,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /** Report a contained declarative-start failure to identity-bound consumers. */
   reportConfiguredStartupFailure(
     configId,
     action,
@@ -361,7 +300,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /** Restore a materialized exact config identity on remount, or create it on first use. */
   async restoreOrCreateConfigured(
     ownerCtx,
     persistence,
@@ -382,7 +320,6 @@ export class AgentLoop extends Service {
     this.create(sessionId, agentOptions, meta)
   }
 
-  /** Wait for a draining same-id lifecycle to finish registry teardown. */
   async waitForDrainingConfiguredIdentity(ownerCtx, sessionId) {
     if (ownerCtx.agents.get(sessionId) === undefined && ownerCtx.sessions.get(sessionId) === undefined) return
 
@@ -403,12 +340,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /**
-   * Construct the driver, scope, and one memoized reverse teardown for a new
-   * agent. The teardown is registered with the factory and the owner fiber
-   * BEFORE publication, so a mid-setup unload rolls everything back; `signal`
-   * fuses caller cancellation with lifecycle teardown for setup awaits.
-   */
   prepare(ownerCtx, id, options, session, callerSignal) {
     assertAgentOptions(options)
     ownerCtx.fiber.assertActive()
@@ -434,7 +365,6 @@ export class AgentLoop extends Service {
     let machine
     let detachSession
     let detachAgent
-    /** Disposer for the agent/status subscription that feeds `busyAgents`. */
     let untrackBusy
     let disposing
     const machineReady = Promise.withResolvers()
@@ -516,15 +446,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /**
-   * Create an agent and session under one caller-supplied identity, owned by
-   * the accessing fiber. Constructor-driven config calls mint a fresh combined
-   * id before entering this boundary.
-   * @param id - shared agent/session identity.
-   * @param options - concrete loop options.
-   * @param meta - optional fresh-session workspace metadata.
-   * @returns the published running agent.
-   */
   create(id, options = {}, meta = {}) {
     using preparation = SessionPreparation.create(this.runtime.ctx.sessions.prepare(id, { meta }))
     const prepared = this.prepare(this.ctx, id, options, preparation.session)
@@ -536,12 +457,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /**
-   * Create an owned agent on a caller-supplied session id.
-   * @param ownerCtx - caller context that structurally owns the lifecycle.
-   * @param options - identities, session seed/metadata, loop options, setup, and cancellation.
-   * @returns the published handle.
-   */
   async createAgent(ownerCtx, options) {
     const preparation = SessionPreparation.create(this.runtime.ctx.sessions.prepare(options.sessionId, {
       ...options.seed === undefined ? {} : { seed: options.seed },
@@ -560,7 +475,6 @@ export class AgentLoop extends Service {
     return published
   }
 
-  /** Prepare one Agent around an acquired Session, run setup, and publish it. */
   async setupAndPublish(
     ownerCtx,
     id,
@@ -583,12 +497,6 @@ export class AgentLoop extends Service {
     }
   }
 
-  /**
-   * Resume an owned agent from the configured persistence service.
-   * @param ownerCtx - caller context that owns load, setup, and the live lifecycle.
-   * @param options - persisted identity, loop options, setup, and cancellation.
-   * @returns the published handle.
-   */
   async resume(ownerCtx, options) {
     const persistence = this.runtime.ctx.get('sessionPersistence')
     if (persistence === undefined) {
@@ -597,7 +505,6 @@ export class AgentLoop extends Service {
     return this.resumeWith(ownerCtx, persistence, options)
   }
 
-  /** Resume through an explicit persistence handle used by the deferred config path. */
   resumeWith(
     ownerCtx,
     persistence,

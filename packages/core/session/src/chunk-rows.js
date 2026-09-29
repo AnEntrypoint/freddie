@@ -1,49 +1,15 @@
-/**
- * Lossless storage packing for `assistant/chunk` delta runs. Providers stream
- * token-sized deltas, so a log stores hundreds of near-identical event lines
- * whose JSON envelopes dwarf their payloads (~56× measured on a real DeepSeek
- * session). This module packs each run of consecutive same-block delta chunks
- * into ONE storage row — `text-chunks`, `reasoning-chunks`, or
- * `tool-call-chunks` — and expands rows back to the exact original events.
- *
- * Storage rows are a durable-encoding vocabulary, NOT session events: they
- * never enter `Session.events`, have no `SessionEventMap` entry, and use bare
- * (slash-less) type tags so a reader cannot confuse them with the event
- * taxonomy (precedent: the JSONL header line's `session` tag). The encoder
- * whitelists exact shapes — anything it does not fully recognize is stored
- * verbatim, so unknown fields or future chunk variants lose compression, never
- * data. The decoder validates before expanding and fails loud on a malformed
- * row-tagged value instead of silently dropping a whole run.
- *
- * @module @freddie/freddie-session/chunk-rows
- */
-
 import { CallId, assertNever } from '@freddie/freddie-llm'
 
-/**
- * Minimum members before a run packs. Below it a row's envelope rivals the
- * event lines it replaces. A format constant, not a tunable: both layouts
- * decode identically, so changing it never invalidates stored logs.
- */
 const MIN_RUN = 3
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null
 }
 
-/** Exact-key check: `value` has every key in `keys` and nothing else. */
 function hasExactKeys(value, keys) {
   return Object.keys(value).length === keys.length && keys.every(k => Object.hasOwn(value, k))
 }
 
-/**
- * Classify an event for packing: its delta kind when the ENTIRE shape
- * (envelope, data, chunk — exact keys, primitive types, integer seq/time) is
- * whitelisted, else `undefined` (store verbatim). Inputs come from live typed
- * appends AND parsed fixture files, so the checks are structural, not
- * type-trusted. Integer times keep gap encoding exact: a fractional time would
- * reconstruct through float subtraction/addition, which need not round-trip.
- */
 function classify(event) {
   if (event.type !== 'assistant/chunk') return undefined
   if (!hasExactKeys(event, ['type', 'seq', 'time', 'data'])) return undefined
@@ -71,17 +37,14 @@ function classify(event) {
   }
 }
 
-/** The tool-call fields of a whitelisted delta chunk (only after {@link classify} returned `'tool-call-delta'`). */
 function toolCallOf(event) {
   return event.data.chunk
 }
 
-/** The block index of a whitelisted delta chunk (not every {@link import('@freddie/freddie-llm').StreamChunk} variant carries one). */
 function indexOf(event) {
   return event.data.chunk.index
 }
 
-/** Whether `next` extends a run ending in `prev` (same kind already checked by the caller). */
 function continues(prev, next, kind) {
   if (next.seq !== prev.seq + 1) return false
   if (!Number.isSafeInteger(next.time - prev.time)) return false
@@ -94,7 +57,6 @@ function continues(prev, next, kind) {
   return a.id === b.id && namePresenceAndValueMatch
 }
 
-/** Build the row for a completed run (`run.length >= MIN_RUN`, uniform per {@link continues}). */
 function buildRow(kind, run) {
   const first = run[0]
   const base = {
@@ -123,50 +85,10 @@ function buildRow(kind, run) {
     : { type: 'reasoning-chunks', ...envelope, data }
 }
 
-/**
- * One packed run of consecutive `text-delta` events for one block.
- * @typedef {object} TextChunksRow
- * @property {'text-chunks'} type
- * @property {number} seq0 - seq of the run's first member event.
- * @property {number} time0 - time of the run's first member event.
- * @property {{turn: number, step: number, index: number, dt: readonly number[], texts: readonly string[]}} data
- */
 
-/**
- * One packed run of consecutive `reasoning-delta` events for one block.
- * @typedef {object} ReasoningChunksRow
- * @property {'reasoning-chunks'} type
- * @property {number} seq0 - seq of the run's first member event.
- * @property {number} time0 - time of the run's first member event.
- * @property {{turn: number, step: number, index: number, dt: readonly number[], texts: readonly string[]}} data
- */
 
-/**
- * One packed run of consecutive `tool-call-delta` events for one block/call id.
- * @typedef {object} ToolCallChunksRow
- * @property {'tool-call-chunks'} type
- * @property {number} seq0 - seq of the run's first member event.
- * @property {number} time0 - time of the run's first member event.
- * @property {{turn: number, step: number, index: number, id: import('@freddie/freddie-llm').CallId, name?: string, dt: readonly number[], args: readonly string[]}} data
- */
 
-/**
- * A packed storage row replacing a run of at least {@link MIN_RUN} consecutive
- * same-kind, same-block `assistant/chunk` delta events (see {@link buildRow}
- * and {@link expandRow}). Not a session event: never enters `Session.events`.
- * @typedef {TextChunksRow|ReasoningChunksRow|ToolCallChunksRow} ChunkRow
- */
 
-/**
- * Pack an event batch for storage: each run of at least {@link MIN_RUN}
- * consecutive whitelisted same-kind, same-block delta chunk events becomes one
- * {@link ChunkRow}; every other event passes through verbatim, in order.
- * Pure and stateless — safe over any array, including a batch whose runs were
- * split by flush boundaries (the split runs simply pack per batch).
- *
- * @param events - the batch to encode, in log order.
- * @returns the storage records to write, one JSONL line each.
- */
 export function packChunkRuns(events) {
   const out = []
   let kind
@@ -198,12 +120,10 @@ export function packChunkRuns(events) {
   return out
 }
 
-/** Throw the uniform malformed-row diagnostic. */
 function malformed(tag, why) {
   throw new Error(`malformed ${tag} storage row: ${why}`)
 }
 
-/** Validate the shared run-data fields and the payload/dt arity; returns the member payload. */
 function validateRunData(tag, data, payloadKey) {
   if (typeof data.turn !== 'number' || typeof data.step !== 'number' || typeof data.index !== 'number') {
     malformed(tag, 'turn/step/index must be numbers')
@@ -222,7 +142,6 @@ function validateRunData(tag, data, payloadKey) {
   return payload
 }
 
-/** Validate a row-tagged parsed value's envelope and data, throwing on any malformation. */
 function validateRow(value, tag) {
   if (!hasExactKeys(value, ['type', 'seq0', 'time0', 'data'])) {
     malformed(tag, 'envelope must be exactly {type, seq0, time0, data}')
@@ -262,7 +181,6 @@ function validateRow(value, tag) {
   return value
 }
 
-/** Expand a validated row back into its exact original events, in order. */
 function expandRow(row) {
   const members = row.type === 'tool-call-chunks' ? row.data.args : row.data.texts
   const events = []
@@ -300,15 +218,6 @@ function expandRow(row) {
   return events
 }
 
-/**
- * Decode one parsed JSONL line value into the session event(s) it stores.
- * Chunk-row-tagged values validate and expand (a malformed row throws — it is
- * corrupt storage, and treating it as an event would silently drop a whole
- * run); every other value passes through as a single event, unvalidated.
- *
- * @param value - one line's `JSON.parse` result.
- * @returns the stored events, in log order.
- */
 export function decodeStorageRecord(value) {
   if (!isRecord(value)) return [value]
   const tag = value.type

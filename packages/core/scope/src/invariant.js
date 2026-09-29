@@ -1,16 +1,11 @@
-/** Package-owned scoped-dispatch invariants. @module @freddie/freddie-scope/invariant */
-
 import { carrierKeyOf, isScopeCarrier } from '@freddie/freddie-scope'
 import { scopedSubjectResolverFor } from './scoped-events.generated.js'
 
 const PACKAGE_NAME = '@freddie/freddie-scope'
 
-/** Cordis companion plugin name. */
 export const name = 'scope-invariant'
-/** Services required before the companion can register. */
 export const inject = ['invariants']
 
-/** Install the scoped-dispatch contribution into its child registration fiber. */
 const install = (ctx, fail) => {
   ctx.on('internal/dispatch', (_mode, eventName, args, thisArg) => {
     const subjectOf = scopedSubjectResolverFor(eventName)
@@ -30,10 +25,5 @@ const install = (ctx, fail) => {
   }, { global: true })
 }
 
-/**
- * Register the scope invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

@@ -1,9 +1,3 @@
-/**
- * Default Agent driver over queued turns and step-boundary input. Every request
- * is derived from the session log.
- * @module freddie-agent-loop/agent
- */
-
 import { Inbox, agentEvents, assembleContextFor } from '@freddie/freddie-agent'
 import {
   BlockAssembler,
@@ -19,10 +13,8 @@ import { joinContextSections, renderContextSections, renderPrompt } from '@fredd
 import { RuntimeContextProjection } from './runtime-context.js'
 import { executeToolCalls } from './tool-calls.js'
 
-/** Reported failures and cancellation end the driver here; each already surfaced on its own channel. */
 function containAtDriverBoundary(_error) {}
 
-/** Remove adapter-derived values before plugins propose the next request config. */
 function requestProposal(header) {
   if (header.adapterDefaults === undefined) return header.config
   const proposal = { ...header.config }
@@ -31,20 +23,16 @@ function requestProposal(header) {
   return proposal
 }
 
-/** Drives one session through turn and step boundaries. */
 export class ReactLoopAgent {
   inbox
   phase
   activityDone = Promise.resolve()
 
-  /** The agent-scoped registration boundary; the lifecycle owner unwinds it after the driver exits. */
   scope
   ctx
 
-  /** Fused dispatcher, built once in the constructor so hot-path dispatches never allocate. */
   dispatch
 
-  /** Whether this loop instance has appended its initial/resume request anchor. */
   requestHeaderLogged = false
   runtimeContext
 
@@ -75,7 +63,6 @@ export class ReactLoopAgent {
     return this.phase.kind === 'idle' || this.phase.kind === 'maintenance' ? 'idle' : 'running'
   }
 
-  /** Commit a phase and publish its externally visible status transition. */
   setPhase(next) {
     const previousStatus = this.status
     this.phase = next
@@ -134,14 +121,6 @@ export class ReactLoopAgent {
     })()
   }
 
-  /**
-   * Start one driver, or latch its wake behind maintenance or an aborted
-   * activity. A wake sent while idle always opens its turn boundary, even
-   * when its message was cleared; only a latched replay is suppressed when
-   * the queue no longer holds the wake.
-   * @param wakeAfterAbort - the {@link send} classification, captured before
-   *   the inbox insertion so a reentrant cancel cannot reclassify it.
-   */
   wakeDriver(wakeAfterAbort = false) {
     if (this.phase.kind !== 'idle') {
       const reason = this.phase.abort.signal.reason
@@ -169,7 +148,6 @@ export class ReactLoopAgent {
     } while (activity !== this.activityDone)
   }
 
-  /** Report one failure at its live boundary, then preserve it for driver containment. */
   throwError(error) {
     const turn = this.phase.kind === 'running' ? this.phase.turn : this.phase.lastTurn
     const step = this.phase.kind === 'running' ? this.phase.step : 0
@@ -212,7 +190,6 @@ export class ReactLoopAgent {
     return decision.kind === 'reject' ? decision : { ...decision, assembly }
   }
 
-  /** Open one turn before claiming its first proposed step. */
   async turn() {
     if (this.phase.kind !== 'running') {
       this.throwError(new Error(`agent "${this.id}": turn without driver reservation`))
@@ -379,10 +356,6 @@ export class ReactLoopAgent {
     }
   }
 
-  /**
-   * Compose one frozen request and bind it to the adapter registration that
-   * resolved its exact-model defaults.
-   */
   async buildRequest(
     turn,
     step,
