@@ -1,22 +1,10 @@
-/**
- * Unified Web `@` reference source. File and session discovery run through
- * the cancellable generated Remote namespaces in parallel with deterministic
- * ordering and labels.
- *
- * @module @freddie/freddie-client-ui-reference/client
- */
 import { formatFileMention } from '@freddie/freddie-file-reference/grammar'
 import { en, NS } from './locales.js'
 
-/** Required services: the trigger registry, the Remote namespaces, and the copy. */
 export const inject = [
   'inputTriggers', 'locale', 'remote', 'remote.fileReferences', 'remote.sessionReferenceResolver',
 ]
 
-/**
- * Register the combined `@file` / `@session` source.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-reference: dictionaries')
   const t = ctx.locale.bind(NS)
