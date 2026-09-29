@@ -3,17 +3,8 @@ import { basename } from './turn-deliverables.js'
 import css from './ProducedFiles.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-/** At most six chips compete for the one-line summary; every other path stays counted. */
 const SHOWN_LIMIT = 6
 
-/**
- * Select the largest prefix whose measured chips and exact remainder fit.
- * @param available - usable width of the one-line file lane.
- * @param gap - computed flex gap between adjacent visible items.
- * @param chipWidths - measured widths for the candidate file chips.
- * @param moreWidthsByShown - exact localized remainder width for each shown count.
- * @returns Number of leading chips to render.
- */
 export function fitProducedFiles(
   available,
   gap,
@@ -41,22 +32,10 @@ function moreLabel(t, count) {
   return count === 1 ? t('produced.moreOne') : t('produced.more', { count: String(count) })
 }
 
-/**
- * Identity of a path list for the measurement cache (see `#measuredKey`).
- * Joined on a separator only so two lists differing by an element boundary
- * compare unequal; the key is never parsed back apart.
- * @param paths - the matched produced-file paths.
- * @returns the comparable key.
- */
 function pathsKey(paths) {
   return paths.join('')
 }
 
-/**
- * Produced-files turn-tail row custom element: renders openable chips for a
- * turn's produced paths, measuring how many fit one line via a ResizeObserver
- * bound to hidden probe chips.
- */
 export class FreddieProducedFiles extends HTMLElement {
   #props = null
   #shownCount = SHOWN_LIMIT
@@ -66,7 +45,6 @@ export class FreddieProducedFiles extends HTMLElement {
   #chipProbeEls = []
   #measuredKey = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     this.#props = props
     const key = pathsKey(props.matched)

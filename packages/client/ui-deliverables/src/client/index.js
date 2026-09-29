@@ -1,12 +1,3 @@
-/**
- * Deliverables plugin, browser half: registers the produced-files row into
- * the chat view's turn-tail chain, and provides the `chatFileMentions`
- * service that links inline-code mentions of produced files in the closing
- * prose. All policy lives here — the derivation from the mutation tools'
- * `locations`, the mention matching, the chip cap, and the copy — so
- * composing this plugin out of cordis.yml removes both surfaces entirely;
- * the owning view renders an empty chain and inert prose at zero cost.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { en, NS } from './locales.js'
 import {
@@ -16,13 +7,8 @@ import {
 export { FreddieProducedFiles, fitProducedFiles } from './ProducedFiles.js'
 export { producedForClosing } from './turn-deliverables.js'
 
-/** Required services for the tail-slot registration and its dictionaries. */
 export const inject = ['slots', 'locale', 'conversationEvents', 'connection']
 
-/**
- * Client plugin body: register the dictionaries and the turn-tail entry.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   const connection = ctx.get('connection')
   ctx.conversationEvents.register(deliverablesDefinition)

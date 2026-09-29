@@ -1,9 +1,6 @@
-/** `deliverables` namespace dictionaries. */
 
-/** Dictionary namespace owned by this plugin. */
 export const NS = 'deliverables'
 
-/** English dictionary. */
 export const en = {
   'produced.label': 'Produced',
   'produced.moreOne': '+ 1 file',
