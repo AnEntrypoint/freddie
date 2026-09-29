@@ -1,10 +1,4 @@
-/** ISO-shaped time-context timestamp formatting shared by production and replay validation. */
 
-/**
- * Create the exact formatter used by durable time-context readings.
- * @param timeZone - Explicit display zone, or `undefined` for the process fallback.
- * @returns A formatter with stable numeric local fields and long numeric offset.
- */
 export function createTimestampFormatter(timeZone) {
   return new Intl.DateTimeFormat('en-US', {
     ...(timeZone === undefined ? {} : { timeZone }),
@@ -19,13 +13,6 @@ export function createTimestampFormatter(timeZone) {
   })
 }
 
-/**
- * Format an epoch millisecond value as an ISO-shaped timestamp with offset and IANA zone.
- * @param now - Epoch milliseconds to display.
- * @param formatter - Formatter created for `timeZone`.
- * @param timeZone - Canonical zone label carried in brackets.
- * @returns The durable timestamp text.
- */
 export function formatTimestamp(now, formatter, timeZone) {
   const parts = Object.fromEntries(
     formatter.formatToParts(now).map(part => [part.type, part.value]),

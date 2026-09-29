@@ -1,13 +1,3 @@
-/**
- * Workspace instruction loader for AGENTS.md-compatible files.
- *
- * Baseline instructions enter durable context before the first request; successful fs
- * tool touches project nested, changed, and removed instructions into the inbox.
- * Plugin lifecycle reads use the optional `ctx.fs` provider, so providerless products
- * mount it as a no-op.
- *
- * @module @freddie/freddie-agent-instructions
- */
 
 import { isDeepStrictEqual } from 'node:util'
 import { createUserMessage } from '@freddie/freddie-llm'

@@ -10,3 +10,7 @@
 - Known gap `src/files.js` `existsAsMarker`: a provider failure is reported as absence, so root discovery continues upward and can cross into an ancestor project. Provider failure should stop discovery.
 - Known gap `src/files.js` `readBounded`: the cap is per file; there is no aggregate source budget across a baseline or reconciliation batch. The render budget applies only after every accepted file has been read.
 - Known gap `src/state.js` `reconcileInstructionContext` and `src/index.js` `compose`: the project root is recomputed on every pass instead of frozen per loop instance, so editing a root marker reinterprets the existing relative scope keys.
+
+## Comment-sweep notes
+- Duplicate suppression is per directory on trimmed content (a symlinked or byte-copied sibling collapses; identical files in different directories do not); the earliest candidate's original bytes render.
+- The user-global instruction file name is one constant shared by discovery and reconciliation; if they disagreed it would load but never reconcile.

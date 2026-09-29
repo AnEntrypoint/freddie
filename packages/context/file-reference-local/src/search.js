@@ -1,28 +1,13 @@
-/**
- * Host-workspace discovery for `@file` completion. The index contains paths
- * only: selected values remain ordinary prompt text and file contents stay
- * behind the model-facing `read` tool.
- *
- * @module @freddie/freddie-file-reference-local/search
- */
 
 import { lstat, readdir } from 'node:fs/promises'
 import { isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 export { activeAtToken, formatFileMention } from '@freddie/freddie-file-reference/grammar'
 
-/** Default maximum file and directory candidates rendered for one query. */
 export const DEFAULT_FILE_SEARCH_MAX_RESULTS = 20
-/** Default maximum entries retained in one workspace search index. */
 export const DEFAULT_FILE_SEARCH_MAX_ENTRIES = 10_000
-/** Directory basenames omitted from traversal unless the deployment overrides them. */
 export const DEFAULT_FILE_SEARCH_EXCLUDED_DIRECTORIES = ['.git', 'node_modules']
 
-/**
- * Cancellable, reusable fuzzy index rooted at one agent working directory.
- * Directory-scoped queries list live state; bare fuzzy queries share one
- * bounded traversal until the `@` interaction ends or a tool result invalidates it.
- */
 export class WorkspaceFileSearch {
   constructor(root, config) {
     this.root = root
@@ -41,12 +26,6 @@ export class WorkspaceFileSearch {
     this.excludedDirectories = new Set(config.excludedDirectories)
   }
 
-  /**
-   * Return ranked path candidates for the current token.
-   * @param rawQuery - path text following `@` or `@"`.
-   * @param signal - cancels this caller's wait without killing an index shared by a newer query.
-   * @returns at most `maxResults` deterministic candidates.
-   */
   async list(rawQuery, signal) {
     signal.throwIfAborted()
     if (this.disposed) return []
@@ -65,13 +44,11 @@ export class WorkspaceFileSearch {
     )
   }
 
-  /** Discard the current index so the next bare query observes a fresh tree. */
   invalidate() {
     this.generation?.controller.abort(new Error('file search index invalidated'))
     this.generation = undefined
   }
 
-  /** Abort traversal and make later queries return no candidates. */
   dispose() {
     if (this.disposed) return
     this.disposed = true

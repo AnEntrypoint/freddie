@@ -1,10 +1,8 @@
-/** Browser-zone derivation and model-facing policy text for one open request turn. */
 
 import { assertNever } from '@freddie/freddie-llm'
 
 const IANA_TIME_ZONE = /^[A-Za-z][A-Za-z0-9_+.-]*(?:\/[A-Za-z0-9_+.-]+)+$/
 
-/** Read and validate a Host-canonicalized browser zone from one ordinary user-rpc message. */
 function browserTimeZone(message) {
   const source = message.source
   const value = source.kind === 'user'
@@ -32,12 +30,6 @@ function browserTimeZone(message) {
   return value
 }
 
-/**
- * Derive the unique, mixed, or missing browser zone for one open turn.
- * @param messages - Entered and proposed user messages belonging to the turn.
- * @returns Sorted, duplicate-free browser-zone facts.
- * @throws TypeError when a user-rpc source carries an invalid or noncanonical zone.
- */
 export function deriveBrowserTimeZoneContext(messages) {
   const timeZones = [...new Set(messages.flatMap((message) => {
     const timeZone = browserTimeZone(message)
@@ -49,11 +41,6 @@ export function deriveBrowserTimeZoneContext(messages) {
   return { kind: 'mixed', timeZones }
 }
 
-/**
- * Render the model instruction for one browser-zone context.
- * @param context - Browser-zone facts for the open turn.
- * @returns One durable policy line.
- */
 export function renderBrowserTimeZoneContext(context) {
   switch (context.kind) {
     case 'resolved':

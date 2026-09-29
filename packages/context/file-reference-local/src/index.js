@@ -1,8 +1,3 @@
-/**
- * Local-filesystem implementation of `ctx.fileReferences`.
- *
- * @module @freddie/freddie-file-reference-local
- */
 
 import z from '@freddie/schemastery'
 import FileReferenceService, {
@@ -24,7 +19,6 @@ export {
 export { FILE_REFERENCE_PROMPT } from '@freddie/freddie-file-reference'
 export { activeAtToken, formatFileMention } from '@freddie/freddie-file-reference/grammar'
 
-/** Local-filesystem owner of the file-reference discovery service. */
 export class LocalFileReferenceService extends FileReferenceService {
   static inject = ['agents']
   static Config = z.object({

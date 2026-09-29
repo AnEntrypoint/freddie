@@ -1,46 +1,15 @@
-/**
- * Request-preparation tmux-location context. Eligible step attempts
- * append durable, source-attributed context naming the tmux session, window,
- * and pane this agent process runs in, plus the window's pane-tree layout.
- *
- * The plugin pulls state once per turn, for the first request (`step === 1`), by
- * running one `tmux display-message` through the `ctx.shell` executor service. It
- * confirms this process genuinely runs inside the pane `$TMUX_PANE` names by
- * matching the pane's `#{pane_tty}` against this process's controlling terminal,
- * so a terminal that merely inherited `$TMUX`/`$TMUX_PANE` from a tmux ancestor
- * (e.g. a VS Code integrated terminal) reads as "not in tmux". It re-injects
- * only when the rendered tmux state changes since the last injection (a moved,
- * renamed, or re-laid-out pane), with an optional `refreshIntervalMs` floor
- * between injections. A win32 host or a process whose environment carries no
- * well-formed `$TMUX_PANE` mounts no listener and never spawns; an
- * inherited-only environment, absent `ctx.shell`, or a failed query is a no-op,
- * never an error: the first definitive negative (nonzero exit, missing binary,
- * executor rejection) stops every later query for the life of the process, and
- * an executor rejection is contained and logged once as a warning so the turn
- * continues.
- *
- * @module @freddie/freddie-tmux-context
- */
 
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'tmux-context'
 
-/** The agent registry that owns pre-step processing. */
 export const inject = ['agents']
 
-/** Schemastery validation for {@link Config}. */
 export const Config = z.object({
   refreshIntervalMs: z.number(),
 })
 
-/**
- * Tab-separated tmux format fields, in query order. Layout (`window_layout`)
- * is the pane-tree description; pane/window pixel sizes are intentionally
- * excluded (own location and layout only, per the package scope).
- */
 const TMUX_FIELDS = [
   '#{session_name}',
   '#{window_index}',
@@ -52,52 +21,16 @@ const TMUX_FIELDS = [
   '#{window_layout}',
 ]
 
-/** tmux pane identifiers are `%` followed by digits; anything else is not a pane this plugin may address. */
 const PANE_ID = /^%\d+$/u
 
-/** Definitive negative: no tmux pane owns this process, so the query is never repeated. */
 const ABSENT = Object.freeze({ kind: 'absent' })
 
-/** Malformed reading: skipped this turn, retried on a later one. */
 const UNREADABLE = Object.freeze({ kind: 'unreadable' })
 
-/** Prefix marking the volatile turn/step preamble line of a rendered reading. */
 const READING_PREFIX = 'tmux location (turn '
 
-/**
- * Field separator between tmux format fields. tmux does not interpret C escapes
- * in a format, so the literal two-character sequence `\t` is emitted verbatim
- * and split back out here; this avoids embedding raw whitespace in the command.
- */
 const FIELD_SEP = '\\t'
 
-/**
- * Read this process's tmux location through the bash seam, or `undefined` when
- * this process is not genuinely running inside a tmux pane or the query fails.
- *
- * `$TMUX_PANE` alone is insufficient: a terminal launched from a tmux shell
- * (e.g. VS Code's integrated terminal, a desktop launcher) inherits `$TMUX` and
- * `$TMUX_PANE` from that ancestor, so the variables are present even though this
- * process does not live in that pane. The command therefore also compares the
- * pane's `#{pane_tty}` against this process's own controlling terminal
- * (`ps -o tty=` for {@link processId}); a genuine pane owns this process's tty,
- * an inherited environment names some other pane's tty. Fields are emitted only
- * on a match, so an inherited environment reads as "not in tmux" and injects
- * nothing.
- *
- * The location is optional context, so an executor rejection is a failed query,
- * not a turn failure: `resolve()` may reject the command on policy grounds and
- * `run()` only promises to resolve for nonzero exits, timeouts, and aborts, so
- * both are contained and reported as a warning.
- *
- * @param bash - The executor service used to run the read-only tmux/ps commands.
- * @param logger - receives a warning when the executor rejects the query.
- * @param processId - this agent process's pid, whose controlling tty must match the pane.
- * @param signal - abort signal forwarded to the executor.
- * @returns `{ kind: 'located', location }` for a real pane, `{ kind: 'absent' }` when the
- *   query definitively found no pane (nonzero exit, missing binary, executor rejection),
- *   or `{ kind: 'unreadable' }` for a malformed reading that a later turn may retry.
- */
 async function queryTmuxLocation(bash, logger, processId, signal) {
   const format = TMUX_FIELDS.join(FIELD_SEP)
   const command = [
@@ -147,11 +80,6 @@ async function queryTmuxLocation(bash, logger, processId, signal) {
   }
 }
 
-/**
- * Render the stable tmux state block: the part of a reading compared for
- * change suppression. It excludes the turn preamble so re-injection is driven
- * only by tmux state, not by loop position.
- */
 function renderState(location) {
   return `session ${location.sessionName}, `
     + `window ${location.windowIndex} ${JSON.stringify(location.windowName)}, `
@@ -160,17 +88,10 @@ function renderState(location) {
     + `layout ${location.windowLayout}`
 }
 
-/** Render the full durable reading, including the volatile turn preamble. */
 function renderReading(location, turn) {
   return `${READING_PREFIX}${turn}):\n${renderState(location)}`
 }
 
-/**
- * The stable state block of this plugin's latest durable injection, or
- * `undefined` when the session has none. Scans raw durable events so the
- * schedule survives compaction and resumed processes without process-local
- * cache state.
- */
 function latestInjectedState(agent) {
   for (const event of [...agent.session.events].reverse()) {
     if (event.type === 'user/message'
@@ -186,7 +107,6 @@ function latestInjectedState(agent) {
   return undefined
 }
 
-/** Reject refresh intervals that cannot represent an exact elapsed-millisecond threshold. */
 function validateRefreshInterval(refreshIntervalMs) {
   if (refreshIntervalMs !== undefined && (
     !Number.isSafeInteger(refreshIntervalMs)
@@ -198,12 +118,6 @@ function validateRefreshInterval(refreshIntervalMs) {
   }
 }
 
-/**
- * Register a prepended pre-step listener for the lifetime of `ctx`.
- * @param ctx - plugin context; the listener is disposed with it.
- * @param config - durable refresh scheduling configuration.
- * @throws when the refresh interval is invalid.
- */
 export function apply(ctx, config) {
   const refreshIntervalMs = config.refreshIntervalMs
   validateRefreshInterval(refreshIntervalMs)

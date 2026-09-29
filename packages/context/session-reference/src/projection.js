@@ -1,11 +1,9 @@
-/** Current-surface projection and byte-bounded rendering. */
 
 import { isCompactCheckpointSource } from '@freddie/freddie-compaction'
 import { assertNever } from '@freddie/freddie-llm'
 import { TextRetainer } from '@freddie/freddie-output-retention'
 import { stringifyTagSafeJson } from './serialization.js'
 
-/** Project current user/assistant conversation while excluding tools, reasoning, and injected context. */
 function projectSessionConversation(snapshot) {
   const conversation = []
   for (const event of snapshot.events) {
@@ -32,13 +30,6 @@ function projectSessionConversation(snapshot) {
   return conversation
 }
 
-/**
- * Fit one projected snapshot into an exact rendered JSON-object byte cap.
- * @param snapshot - current-surface source observation.
- * @param label - host-provided display label serialized with the source.
- * @param maxBytes - maximum UTF-8 bytes for the serialized data object.
- * @returns retained data and stats, or `undefined` when fixed data cannot fit.
- */
 export function retainReferencedSession(
   snapshot,
   label,

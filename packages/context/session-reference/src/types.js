@@ -1,6 +1,0 @@
-/**
- * Public session-reference request, candidate, and preparation records.
- * Imports stay on type-only subpaths so generated Remote clients can consume
- * this module without Host runtime code.
- * @module @freddie/freddie-session-reference/types
- */

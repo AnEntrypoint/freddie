@@ -1,9 +1,3 @@
-/**
- * Opt-in request clock context. Eligible steps add durable,
- * source-attributed time readings to the request history.
- *
- * @module @freddie/freddie-time-context
- */
 
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
@@ -13,19 +7,15 @@ import {
 } from './request-zone.js'
 import { createTimestampFormatter, formatTimestamp } from './timestamp.js'
 
-/** Cordis plugin name used by loader diagnostics. */
 export const name = 'time-context'
 
-/** The agent registry that owns pre-step processing. */
 export const inject = ['agents']
 
-/** Schemastery validation for {@link Config}. */
 export const Config = z.object({
   timeZone: z.string(),
   refreshIntervalMs: z.number(),
 })
 
-/** Format a non-negative elapsed millisecond count as compact whole-second units. */
 function formatDuration(elapsedMs) {
   let seconds = Math.floor(Math.max(0, elapsedMs) / 1000)
   const days = Math.floor(seconds / 86_400)
@@ -42,7 +32,6 @@ function formatDuration(elapsedMs) {
   return parts.join(' ')
 }
 
-/** Find the latest model-visible event, excluding this plugin's pending append. */
 function precedingMessageTime(agent) {
   for (const event of [...agent.session.events].reverse()) {
     switch (event.type) {
@@ -57,7 +46,6 @@ function precedingMessageTime(agent) {
   return undefined
 }
 
-/** Find the preceding time-context event within the open turn. */
 function precedingStepContextTime(agent, turn) {
   for (const event of [...agent.session.events].reverse()) {
     if (event.type === 'turn/start' && event.data.turn === turn) return undefined
@@ -70,7 +58,6 @@ function precedingStepContextTime(agent, turn) {
   return undefined
 }
 
-/** Find this plugin's latest durable injection, including a shadowed surface event. */
 function latestInjectionTime(agent) {
   for (const event of [...agent.session.events].reverse()) {
     if (event.type === 'user/message'
@@ -82,7 +69,6 @@ function latestInjectionTime(agent) {
   return undefined
 }
 
-/** Collect already-entered and proposed user messages belonging to one open turn. */
 function requestMessages(agent, turn, proposed) {
   const start = agent.session.events.findLastIndex(
     event => event.type === 'turn/start' && event.data.turn === turn,
@@ -111,7 +97,6 @@ function renderText(
     + `Elapsed since the preceding ${baseline}: ${elapsed}.`
 }
 
-/** Reject refresh intervals that cannot represent an exact elapsed-millisecond threshold. */
 function validateRefreshInterval(refreshIntervalMs) {
   if (refreshIntervalMs !== undefined && (
     !Number.isSafeInteger(refreshIntervalMs)
@@ -123,12 +108,6 @@ function validateRefreshInterval(refreshIntervalMs) {
   }
 }
 
-/**
- * Register a prepended pre-step listener for the lifetime of `ctx`.
- * @param ctx - plugin context; the listener is disposed with it.
- * @param config - time zone and durable refresh scheduling configuration.
- * @throws when the refresh interval is invalid or the configured or process time zone cannot be resolved.
- */
 export function apply(ctx, config) {
   const timeZone = config.timeZone
   const refreshIntervalMs = config.refreshIntervalMs
@@ -145,7 +124,6 @@ export function apply(ctx, config) {
   const fallbackTimeZone = fallbackFormatter.resolvedOptions().timeZone
   const formatters = new Map([[fallbackTimeZone, fallbackFormatter]])
 
-  /** Resolve and cache one request-local timestamp formatter. */
   const formatterFor = (selectedTimeZone) => {
     const existing = formatters.get(selectedTimeZone)
     if (existing !== undefined) return existing

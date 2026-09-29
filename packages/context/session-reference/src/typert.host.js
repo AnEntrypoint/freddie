@@ -1,4 +1,3 @@
-/** Hand-owned Typert host manifest (Remote RPC schema + reflection metadata). */
 import { z } from 'zod'
 
 const _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_parameter_0$schema = z.intersection(z.string(), z.unknown())

@@ -1,8 +1,3 @@
-/**
- * Session-visible workspace instruction state and dynamic reconciliation.
- *
- * @module @freddie/freddie-agent-instructions/state
- */
 
 import { createUserMessage } from '@freddie/freddie-llm'
 import { instructionContentSha1, trimmedInstructionDigest } from './digest.js'
@@ -32,11 +27,6 @@ function workspaceContextHook(text, changes) {
   })
 }
 
-/**
- * Build the user-role message for a rendered baseline.
- * @param text - complete plugin-owned system-reminder text.
- * @returns a user-role prefix message.
- */
 export function workspaceContextMessage(text) {
   return createUserMessage({
     content: [{ type: 'text', text }],
@@ -102,11 +92,6 @@ function visibleInstructionChanges(
   return visible
 }
 
-/**
- * Convert retained baseline files into comparison and metadata-cache state.
- * @param files - baseline files that survived rendering.
- * @returns latest baseline changes and provider versions keyed by logical scope.
- */
 export function baselineInstructionState(files) {
   const changes = new Map()
   const versions = new Map()
@@ -140,12 +125,6 @@ function versionStatesFor(session, cache) {
   return states
 }
 
-/**
- * Keep only cache updates represented by rendered changes.
- * @param updates - proposed updates from one or more reconciliations.
- * @param renderedChanges - transitions retained by the renderer.
- * @returns updates represented by an exact retained transition.
- */
 export function retainedInstructionVersionUpdates(
   updates,
   renderedChanges,
@@ -153,12 +132,6 @@ export function retainedInstructionVersionUpdates(
   return updates.filter(update => renderedChanges.some(change => sameInstructionChange(update.change, change)))
 }
 
-/**
- * Apply metadata-cache transitions without retaining instruction prose.
- * @param session - owning session.
- * @param updates - ordered set/delete transitions.
- * @param cache - session-isolated metadata cache.
- */
 export function applyInstructionVersionUpdates(
   session,
   updates,
@@ -178,15 +151,6 @@ function relativeScope(projectRoot, dir) {
   return scope.length === 0 ? '.' : scope
 }
 
-/**
- * Compare visible state with provider-visible files and render transitions.
- * @param agent - session owner whose visible surface supplies durable state.
- * @param resolved - normalized plugin configuration.
- * @param versionCache - per-session scope metadata used to skip unchanged reads.
- * @param fileSystem - provider used for current file probes.
- * @param options - authoritative claimed context, pending scope hints, touched paths, and baseline participation.
- * @returns rendered context plus deferred cache updates, or undefined when unchanged/unavailable.
- */
 export async function reconcileInstructionContext(
   agent,
   resolved,

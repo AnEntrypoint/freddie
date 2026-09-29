@@ -1,9 +1,3 @@
-/**
- * Cross-session snapshot preparation. Hosts adapt mentions into structured
- * references; this service owns exact reads, projection, budgets, and durable context.
- *
- * @module @freddie/freddie-session-reference
- */
 
 import z from '@freddie/schemastery'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
@@ -39,7 +33,6 @@ user explicitly repeats them.
 `
 const PROMPT_SUFFIX = '\n</referenced-sessions>'
 
-/** Exact-read consumer that prepares immutable cross-session message context. */
 export class SessionReferenceResolver extends TypertRemoteService {
   static inject = ['sessionQuery']
   static Config = z.object({
@@ -79,14 +72,6 @@ export class SessionReferenceResolver extends TypertRemoteService {
     }, { prepend: true })
   }
 
-  /**
-   * Replace canonical mentions in direct user messages and place each prepared
-   * snapshot immediately after the message that cited it.
-   * @param agent - agent entering the model step.
-   * @param messages - messages accepted by downstream pre-step listeners.
-   * @param signal - active turn cancellation.
-   * @returns direct messages followed by their session-reference context in citation order.
-   */
   async prepareDirectMessages(
     agent,
     messages,
@@ -113,14 +98,6 @@ export class SessionReferenceResolver extends TypertRemoteService {
     return prepared.flat()
   }
 
-  /**
-   * List reference candidates, ranked by working-directory affinity.
-   * @param agent - target agent; self is excluded and its cwd drives ranking.
-   * @param query - optional case-insensitive session-id/cwd/title substring.
-   * @param limit - optional positive result cap.
-   * @param signal - optional cancellation boundary for host autocomplete teardown.
-   * @returns candidates labeled by latest title or, when absent, session id.
-   */
   async listCandidates(
     agent,
     query = '',
@@ -171,15 +148,6 @@ export class SessionReferenceResolver extends TypertRemoteService {
       }))
   }
 
-  /**
-   * Remote face of {@link listCandidates}: the configured candidate limit
-   * applies, and every candidate carries the canonical mention a host inserts
-   * into the prompt draft.
-   * @param agent - target agent; self is excluded and its cwd drives ranking.
-   * @param query - optional case-insensitive session-id/cwd/title substring.
-   * @param signal - caller cancellation.
-   * @returns mention-carrying candidates in rank order.
-   */
   async remoteExportCandidates(
     agent,
     query,
@@ -192,14 +160,6 @@ export class SessionReferenceResolver extends TypertRemoteService {
     }))
   }
 
-  /**
-   * Snapshot all references for one accepted direct message and return one aggregated durable context.
-   * @param agent - target agent; references to it are rejected.
-   * @param content - already host-normalized readable message content.
-   * @param references - structured source sessions in mention order.
-   * @param signal - optional cancellation boundary for the active turn.
-   * @returns detached content and optional referenced-session context.
-   */
   async prepare(
     agent,
     content,

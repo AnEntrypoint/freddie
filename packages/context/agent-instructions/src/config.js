@@ -1,8 +1,3 @@
-/**
- * Configuration normalization for workspace instruction discovery and rendering.
- *
- * @module @freddie/freddie-agent-instructions/config
- */
 
 import { relative } from 'node:path'
 import z from '@freddie/schemastery'
@@ -23,13 +18,6 @@ export const Config = z.object({
   localInstructionFileCandidates: z.array(z.string()).default([...DEFAULT_LOCAL_INSTRUCTION_FILE_CANDIDATES]),
 })
 
-/**
- * Identify the discovery, precedence, and budget semantics of one baseline.
- * @param config - normalized plugin configuration.
- * @param cwd - absolute session working directory.
- * @param projectRoot - project root selected for the current baseline.
- * @returns stable serialized identity for compatibility checks on resume.
- */
 export function workspaceBaselineIdentity(
   config,
   cwd,
@@ -45,11 +33,6 @@ export function workspaceBaselineIdentity(
   })
 }
 
-/**
- * Resolve defaults, the harness home, and valid same-directory candidates.
- * @param config - user-facing plugin configuration.
- * @returns normalized runtime configuration.
- */
 export function resolveConfig(config) {
   return {
     ...resolveDiscoveryConfig(config),
@@ -58,11 +41,6 @@ export function resolveConfig(config) {
   }
 }
 
-/**
- * Resolve the subset of configuration used before instruction content is rendered.
- * @param config - optional discovery controls.
- * @returns normalized home, root markers, and instruction candidates.
- */
 export function resolveDiscoveryConfig(
   config,
 ) {

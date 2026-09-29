@@ -1,4 +1,3 @@
-/** Package-owned durable clock-context invariants. @module @freddie/freddie-time-context/invariant */
 
 import {
   deriveBrowserTimeZoneContext,
@@ -16,12 +15,9 @@ const READING = new RegExp(
   + '(?:unavailable|(?:(?:\\d+d )?(?:\\d+h )?(?:\\d+m )?\\d+s))\\.$',
 )
 
-/** Cordis companion plugin name. */
 export const name = 'time-context-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/** Derive the open step boundary at which a time-context reading may append. */
 function preparationPosition(history, fail) {
   let openTurn
   let openStep
@@ -64,14 +60,12 @@ function preparationPosition(history, fail) {
   return { turn: openTurn, step: openStep }
 }
 
-/** Collect the entered user messages belonging to one open turn. */
 function requestMessages(history, turn) {
   const start = history.findLastIndex(event => event.type === 'turn/start' && event.data.turn === turn)
   return history.slice(start + 1)
     .flatMap(event => event.type === 'user/message' ? [event.data] : [])
 }
 
-/** Validate one plugin-attributed time reading against its session position and timestamp. */
 function validateReading(
   history,
   event,
@@ -156,7 +150,6 @@ function validateReading(
 }
 
 /* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
-/** Validate all package-owned readings already present in one session. */
 function validateSession(session, fail) {
   for (const [index, event] of session.events.entries()) {
     if (event.type !== 'user/message'
@@ -166,7 +159,6 @@ function validateSession(session, fail) {
   }
 }
 
-/** Install validation for loaded and newly appended context readings. */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) validateSession(session, fail)
   ctx.on('session/created', (session) => { validateSession(session, fail) }, { global: true })
@@ -181,10 +173,5 @@ const install = Object.assign((ctx, fail) => {
 }, { inject: ['sessions'] })
 /* jscpd:ignore-end */
 
-/**
- * Register the time-context invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
