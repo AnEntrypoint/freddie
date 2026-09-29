@@ -5,24 +5,16 @@ import {
 } from '@freddie/freddie-client-ui-primitives'
 import css from './AppearanceRow.css.js'
 
-/** Cube order and icons (figma 501:30015-30017: Light, Dark, System). */
 const CUBES = [
   { id: 'light', labelKey: 'appearance.light', Icon: IconLightOutline16 },
   { id: 'dark', labelKey: 'appearance.dark', Icon: IconDarkOutline16 },
   { id: 'system', labelKey: 'appearance.system', Icon: IconFollowsystemOutline16 },
 ]
 
-/**
- * Appearance row custom element: title + three preference cubes. Registered
- * as `freddie-theme-appearance-row` via `webjsxSlot` at the slot's register call
- * site (see index.ts), so the slot renderer hosts this element instead of
- * calling a React component directly.
- */
 export class FreddieAppearanceRow extends HTMLElement {
   #props = null
   #preference = 'system'
 
-  /** Set/replace props and re-render; called by the slot renderer's webjsx bridge. */
   setProps(props) {
     this.#props = props
     this.#preference = props.useStore(s => s.preference)

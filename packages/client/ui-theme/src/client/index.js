@@ -1,12 +1,3 @@
-/**
- * Browser theme registry over the `--dsw-*` token stylesheets. The service
- * owns the live theme preference (light/dark/system), resolves `system` through
- * `prefers-color-scheme`, and publishes immutable snapshots; it never touches
- * the DOM — ui-layout's presenter consumes the resolved snapshot. The Host
- * settings scope loads and stores the preference in the user-settings
- * document. The plugin also registers the Appearance preference row into the
- * settings General section — the theme feature owns its own settings surface.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import './AppearanceRow.js'
 import { createAppearanceRowStore } from './settings-store.js'
@@ -16,7 +7,6 @@ import {
   DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
 } from '../theme-settings.js'
 
-/** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
 
 const BUILTIN_THEMES = Object.freeze([
@@ -40,17 +30,6 @@ const BUILTIN_INSPECT_TOKENS = Object.freeze([
   { name: '--dsw-specific-sidebar-fill', description: 'Sidebar column and title-row background.', valueType: 'CSS color', requiresLightAndDark: true, cssVariable: '--dsw-specific-sidebar-fill' },
 ])
 
-/**
- * Theme registry and preference owner. `light`/`dark` are built in (the base
- * stylesheets carry both palettes); third-party themes register alias-layer
- * overrides. Reads go through {@link getTheme}; preference writes only
- * through {@link setTheme}; continuous sync only through the `theme/change`
- * event. {@link overrideTokens} stacks partial token layers over the active
- * theme without touching the registry.
- * The service holds the `prefers-color-scheme` media query (environment
- * sensing, not presentation) and re-emits when the OS scheme flips while the
- * preference is `system`.
- */
 export class ThemeRuntime {
   ctx
   host
@@ -59,15 +38,9 @@ export class ThemeRuntime {
   revision = 0
   snapshot
   media
-  /** Override layers by source; seq (monotonic) is the stacking order. */
   overrides = new Map()
   overrideSeq = 0
 
-  /**
-   * @param ctx - owning context (change events are emitted on it; the
-   * media-query and scope listeners are released through ctx.effect on dispose).
-   * @param host - durable preference scope owned by the same plugin.
-   */
   constructor(ctx, host) {
     this.ctx = ctx
     this.host = host
@@ -89,18 +62,10 @@ export class ThemeRuntime {
     this.adopt()
   }
 
-  /**
-   * Read the current immutable theme snapshot.
-   * @returns the current snapshot (stable reference until the next change).
-   */
   getTheme() {
     return this.snapshot
   }
 
-  /**
-   * Export the current token directory without reading DOM or computed styles.
-   * @returns stable JSON-safe token descriptions, including registered and override-only names.
-   */
   exportInspectTokens() {
     const tokens = new Map(BUILTIN_INSPECT_TOKENS.map(token => [token.name, token]))
     for (const theme of this.themes) {
@@ -116,12 +81,6 @@ export class ThemeRuntime {
     return [...tokens.values()].map(token => ({ ...token })).sort((left, right) => left.name.localeCompare(right.name))
   }
 
-  /**
-   * Switch the theme preference — the only user preference write entry.
-   * Built-in preferences are written through the settings scope and every
-   * accepted value emits `theme/change`.
-   * @param id - a registered theme id or `system`; unknown ids throw.
-   */
   setTheme(id) {
     if (id !== 'system' && !this.themes.some(t => t.id === id)) {
       throw new Error(`theme "${id}" is not registered`)
@@ -132,7 +91,6 @@ export class ThemeRuntime {
     this.publish()
   }
 
-  /** Adopt the scope's accepted durable preference without writing it back. */
   adopt() {
     const section = this.host.getSnapshot().value
     if (section === undefined || this.preference === section.preference) return
@@ -140,14 +98,6 @@ export class ThemeRuntime {
     this.publish()
   }
 
-  /**
-   * Register a theme. Duplicate id throws (single occupant per id; the
-   * built-in pair counts; `system` is a preference, not a registrable id).
-   * @param definition - theme id, colorScheme, and alias-token overrides.
-   * @returns disposer. Disposing the theme backing the active preference
-   * resets the preference to the default so the UI never keeps tokens of an
-   * unregistered theme.
-   */
   register(definition) {
     if (definition.id === 'system') throw new Error('"system" is a preference, not a registrable theme id')
     if (this.themes.some(t => t.id === definition.id)) {
@@ -165,22 +115,6 @@ export class ThemeRuntime {
     }
   }
 
-  /**
-   * Stack a token override layer on top of the active theme — the token-level
-   * analogue of slot shading: the base theme stays untouched, layers compose
-   * in seq order with later layers winning per-token, and removing a layer
-   * restores whatever it covered. Calling again with the same source replaces
-   * that source's whole layer and restacks it on top (effect re-registration
-   * semantics). Emits `theme/change` with the recomposed snapshot.
-   * @param source - layer identity; one layer per source (dynamic packages
-   * pass their package id — the façade pins it, so it also names the layer's
-   * origin for inspection).
-   * @param tokens - token-name → `{ light, dark }` value pairs. Validated at
-   * runtime (model-authored callers reach this boundary with untyped JS);
-   * a bare string value throws a teaching error.
-   * @returns disposer removing exactly the layer this call created; a no-op
-   * once the source has re-overridden (the newer layer is not torn down).
-   */
   overrideTokens(source, tokens) {
     const layer = { seq: this.overrideSeq++, tokens: validateOverrides(source, tokens) }
     this.overrides.set(source, layer)
@@ -197,7 +131,7 @@ export class ThemeRuntime {
       ? (this.media?.matches === true ? 'dark' : 'light')
       : this.preference
     const active = this.themes.find(t => t.id === resolvedId)
-    /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
+    /* v8 ignore next 2 */
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
     return Object.freeze({
       preference: this.preference,
@@ -207,12 +141,6 @@ export class ThemeRuntime {
     })
   }
 
-  /**
-   * Fold the override layers into the active definition: seq order, later
-   * layers win per-token, each value picked for the active color scheme (the
-   * presenter consumes the composed snapshot and needs no override awareness).
-   * Without layers the registered definition passes through by identity.
-   */
   composeActive(active) {
     if (this.overrides.size === 0) return active
     const tokens = { ...active.tokens }
@@ -231,12 +159,6 @@ export class ThemeRuntime {
   }
 }
 
-/**
- * Runtime shape check for one override layer (model-authored callers pass
- * untyped JS through the dynamic-package façade, so the static type cannot
- * enforce the pair shape there). Returns a defensive per-token copy so later
- * caller mutation cannot reach the stored layer.
- */
 function validateOverrides(source, tokens) {
   const validated = {}
   for (const [name, value] of Object.entries(tokens)) {
@@ -269,19 +191,8 @@ function dynamicToken(name) {
   }
 }
 
-/**
- * Required services: settings transport plus slots/locale for the Appearance
- * row. `remote` carries the forwarded settings invalidation that
- * `ctx.settingsScope.bind(spec)` subscribes to on this context.
- */
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
-/**
- * Client plugin body: provide the theme service and register the
- * feature-owned Appearance preference row into the General section's item
- * slot (a feature owns its settings surface).
- * @param ctx - client cordis context.
- */
 export function apply(ctx) {
   installThemeStyles(ctx)
   const host = ctx.settingsScope.bind({ namespace: THEME_SETTINGS_NAMESPACE })

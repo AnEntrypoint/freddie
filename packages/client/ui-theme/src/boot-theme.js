@@ -1,13 +1,5 @@
-/**
- * Theme bootstrap row for the browser's pre-plugin interval. Each index
- * render embeds the current durable built-in preference; the browser resolves
- * only `system`, then writes the same DOM fields ui-layout's ThemePresenter
- * owns after the client plugin tree activates.
- */
-
 import { DEFAULT_PREFERENCE } from './theme-settings.js'
 
-/** Build the inline script body for one schema-validated built-in preference. */
 function bootThemeScript(preference) {
   return `(() => {
   const preference = ${JSON.stringify(preference)}
@@ -20,12 +12,6 @@ function bootThemeScript(preference) {
 })()`
 }
 
-/**
- * The theme bootstrap as an injection row: an inline script immediately after
- * the opening body tag, before the shell mount and module script.
- * @param preference - Current Host-backed built-in preference.
- * @returns the body script row.
- */
 export function bootThemeInjection(
   preference = DEFAULT_PREFERENCE,
 ) {

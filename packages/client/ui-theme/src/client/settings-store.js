@@ -1,14 +1,5 @@
-/**
- * Appearance row slot store: a mirror of the theme service snapshot. The
- * plugin's apply-world change listener is the only writer; the row component
- * reads via props.useStore.
- */
 import { defineStore } from '@freddie/freddie-client-runtime/client'
 
-/**
- * Declares the Appearance row state and write surface.
- * @returns the store handle.
- */
 export function createAppearanceRowStore() {
   return defineStore({
     init: () => ({ preference: 'system', revision: -1 }),
