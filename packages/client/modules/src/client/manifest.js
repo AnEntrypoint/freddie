@@ -1,36 +1,3 @@
-/**
- * Client module system: the browser peer of Node's internal ESM loader. The
- * vendored cordis Loader consumes this object through its `internal` contract
- * (the only call site is `EntryTree.import` → `internal.import`), which keeps
- * entry governance (fiber lifecycle, inject waiting, update/refresh) entirely
- * on the vendored side while this package owns code arrival.
- *
- * Native ESM model: a plugin bundle is real `export`s, loaded through a real
- * `import()` against its served URL; an import map (generated from this same
- * graph) resolves every bare specifier the bundle itself imports. Module body
- * side effects — CSS injection included — run at `import()` time, exactly as
- * native ESM already sequences them; there is no separate registration step
- * and no synchronous require to answer.
- *
- * Resolution branch order (import): seed word → shell instance; memoized
- * record → exports; graph row → import() its served URL; anything else →
- * throw (loud — the runtime mirror of the import-map externals list).
- *
- * This file is the browser-safe contract face (zero node imports): the
- * `__FREDDIE_BOOT__` wire types, the boot-manifest parser, and the boundaries around
- * {@link import('./system.js').ClientModuleSystem}. The package root is the
- * host-side service that composes the wire.
- */
-
-/**
- * Validate an optional string-array field read from a `freddie.client` declaration
- * or from the boot wire.
- * @param subject - diagnostic prefix naming the package or the wire row.
- * @param field - field name as it appears in the diagnostic.
- * @param value - the raw field value.
- * @returns the validated array, or undefined when the field is absent.
- * @throws {Error} when the value is present but is not an array of strings.
- */
 export function optionalStringArray(subject, field, value) {
   if (value === undefined) return undefined
   if (!Array.isArray(value) || value.some(item => typeof item !== 'string')) {
@@ -39,40 +6,10 @@ export function optionalStringArray(subject, field, value) {
   return value
 }
 
-/**
- * Normalize a module specifier onto the graph row that owns it: a plugin bundle
- * IS its package's client half, so `<id>/client` (the exports subpath external
- * bundles emit) and the bare package name resolve to the same exports. Both the
- * require path and graph composition normalize here, which is what lets each
- * importing package request the subpath its own code imports.
- * @param spec - module specifier as a bundle requires it or a declaration spells it.
- * @returns the specifier with a trailing `/client` removed.
- */
 export function stripClientSuffix(spec) {
   return spec.endsWith('/client') ? spec.slice(0, -'/client'.length) : spec
 }
 
-/**
- * One composed client entry pushed by the host (a raw `window.__FREDDIE_BOOT__`
- * graph row, before {@link parseBootManifest} splits it into its module and
- * plugin views). `immediately` marks stage-one prefetch; `inject` is
- * informational graph metadata; `external` carries module-graph edges.
- * @typedef {object} WebBootEntry
- * @property {string} id - entry name == package name.
- * @property {string} url - entry file URL, `/plugins/<id>/~<rev>/<entry path under src/>`.
- * @property {string} rev - content hash of the package's `src/` tree (the `~<rev>` URL segment).
- * @property {string[]} [inject] - package-name dependency edges, informational.
- * @property {boolean} [immediately] - stage-one prefetch mark.
- * @property {string[]} [external] - non-baseline module specifiers this row requests.
- */
-
-/**
- * Parse `window.__FREDDIE_BOOT__` into the two consumer views. Wire boundary:
- * a missing or malformed graph throws (the shell shows the loud failure —
- * a page without a valid manifest cannot boot anything).
- * @param wire - the raw `window.__FREDDIE_BOOT__` value.
- * @returns the manifest with optional plugin-view fields normalized.
- */
 export function parseBootManifest(wire) {
   if (typeof wire !== 'object' || wire === null) {
     throw new Error('client-modules: window.__FREDDIE_BOOT__ is missing or not an object')

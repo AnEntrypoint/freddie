@@ -1,34 +1,5 @@
-/**
- * ClientModuleSystem — the implementation behind the {@link ClientModuleLoader}
- * contract. The resolution branch order is documented on `parseBootManifest`
- * and the `WebBootEntry` row shape in `./manifest.js`; this file owns state the browser's
- * own ESM module cache does not: the seed table (platform-singleton statics)
- * and the graph-row lookup a dynamic `import()` needs before it can run.
- *
- * Native ESM, not lazy CJS: a graph entry's bundle is real `export`s, loaded
- * through a real `import()` against its served URL (an import map resolves
- * every bare specifier the bundle itself imports — externals, platform seed
- * words, and cross-plugin module-table rows all resolve the same way, at
- * the browser's own module-graph layer). The browser's module cache is the
- * memoization; import() is natively idempotent per URL, native cycle
- * detection applies, and there is no synchronous require to hand a factory —
- * a module body runs at import time, which the browser already sequences
- * correctly relative to its static imports.
- *
- * HMR reload without a native "invalidate a cached module" primitive: a
- * changed bundle gets a NEW url (the `/~<rev>/` path segment of the graph
- * row, shared by every sibling import), so `prefetch()` importing the fresh
- * URL is a genuinely new module graph in the browser's cache, never a stale
- * hit — {@link invalidate} only needs to drop this system's own row/record
- * bookkeeping, not touch import()'s cache.
- */
 import { stripClientSuffix } from './manifest.js'
 
-/**
- * Claim and inventory the <style> tags a module injected during import:
- * preset-emitted tags arrive pre-tagged with data-plugin; any untagged tag is
- * claimed for the importing plugin (HMR bookkeeping).
- */
 const claimStyles = (id) => {
   if (typeof document === 'undefined') return []
   for (const el of document.querySelectorAll('style:not([data-plugin])')) {
@@ -41,39 +12,16 @@ const claimStyles = (id) => {
   return owned
 }
 
-/**
- * The browser module-loading contract {@link ClientModuleSystem} implements:
- * resolve a specifier to its exports (seed word, materialized record, or a
- * graph-row import), prefetch a row ahead of use, drop a row's materialized
- * record, and seat an already-evaluated module with no URL to import from.
- * @typedef {object} ClientModuleLoader
- * @property {(specifier: string) => Promise<unknown>} import - resolve a specifier to its exports.
- * @property {(id: string) => Promise<void>} prefetch - import a graph row's module ahead of use.
- * @property {(id: string) => void} invalidate - drop a materialized/in-flight record.
- * @property {(id: string, exports: unknown) => void} register - seat an already-evaluated module.
- */
-
-/**
- * The client module system: the seed table, the graph-row lookup, and the
- * thin bookkeeping around native `import()` implementing
- * {@link ClientModuleLoader} (whose members carry the contract documentation).
- */
 export class ClientModuleSystem {
   version = 'client'
   manifest
 
   seed
   graphRows = new Map()
-  /** Materialized-module records, keyed by stripped id: exports + claimed styles. */
   records = new Map()
-  /** In-flight import per id; concurrent callers share it. */
   pending = new Map()
   importModule
 
-  /**
-   * Build the module system over the parsed boot rows.
-   * @param options - Parsed graph, platform seed, and optional dynamic-import replacement.
-   */
   constructor(options) {
     this.manifest = options.manifest
     this.seed = new Map(Object.entries(options.staticModules))
@@ -95,11 +43,6 @@ export class ClientModuleSystem {
     }
   }
 
-  /**
-   * Import one graph row's module (idempotent per in-flight/completed import).
-   * @param row - the graph row to import.
-   * @returns the materialized record.
-   */
   async importRow(row) {
     const { id, url } = row
     const existing = this.records.get(id)
@@ -145,14 +88,6 @@ export class ClientModuleSystem {
     this.pending.delete(normalized)
   }
 
-  /**
-   * Replace one graph row before a hot-reload prefetch. The new URL carries the
-   * revision that makes native import() fetch fresh bytes rather than its old
-   * cache-keyed module.
-   * @param row - updated graph row from the HMR transport.
-   * @param graphRev - host graph revision containing the row.
-   * @returns whether the row belonged to the current graph.
-   */
   updateGraphRow(row, graphRev) {
     const id = stripClientSuffix(row.id)
     if (!this.graphRows.has(id)) return false
@@ -165,16 +100,6 @@ export class ClientModuleSystem {
     return true
   }
 
-  /**
-   * Directly seat an already-materialized module — the escape hatch for a
-   * module with no URL to `import()` from (e.g. cordis-client-runner's
-   * dynamically evaluated packages, whose exports are a live in-memory
-   * object, not bundle bytes on disk). Rejects a duplicate id the same way a
-   * script that executed twice would, mirroring the graph-row path's
-   * idempotence guarantee.
-   * @param id - module id (never `<pkg>/client` — call sites pass the bare id).
-   * @param exports - the already-evaluated module exports.
-   */
   register(id, exports) {
     if (this.records.has(id) || this.pending.has(id)) {
       throw new Error(`client-modules: duplicate registration for "${id}" (registered twice without invalidate?)`)

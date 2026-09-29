@@ -1,25 +1,9 @@
-/**
- * Package-owned invariant companion for `@freddie/freddie-client-modules`.
- * @module @freddie/freddie-client-modules/invariant
- */
-
 /* jscpd:ignore-start */
 const PACKAGE_NAME = '@freddie/freddie-client-modules'
 
-/** Cordis companion plugin name. */
 export const name = 'client-modules-invariant'
-/** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 
-/**
- * Owned relation: the node half's boot entry graph must stay self-consistent
- * — every row must resolve a clientPath under the same id (the
- * /plugins/<id>/~<rev>/<entry> URL it advertises would otherwise 404 on a
- * browser that just received the graph). Checked on every scan trigger (cordis
- * 'internal/plugin'): graph() and clientPath() read the same table object,
- * so the relation holds at any instant — no need to wait out the node half's
- * own microtask-debounced flush.
- */
 const install = (ctx, fail) => {
   ctx.on('internal/plugin', () => {
     const host = ctx.get('clientModules')
@@ -32,11 +16,6 @@ const install = (ctx, fail) => {
   }, { global: true })
 }
 
-/**
- * Register this package's invariant companion.
- * @param ctx - Cordis context carrying the invariant service.
- * @returns the installed registration's disposer after setup succeeds.
- */
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
 /* jscpd:ignore-end */
