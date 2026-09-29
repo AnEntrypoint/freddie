@@ -1,13 +1,7 @@
-/** Official Freddie occupants for the generic browser-brand slots. */
 import { OfficialBrandMark, OfficialBrandName } from './Brand.js'
 
-/** Required service: the UI slot registry. */
 export const inject = ['slots']
 
-/**
- * Fill every shipped brand slot as one declaration-aware registration set.
- * @param ctx - Client root context.
- */
 export function apply(ctx) {
   if (process.env.FREDDIE_CLIENT_BUILD_PROFILE !== 'official') return
   ctx.slots.inject('sidebar.brand.mark', () =>
