@@ -1,10 +1,3 @@
-/**
- * Command UI plugin, browser half: CommandUiRuntime (`ctx.commandUi`) owning the
- * capability-keyed directory cache, the '/' command source, the client
- * contribution registry, and the per-session popupSelect controllers; the
- * popupSelect shell self-registers into conversation.input.overlay with
- * per-session resolution.
- */
 import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { CommandUiRuntime } from './service.js'
 import { en } from './locales.js'
@@ -14,17 +7,10 @@ export { CommandDirectory } from './directory.js'
 export { filterOptions, PopupSelectController } from './popup.js'
 export { FreddiePopupSelectView } from './PopupSelectView.js'
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'command'
 
-/** Required services: the '/' source registry, session scopes, commands Remote, and locale registry. */
 export const inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands', 'locale']
 
-/**
- * Client plugin body: mount the service, then register the popupSelect shell
- * into the input overlay once its declarer is up.
- * @param ctx - client root context.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-commands: dictionaries')
   ctx.plugin(CommandUiRuntime)

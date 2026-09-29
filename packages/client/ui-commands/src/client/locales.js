@@ -1,6 +1,4 @@
-/** `command` namespace dictionaries (the popupSelect shell's copy). */
 
-/** English dictionary. */
 export const en = {
   'search.placeholder': 'Search…',
   'search.aria': 'Filter options',

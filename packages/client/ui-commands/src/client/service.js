@@ -1,50 +1,17 @@
-/**
- * CommandUiRuntime (`ctx.commandUi`): the '/' command source over the
- * session-keyed directory, the client-contribution registry, and the
- * per-session popupSelect controllers. Candidate synthesis merges the host
- * catalog with contributions by availability, then fuzzy query/position
- * filtering; a host/contribution name collision fails loud. Every execute
- * addresses the session's agent by sessionId — sessions are always
- * agent-backed.
- */
 import { Service } from '@freddie/cordis'
 import { CommandDirectory } from './directory.js'
 import { PopupSelectController } from './popup.js'
 
-/** Recover the command name from a line the Host confirmed as executed. */
 function submittedCommandName(line) {
   const trimmed = line.trim()
   const separator = trimmed.search(/\s/u)
   return (separator === -1 ? trimmed : trimmed.slice(0, separator)).slice(1)
 }
 
-/**
- * Live mutable state in one holder (service methods run behind the caller-ctx tracker).
- * @typedef {object} CommandUiLiveState
- * @property {Map<string, {name: string, description: string, available: (session: object) => boolean, ui: import('./popup.js').PopupSelectSpec}>} contributions - client-owned command contributions by name.
- * @property {Map<string, {name: string, available: (session: object) => boolean, ui: import('./popup.js').PopupSelectSpec}>} decorations - bare-invocation popup decorations of existing host commands, by name.
- * @property {Map<string, PopupSelectController>} popups - one popupSelect controller per session id.
- */
-
-/**
- * One fuzzy match with its stable source position.
- * @typedef {object} FuzzyMatch
- * @property {{name: string, description: string, hint?: string}} candidate - the ranked candidate row.
- * @property {number} index - the candidate's original position in the source list, breaking ties among equal scores.
- * @property {boolean} prefix - whether the candidate's lowercased name starts with the query.
- * @property {number} score - the fuzzyScore alignment weight.
- */
-
-/** Extra weight for command-name starts and separator boundaries. */
 function boundaryBonus(name, index) {
   return index === 0 || name.charAt(index - 1) === '-' || name.charAt(index - 1) === '_' ? 8 : 0
 }
 
-/**
- * Score the strongest ordered-subsequence alignment in O(name × query).
- * Boundary and adjacent matches earn weight; skipped and leading characters
- * cost weight.
- */
 function fuzzyScore(name, query) {
   if (query === '') return 0
   if (query.length > name.length) return undefined
@@ -75,11 +42,9 @@ function fuzzyScore(name, query) {
   return best === noMatch ? undefined : best
 }
 
-/** Case-insensitive fuzzy filtering with stable ordering for equal matches. */
 function fuzzyCandidates(candidates, rawQuery) {
   const query = rawQuery.toLowerCase()
   if (query === '') return candidates
-  /** @type {FuzzyMatch[]} */
   const ranked = []
   candidates.forEach((candidate, index) => {
     const name = candidate.name.toLowerCase()
@@ -91,17 +56,11 @@ function fuzzyCandidates(candidates, rawQuery) {
   return ranked.map(match => match.candidate)
 }
 
-/** Command surface: session-keyed directory + '/' source + contribution registry + per-session popups. */
 export class CommandUiRuntime extends Service {
   static inject = ['inputTriggers', 'sessions', 'remote', 'remote.commands']
 
-  /** @type {CommandUiLiveState} */
   live = { contributions: new Map(), decorations: new Map(), popups: new Map() }
 
-  /**
-   * @param ctx - owning root context (plugin fiber; the service registers
-   * itself as `command` and follows that fiber's lifetime).
-   */
   constructor(ctx) {
     super(ctx, 'commandUi')
     const locale = ctx.get('locale')
@@ -129,15 +88,8 @@ export class CommandUiRuntime extends Service {
     ctx.on('connection/reset', () => { this.directory.resetConnected() })
   }
 
-  /** Composer focus hooks by session (the overlay wiring binds the textarea focus here). */
   focusHooks = new Map()
 
-  /**
-   * Register one client command contribution; effect disposer (rides the
-   * caller's fiber). Duplicate names throw.
-   * @param contribution - the contribution (descriptor + availability + popup spec).
-   * @returns the disposer removing the registration.
-   */
   register(contribution) {
     const dispose = this.ctx.effect(() => {
       const { contributions } = this.live
@@ -150,12 +102,6 @@ export class CommandUiRuntime extends Service {
     return () => { void dispose() }
   }
 
-  /**
-   * Hang a bare-invocation decoration on one host command; effect disposer
-   * (rides the caller's fiber). Duplicate names throw.
-   * @param decoration - host command name + availability + popup spec.
-   * @returns the disposer removing the registration.
-   */
   decorate(decoration) {
     const dispose = this.ctx.effect(() => {
       const { decorations } = this.live
@@ -168,14 +114,6 @@ export class CommandUiRuntime extends Service {
     return () => { void dispose() }
   }
 
-  /**
-   * Resolve the per-session popup controller (lazy; dies with the session
-   * scope). The controller's consume callback dispatches the scoped
-   * consume-token event back to this session; focusComposer reaches the
-   * composer through the overlay slot currency.
-   * @param actx - session-scope ctx.
-   * @returns the resident controller.
-   */
   popupFor(actx) {
     const sessions = this.sessions()
     const id = sessions.scopeOf(actx)
@@ -200,12 +138,6 @@ export class CommandUiRuntime extends Service {
     return controller
   }
 
-  /**
-   * Bind one session's composer-focus hook (overlay slot wiring; unbind on unmount).
-   * @param id - session id.
-   * @param focus - textarea focus callback.
-   * @returns the unbind disposer.
-   */
   bindComposerFocus(id, focus) {
     this.focusHooks.set(id, focus)
     return () => {
@@ -213,7 +145,6 @@ export class CommandUiRuntime extends Service {
     }
   }
 
-  /** Menu candidates: host catalog + contribution availability, then position filtering and fuzzy name ranking. */
   async candidates(session, req) {
     const list = await this.directory.ensureReady(session.sessionId, req.signal)
     const rows = []
@@ -235,7 +166,6 @@ export class CommandUiRuntime extends Service {
     )
   }
 
-  /** Decision table, menu column: contribution/decorated-host → popup; host input → claim; host bare → detached execute. */
   dispatch(pick) {
     const name = pick.candidate.name
     const contribution = this.live.contributions.get(name)
@@ -256,7 +186,6 @@ export class CommandUiRuntime extends Service {
     return 'handled'
   }
 
-  /** Decision table, space column: hot-key sync check; only host leadingInput claims. */
   matchSpace(session, token) {
     if (!token.startsWith('/')) return undefined
     const name = token.slice(1)
@@ -266,18 +195,6 @@ export class CommandUiRuntime extends Service {
     return { claim: this.leadingClaim(desc, session) }
   }
 
-  /**
-   * Decision table, enter column. Strong-waits the session's catalog (a
-   * warmup failure rejects — never a silent downgrade). Contributions and
-   * bare host commands act on the bare token only; leadingInput claims
-   * args-tolerant.
-   *
-   * Envelope policy: an enter submission carrying images resolves only
-   * through a command declaring image acceptance. Every other command route —
-   * popup, non-accepting claim, bare detached execute — throws the refusal
-   * so the machine surfaces one composer notice and the draft and images
-   * stay in place; nothing executes and nothing is dropped.
-   */
   async matchEnter(session, line, signal, envelope) {
     const trimmed = line.trim()
     if (!trimmed.startsWith('/')) return undefined
@@ -318,14 +235,12 @@ export class CommandUiRuntime extends Service {
     return 'handled'
   }
 
-  /** Open the session's popup for one contribution or decoration (menu pick / bare enter). */
   openPopup(name, ui, session, segment) {
     const actx = this.scopeFor(session.sessionId)
     if (actx === undefined) return
     this.popupFor(actx).open(name, ui, session, segment)
   }
 
-  /** Build the leadingInput claim: token `/name ` + the command.execute submit transaction. */
   leadingClaim(desc, session) {
     const token = `/${desc.name} `
     return {
@@ -336,17 +251,6 @@ export class CommandUiRuntime extends Service {
     }
   }
 
-  /**
-   * The command.execute transaction, addressed to the session's agent — pure
-   * admission semantics. An unmatched line reports an error outcome (the
-   * composer's immediate admission feedback); an admitted command reports
-   * plain success regardless of its handler outcome, because the host
-   * executor durably logged the lifecycle (`command/run`/`command/done`) and
-   * the outcome renders as a persistent flow node — the composer never
-   * echoes it. A handler error result reports an error outcome so the
-   * composer keeps the submission (draft and images) for correction.
-   * Transport failures throw.
-   */
   async execute(session, line, images = []) {
     const result = await this.ctx.remote.commands.execute(session.sessionId, line, images)
     if (!result.ok) throw new Error(`command.execute failed: ${result.error.code}: ${result.error.message}`)
@@ -358,7 +262,6 @@ export class CommandUiRuntime extends Service {
     return { kind: 'success' }
   }
 
-  /** Publish the local acknowledgment without letting an observer change command admission. */
   notifyExecuted(sessionId, name, result) {
     const args = ['command/executed', sessionId, name, result]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
@@ -375,20 +278,11 @@ export class CommandUiRuntime extends Service {
     }
   }
 
-  /** Log one contained `command/executed` observer failure. */
   warnExecutedListenerFailure(name, error) {
     this.ctx.logger.warn('client command: a command/executed listener for "%s" failed', name)
     this.ctx.logger.warn(error)
   }
 
-  /**
-   * Fire-and-forget execute for the internal ('handled') paths. Outcomes are
-   * NOT surfaced here: the host executor durably logs the command lifecycle
-   * (`command/run`/`command/done`), and the mux-broadcast events render as a
-   * persistent flow node on every tab. Only a transport/admission failure —
-   * which never entered a handler and therefore never logged — falls back to
-   * the composer notice as immediate feedback.
-   */
   runDetached(desc, session, line) {
     void this.execute(session, line).then(
       (outcome) => {
@@ -400,7 +294,6 @@ export class CommandUiRuntime extends Service {
     )
   }
 
-  /** Dispatch a consume-token event to one session (menu-pick / bare-enter execute paths). */
   consumeVia(id, segment) {
     const actx = this.scopeFor(id)
     if (actx === undefined) return
@@ -411,7 +304,6 @@ export class CommandUiRuntime extends Service {
     })
   }
 
-  /** Route an admission/transport failure to the session's composer notice channel (scope gone = attempt died with it). */
   noticeFor(id, level, text) {
     const actx = this.scopeFor(id)
     if (actx === undefined) return
@@ -420,7 +312,6 @@ export class CommandUiRuntime extends Service {
     conversation.input.for(actx).notify(level, text)
   }
 
-  /** id → actx interchange (registered exchange point: this service coordinates for projection-only sources). */
   scopeFor(id) {
     return this.sessions().scope(id)
   }

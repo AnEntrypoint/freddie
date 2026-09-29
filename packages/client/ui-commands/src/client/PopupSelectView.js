@@ -1,21 +1,3 @@
-/**
- * Official popupSelect shell: renders one session's PopupSelectController
- * store into the conversation.input.overlay anchor. Unlike the slash menu
- * (combobox — textarea keeps focus), this shell HOLDS focus while open: the
- * inner search input takes focus, plain typing filters the loaded options
- * locally, Enter/↑↓ drive the filtered highlight (scrolled into view), Escape
- * dismisses back to the composer, and ←→ keep the search input's native
- * caret. Any pointer interaction outside the box dismisses (the click's own
- * target takes focus). Closed state renders nothing; the overlay slot stays
- * mounted. The card height clamps to the space above the composer.
- *
- * Converted from a React hooks component (useSyncExternalStore/useRef/
- * useEffect) to a webjsx custom element: the store subscription becomes a
- * connectedCallback subscribe + disconnectedCallback unsubscribe pair, and
- * every derived effect (highlight scroll, outside-pointer dismiss, search
- * focus, anchored max-height) becomes plain instance bookkeeping recomputed
- * inside #render().
- */
 import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import clsx from 'clsx'
 import {
@@ -25,12 +7,8 @@ import {
 import { filterOptions } from './popup.js'
 import css from './PopupSelectView.css.js'
 
-/** Design cap on the card height (same MenuDropdown family as the slash menu). */
 const MAX_HEIGHT = 320
 
-/**
- * Render the popupSelect shell overlay entry as a custom element.
- */
 export class FreddiePopupSelectView extends HTMLElement {
   #props = null
   #unsubscribeStore = null
@@ -43,7 +21,6 @@ export class FreddiePopupSelectView extends HTMLElement {
   #onPointerDown = null
   #confirmModal = null
 
-  /** Set/replace props and re-render; call after creating or updating the element. */
   setProps(props) {
     const popupChanged = this.#props?.popup !== props.popup
     this.#props = props
