@@ -1,17 +1,7 @@
-/**
- * UI presentation for native gm_* tools. Presenters are pure functions of
- * args/result so replay of an older log falls back to the generic card
- * instead of throwing.
- * @module @freddie/freddie-tool-gm/presentation
- */
-
-/** Cooperative tool-call budget matching gm-client's spool default. */
 export const GM_TOOL_TIMEOUT_MS = 120_000
 
-/** `gm_codesearch` budget: live dual-index codesearch on this machine runs 4–5 minutes. */
 export const GM_CODESEARCH_TIMEOUT_MS = 360_000
 
-/** `gm_scan_deps` budget: live walk of this repo's git-tracked source plus node_modules. */
 export const GM_SCAN_DEPS_TIMEOUT_MS = 180_000
 
 function asRecord(value) {
@@ -72,13 +62,6 @@ function groupMatchesByFile(locations) {
   return files
 }
 
-/**
- * Project a codesearch verb body into search-card meta with real file:line
- * locations from bm25 `symbol.path`/`line_start`, `vector_hits.path`,
- * filename-mode `hits.path`, or commit-vector `commits`.
- * @param value - parsed gm codesearch response.
- * @returns matches-shaped search metadata.
- */
 export function codesearchMetaFromValue(value) {
   const locations = []
   for (const hit of collectHits(value)) {
@@ -93,19 +76,10 @@ export function codesearchMetaFromValue(value) {
   }
 }
 
-/**
- * Pending codesearch card titled by the query.
- * @param args - raw tool arguments.
- */
 export function presentCodesearchCall(args) {
   return { card: 'generic', title: args.query, kind: 'search', rawInput: args.query }
 }
 
-/**
- * Completed codesearch card from replayable meta.
- * @param _args - unused; the view derives from the result.
- * @param result - model-facing tool result.
- */
 export function presentCodesearchResult(_args, result) {
   if (result.isError) return undefined
   const meta = asRecord(result.meta)
@@ -129,28 +103,15 @@ function recallKeys(value) {
   return keys
 }
 
-/**
- * Project a recall verb body into a key list (recall has no file:line).
- * @param value - parsed gm recall response.
- */
 export function recallMetaFromValue(value) {
   const keys = recallKeys(value)
   return { keys, total: keys.length }
 }
 
-/**
- * Pending recall card titled by the query.
- * @param args - raw tool arguments.
- */
 export function presentRecallCall(args) {
   return { card: 'generic', title: args.query, kind: 'search', rawInput: args.query }
 }
 
-/**
- * Completed recall summary of hit keys, not file:line.
- * @param _args - unused.
- * @param result - model-facing tool result.
- */
 export function presentRecallResult(_args, result) {
   if (result.isError) return undefined
   const meta = asRecord(result.meta)
@@ -174,20 +135,11 @@ function compactPhaseTitle(verb, value) {
   return parts.join(' · ')
 }
 
-/**
- * Pending instruction card.
- * @param args - raw tool arguments.
- */
 export function presentInstructionCall(args) {
   const title = args.prompt === undefined ? 'gm instruction' : `gm instruction: ${args.prompt}`
   return { card: 'generic', title, rawInput: args.prompt ?? '' }
 }
 
-/**
- * Completed instruction card titled by phase / PRD count when present.
- * @param _args - unused.
- * @param result - model-facing tool result.
- */
 export function presentInstructionResult(_args, result) {
   if (result.isError) return undefined
   const meta = asRecord(result.meta)
@@ -195,28 +147,14 @@ export function presentInstructionResult(_args, result) {
   return { card: 'generic', title, rawInput: title }
 }
 
-/**
- * Project instruction/transition JSON into a compact title.
- * @param verb - display verb name.
- * @param value - parsed gm response.
- */
 export function compactMetaFromValue(verb, value) {
   return { title: compactPhaseTitle(verb, value) }
 }
 
-/**
- * Pending transition card titled with the target phase.
- * @param args - raw tool arguments.
- */
 export function presentTransitionCall(args) {
   return { card: 'generic', title: `gm transition → ${args.to}`, rawInput: args.to }
 }
 
-/**
- * Completed transition card titled by phase when present.
- * @param _args - unused.
- * @param result - model-facing tool result.
- */
 export function presentTransitionResult(_args, result) {
   if (result.isError) return undefined
   const meta = asRecord(result.meta)
@@ -224,10 +162,6 @@ export function presentTransitionResult(_args, result) {
   return { card: 'generic', title, rawInput: title }
 }
 
-/**
- * Compact pending card for remaining gm verbs.
- * @param title - display title.
- */
 export function presentGenericCall(title) {
   return { card: 'generic', title, rawInput: title }
 }

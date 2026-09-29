@@ -1,37 +1,9 @@
-/**
- * Model-facing typed tools over `ctx.gm` (`@freddie/freddie-gm-client`):
- * `gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`,
- * `gm_prd_add`, `gm_prd_resolve`, `gm_mutable_add`, `gm_mutable_resolve`,
- * `gm_transition`, `gm_exec_js`, `gm_git_finalize`, the git-family verbs,
- * `gm_scan_deps`, `gm_residual_scan`. Each tool names real spool-verb fields.
- *
- * `gm/progress` is an ignorable last-wins whole-value session event. Unknown
- * readers skip it. Payload includes lifecycle fields plus `nodes`, `edges`,
- * and `walking` from {@link foldGmGraph}.
- *
- * SessionEventMap member (JSDoc-only in this buildless package):
- * `'gm/progress'`: `{ verb, status, phase, prdPendingCount, mutablesPendingCount,
- * sessionId, belongsToConfiguredSession, startedAt, finishedAt, durationMs, error,
- * nodes, edges, walking }`.
- * @mode ignorable
- * @param data - complete last-wins GM progress snapshot including the folded graph.
- *
- * @module @freddie/freddie-tool-gm
- */
-
 import { foldGmGraph } from './graph.js'
 import { buildGmTools } from './verbs.js'
 
 export const name = 'tool-gm'
 export const inject = ['tools', 'gm']
 
-/**
- * Reduce one GM dispatch lifecycle event to complete durable state.
- * @param dispatch - the verb, lifecycle status, timing, value, or error.
- * @param sessionId - configured GM session id used when the response omits one.
- * @param previous - prior whole snapshot for retaining semantic state on errors.
- * @returns a losslessly JSON-serializable GM progress record.
- */
 export function gmProgressSnapshot(dispatch, sessionId, previous) {
   const value = dispatch.value
   const response = value !== null && typeof value === 'object' ? value : {}
@@ -65,10 +37,6 @@ export function gmProgressSnapshot(dispatch, sessionId, previous) {
   }
 }
 
-/**
- * Register every gm-verb tool over the mounted `ctx.gm` service instance.
- * @param ctx - plugin context carrying the tool registry and `ctx.gm`.
- */
 export function apply(ctx) {
   const latestBySession = new WeakMap()
   const checkpointOf = (session) => latestBySession.get(session)

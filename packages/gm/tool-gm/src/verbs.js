@@ -1,20 +1,3 @@
-/**
- * Per-verb typed tool definitions dispatched over `ctx.gm`. Each definition's
- * `parameters`/`output.schema` names the real fields that verb's spool
- * contract actually reads/returns (per gm's own served `instruction` prose
- * and gm-mcp's `dispatch.js` cleaning), replacing the generic MCP bridge's
- * single opaque `(verb, body: any)` shape with real per-verb typing.
- *
- * Session id is NOT taken per-call: `Gm.call` dispatches under the single
- * `sessionId` fixed on its own plugin instance (`@freddie/freddie-gm-client`'s
- * own documented contract — a distinct `ctx.gm` instance per session, never
- * a per-call override), so every tool here shares whichever `gm` instance
- * the mounting composition wired. Project cwd IS per-call: each execute
- * passes `exec.agent.session.header.cwd` so the spool is the session
- * workspace, not the GUI host's `process.cwd()`.
- * @module @freddie/freddie-tool-gm/verbs
- */
-
 import { defineTool } from '@freddie/freddie-tools'
 import {
   GM_CODESEARCH_TIMEOUT_MS,
@@ -39,16 +22,6 @@ const jsonOutput = {
   render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }],
 }
 
-/**
- * Build every gm-verb tool bound to one `ctx.gm` service instance. `execute`
- * cannot read `ctx` off `exec` (the registry's execution context carries
- * `agent`/`signal`/`token`/`callId`, never a Cordis context), so `gm` (the
- * `Gm` service instance from `@freddie/freddie-gm-client`) is closed over
- * from the owning plugin's `apply(ctx)` instead.
- * @param gm - the `Gm` service instance this composition mounted.
- * @param onProgress - receives one settled daemon result or error with dispatch facts after each GM dispatch.
- * @returns the tool definitions, ready for `ctx.tools.register()`.
- */
 export function buildGmTools(gm, onProgress = () => {}) {
   const reportProgress = (dispatch, exec) => {
     try {
@@ -58,13 +31,6 @@ export function buildGmTools(gm, onProgress = () => {}) {
     }
   }
 
-  /**
-   * One JSON-body gm-verb tool. `verb` is the real gm spool verb name (never
-   * derived from `name` -- gm's own verb naming mixes dashes and underscores
-   * with no mechanical rule connecting the two, e.g. `prd-add` vs
-   * `git_finalize`, live-verified against gm-mcp's own dispatch.js).
-   * `toBody` maps typed args to the verb's real body shape.
-   */
   const jsonTool = ({
     name,
     verb,

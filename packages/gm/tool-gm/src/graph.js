@@ -1,10 +1,3 @@
-/**
- * Fold daemon-settled GM verb JSON into a bounded PRD/mutable graph snapshot.
- * Instruction lists refresh when they are not truncated; prd/mutable add/resolve
- * bodies upsert even when the response is only `{added}` / `{resolved}`.
- * @module @freddie/freddie-tool-gm/graph
- */
-
 const MAX_GRAPH_NODES = 80
 
 function asRecord(value) {
@@ -98,13 +91,6 @@ function edgesFrom(nodes) {
   return edges
 }
 
-/**
- * Accumulate graph nodes and edges from one GM dispatch plus the prior snapshot.
- * @param previous - last gmProgress snapshot, or undefined.
- * @param dispatch - verb, lifecycle status, and optional request body.
- * @param data - daemon `data` object from a settled response (empty while running).
- * @returns `{ nodes, edges, walking }`.
- */
 export function foldGmGraph(previous, dispatch, data) {
   const map = new Map()
   for (const node of Array.isArray(previous?.nodes) ? previous.nodes : []) {
