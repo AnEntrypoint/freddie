@@ -1,9 +1,3 @@
-/**
- * Durable session skill catalog and model-facing `skill` loader tool.
- *
- * @module @freddie/freddie-tool-skill
- */
-
 import { createHash } from 'node:crypto'
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
@@ -21,7 +15,6 @@ export const inject = ['agents', 'tools', 'skills']
 
 const DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH = 500
 
-/** Durable entry list mirroring the rendered catalog lines, for non-model consumers. */
 function catalogSourceEntries(skills, descriptionMaxLength) {
   return skills.map(skill => ({
     name: skill.name,
@@ -29,17 +22,10 @@ function catalogSourceEntries(skills, descriptionMaxLength) {
   }))
 }
 
-/** Validate and default the model-facing skill catalog configuration. */
 export const Config = z.object({
   catalogDescriptionMaxLength: z.number().default(DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH),
 })
 
-/**
- * Register the model-facing skill loader and its visibility-matched
- * durable session catalog. The catalog is emitted only when the calling agent
- * resolves this plugin's exact tool registration; a restriction or scoped
- * same-name shadow therefore removes both the schema and its call guidance.
- */
 export function apply(ctx, config = {}) {
   const catalogDescriptionMaxLength = config.catalogDescriptionMaxLength ?? DEFAULT_CATALOG_DESCRIPTION_MAX_LENGTH
   assertPositiveInteger('catalogDescriptionMaxLength', catalogDescriptionMaxLength, 3)
@@ -249,21 +235,10 @@ function renderCatalogUpdate(entries) {
   })
 }
 
-/**
- * Model-facing catalog lines, projected from the same entries the source records.
- * The pseudo-XML escaping belongs to this frame, not to the published fact, so it
- * is applied here and never stored. Names are `isSkillName`-validated and carry
- * no escapable character.
- */
 function renderCatalogEntries(entries) {
   return entries.map(entry => `- \`${entry.name}\`: ${escapeText(entry.description)}`)
 }
 
-/**
- * Catalog identity over the durable entry list rather than the rendered prose.
- * The entries are what changes; the surrounding `<system-reminder>` framing is
- * written for the model and must not decide whether a republish is needed.
- */
 function digestCatalogEntries(entries) {
   const canonical = entries.map(entry => JSON.stringify([entry.name, entry.description])).join('\n')
   return createHash('sha256')
@@ -271,17 +246,6 @@ function digestCatalogEntries(entries) {
     .digest('hex')
 }
 
-/**
- * Entries of one durable catalog message, or undefined when the record is not a
- * usable catalog.
- *
- * `agent.session.events` may be a resumed, forked, or externally written seed,
- * and seed validation only guarantees a source object with a non-empty `kind`;
- * no per-kind field is checked there. An unreadable record is therefore treated
- * as "not this plugin's catalog" — the posture the replaced content digest had —
- * rather than throwing inside the step listener, which would fail every
- * subsequent turn of that session.
- */
 function readCatalogEntries(source) {
   const entries = source.entries
   if (!Array.isArray(entries)) return undefined
@@ -320,7 +284,6 @@ function catalogMessage(messages) {
   return undefined
 }
 
-/** Normalized, length-bounded description exactly as the catalog publishes it (unescaped). */
 function catalogDescription(value, maxLength) {
   const normalized = value.replaceAll(/\s+/g, ' ').trim()
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength - 3)}...`
@@ -332,22 +295,8 @@ function assertPositiveInteger(name, value, minimum = 1) {
   }
 }
 
-/**
- * A whitespace-bounded `/name` token (the public skill-name grammar) anywhere
- * in the text — the same word-boundary shape the transcript chip decoration
- * uses, so a gesture reads as one wherever it sits in the sentence. A second
- * `/` or any non-boundary character breaks the match, which keeps file paths
- * (`/usr/bin`) and fractions (`5/8`) out.
- */
 const SKILL_GESTURE = /(^|\s)\/([a-z0-9]+(?:-[a-z0-9]+)*)(?=\s|$)/g
 
-/**
- * `/name` gesture tokens from the claimed user messages, deduplicated in
- * first-seen order. Every text block of direct user input is scanned; no
- * other source can forge a gesture.
- * @param messages - the step's claimed batch.
- * @returns candidate skill names, unvalidated against the registry.
- */
 function invokedSkillNames(messages) {
   const names = []
   for (const message of messages) {

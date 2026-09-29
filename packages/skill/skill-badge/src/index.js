@@ -1,9 +1,3 @@
-/**
- * Bundled `freddie-badge` skill provider.
- *
- * @module @freddie/freddie-skill-badge
- */
-
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import {
@@ -45,12 +39,9 @@ const provider = {
   },
 }
 
-/** Cordis plugin name. */
 export const name = 'skill-badge'
-/** Service required by the bundled provider. */
 export const inject = ['skills']
 
-/** Register the bundled `freddie-badge` provider on `ctx.skills`. */
 export function apply(ctx) {
   ctx.skills.registerProvider(() => provider)
 }

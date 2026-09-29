@@ -1,14 +1,3 @@
-/**
- * Local filesystem skill provider.
- *
- * This package is one implementation of the `ctx.skills` provider registry. It
- * discovers directory-bundle and flat Markdown skills from project, custom, and
- * user roots, parses YAML frontmatter, and loads bodies through `ctx.fs` when a
- * filesystem service is present.
- *
- * @module @freddie/freddie-skill-filesystem
- */
-
 import { access, lstat, readdir, readFile, stat } from 'node:fs/promises'
 import { unwatchFile, watchFile } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
@@ -49,7 +38,6 @@ export const Config = z.object({
   bundledSkillDir: z.string(),
 })
 
-/** Register the local filesystem skill provider on `ctx.skills`. */
 export function apply(ctx, config = {}) {
   let provider
   ctx.skills.registerProvider((control) => {
@@ -65,7 +53,6 @@ export function apply(ctx, config = {}) {
   })
 }
 
-/** Provider that maps local project/user skill roots into `ctx.skills`. */
 export class FileSystemSkillProvider {
   name
   includeDefaultRoots
@@ -94,12 +81,6 @@ export class FileSystemSkillProvider {
     this.bundledSkillDir = bundledSkillDir === undefined ? undefined : resolve(bundledSkillDir)
   }
 
-  /**
-   * Discover local skill summaries for a cwd-sensitive workspace.
-   * @param options - lookup options; `cwd` selects the project roots to scan.
-   * @returns local provider candidates with stable root ranks; watcher startup
-   *   failure returns readable candidates as an incomplete observation.
-   */
   async list(options) {
     const roots = await this.roots(options.cwd)
     let complete = true
@@ -118,12 +99,6 @@ export class FileSystemSkillProvider {
     return complete ? candidates : { candidates, complete }
   }
 
-  /**
-   * Load a complete local skill body from the candidate's file locator.
-   * @param candidate - the winning candidate returned by this provider.
-   * @param options - lookup options whose signal cancels filesystem reads.
-   * @returns the full local skill, or `undefined` if the file disappeared.
-   */
   async get(candidate, options) {
     const locator = candidate.locator
     const parsed = await parseSkillFile(locator.path, this.ctx, options.signal, candidate.source === 'bundled')
@@ -142,18 +117,10 @@ export class FileSystemSkillProvider {
     }
   }
 
-  /**
-   * Invalidate this provider synchronously after a first-party filesystem mutation.
-   * @param path - host display path observed after a model-facing write or edit.
-   */
   observeHostMutation(path) {
     this.watchManager.observeHostMutation(path)
   }
 
-  /**
-   * Close every host watcher and contain late filesystem callbacks.
-   * @returns a shared promise that settles when every watcher reaches quiescence.
-   */
   dispose() {
     this.disposal ??= this.watchManager.dispose()
     return this.disposal
@@ -182,7 +149,6 @@ export class FileSystemSkillProvider {
   }
 }
 
-/** Owns bounded host watchers while discovery and reads remain on the filesystem service. */
 class SkillWatchManager {
   roots = new Map()
   projects = new Map()

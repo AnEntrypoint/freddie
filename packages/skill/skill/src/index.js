@@ -1,15 +1,3 @@
-/**
- * Agent skill provider registry.
- *
- * This package owns the Service Definition role of the skill capability seam.
- * Concrete
- * providers such as `@freddie/freddie-skill-filesystem` decide where skills come
- * from; this service only merges provider catalogs, resolves the winning skill
- * for a name, and exposes the winning summaries and definitions to consumers.
- *
- * @module @freddie/freddie-skill
- */
-
 import { Service } from '@freddie/cordis'
 import { assertNever } from '@freddie/freddie-llm'
 import { NamedEntries, ScopedLayers, scopeChainOf, scopeOf } from '@freddie/freddie-scope'
@@ -21,45 +9,20 @@ const MAX_COLLECT_ATTEMPTS = 2
 const RUNTIME_PROVIDER = 'runtime'
 const RUNTIME_RANK = 250
 
-/** Standard precedence rank for packaged skill providers and local bundled roots. */
 export const BUNDLED_SKILL_RANK = 600
 
-/**
- * Return whether a string is a valid kebab-case skill name.
- * @param name - candidate skill name to validate.
- * @returns whether the name matches the public skill-name grammar.
- */
 export function isSkillName(name) {
   return SKILL_NAME.test(name)
 }
 
-/**
- * Return whether a skill may be advertised to and loaded by a model.
- * @param skill - skill metadata carrying resolved invocation controls.
- * @returns whether the policy permits model invocation.
- */
 export function isModelInvocable(skill) {
   return skill.invocation.modelInvocable
 }
 
-/**
- * Return whether a skill may be advertised to and loaded by a human-facing command.
- * @param skill - skill metadata carrying resolved invocation controls.
- * @returns whether the policy permits user invocation.
- */
 export function isUserInvocable(skill) {
   return skill.invocation.userInvocable
 }
 
-/**
- * Render one loaded skill for the model. The output is shared verbatim by the
- * `skill` tool result and the user-explicit invocation injection, so the model
- * sees one canonical `<skill_content>` shape on both paths. The name rides an
- * escaped attribute; the body is embedded verbatim (skills are trusted local
- * content, and user-supplied invocation text stays outside this wrapper).
- * @param skill - name, provider, optional resource base, and body to render.
- * @returns the complete model-facing `<skill_content>` block.
- */
 export function renderSkillContent(skill) {
   const resourceHint = renderResourceHint(skill)
   return [
@@ -110,21 +73,12 @@ function escapeAttr(value) {
   return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;')
 }
 
-/**
- * Escape model-facing prose embedded inside skill markup so provider-supplied
- * text cannot open or close framing tags.
- * @param value - raw prose to embed.
- * @returns the escaped text.
- */
 export function escapeText(value) {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }
 
-/** One provider registration retained by its layer. */
 class SkillLayer {
-  /** Providers registered through contexts carrying this scope, insertion-ordered. */
   providers
-  /** Runtime skills registered through contexts carrying this scope. */
   runtime = new Map()
 
   constructor(scope) {
@@ -133,23 +87,11 @@ class SkillLayer {
       : `a skill provider named "${name}" is already registered in this scope`))
   }
 
-  /** Whether every contribution table in this aggregate layer is empty. */
   isEmpty() {
     return this.providers.isEmpty() && this.runtime.size === 0
   }
 }
 
-/**
- * Layered registry of skill providers, the host+per-scope shape the tools
- * registry established. A registration files into the layer of its calling
- * context's scope ({@link scopeOf}): host rows and repository plugins land in
- * the global layer, while a plugin mounted by an agent preset's standing
- * composition lands in that preset's layer. A read merges the global layer
- * with the viewing scope's chain — the nearest layer's entry wins a duplicate
- * name outright, and the rank order decides duplicates only within one layer.
- * It exposes sorted invocation-neutral summaries and loads full skill bodies
- * on demand.
- */
 export class SkillRegistry extends Service {
   static Config = z.object({
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
@@ -163,7 +105,6 @@ export class SkillRegistry extends Service {
   collectCache = new Map()
   revision = 0
   nextProviderOrder = 0
-  /** Stable identities for cache keys; scope keys are opaque identity-compared objects. */
   scopeIds = new WeakMap()
   nextScopeId = 1
 
@@ -173,17 +114,6 @@ export class SkillRegistry extends Service {
     assertPositiveInteger('collectCacheMaxEntries', this.collectCacheMaxEntries)
   }
 
-  /**
-   * Register a borrowed same-process provider synchronously during plugin
-   * apply, into the calling context's layer: a scoped context (an agent
-   * preset's standing mount) registers for that scope alone, an unscoped
-   * context registers globally. Duplicate names within one layer and reserved
-   * names throw; remote initialization belongs in `list()`. Fiber disposal
-   * unregisters the provider and invalidates catalog caches.
-   * @param create - synchronous factory receiving this registration's lifecycle and invalidation control.
-   * @returns the exact Cordis effect disposer that unregisters this provider;
-   *   composite effects may yield it directly to preserve teardown ordering.
-   */
   registerProvider(create) {
     const lifecycle = new AbortController()
     let registration
@@ -224,15 +154,6 @@ export class SkillRegistry extends Service {
     }
   }
 
-  /**
-   * Register a borrowed readonly runtime skill into the calling context's
-   * layer. Project entries outrank runtime entries, which outrank user
-   * entries, within one layer. Same-name runtime entries in one layer are
-   * first-wins; a duplicate logs a warning and receives a no-op disposer so
-   * it cannot remove the winner.
-   * @param skill - the skill definition input; omitted invocation and provider fields receive defaults.
-   * @returns the exact Cordis effect disposer, preserving composite teardown order and invalidating caches.
-   */
   register(skill) {
     validateRuntimeSkill(skill)
     const scope = scopeOf(this.ctx)
@@ -256,25 +177,10 @@ export class SkillRegistry extends Service {
     )
   }
 
-  /**
-   * List invocation-neutral skill summaries for a workspace. Consumers apply
-   * model or user invocation policy at their operational boundary. Lookup
-   * options and provider candidates are readonly same-process values borrowed
-   * throughout discovery.
-   * @param options - view options; `scope` selects the viewing agent's layers, `cwd` selects project roots, and `signal` cancels discovery.
-   * @returns all sorted winning summaries.
-   */
   async list(options = {}) {
     return (await this.snapshot(options)).skills
   }
 
-  /**
-   * Observe the current invocation-neutral catalog and whether discovery completed within a stable revision.
-   * Incomplete observations are never cached, allowing consumers to retain last-good state and
-   * retry on their next request boundary.
-   * @param options - view options; `scope` selects the viewing agent's layers, `cwd` selects project roots, and `signal` cancels discovery.
-   * @returns sorted summaries plus discovery-completeness state.
-   */
   async snapshot(options = {}) {
     const collected = await this.collect(options)
     return {
@@ -285,15 +191,6 @@ export class SkillRegistry extends Service {
     }
   }
 
-  /**
-   * Load and validate the winning candidate, passing its opaque discovery locator back to the
-   * provider. Cancellation is rechecked after selection, including cache hits, and raced against
-   * loading so an uncooperative provider cannot hang the caller.
-   * @param name - kebab-case skill name.
-   * @param options - view options; `scope` selects the viewing agent's layers,
-   *   `cwd` selects workspace-sensitive skills, and `signal` cancels work.
-   * @returns the full skill, including body content, or `undefined`.
-   */
   async get(name, options = {}) {
     if (!isSkillName(name)) return undefined
     const collected = await this.collect(options)
@@ -414,7 +311,6 @@ export class SkillRegistry extends Service {
     this.notifyChange()
   }
 
-  /** Invalidate after a stale definition load, only while the exact registration that produced the entry is still live. */
   invalidateEntry(entry) {
     /* v8 ignore else -- A definition load can outlive the exact provider registration it selected. */
     if (entry.layer.providers.get(entry.provider.name)?.provider === entry.provider) this.invalidateCache()
@@ -434,7 +330,6 @@ export class SkillRegistry extends Service {
     return JSON.stringify({ cwd, scopes: chain.map(key => this.scopeId(key)), revision })
   }
 
-  /** Notify catalog observers without making their refresh work load-bearing. */
   notifyChange() {
     for (const callback of this.ctx.events.dispatch('emit', ['skills/change'])) {
       try {
@@ -534,7 +429,6 @@ function validateRuntimeSkill(skill) {
   validateInvocation(skill.invocation, `runtime skill "${skill.name}"`)
 }
 
-/** Validate a definition loaded from a provider-controlled parser or remote source. */
 function validateDefinition(skill) {
   const name = skill.name
   const description = skill.description
@@ -630,12 +524,10 @@ function waitWithAbort(promise, signal) {
   })
 }
 
-/** Throw a total Error for an already-aborted lookup. */
 function throwIfAborted(signal) {
   if (signal?.aborted === true) throw toError(signal.reason)
 }
 
-/** Normalize an arbitrary abort or provider failure without trusting coercion. */
 function toError(error) {
   try {
     if (error instanceof Error) return error
@@ -644,7 +536,6 @@ function toError(error) {
   return new Error(errorMessage(error))
 }
 
-/** Render an arbitrary provider failure without letting coercion escape containment. */
 function errorMessage(error) {
   try {
     return String(error)
