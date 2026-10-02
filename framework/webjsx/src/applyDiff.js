@@ -143,7 +143,12 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
             const { node, newVNode, oldVNode } = change;
             if (newVNode instanceof Node) {
                 if (newVNode !== node) {
-                    parent.replaceChild(newVNode, node);
+                    if (node.parentNode === parent) {
+                        parent.replaceChild(newVNode, node);
+                    }
+                    else if (newVNode.parentNode !== parent) {
+                        parent.insertBefore(newVNode, lastPlacedNode?.nextSibling ?? null);
+                    }
                 }
                 lastPlacedNode = newVNode;
                 nodes.push(newVNode);

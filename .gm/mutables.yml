@@ -2553,3 +2553,91 @@
   session_id: freddie-327824-1790173650242
   status: witnessed
   witness_evidence: 'gm_codesearch exhaustive results: renderWrapupContext has exactly one caller in tool-goal/src/index.js and <goal_complete> exactly one definition in wrapup.js; a single prompt correction covers every autonomous terminal injection.'
+- id: free-rank-source
+  prd_id: openrouter-free-fallback
+  obligation_kind: precondition
+  subject: Popular free OpenRouter order must come from a live published ranking, not a hardcoded id list
+  text: Witness the fetched OpenRouter free-models collection order and the zero-price chat filter before appending links.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929125065 fetched https://openrouter.ai/collections/free-models (200, ItemList "Top Free Models on OpenRouter", 16 items) and https://openrouter.ai/api/v1/models (200). Zero-price text-only chat kept in collection order: stealth/space-bunny-alpha, nvidia/nemotron-3-ultra-550b-a55b:free, poolside/laguna-s-2.1:free, nvidia/nemotron-3.5-lightning:free, dots-studio/dots-3-note-preview:free, inclusionai/ling-3.0-flash-sante:free, nvidia/nemotron-3-super-120b-a12b:free, thinkingmachines/inkling:free, cohere/north-mini-code:free, thinkingmachines/inkling-small:free, poolside/laguna-xs-2.1:free, qwen/qwen3.8-27b:free, nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free. Dropped voyageai/rerank-2.5-lite, voyageai/rerank-2.5, respan/span-01-lite (absent from the priced catalog).'
+- id: openrouter-rank-cache-owned
+  prd_id: openrouter-free-fallback
+  obligation_kind: invariant
+  subject: The free-model ranking cache is process-local and replaced only by a successful refresh
+  text: _openrouterFreeRank is a module let. refreshOpenrouterFreeRank assigns a new object only after a non-empty ranked list. A failed refresh leaves the previous ids. A second refresh inside the TTL does not start another fetch.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929675141: first refreshOpenrouterFreeRank returned a 13-id array; the second call 22ms later returned the same array (sameArray true). lib/auto-chain.js refreshOpenrouterFreeRank returns the cached ids inside TTL and shares one inFlight fetch. A failed fetch throws before the assignment, so the previous ids stay.'
+- id: openrouter-key-gates-links
+  prd_id: openrouter-free-fallback
+  obligation_kind: postcondition
+  subject: OpenRouter fallback links exist only while OPENROUTER_API_KEY resolves
+  text: openrouterFreeFallbackIds returns [] when hasProvider('openrouter') is false. refreshOpenrouterFreeRank returns [] when keyring.getKey misses. A fresh process without the env var builds a one-link chain.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929655444 fresh process with OPENROUTER_API_KEY unset: hasProvider(''openrouter'') false, buildAutoChain(''xai-oauth/grok-4.7'') links only that primary. refreshOpenrouterFreeRank returns [] when keyring.getKey misses.'
+- id: pinned-primary-stays-first
+  prd_id: openrouter-free-fallback
+  obligation_kind: postcondition
+  subject: The requested model remains the first chain link when the key is set
+  text: buildAutoChain addLink(targetModel) runs before the openrouter free ids are appended. Live headers keep X-Acptoapi-Requested-Model distinct from the served free model.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: exec_js 1790929675141 buildAutoChain('xai-oauth/grok-4.7') primary is xai-oauth/grok-4.7 and the next link is openrouter/stealth/space-bunny-alpha. Live POST headers kept X-Acptoapi-Requested-Model distinct from the served free model.
+- id: openrouter-rank-single-flight
+  prd_id: openrouter-free-fallback
+  obligation_kind: happens-before
+  subject: Concurrent free-rank refreshes share one in-flight fetch
+  text: Two refreshOpenrouterFreeRank calls started together before the cache is warm must observe one fetch pair, and later calls inside the TTL must observe zero.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929772270 interleaved two refreshOpenrouterFreeRank calls before the cache was warm: both received the same 13-id array and the fetch wrapper counted 2 calls (one page, one models list). Two later calls inside the TTL added 0 fetches and returned the same array.'
+- id: openrouter-key-header-only
+  prd_id: openrouter-free-fallback
+  obligation_kind: identity-authority
+  subject: The OpenRouter key is sent only on the models request and never written into chain output
+  text: refreshOpenrouterFreeRank reads keyring.getKey and puts it only on the models request header. Chain links are model ids. git diff of the four changed files matches no key prefix.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: lib/auto-chain.js refreshOpenrouterFreeRank reads keyring.getKey('OPENROUTER_API_KEY') and places it only on the models request header. Chain links are openrouter/<id>. exec_js 1790929798369 git diff of CHANGELOG.md, lib/auto-chain.js, lib/chain-machine.js, package.json is 8008 bytes and secret=false (no key prefix).
+- id: openrouter-rank-page-not-executed
+  prd_id: openrouter-free-fallback
+  obligation_kind: injection
+  subject: The free-models page is parsed as data, not evaluated
+  text: The ItemList script is JSON.parse'd. Model ids are taken from item URLs and filtered against the priced catalog before they become chain links.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: lib/auto-chain.js fetchOpenrouterFreeRank JSON.parse's the ItemList script and takes ids from item.url/item.item. exec_js 1790929125065 dropped voyageai rerankers and respan/span-01-lite because they were absent from the priced catalog; kept ids were zero-price text chat models. No eval or script execution of the page.
+- id: feed-no-secrets
+  obligation_kind: secrets
+  prd_id: feed-element-cache
+  subject: The feed fix introduces no credential, token, or secret literal.
+  text: Diff of AssistantMarkdown.js, AssistantNodeView.js, and applyDiff.js contains only cache-key and DOM-placement code.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: git_diff of AssistantMarkdown.js and applyDiff.js shows only a Map cache key and replaceChild/insertBefore. No credential, token, or secret literal.
+- id: feed-no-injection
+  obligation_kind: injection
+  prd_id: feed-element-cache
+  subject: The feed fix does not interpolate untrusted input into a shell, query, path, or eval.
+  text: The new code only builds a cache key and calls replaceChild or insertBefore on existing DOM nodes.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: The new template is a cache key from node.key and a block index. DOM calls receive existing nodes, not a shell, query, path, or eval string.
+- id: feed-authority
+  obligation_kind: identity-authority
+  prd_id: feed-element-cache
+  subject: The feed fix does not add a request path or widen authority.
+  text: It changes only client render caching and webjsx child placement.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: Diff touches only AssistantMarkdown.js, AssistantNodeView.js, and applyDiff.js. No new RPC, route, or authority check.
+- id: feed-replay
+  obligation_kind: message-timing
+  prd_id: feed-element-cache
+  subject: A repeated render of the same block reuses the cached element instead of applying a second copy.
+  text: Live GUI showed the same assistant text painted once, with no console error, after the session kept receiving chunks.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'Live page 2: tail seq advanced while painted text matched the latest assistant block once. Console error list stayed empty across repeated renders.'
