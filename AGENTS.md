@@ -16,7 +16,7 @@ Freddie is a plugin-based agent harness built on our own Cordis framework layer 
 
 ### Host sandbox failures
 
-When required `gh`, `pnpm`, or generator commands fail because the agent sandbox blocks credentials, network, IPC, file watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation before diagnosing authentication or project failure. Require sandbox evidence; never bypass a genuine failure or the product sandbox under test.
+When the active tool policy disables approvals or already grants unrestricted filesystem access, run required commands without a sandbox-permission field; treat any resulting failure as ordinary command evidence. In a confined host, when required `gh`, `pnpm`, or generator commands fail because the agent sandbox blocks credentials, network, IPC, file watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation before diagnosing authentication or project failure. Require sandbox evidence; never bypass a genuine failure or the product sandbox under test.
 
 ### Verify before pushing
 
