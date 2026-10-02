@@ -13,15 +13,11 @@ function codeLabelsFor(t) {
   return labels
 }
 
-const cachedBlocks = new WeakMap()
+const cachedBlocks = new Map()
 function cachedBlockEl(identity, index, render, props) {
-  let perNode = cachedBlocks.get(identity)
-  if (perNode === undefined) {
-    perNode = new Map()
-    cachedBlocks.set(identity, perNode)
-  }
-  const el = render(perNode.get(index) ?? null, props)
-  perNode.set(index, el)
+  const key = `${identity}\u0000${index}`
+  const el = render(cachedBlocks.get(key) ?? null, props)
+  cachedBlocks.set(key, el)
   return el
 }
 

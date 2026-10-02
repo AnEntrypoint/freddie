@@ -2656,3 +2656,203 @@
   text: After the current active agent loop ends, query the official HMR snapshot and browser journal for reload, then dispatch a fresh GUI GM tool and read its runtime metric.
   session_id: freddie-2128598-1790941468204
   status: unknown
+- id: free-rank-source
+  prd_id: openrouter-free-fallback
+  obligation_kind: precondition
+  subject: Popular free OpenRouter order must come from a live published ranking, not a hardcoded id list
+  text: Witness the fetched OpenRouter free-models collection order and the zero-price chat filter before appending links.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929125065 fetched https://openrouter.ai/collections/free-models (200, ItemList "Top Free Models on OpenRouter", 16 items) and https://openrouter.ai/api/v1/models (200). Zero-price text-only chat kept in collection order: stealth/space-bunny-alpha, nvidia/nemotron-3-ultra-550b-a55b:free, poolside/laguna-s-2.1:free, nvidia/nemotron-3.5-lightning:free, dots-studio/dots-3-note-preview:free, inclusionai/ling-3.0-flash-sante:free, nvidia/nemotron-3-super-120b-a12b:free, thinkingmachines/inkling:free, cohere/north-mini-code:free, thinkingmachines/inkling-small:free, poolside/laguna-xs-2.1:free, qwen/qwen3.8-27b:free, nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free. Dropped voyageai/rerank-2.5-lite, voyageai/rerank-2.5, respan/span-01-lite (absent from the priced catalog).'
+- id: openrouter-rank-cache-owned
+  prd_id: openrouter-free-fallback
+  obligation_kind: invariant
+  subject: The free-model ranking cache is process-local and replaced only by a successful refresh
+  text: _openrouterFreeRank is a module let. refreshOpenrouterFreeRank assigns a new object only after a non-empty ranked list. A failed refresh leaves the previous ids. A second refresh inside the TTL does not start another fetch.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929675141: first refreshOpenrouterFreeRank returned a 13-id array; the second call 22ms later returned the same array (sameArray true). lib/auto-chain.js refreshOpenrouterFreeRank returns the cached ids inside TTL and shares one inFlight fetch. A failed fetch throws before the assignment, so the previous ids stay.'
+- id: openrouter-key-gates-links
+  prd_id: openrouter-free-fallback
+  obligation_kind: postcondition
+  subject: OpenRouter fallback links exist only while OPENROUTER_API_KEY resolves
+  text: openrouterFreeFallbackIds returns [] when hasProvider('openrouter') is false. refreshOpenrouterFreeRank returns [] when keyring.getKey misses. A fresh process without the env var builds a one-link chain.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929655444 fresh process with OPENROUTER_API_KEY unset: hasProvider(''openrouter'') false, buildAutoChain(''xai-oauth/grok-4.7'') links only that primary. refreshOpenrouterFreeRank returns [] when keyring.getKey misses.'
+- id: pinned-primary-stays-first
+  prd_id: openrouter-free-fallback
+  obligation_kind: postcondition
+  subject: The requested model remains the first chain link when the key is set
+  text: buildAutoChain addLink(targetModel) runs before the openrouter free ids are appended. Live headers keep X-Acptoapi-Requested-Model distinct from the served free model.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: exec_js 1790929675141 buildAutoChain('xai-oauth/grok-4.7') primary is xai-oauth/grok-4.7 and the next link is openrouter/stealth/space-bunny-alpha. Live POST headers kept X-Acptoapi-Requested-Model distinct from the served free model.
+- id: openrouter-rank-single-flight
+  prd_id: openrouter-free-fallback
+  obligation_kind: happens-before
+  subject: Concurrent free-rank refreshes share one in-flight fetch
+  text: Two refreshOpenrouterFreeRank calls started together before the cache is warm must observe one fetch pair, and later calls inside the TTL must observe zero.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'exec_js 1790929772270 interleaved two refreshOpenrouterFreeRank calls before the cache was warm: both received the same 13-id array and the fetch wrapper counted 2 calls (one page, one models list). Two later calls inside the TTL added 0 fetches and returned the same array.'
+- id: openrouter-key-header-only
+  prd_id: openrouter-free-fallback
+  obligation_kind: identity-authority
+  subject: The OpenRouter key is sent only on the models request and never written into chain output
+  text: refreshOpenrouterFreeRank reads keyring.getKey and puts it only on the models request header. Chain links are model ids. git diff of the four changed files matches no key prefix.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: lib/auto-chain.js refreshOpenrouterFreeRank reads keyring.getKey('OPENROUTER_API_KEY') and places it only on the models request header. Chain links are openrouter/<id>. exec_js 1790929798369 git diff of CHANGELOG.md, lib/auto-chain.js, lib/chain-machine.js, package.json is 8008 bytes and secret=false (no key prefix).
+- id: openrouter-rank-page-not-executed
+  prd_id: openrouter-free-fallback
+  obligation_kind: injection
+  subject: The free-models page is parsed as data, not evaluated
+  text: The ItemList script is JSON.parse'd. Model ids are taken from item URLs and filtered against the priced catalog before they become chain links.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: lib/auto-chain.js fetchOpenrouterFreeRank JSON.parse's the ItemList script and takes ids from item.url/item.item. exec_js 1790929125065 dropped voyageai rerankers and respan/span-01-lite because they were absent from the priced catalog; kept ids were zero-price text chat models. No eval or script execution of the page.
+- id: feed-no-secrets
+  obligation_kind: secrets
+  prd_id: feed-element-cache
+  subject: The feed fix introduces no credential, token, or secret literal.
+  text: Diff of AssistantMarkdown.js, AssistantNodeView.js, and applyDiff.js contains only cache-key and DOM-placement code.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: git_diff of AssistantMarkdown.js and applyDiff.js shows only a Map cache key and replaceChild/insertBefore. No credential, token, or secret literal.
+- id: feed-no-injection
+  obligation_kind: injection
+  prd_id: feed-element-cache
+  subject: The feed fix does not interpolate untrusted input into a shell, query, path, or eval.
+  text: The new code only builds a cache key and calls replaceChild or insertBefore on existing DOM nodes.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: The new template is a cache key from node.key and a block index. DOM calls receive existing nodes, not a shell, query, path, or eval string.
+- id: feed-authority
+  obligation_kind: identity-authority
+  prd_id: feed-element-cache
+  subject: The feed fix does not add a request path or widen authority.
+  text: It changes only client render caching and webjsx child placement.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: Diff touches only AssistantMarkdown.js, AssistantNodeView.js, and applyDiff.js. No new RPC, route, or authority check.
+- id: feed-replay
+  obligation_kind: message-timing
+  prd_id: feed-element-cache
+  subject: A repeated render of the same block reuses the cached element instead of applying a second copy.
+  text: Live GUI showed the same assistant text painted once, with no console error, after the session kept receiving chunks.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'Live page 2: tail seq advanced while painted text matched the latest assistant block once. Console error list stayed empty across repeated renders.'
+- id: sec-no-secrets
+  prd_id: menu-portal-pointer-region
+  obligation_kind: secrets
+  subject: Diff adds pointer handlers only
+  text: git_diff of Menu.js and HoverCard.js is onpointerenter/onpointerleave calling existing cancel/arm methods. No literal, no request, no path join.
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'secrets: git_diff 1790938173078 shows only onpointerenter/onpointerleave lines in Menu.js and HoverCard.js. No credential, token, secret, shell, query, or path-join sink.'
+- id: sec-no-injection
+  obligation_kind: injection
+  prd_id: token-delivery-austerity
+  subject: working diff has no untrusted input reaching a sink
+  text: diff is a one-line timestamp rewrite in .gm/.last-scan-deps-ts; no shell, query, eval, template, or path-join sink.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: one timestamp line, no shell/query/eval/template/path-join sink.'
+- id: sec-identity
+  obligation_kind: identity-authority
+  prd_id: token-delivery-austerity
+  subject: working diff adds no authority or auth boundary
+  text: no new RPC, route, or auth check in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no RPC, route, or authority check added.'
+- id: sec-message-timing
+  obligation_kind: message-timing
+  prd_id: token-delivery-austerity
+  subject: working diff adds no network message edge
+  text: no wire payload or replay surface in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no network message edge, so no replay or timing surface.'
+- id: res-exception-model
+  obligation_kind: exception-model
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no swallowed error or panic
+  text: diff is an integer overwrite of .gm/.last-scan-deps-ts; no unwrap, catch, or fallback.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: git_diff 1790930967927 is one integer line in .gm/.last-scan-deps-ts. No unwrap, catch, or fallback.
+- id: res-partial-failure
+  obligation_kind: partial-failure
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite is a single last-wins write
+  text: one integer line; a torn write is overwritten by the next scan stamp.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: single last-wins integer overwrite; next scan stamp replaces any torn value.
+- id: res-degradation
+  obligation_kind: degradation
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite adds no unbounded wait or queue
+  text: no loop, retry, or allocation in the diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: no loop, retry, queue, or allocation in the diff.
+- id: res-crucible
+  obligation_kind: crucible
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no resource-growth boundary
+  text: file holds one integer; no handle or recursion introduced.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: file holds one integer; no handle, recursion, or growth boundary introduced.
+- id: menu-grace-not-cancelled-by-list
+  prd_id: menu-portal-pointer-region
+  obligation_kind: invariant
+  subject: Portaled list pointerenter never reaches the wrapper that owns the grace timer
+  text: 'Menu.js binds onpointerenter/onpointerleave only on the wrapper span. portal appends the list to document.body. Live page: trigger bottom 250, list top 254, gap 4px. Pointerleave of the wrapper arms 200ms onClose before the pointer can enter the list.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: Menu.js:280-285 portals the list to document.body and binds pointerleave only on the wrapper span (lines 301-302). Live page: trigger bottom 250, list top 254, 4px gap. Pointerleave of the wrapper armed the 200ms close before the pointer reached the list; the list is not a descendant, so its pointerenter cannot cancel the timer.'
+- id: hovercard-card-has-no-pointer-handlers
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: invariant
+  subject: Hover card element has no pointerenter that cancels the close timer
+  text: 'HoverCard.js card VNode has no onpointerenter. Placement is r.right + 8. Wrapper pointerleave arms #armClose at 200ms. Same portal split as Menu.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: HoverCard.js:136-164 builds the card VNode with no onpointerenter. Placement is r.right + 8 (line 89). Wrapper pointerleave (line 192-194) arms #armClose at 200ms (line 69-74). The card is appended to document.body (line 170), so resting on it never cancels the wrapper timer.'
+- id: state-grace-replay
+  prd_id: menu-portal-pointer-region
+  obligation_kind: replay
+  subject: Grace timer is one timer and a second enter cancels a pending close
+  text: 'Live page: list pointerleave then pointerenter within 40ms left role=menu present after 320ms. A second list pointerleave with no re-enter removed the menu after 320ms. Owner close while closed does not re-arm: handlers are bound only while open.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'replay: live page evaluate. Menu list pointerleave then pointerenter 40ms later: role=menu still present at 320ms (close count did not fire). Second pointerleave with no re-enter: role=menu absent at 320ms. One timer, second enter cancels the first arm.'
+- id: state-hovercard-ownership
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: ownership
+  subject: Hover card timer is owned by the element and cleared on leave-to-close
+  text: 'Live page: card pointerenter after wrapper leave held the card past 350ms. Card pointerleave removed it after 350ms. disconnectedCallback already clears the timer.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'ownership: live page evaluate. Hover card pointerenter after the row leave held the card at 350ms. Card pointerleave removed it at 350ms. Timer is the element''s own #closeTimer, cleared by #cancelClose on enter and by disconnectedCallback.'
+- id: conc-one-timer
+  prd_id: menu-portal-pointer-region
+  obligation_kind: happens-before
+  subject: Wrapper leave and list enter share one timer; enter cancels leave
+  text: 'Both handlers call #cancelGrace before #armGrace. Live page: leave then enter within 40ms produced zero closes. No second timer, no queue.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'happens-before: Menu.js #armGrace calls #cancelGrace first, so a later enter replaces the pending close. Live page leave-then-enter within 40ms left the menu open at 320ms. One #graceTimer per element, 200ms bound, no queue.'
+- id: res-grace-bounded
+  prd_id: menu-portal-pointer-region
+  obligation_kind: degradation
+  subject: Close waits at most 200ms and a second enter replaces the timer
+  text: '#armGrace and #armClose clear the previous timer before setTimeout(..., 200). No loop, no queue, no allocation that grows with pointer events.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'degradation: Menu.js #armGrace and HoverCard.js #armClose both clearTimeout the previous timer, then set one 200ms timer. Live page: enter within 40ms of leave cancelled the close; a leave with no re-enter closed at 320ms. No unbounded wait.'

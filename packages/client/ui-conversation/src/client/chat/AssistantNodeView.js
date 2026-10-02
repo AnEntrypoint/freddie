@@ -28,7 +28,7 @@ export function AssistantNodeView({
   const mentions = owner === undefined ? undefined : cachedMentions(node, fileMentions, owner)
   return (
     h(AssistantMarkdown, {
-      identity: node,
+      identity: node.key,
       blocks: data.blocks,
       streaming: data.status === 'running',
       interrupted: data.status === 'interrupted',

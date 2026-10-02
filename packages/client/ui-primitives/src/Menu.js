@@ -246,6 +246,7 @@ export class FreddieMenu extends HTMLElement {
     if (!open) return null
     const scrollable = !items.some(entry =>
       !isSeparator(entry) && !isLabel(entry) && entry.submenu !== undefined && entry.submenu.length > 0)
+    const { closeOnPointerLeave = false } = this.#props
     return h(
       'div',
       {
@@ -257,6 +258,8 @@ export class FreddieMenu extends HTMLElement {
           : '',
         role: 'menu',
         onclick: (e) => { e.stopPropagation() },
+        onpointerenter: closeOnPointerLeave ? () => { this.#cancelGrace() } : null,
+        onpointerleave: closeOnPointerLeave ? () => { if (this.#props.open) this.#armGrace() } : null,
       },
       h(
         'div',
