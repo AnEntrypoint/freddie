@@ -8,3 +8,18 @@
   session_id: frd-7
   status: pending
   witness: 'BLOCKED (not done, unsafe now). Read-only inspection, no changes made. gm on harden/signed-updates; recorded agentplug pointer 90507f1; agentplug working HEAD is now 98bb133, an unpushed commit on local branch harden/signed-updates (contained in no remote branch, not an ancestor of origin/main c6906e8) whose reflog shows a pull --rebase origin main followed by rebase (abort) 16 minutes ago, i.e. another writer is mid-operation. Committing paths:[agentplug] would record an unpublished, in-flux commit that fresh clones cannot fetch; repointing to c6906e8 would require moving the other writer''s submodule checkout. Both unsafe. Next dispatch: once the signed-updates writer pushes agentplug, git_status in gm, confirm the submodule HEAD is on its origin, then git_commit paths:[agentplug].'
+- SESSION_ID: comment-sweep-1790669479148
+  id: comment-sweep-lint-directives
+  route_family: state
+  subject: 'Pre: exhaustive first-party JS scan found 59 lint-suppression comments across 38 files. Invariant: each directive is either eliminated by an equivalent self-explanatory code shape or retained only where tool syntax is semantically required and documented as a verified exception. Post: no redundant lint comments remain and any necessary directives have a live lint/runtime witness.'
+  status: pending
+- SESSION_ID: comment-sweep-1790669479148
+  id: vendor-manifest-regeneration-drift
+  route_family: execution
+  subject: 'Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/src/index.js. Invariant: immutable version URLs are never silently overwritten. Post: vendor resolution and checked-in payload have deliberate matching provenance, and generate-vendor completes without bypassing its drift guard.'
+  status: pending
+- SESSION_ID: comment-sweep-1790669479148
+  id: comment-sweep-jsdoc-contracts
+  route_family: representation
+  subject: 'Pre: exhaustive first-party JS scan found 281 JSDoc starts across 77 files. Invariant: public contracts remain discoverable and accurate while source carries no explanatory prose. Post: every JSDoc contract is represented in the owning package README/AGENTS.md or eliminated where code states it, with imports/live paths preserved.'
+  status: pending
