@@ -8,3 +8,92 @@
   session_id: frd-7
   status: pending
   witness: 'BLOCKED (not done, unsafe now). Read-only inspection, no changes made. gm on harden/signed-updates; recorded agentplug pointer 90507f1; agentplug working HEAD is now 98bb133, an unpushed commit on local branch harden/signed-updates (contained in no remote branch, not an ancestor of origin/main c6906e8) whose reflog shows a pull --rebase origin main followed by rebase (abort) 16 minutes ago, i.e. another writer is mid-operation. Committing paths:[agentplug] would record an unpublished, in-flux commit that fresh clones cannot fetch; repointing to c6906e8 would require moving the other writer''s submodule checkout. Both unsafe. Next dispatch: once the signed-updates writer pushes agentplug, git_status in gm, confirm the submodule HEAD is on its origin, then git_commit paths:[agentplug].'
+- id: token-delivery-map
+  title: Map every model-token delivery path
+  subject: 'Pre: request assembly lives in packages/core/agent-loop and packages/llm. Invariant: every byte that reaches a model request is reconstructable from the session log. Post: a witnessed inventory of system prompt, tools, history, images, compaction, and output-cap paths with file:line.'
+  acceptance: codesearch plus read of agent.js request/header, system-prompt, token-meter, compaction-basic, and both adapters names each delivery path.
+  route_family: grounding
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-measure
+  title: Measure live per-step token waste
+  subject: 'Pre: a running session log exists for this harness. Invariant: measurement uses provider usage, not a guess. Post: a live breakdown of system, tools, history, and output tokens for one real step, with the largest waste named.'
+  acceptance: exec_js or session-log read shows usage fields and which envelope part dominates.
+  route_family: execution
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-output-cap
+  title: Stop reserving unused output tokens
+  subject: 'Pre: DeepSeek defaultMaxTokens is 256000 against a 1000000 window. Invariant: an explicit per-request cap still wins over the adapter default. Post: the shipped default no longer pre-allocates a quarter of the window on every chat call unless the endpoint requires it.'
+  acceptance: live request header records a smaller materialized maxTokens and a chat call still completes.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-stable-prefix
+  title: Keep the cacheable prefix stable
+  subject: 'Pre: system prompt and tool schemas are re-sent every step. Invariant: model-visible content stays reconstructable. Post: unchanged prefix bytes are not regenerated or reordered per step, so provider prefix cache hits.'
+  acceptance: two consecutive request headers share an identical system and tools digest.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-tool-schema
+  title: Shrink tool schemas sent every step
+  subject: 'Pre: every registered tool schema rides every request. Invariant: a tool the model can call remains fully described. Post: descriptions and schemas that repeat or exceed what the model needs are cut without dropping a callable tool.'
+  acceptance: byte size of the tools envelope is smaller on a live request and every shipped tool still resolves.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-history
+  title: Stop re-sending shadowed history
+  subject: 'Pre: compaction and surface fold already exist. Invariant: a compacted turn remains reconstructable from the log. Post: bytes the model cannot use (shadowed nodes, duplicate tool results, oversized unchanged files) do not ride the next request.'
+  acceptance: measure() before and after a long tool-result turn shows the folded surface, not the raw log, on the wire.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-prompt-sections
+  title: Cut prompt sections that repeat every step
+  subject: 'Pre: system-prompt sections are static per mode. Invariant: a section the model must see remains present once. Post: sections that restate the same guidance, or that are empty, are omitted from the rendered system string.'
+  acceptance: rendered system prompt of two steps is identical when inputs are unchanged, and empty sections contribute zero bytes.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-images
+  title: Price and bound image tokens
+  subject: 'Pre: image blocks reach adapters. Invariant: an image the user attached remains addressable from the log. Post: image bytes are not re-sent after the provider has them, or are downscaled before the wire when the model cannot use the extra resolution.'
+  acceptance: a second turn referencing the same attachment does not duplicate the image payload, witnessed on the serialized request.
+  route_family: state
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: token-delivery-usage-anchor
+  title: Record provider usage on assistant messages
+  subject: 'Pre: assistant/message events in the live session carry no usage field (usageCount 0 over 26 messages). Invariant: a usage report that the provider sent is durable. Post: the next live step''s assistant/message stores input, output, and cache tokens so pressure is measured, not estimated.'
+  acceptance: one new assistant/message in this session's log has a usage object with inputTokens and outputTokens.
+  route_family: observability
+  status: pending
+  session_id: freddie-27264-1790927965849
+- id: menu-portal-pointer-region
+  title: Keep portaled menus open across the trigger gap
+  subject: 'Pre: sidebar row menus open with portal and closeOnPointerLeave, and the list is appended to document.body, outside the wrapper that arms the 200ms grace. Invariant: the grace timer is one timer, armed only when the pointer has left both the wrapper and the portaled list, cancelled when the pointer enters either. Post: a pointer can leave the ellipsis, cross the 4px gap, and rest on a menuitem without the menu closing; leaving both surfaces still closes; menus without closeOnPointerLeave are unchanged.'
+  acceptance: 'Live page: open a sidebar session menu, move from the ellipsis across the gap onto Rename, and read role=menu still present after 300ms. Leaving the list onto the conversation closes it. Escape and item click still close.'
+  status: completed
+  route_family: execution
+  session_id: freddie-107108-1790937270938
+  witness: 'Live page: sidebar session menu open, list pointerleave then pointerenter within 40ms, role=menu still present at 320ms. Second pointerleave with no re-enter removed the menu at 320ms. Served Menu.js contains onpointerenter: closeOnPointerLeave.'
+  commit_comment: Keep portaled menus open while the pointer crosses onto the list.
+- id: hovercard-portal-pointer-region
+  title: Keep hover cards open once the pointer reaches them
+  subject: 'Pre: HoverCard arms its 200ms close on wrapper pointerleave and portals the card 8px to the right, with no pointerenter on the card. Invariant: resting on the card cancels the close, same as the menu list. Post: moving from a sidebar row onto its hover card holds the card; leaving both closes it.'
+  acceptance: 'Live page: hover a session row until the card appears, move onto the card, and read the card still present after 300ms.'
+  status: completed
+  route_family: execution
+  session_id: freddie-107108-1790937270938
+  witness: 'Live page: hover card pointerenter after the row leave held the card at 350ms; card pointerleave removed it at 350ms. HoverCard.js card VNode now binds onpointerenter to #cancelClose and onpointerleave to #armClose.'
+  commit_comment: Keep hover cards open once the pointer reaches the card.
+- id: menu-grace-note
+  title: Correct the stale pointer-grace note
+  subject: 'Pre: the implemented note says React enter/leave traversal makes the trigger and portaled list one region. Invariant: the note matches the webjsx portal, which does not. Post: the note states that the portaled list must cancel grace itself.'
+  acceptance: The note no longer claims React tree traversal unifies the portaled list with the wrapper.
+  status: completed
+  route_family: representation
+  session_id: freddie-107108-1790937270938
+  witness: .agents/notes/implemented/bug-fix/2026-07-30-hover-popup-pointer-grace.md no longer claims React tree traversal unifies the portaled list with the wrapper. It states webjsx appends the list to document.body and both surfaces bind enter/leave.

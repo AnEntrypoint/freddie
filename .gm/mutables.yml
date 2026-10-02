@@ -2641,3 +2641,115 @@
   session_id: freddie-27264-1790927965849
   status: witnessed
   witness_evidence: 'Live page 2: tail seq advanced while painted text matched the latest assistant block once. Console error list stayed empty across repeated renders.'
+- id: sec-no-secrets
+  prd_id: menu-portal-pointer-region
+  obligation_kind: secrets
+  subject: Diff adds pointer handlers only
+  text: git_diff of Menu.js and HoverCard.js is onpointerenter/onpointerleave calling existing cancel/arm methods. No literal, no request, no path join.
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'secrets: git_diff 1790938173078 shows only onpointerenter/onpointerleave lines in Menu.js and HoverCard.js. No credential, token, secret, shell, query, or path-join sink.'
+- id: sec-no-injection
+  obligation_kind: injection
+  prd_id: token-delivery-austerity
+  subject: working diff has no untrusted input reaching a sink
+  text: diff is a one-line timestamp rewrite in .gm/.last-scan-deps-ts; no shell, query, eval, template, or path-join sink.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: one timestamp line, no shell/query/eval/template/path-join sink.'
+- id: sec-identity
+  obligation_kind: identity-authority
+  prd_id: token-delivery-austerity
+  subject: working diff adds no authority or auth boundary
+  text: no new RPC, route, or auth check in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no RPC, route, or authority check added.'
+- id: sec-message-timing
+  obligation_kind: message-timing
+  prd_id: token-delivery-austerity
+  subject: working diff adds no network message edge
+  text: no wire payload or replay surface in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no network message edge, so no replay or timing surface.'
+- id: res-exception-model
+  obligation_kind: exception-model
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no swallowed error or panic
+  text: diff is an integer overwrite of .gm/.last-scan-deps-ts; no unwrap, catch, or fallback.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: git_diff 1790930967927 is one integer line in .gm/.last-scan-deps-ts. No unwrap, catch, or fallback.
+- id: res-partial-failure
+  obligation_kind: partial-failure
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite is a single last-wins write
+  text: one integer line; a torn write is overwritten by the next scan stamp.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: single last-wins integer overwrite; next scan stamp replaces any torn value.
+- id: res-degradation
+  obligation_kind: degradation
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite adds no unbounded wait or queue
+  text: no loop, retry, or allocation in the diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: no loop, retry, queue, or allocation in the diff.
+- id: res-crucible
+  obligation_kind: crucible
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no resource-growth boundary
+  text: file holds one integer; no handle or recursion introduced.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: file holds one integer; no handle, recursion, or growth boundary introduced.
+- id: menu-grace-not-cancelled-by-list
+  prd_id: menu-portal-pointer-region
+  obligation_kind: invariant
+  subject: Portaled list pointerenter never reaches the wrapper that owns the grace timer
+  text: 'Menu.js binds onpointerenter/onpointerleave only on the wrapper span. portal appends the list to document.body. Live page: trigger bottom 250, list top 254, gap 4px. Pointerleave of the wrapper arms 200ms onClose before the pointer can enter the list.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: Menu.js:280-285 portals the list to document.body and binds pointerleave only on the wrapper span (lines 301-302). Live page: trigger bottom 250, list top 254, 4px gap. Pointerleave of the wrapper armed the 200ms close before the pointer reached the list; the list is not a descendant, so its pointerenter cannot cancel the timer.'
+- id: hovercard-card-has-no-pointer-handlers
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: invariant
+  subject: Hover card element has no pointerenter that cancels the close timer
+  text: 'HoverCard.js card VNode has no onpointerenter. Placement is r.right + 8. Wrapper pointerleave arms #armClose at 200ms. Same portal split as Menu.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: HoverCard.js:136-164 builds the card VNode with no onpointerenter. Placement is r.right + 8 (line 89). Wrapper pointerleave (line 192-194) arms #armClose at 200ms (line 69-74). The card is appended to document.body (line 170), so resting on it never cancels the wrapper timer.'
+- id: state-grace-replay
+  prd_id: menu-portal-pointer-region
+  obligation_kind: replay
+  subject: Grace timer is one timer and a second enter cancels a pending close
+  text: 'Live page: list pointerleave then pointerenter within 40ms left role=menu present after 320ms. A second list pointerleave with no re-enter removed the menu after 320ms. Owner close while closed does not re-arm: handlers are bound only while open.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'replay: live page evaluate. Menu list pointerleave then pointerenter 40ms later: role=menu still present at 320ms (close count did not fire). Second pointerleave with no re-enter: role=menu absent at 320ms. One timer, second enter cancels the first arm.'
+- id: state-hovercard-ownership
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: ownership
+  subject: Hover card timer is owned by the element and cleared on leave-to-close
+  text: 'Live page: card pointerenter after wrapper leave held the card past 350ms. Card pointerleave removed it after 350ms. disconnectedCallback already clears the timer.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'ownership: live page evaluate. Hover card pointerenter after the row leave held the card at 350ms. Card pointerleave removed it at 350ms. Timer is the element''s own #closeTimer, cleared by #cancelClose on enter and by disconnectedCallback.'
+- id: conc-one-timer
+  prd_id: menu-portal-pointer-region
+  obligation_kind: happens-before
+  subject: Wrapper leave and list enter share one timer; enter cancels leave
+  text: 'Both handlers call #cancelGrace before #armGrace. Live page: leave then enter within 40ms produced zero closes. No second timer, no queue.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'happens-before: Menu.js #armGrace calls #cancelGrace first, so a later enter replaces the pending close. Live page leave-then-enter within 40ms left the menu open at 320ms. One #graceTimer per element, 200ms bound, no queue.'
+- id: res-grace-bounded
+  prd_id: menu-portal-pointer-region
+  obligation_kind: degradation
+  subject: Close waits at most 200ms and a second enter replaces the timer
+  text: '#armGrace and #armClose clear the previous timer before setTimeout(..., 200). No loop, no queue, no allocation that grows with pointer events.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'degradation: Menu.js #armGrace and HoverCard.js #armClose both clearTimeout the previous timer, then set one 200ms timer. Live page: enter within 40ms of leave cancelled the close; a leave with no re-enter closed at 320ms. No unbounded wait.'
