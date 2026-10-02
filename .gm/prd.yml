@@ -23,3 +23,17 @@
   route_family: representation
   subject: 'Pre: exhaustive first-party JS scan found 281 JSDoc starts across 77 files. Invariant: public contracts remain discoverable and accurate while source carries no explanatory prose. Post: every JSDoc contract is represented in the owning package README/AGENTS.md or eliminated where code states it, with imports/live paths preserved.'
   status: pending
+- id: gm-runtime-hmr-final-witness
+  title: Live-witness GM runtime metric after projection event
+  subject: 'Pre: the active HMR queue has a stashed GM source set. Invariant: host plugin reload and the subsequent model tool dispatch remain separated by the HMR idle boundary. Post: the client sees the existing session projection update and retains a healthy active ui-observability fiber.'
+  acceptance: The active HMR journal records reload after idle, then a fresh GUI GM tool dispatch reaches an Overview whose GM runtime metric shows the active daemon's leaf values.
+  status: in-progress
+  route_family: observability
+  session_id: freddie-2128598-1790941468204
+- id: gm-runtime-host-hmr-activation
+  title: Activate GM runtime projection in live host
+  subject: 'Pre: the active Web Host has staged the modified GM source through the official Cordis HMR queue and has deferred disposal while the live agent loop runs. Invariant: only the hmr/idle lifecycle resumes the stashed reload; no manual process restart or runtime patch bypasses it. Post: after host HMR reloads, a real GUI GM tool call publishes runtime JSON and Overview renders GM 0.1.1362, runner 0.1.158, and current updater state.'
+  acceptance: The active HMR journal records reload after idle, then a fresh GUI GM tool dispatch reaches an Overview whose GM runtime metric shows the active daemon's leaf values.
+  status: in-progress
+  route_family: execution
+  session_id: freddie-2128598-1790941468204

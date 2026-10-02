@@ -10,6 +10,7 @@ const EMPTY_PROGRESS = Object.freeze({
   finishedAt: null,
   durationMs: null,
   error: null,
+  runtime: null,
   nodes: Object.freeze([]),
   edges: Object.freeze([]),
   walking: null,
@@ -17,7 +18,7 @@ const EMPTY_PROGRESS = Object.freeze({
 
 export const gmProgressProjectionDefinition = {
   key: 'gmProgress',
-  stateVersion: 3,
+  stateVersion: 4,
   init: () => EMPTY_PROGRESS,
   apply: (state, event) => {
     if (event.type !== 'gm/progress') return state

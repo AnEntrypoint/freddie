@@ -45,6 +45,19 @@ function workflowSummary(workflow) {
   return active === 0 ? `${runs.length} recorded` : `${active} running · ${runs.length} recorded`
 }
 
+function runtimeSummary(runtime) {
+  if (runtime === null || runtime === undefined) return 'Not observed'
+  if (runtime.gmVersion === null && runtime.runnerVersion === null) return 'Unavailable'
+  return `GM ${runtime.gmVersion ?? 'unknown'} · runner ${runtime.runnerVersion ?? 'unknown'}`
+}
+
+function runtimeDetail(runtime) {
+  if (runtime === null || runtime === undefined) return 'Run a GM tool to capture daemon state.'
+  if (runtime.updateError !== null && runtime.updateError !== undefined) return runtime.updateError
+  if (runtime.updateState === 'handoff-pending') return 'Runner update handoff pending'
+  return runtime.updateState === 'unavailable' ? 'Runtime status unavailable' : 'Updater current'
+}
+
 export class FreddieObservabilityDock extends HTMLElement {
   #props = null
   #selectedNodeId = null
@@ -161,6 +174,7 @@ export class FreddieObservabilityDock extends HTMLElement {
       h('h2', null, 'Durable orchestration'),
       h('div', { class: css.metrics ?? '' },
         h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'GM'), h('strong', { class: css.value ?? '' }, phase(gm)), h('span', { class: css.detail ?? '' }, `${gm?.prdPendingCount ?? 0} PRD · ${gm?.mutablesPendingCount ?? 0} mutable pending`)),
+        h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'GM runtime'), h('strong', { class: css.value ?? '' }, runtimeSummary(gm?.runtime)), h('span', { class: css.detail ?? '' }, runtimeDetail(gm?.runtime))),
         h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'Workflow'), h('strong', { class: css.value ?? '' }, workflowSummary(workflow)), h('span', { class: css.detail ?? '' }, runs.length === 0 ? 'No workflow events in this conversation' : runs.map(run => `${run.name}: ${run.currentPhase ?? run.status}`).join(' · '))),
         h('article', { class: css.metric ?? '' }, h('span', { class: css.label ?? '' }, 'Goal'), h('strong', { class: css.value ?? '' }, goalSummary(goal)), h('span', { class: css.detail ?? '' }, currentGoal === undefined ? 'Goal activation is process-local' : currentGoal.objective)),
       ),

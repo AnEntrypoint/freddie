@@ -2,7 +2,7 @@ import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { bindTypertRemote, Remote } from '@freddie/freddie-typert-protocol'
 import { resolveConfig, resolveGraph, resolveProse } from '@freddie/freddie-gm-config'
-import { ensureDaemon } from './daemon.js'
+import { ensureDaemon, readDaemonStatus, readStatus } from './daemon.js'
 import { dispatch, GmDaemonUnavailableError } from './spool.js'
 
 export class Gm extends Service {
@@ -111,6 +111,24 @@ export class Gm extends Service {
       throw new Error(`gm-client: embed_batch failed: ${result.error ?? 'unknown error'}`)
     }
     return result.embeddings
+  }
+
+  async runtimeStatus(cwd) {
+    const projectCwd = this.resolveProjectCwd(cwd)
+    const [project, machine] = await Promise.all([readStatus(projectCwd), readDaemonStatus()])
+    const versions = project?.loaded_plugin_versions
+    const runnerVersion = typeof project?.runner_version === 'string' ? project.runner_version : null
+    const gmVersion = typeof versions?.gm === 'string' ? versions.gm : null
+    return {
+      runnerVersion,
+      gmVersion,
+      updateState: machine === undefined && runnerVersion === null && gmVersion === null
+        ? 'unavailable'
+        : machine?.staged_runner_awaiting_handoff === true ? 'handoff-pending' : 'current',
+      updateError: typeof machine?.last_plugin_update_poll_error === 'string'
+        ? machine.last_plugin_update_poll_error
+        : typeof machine?.last_runner_update_poll_error === 'string' ? machine.last_runner_update_poll_error : null,
+    }
   }
 
   resolveConfig() {

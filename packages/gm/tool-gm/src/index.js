@@ -4,7 +4,7 @@ import { buildGmTools } from './verbs.js'
 export const name = 'tool-gm'
 export const inject = ['tools', 'gm']
 
-export function gmProgressSnapshot(dispatch, sessionId, previous) {
+export function gmProgressSnapshot(dispatch, sessionId, previous, runtime) {
   const value = dispatch.value
   const response = value !== null && typeof value === 'object' ? value : {}
   const data = response.data !== null && typeof response.data === 'object' ? response.data : {}
@@ -33,6 +33,7 @@ export function gmProgressSnapshot(dispatch, sessionId, previous) {
     finishedAt,
     durationMs: finishedAt === null ? null : Math.max(0, finishedAt - startedAt),
     error,
+    runtime: runtime ?? previous?.runtime ?? null,
     ...foldGmGraph(previous, dispatch, data),
   }
 }
@@ -41,10 +42,16 @@ export function apply(ctx) {
   const latestBySession = new WeakMap()
   const checkpointOf = (session) => latestBySession.get(session)
     ?? ctx.get('sessionProjections')?.snapshot(session).values.gmProgress
-  for (const tool of buildGmTools(ctx.gm, (dispatch, exec) => {
+  for (const tool of buildGmTools(ctx.gm, async (dispatch, exec) => {
     const session = exec.agent?.session
     if (session === undefined) return
-    const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, checkpointOf(session))
+    let runtime
+    try {
+      runtime = await ctx.gm.runtimeStatus(session.header.cwd)
+    } catch (error) {
+      void error
+    }
+    const snapshot = gmProgressSnapshot(dispatch, ctx.gm.config.sessionId, checkpointOf(session), runtime)
     try {
       session.append('gm/progress', snapshot, { ignorable: true })
       const data = dispatch.value?.data
@@ -64,3 +71,4 @@ export function apply(ctx) {
     ctx.tools.register(tool)
   }
 }
+

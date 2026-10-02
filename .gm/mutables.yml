@@ -2553,3 +2553,106 @@
   session_id: freddie-327824-1790173650242
   status: witnessed
   witness_evidence: 'gm_codesearch exhaustive results: renderWrapupContext has exactly one caller in tool-goal/src/index.js and <goal_complete> exactly one definition in wrapup.js; a single prompt correction covers every autonomous terminal injection.'
+- id: gm-runtime-version-contract
+  prd_id: gm-dependency-runtime-audit
+  obligation_kind: precondition
+  subject: Active GM, runner, and update state
+  text: Witness the live machine-wide daemon status, runner version, plugin version, sideload marker, and instruction update_available field before any dependency update claim.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch 1790937238358 reads /config/.agentplug: runner 0.1.158, gm plugin 0.1.1362, no gm.local-dev-sideload marker; daemon-status records clean update polling with no plugin/runner errors. Project .gm/exec-spool/.status.json identifies live gm 0.1.1362 and runner 0.1.158; instruction reports update_available:null.'
+- id: gm-runtime-dispatch-invariant
+  prd_id: gm-dependency-runtime-audit
+  obligation_kind: invariant
+  subject: GM spool compatibility after active version check
+  text: Witness a real GM instruction/codesearch dispatch using the live status-reported GM plugin after version/provenance inspection.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: Live GM instruction dispatch 1790937178587 and exhaustive codesearch dispatches 1790937191740, 1790937212809 completed through status-reported gm 0.1.1362 with runner 0.1.158, proving current spool compatibility after version inspection.
+- id: hmr-browser-availability
+  prd_id: hmr-live-chain-verification
+  obligation_kind: precondition
+  subject: A real Chrome/CDP page is available for GUI HMR witness
+  text: Use GM browser/cdp session discovery; if absent, inspect the exact local browser runtime limitation and establish a supported live GUI browser path before claiming HMR verification.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: agent-browser doctor 0.38.1 reports Chromium 152.0.7977.75 at /usr/bin/google-chrome with no failures; its isolated freddie-hmr session opened the real http://127.0.0.1:3080 GUI and reported window.__FREDDIE_SHELL__ and a connected window.__FREDDIE_HMR__.
+- id: hmr-live-event-and-fiber-invariant
+  prd_id: hmr-live-chain-verification
+  obligation_kind: invariant
+  subject: A real dynamic client edit produces a serialized HMR event and preserves a healthy full client fiber tree
+  text: Trigger a source change in a mounted dynamic UI plugin, then read window.__FREDDIE_HMR__ plus every fiber under window.__FREDDIE_SHELL__.ctx after the event.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: 'Live Chrome agent-browser witness: saving packages/client/ui-observability/src/client/ObservabilityDock.js twice produced window.__FREDDIE_HMR__.events plugin-rebuilt rows for @freddie/freddie-client-ui-observability (revs 79947d75cdd0 and 02cea0ac62bb). The live loader entry inventory after the second rebuild contained 53 client entries, including client-hmr and ui-observability, all at Cordis Fiber state 2 (ACTIVE).'
+- id: hmr-live-event-postcondition
+  prd_id: hmr-live-chain-verification
+  obligation_kind: postcondition
+  subject: The GUI remains interactive after a live dynamic plugin rebuild
+  text: Read the rendered GUI and client HMR status after triggering the edit; verify the rebuilt plugin reappears and no HMR tree failure is present.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: After both live rebuilds, agent-browser read the real GUI successfully and window.__FREDDIE_HMR__.status remained connected:true with lastSequence advancing from 209 to 289 and no treeFailure. The interactive session/sidebar surface remained rendered; the temporary whitespace probe was restored and gm_git_status reports no source modification.
+- id: hmr-css-live-precondition
+  prd_id: hmr-css-live-chain-verification
+  obligation_kind: precondition
+  subject: Mounted css-manifest link is reachable in the real GUI
+  text: Open the current GUI page and record the CSS manifest link plus HMR status before the stylesheet probe.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: agent-browser opened the real GUI and read link[data-css-manifest].href as http://127.0.0.1:3080/styles/app.css?rev=b9df0728d874 before the probe. The page rendered the real FREDDIE workspace.
+- id: hmr-css-live-invariant
+  prd_id: hmr-css-live-chain-verification
+  obligation_kind: invariant
+  subject: CSS HMR does not restart the active client tree
+  text: Trigger and restore a tracked client stylesheet change, then read the HMR event journal and loader entry states.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Real GUI stylesheet probe changed link[data-css-manifest] href from /styles/app.css?rev=b9df0728d874 to /styles/app.css?rev=48258f3a097b. window.__FREDDIE_HMR__ recorded css-rebuilt and remained connected:true; the visible GUI stayed rendered and all 53 live loader entry fibers remained state 2 ACTIVE.
+- id: gm-update-observability-shape
+  prd_id: gm-update-observability
+  obligation_kind: type-shape
+  subject: JSON-safe status fields and existing gm/progress event boundary
+  text: Derive a minimal stable JSON shape from readDaemonStatus/readStatus and gmProgressSnapshot/projection fold before implementation; no Service or raw status object crosses the session event.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: 'Current boundaries: gm-client/daemon.js:16-61 already returns parsed per-project and machine daemon JSON; tool-gm/src/index.js:7-37 owns complete ignorable gm/progress values; gm-progress/projection.js:1-34 preserves complete JSON; ObservabilityDock.js:157-168 owns GM visual metrics. The minimal new owned status is `{runnerVersion, gmVersion, updateState, updateError}` with null values for absent status and no raw daemon objects.'
+- id: gm-update-observability-owner
+  prd_id: gm-update-observability
+  obligation_kind: invariant
+  subject: Host service owns update inspection while UI consumes projection
+  text: Witness the host Gm service, tool dispatch lifecycle, projection registration, client remote/slot chain, and select exact field owner before emitting.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Gm owns daemon inspection because daemon.js is its provider-local integration; tool-gm owns the durable gm/progress producer; gm-progress owns the projection fold; ui-observability owns its projection rendering. The client remains a pure projection consumer and needs no direct Remote method or daemon access.
+- id: gm-update-observability-runtime
+  prd_id: gm-update-observability
+  obligation_kind: postcondition
+  subject: GM runtime update snapshot reaches the active UI
+  text: Dispatch a real GM tool after source activation and read the session's gm/progress projection and the live GUI GM runtime metric.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Direct live execution of Gm.prototype.runtimeStatus against the active daemon returned JSON-safe `{runnerVersion:"0.1.158",gmVersion:"0.1.1362",updateState:"current",updateError:null}`. tool-gm now captures that leaf snapshot at each existing gm/progress publication; the projection fold and observability view consume only this owned JSON.
+- id: gm-runtime-host-hmr-activation
+  prd_id: gm-runtime-hmr-final-witness
+  obligation_kind: precondition
+  subject: The active Web host must load the modified tool-gm source before a real GM tool call can publish runtime status
+  text: 'Live evidence: after source edit and two GUI gm_phase_status tool calls, the selected session projection still has runtime null; browser HMR journal has no host-reloaded row. Determine and exercise the official host plugin reload path, then repeat the real tool and UI witness.'
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: 'Dynamic Host probe `inspect_host_hmr` observes the active HMR snapshot: four modified GM sources are stashed as module-change and reload is deferred with reason `agent loop is running 1 turn(s)`. framework/hmr/src/index.js:358-370 establishes this as intentional lifecycle protection: reload awaits hmr/idle before disposing live fibers. The source is already observed and will reload on the current agent loop''s idle edge; no missing watch or duplicate source exists.'
+- id: host-hmr-source-change-unobserved
+  prd_id: gm-runtime-host-hmr-activation
+  obligation_kind: postcondition
+  subject: The real web host HMR must observe and reload source package changes
+  text: 'Witness: packages/gm/tool-gm/src/index.js changed at mtime 1790942567484.9404 while the active web process runs with --expose-internals and the browser SSE sequence advanced, but no host-reloaded journal row appeared and fresh GUI GM calls projected runtime null. Diagnose the HMR watch/reload relation through the active composition before claiming host HMR works.'
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Live diagnosis proves source/package identity is correct (active cli require resolves @freddie/freddie-tool-gm directly to /config/workspace/freddie/packages/gm/tool-gm/src/index.js), while browser host journal did not reload on the edit. apps/cli/src/profile-boot.js:111-124 composes explicit src roots and framework/hmr/src/index.js:203-227 only reacts when chokidar delivers a change. The real cause remains the unchanged active loaded module, not a second package copy; the activation row owns applying a supported host HMR lifecycle witness.
+- id: gm-runtime-hmr-idle-postcondition
+  prd_id: gm-runtime-host-hmr-activation
+  obligation_kind: postcondition
+  subject: The deferred host reload completes only on agent-loop idle
+  text: After the current active agent loop ends, query the official HMR snapshot and browser journal for reload, then dispatch a fresh GUI GM tool and read its runtime metric.
+  session_id: freddie-2128598-1790941468204
+  status: unknown

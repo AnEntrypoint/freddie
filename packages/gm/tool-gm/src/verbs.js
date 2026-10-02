@@ -23,9 +23,9 @@ const jsonOutput = {
 }
 
 export function buildGmTools(gm, onProgress = () => {}) {
-  const reportProgress = (dispatch, exec) => {
+  const reportProgress = async (dispatch, exec) => {
     try {
-      onProgress(dispatch, exec)
+      await onProgress(dispatch, exec)
     } catch (error) {
       void error
     }
@@ -54,17 +54,17 @@ export function buildGmTools(gm, onProgress = () => {}) {
         const cwd = exec.agent?.session.header.cwd
         const startedAt = Date.now()
         const body = toBody(args)
-        reportProgress({ verb, status: 'running', startedAt, body }, exec)
+        await reportProgress({ verb, status: 'running', startedAt, body }, exec)
         try {
           const value = await gm.call(verb, body, {
             signal: exec.signal,
             timeoutMs,
             ...cwd === undefined ? {} : { cwd },
           })
-          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
+          await reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
           return value
         } catch (error) {
-          reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
+          await reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
           throw error
         }
       },
