@@ -165,46 +165,37 @@ export async function dispatch({
   while (Date.now() < deadline) {
     throwIfAborted(signal)
     const cancelWait = new AbortController()
-    const onUserAbort = () => { cancelWait.abort() }
+    const onUserAbort = () => { cancelWait.abort(signal.reason) }
     if (signal !== undefined) signal.addEventListener('abort', onUserAbort, { once: true })
     const wait = waitForOutOrTimeout(outDir, pollIntervalMs, cancelWait.signal)
-    const stopWait = async () => {
-      if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
-      cancelWait.abort()
-      await wait.catch(() => {})
-    }
-    const landed = await takeResponse()
-    if (landed !== undefined) {
-      await stopWait()
-      return landed.response
-    }
-    polls += 1
-    if (polls >= HEALTH_CHECK_AFTER_POLLS) {
-      const queued = await projectHasQueuedWork(cwd)
-      const alive = await isDaemonAlive(cwd)
-      const health = await classifyDaemonHealth(cwd)
-      const died = !alive && !queued
-      const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
-      const completedWhileChecking = await takeResponse()
-      if (completedWhileChecking !== undefined) {
-        await stopWait()
-        return completedWhileChecking.response
-      }
-      if (died) {
-        await stopWait()
-        await dropClaim()
-        throw await unavailable('GM_DAEMON_DIED', health, queued)
-      }
-      if (hung && !queued) {
-        await stopWait()
-        await dropClaim()
-        throw await unavailable('GM_DAEMON_HUNG', health, queued)
-      }
-    }
+      .then(() => undefined, error => ({ error }))
     try {
-      await wait
+      const landed = await takeResponse()
+      if (landed !== undefined) return landed.response
+      polls += 1
+      if (polls >= HEALTH_CHECK_AFTER_POLLS) {
+        const queued = await projectHasQueuedWork(cwd)
+        const alive = await isDaemonAlive(cwd)
+        const health = await classifyDaemonHealth(cwd)
+        const died = !alive && !queued
+        const hung = health === 'project-heartbeat-stale' || health === 'daemon-status-stale'
+        const completedWhileChecking = await takeResponse()
+        if (completedWhileChecking !== undefined) return completedWhileChecking.response
+        if (died) {
+          await dropClaim()
+          throw await unavailable('GM_DAEMON_DIED', health, queued)
+        }
+        if (hung && !queued) {
+          await dropClaim()
+          throw await unavailable('GM_DAEMON_HUNG', health, queued)
+        }
+      }
+      const outcome = await wait
+      if (outcome !== undefined) throw outcome.error
     } finally {
       if (signal !== undefined) signal.removeEventListener('abort', onUserAbort)
+      cancelWait.abort()
+      await wait
     }
   }
   await dropClaim()
