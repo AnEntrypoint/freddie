@@ -8,7 +8,7 @@ The Web conversation feed stops painting while a turn is running. Clicking away 
 
 ## Decision
 
-`AssistantMarkdown` caches each rendered block by the stable node key plus the block index in a module `Map`. `AssistantNodeView` passes `node.key`, which the assembler guarantees, instead of the rebuilt node object. A later chunk updates the existing element.
+`AssistantNodeView` passes `node.key`, which the assembler guarantees, instead of the rebuilt node object. `AssistantMarkdown` uses that key to retain a native owner whose block-index cache updates the existing element across chunks. The [cache lifetime decision](2026-10-06-assistant-markdown-cache-lifetime.md) owns disposal.
 
 `applyDiff` still replaces a raw DOM child whose parent is the live parent. When that child is detached, it inserts the new child at the new position instead of calling `replaceChild`. One aborted diff no longer stops every later render of that parent.
 
@@ -22,4 +22,4 @@ The Web conversation feed stops painting while a turn is running. Clicking away 
 
 ## Consequences
 
-A running transcript keeps painting new assistant text without a remount. A cache miss still creates an element, but a detached previous child no longer aborts the render. The module `Map` retains an element for every key and index rendered in the page lifetime; a `WeakMap` cannot, because the key is a string. Opening a session that already existed at mux connect still has no `session/subscribed` baseline. History open and gap repair cover that gap; it is not what froze the DOM.
+A running transcript keeps painting new assistant text without a remount. A cache miss still creates an element, but a detached previous child no longer aborts the render. The native owner's cache has the row's lifetime; a rebuilt assembler object remains an unsuitable cache key. Opening a session that already existed at mux connect still has no `session/subscribed` baseline. History open and gap repair cover that gap; it is not what froze the DOM.
