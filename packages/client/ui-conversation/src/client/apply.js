@@ -76,7 +76,7 @@ function selectApproval({ interactions }) {
   return interactions.find((i) => i.kind === 'approval') ?? null
 }
 
-export function apply(ctx) {
+export async function apply(ctx, config) {
   const sessions = ctx.sessions
   const workspaces = ctx.workspaces
   const layout = ctx.layout
@@ -125,6 +125,8 @@ export function apply(ctx) {
   const inputHub = new InputHub(sessions, ctx, t)
 
   const composerBlocks = new ComposerBlockRegistry()
+
+  await ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
 
   ctx.effect(() => sessions.provide({
     hooks: ['input'],
@@ -330,6 +332,7 @@ export function apply(ctx) {
           },
           read: () => chatScrollPositions.get(sessionId) ?? null,
         },
+        mountedRowBudget: config.mountedRowBudget,
         forkAt: (seq) => {
           sessions.fork({ sessionId, atSeq: seq, increaseTitle: true })
             .then((childId) => { sessions.open(childId) })
@@ -341,8 +344,6 @@ export function apply(ctx) {
   }, webjsxSlot('freddie-chat-view'))
 
   slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line'))
-
-  ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
 
   ctx.plugin(todoDockEntry)
 

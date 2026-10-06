@@ -40,7 +40,8 @@ export class InputHub {
       },
     })
     this.shells.set(id, shell)
-    actx.effect(() => {
+    let disposeOwner
+    disposeOwner = this.rootCtx.effect(() => actx.effect(() => {
       const offs = [
         actx.on('slash/input-begin-command', req =>
           shell.beginCommand(req.claim, req.span) ? true : undefined),
@@ -52,6 +53,7 @@ export class InputHub {
           shell.insertText(req.text, req.span, req.continue === true) ? true : undefined),
       ]
       return () => {
+        disposeOwner?.()
         for (const off of offs) off()
         const drafts = shell.snapshot.imageIds
         shell.dispose()
@@ -59,7 +61,7 @@ export class InputHub {
         const conversation = this.rootCtx.get('conversation')
         for (const imageId of drafts) conversation?.releaseDraftImage(imageId)
       }
-    }, 'conversation.input: session shell')
+    }, 'conversation.input: session shell'), 'conversation.input: owner session shell')
     return shell
   }
 

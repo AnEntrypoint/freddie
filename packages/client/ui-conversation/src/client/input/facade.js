@@ -42,7 +42,7 @@ export class SessionInputShell {
     this.history = deps.promptHistory === undefined ? undefined : new PromptHistoryNavigator(deps.promptHistory)
     this.mirrorFn = undefined
 
-    deps.queue?.subscribe(() => { this.publish() })
+    this.unsubscribeQueue = deps.queue?.subscribe(() => { this.publish() })
   }
 
   setDraft(text, editRange) {
@@ -216,6 +216,8 @@ export class SessionInputShell {
 
   dispose() {
     this.disposed = true
+    this.unsubscribeQueue?.()
+    this.unsubscribeQueue = undefined
     this.run(this.core.dispatch({ type: 'release' }))
   }
 
