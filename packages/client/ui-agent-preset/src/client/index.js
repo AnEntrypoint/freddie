@@ -75,42 +75,35 @@ export function apply(ctx) {
       load: () => controller.load(),
     })
 
-    scope.effect(() => {
-      const stop = scope.sessions.list.subscribe(() => { void seat.apply() })
-      const settingsMoved = scope.remote.$on('settings/document-updated', (ns) => {
+    scope.effect(function* () {
+      yield scope.sessions.list.subscribe(() => { void seat.apply() })
+      yield scope.remote.$on('settings/document-updated', (ns) => {
         if (ns !== AGENT_PRESET_SETTINGS_NS) return
         void seat.load()
       })
-      const presetSelected = scope.remote.$on('agent-preset/selected', (sessionId, agentPreset) => {
+      yield scope.remote.$on('agent-preset/selected', (sessionId, agentPreset) => {
         scope.sessions.noteAgentPreset(sessionId, agentPreset)
       })
       const readRoster = () => { void seat.load() }
       rosterReaders.add(readRoster)
+      yield () => { rosterReaders.delete(readRoster) }
       creatorDraft = () => {
         seat.stage('cordis', true)
         scope.workspaces.startSession()
       }
-      const chip = scope.slots.register({
+      yield () => { creatorDraft = undefined }
+      yield scope.slots.inject('conversation.hero.agentPreset', () => scope.slots.register({
         name: 'conversation.hero.agentPreset',
         locale: 'settings.agentPreset',
         inject: seatInjected,
-      }, AgentPresetSeat)
-      const label = scope.slots.register({
+      }, AgentPresetSeat))
+      yield scope.slots.inject('conversation.session.header.actions', () => scope.slots.register({
         name: 'conversation.session.header.actions',
         id: 'agent-preset',
         order: -10,
         locale: 'settings.agentPreset',
         inject: labelInjected,
-      }, AgentPresetLabel)
-      return () => {
-        stop()
-        settingsMoved()
-        presetSelected()
-        rosterReaders.delete(readRoster)
-        creatorDraft = undefined
-        chip()
-        label()
-      }
+      }, AgentPresetLabel))
     }, 'ui-agent-preset: new-session chip and header label')
   })
 
