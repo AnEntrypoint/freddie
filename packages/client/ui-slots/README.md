@@ -19,6 +19,16 @@ The store family (`defineStore` spec in / `StoreHandle<T, A>` out) types the sto
 
 `SlotCore` seeds the a-priori `'root'` slot at construction and enforces load-time validation (undeclared-slot registration, duplicate child declaration, one shared handle under two scopes, a chain registration without `select` — all throw at register). An entry's disposer collapses its declared child slots recursively: ledger rows, contributions, and store mounts die on one lifecycle axis. Each key also carries a declaration epoch that advances only on declaration and collapse; the runtime uses it for [`ctx.slots.inject`](../runtime/README.md#slot-declaration-injection), independently from ordinary entry versions. `renderer.ts` carries the installation contract (`SlotRenderer`, `SlotRendererHost`) plus `StaleAuthorizationError`/`SlotOwnershipError`; ui-renderer owns both the implementation and its plugin-lifecycle installation.
 
+## Observable read tracking
+
+The static browser identity owns these DOM-free helpers across renderer reloads. Sources expose a pure `getSnapshot()` and `subscribe(listener): disposer` without initial delivery.
+
+- `observableHook(source)` returns a cached `(selector, equal?) => selected` synchronous reader. Equality is accepted but unused; mutable snapshot handles retain notification semantics.
+- `trackReads(render)` returns `{ result, reads: Set, revisions: Map }`, recording the first notification revision read from each source and restoring the enclosing tracker afterward.
+- `subscribeObserved(source, listener, order?)` shares one underlying subscription and calls `listener(revision)` synchronously after advancing the revision. Optional `order(): number` is pure and evaluated at the start of each delivery; lower keys run first and equal keys retain registration order. Listeners added during delivery run at the end of every active traversal, including enclosing notifications. Removed records do not run; removing and registering again creates a new record. Its disposer removes the listener; the last removal during delivery releases the underlying subscription after traversal.
+
+Fan-out reaches every adapted listener before propagating errors: one error retains its identity, multiple errors become an `AggregateError`. Reentrant delivery uses the current revision.
+
 ## Model Experience
 
 None, as the slot registry is browser-side UI plumbing; nothing here reaches a model request.

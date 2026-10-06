@@ -1,9 +1,10 @@
 import { createElement as h, Fragment, applyDiff } from '@freddie/webjsx'
 import {
   SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf,
+  observableHook, subscribeObserved, trackReads,
 } from '@freddie/freddie-client-ui-slots'
 import {
-  SlotAssemblyError, currentSessionMaybeProvideInfo, maybeObservableHook, observableHook, projectionHook, trackReads,
+  SlotAssemblyError, currentSessionMaybeProvideInfo, maybeObservableHook, projectionHook,
   sessionProviderFor,
 } from './session-provider.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
@@ -370,6 +371,12 @@ function nextIncarnation(state, sessionId) {
 
 const ANCHOR_STYLE = 'display: contents'
 
+function outletDepth(outlet) {
+  let depth = 0
+  for (let parent = outlet.parentElement; parent !== null; parent = parent.parentElement) depth++
+  return depth
+}
+
 function pruneStaleOutletChildren(el) {
   while (el.children.length > 1) {
     const stale = el.children[0]
@@ -383,6 +390,31 @@ function resyncOutletDiffCache(el) {
   const live = [...el.childNodes]
   if (cache !== undefined && cache.length === live.length && cache.every((n, i) => n === live[i])) return
   el.__webjsx_childNodes = live
+}
+
+class OutletRenderCycle {
+  #rendering = false
+  #pending = false
+
+  run(render) {
+    if (this.#rendering) {
+      this.#pending = true
+      return
+    }
+    this.#rendering = true
+    try {
+      do {
+        this.#pending = false
+        render()
+      } while (this.#pending)
+    } finally {
+      this.#rendering = false
+    }
+  }
+
+  cancel() {
+    this.#pending = false
+  }
 }
 
 class OutletSubscriptions {
@@ -432,6 +464,8 @@ export class FreddieSlotOutlet extends HTMLElement {
   #maybeIncarnation = FIRST_INCARNATION
   #hookUnsubscribes = []
   #boundHookSources = []
+  #readRevisions = new Map()
+  #renderCycle = new OutletRenderCycle()
 
   #renderedOnce = false
 
@@ -440,9 +474,11 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#slotKey = props.slotKey
     this.#ownerProps = props.ownerProps
     this.#opts = props.opts
-    this.#bindVersion()
-    this.#subscriptions.bindLocale(() => this.#host, () => { this.#render() })
-    this.#subscriptions.bindSession(() => this.#host, () => { this.#render() })
+    if (this.isConnected) {
+      this.#bindVersion()
+      this.#subscriptions.bindLocale(() => this.#host, () => { this.#render() })
+      this.#subscriptions.bindSession(() => this.#host, () => { this.#render() })
+    }
     this.#render()
   }
 
@@ -452,9 +488,11 @@ export class FreddieSlotOutlet extends HTMLElement {
       () => this.#host,
       () => { if (this.#renderedOnce) this.#render() },
     )
+    this.#render()
   }
 
   disconnectedCallback() {
+    this.#renderCycle.cancel()
     this.#subscriptions.disconnect()
     this.#unbindHookSources()
   }
@@ -468,9 +506,11 @@ export class FreddieSlotOutlet extends HTMLElement {
     for (const unsubscribe of this.#hookUnsubscribes) unsubscribe()
     this.#hookUnsubscribes = []
     this.#boundHookSources = []
+    this.#readRevisions = new Map()
   }
 
-  #bindHookSources(sessionInfo, reads) {
+  #bindHookSources(sessionInfo, reads, revisions) {
+    this.#readRevisions = revisions
     const sources = [...new Set([
       ...Object.values(sessionInfo.hooks).filter((s) => s !== undefined),
       ...reads,
@@ -479,22 +519,30 @@ export class FreddieSlotOutlet extends HTMLElement {
       && sources.every((s, i) => s === this.#boundHookSources[i])
     if (unchanged) return
     this.#unbindHookSources()
+    this.#readRevisions = revisions
     this.#boundHookSources = sources
-    this.#hookUnsubscribes = sources.map(source => source.subscribe(() => { this.#render() }))
+    this.#hookUnsubscribes = sources.map(source => subscribeObserved(source, (revision) => {
+      if (this.#readRevisions.get(source) !== revision) this.#render()
+    }, () => outletDepth(this)))
   }
 
   #render() {
+    this.#renderCycle.run(() => { this.#renderContent() })
+  }
+
+  #renderContent() {
     const host = this.#host
     if (host === null) return
     resyncOutletDiffCache(this)
     const sessionInfo = currentSessionMaybeProvideInfo(host)
-    const { reads } = trackReads(() => {
+    const { reads, revisions } = trackReads(() => {
       const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
         this.#maybeIncarnation = next
       })
       applyDiff(this, h('div', { 'data-slot': this.#slotKey, style: ANCHOR_STYLE }, content))
     })
-    this.#bindHookSources(sessionInfo, reads)
+    if (!this.isConnected) return
+    this.#bindHookSources(sessionInfo, reads, revisions)
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
@@ -640,24 +688,31 @@ export class FreddieRootOutlet extends HTMLElement {
   #subscriptions = new OutletSubscriptions()
   #readUnsubscribes = []
   #boundReads = []
+  #readRevisions = new Map()
+  #renderCycle = new OutletRenderCycle()
   #renderedOnce = false
 
   setProps(props) {
     this.#host = props.host
     this.#ownerProps = props.ownerProps
-    this.#bindVersion()
-    this.#subscriptions.bindLocale(() => this.#host, () => { this.#render() })
+    if (this.isConnected) {
+      this.#bindVersion()
+      this.#subscriptions.bindLocale(() => this.#host, () => { this.#render() })
+    }
     this.#render()
   }
 
-  #bindReads(reads) {
+  #bindReads(reads, revisions) {
+    this.#readRevisions = revisions
     const sources = [...reads]
     const unchanged = sources.length === this.#boundReads.length
       && sources.every((s, i) => s === this.#boundReads[i])
     if (unchanged) return
     for (const unsubscribe of this.#readUnsubscribes) unsubscribe()
     this.#boundReads = sources
-    this.#readUnsubscribes = sources.map(source => source.subscribe(() => { this.#render() }))
+    this.#readUnsubscribes = sources.map(source => subscribeObserved(source, (revision) => {
+      if (this.#readRevisions.get(source) !== revision) this.#render()
+    }, () => outletDepth(this)))
   }
 
   // oxlint-disable-next-line sonarjs/no-identical-functions
@@ -667,13 +722,16 @@ export class FreddieRootOutlet extends HTMLElement {
       () => this.#host,
       () => { if (this.#renderedOnce) this.#render() },
     )
+    this.#render()
   }
 
   disconnectedCallback() {
+    this.#renderCycle.cancel()
     this.#subscriptions.disconnect()
     for (const unsubscribe of this.#readUnsubscribes) unsubscribe()
     this.#readUnsubscribes = []
     this.#boundReads = []
+    this.#readRevisions = new Map()
   }
 
   #bindVersion() {
@@ -682,6 +740,10 @@ export class FreddieRootOutlet extends HTMLElement {
   }
 
   #render() {
+    this.#renderCycle.run(() => { this.#renderContent() })
+  }
+
+  #renderContent() {
     const host = this.#host
     if (host === null) return
     resyncOutletDiffCache(this)
@@ -707,10 +769,11 @@ export class FreddieRootOutlet extends HTMLElement {
         return renderEntryVNode(entry, props, entryKeyOf(entry))
       })
     }
-    const { reads } = trackReads(() => {
+    const { reads, revisions } = trackReads(() => {
       applyDiff(this, h('div', { 'data-slot': 'root', style: ANCHOR_STYLE }, content))
     })
-    this.#bindReads(reads)
+    if (!this.isConnected) return
+    this.#bindReads(reads, revisions)
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }

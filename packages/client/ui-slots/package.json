@@ -30,6 +30,7 @@
   "files": [
     "src/index.js",
     "src/invariant.js",
+    "src/observable.js",
     "src/renderer.js",
     "src/store.js"
   ],

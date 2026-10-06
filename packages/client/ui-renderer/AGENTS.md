@@ -20,6 +20,7 @@
 
 - Stale-wrapper pruning and the diff-cache reset guard an observed webjsx desync (`__webjsx_childNodes` reporting a stale child count after a burst of re-renders) that left duplicate `[data-slot]` wrappers.
 
-- `bind.js` `bindSnapshotSelector` is a plain synchronous `getSnapshot()` read with no subscription; `_eq` is accepted only for call-site compatibility and unused. Change notification is the outlet/custom element's job via `source.subscribe`.
+- The static ui-slots observable owner shares read tracking across renderer generations; a hook reader without a subscription is a stale-view bug (a root-scope entry reading `useSessions` never saw host-side renames).
+- `subscribeObserved` shares source subscriptions and records notification revisions, not selected-value identity: the conversation node and location indexes mutate stable handles. Deduplication only skips a revision already read by the outlet; unread hooks still invalidate. Reentrant rendering drains synchronously, and subscriber errors propagate after fan-out ([delivery contract](README.md#observable-delivery)).
 
-- `session-provider.js` `trackReads` exists because a hook reader without a subscription is a stale-view bug (a root-scope entry reading `useSessions` never saw host-side renames).
+- `outletDepth` orders connected outlet callbacks by current ancestry because connection, reconnect and HMR can register child callbacks before their ancestors. Insertion order alone lets a child render before its ancestor refreshes the same props.

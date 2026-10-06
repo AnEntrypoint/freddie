@@ -1,5 +1,6 @@
 export * from './store.js'
 export * from './renderer.js'
+export * from './observable.js'
 
 export const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
 
@@ -37,8 +38,6 @@ export class SlotCore {
     root.declarationEpoch = 1
   }
 
-  /* jscpd:ignore-start */
-  /* jscpd:ignore-end */
   register(options, component) {
     const rec = this.records.get(options.name)
     if (!rec?.spec) {

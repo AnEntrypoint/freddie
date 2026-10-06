@@ -1,8 +1,16 @@
 # @freddie/freddie-client-ui-renderer
 
-The browser Cordis plugin that owns the React rendering layer. [`freddie-client-web`](../web/README.md) renders a framework-free boot page and loads the complete client plugin roster; after every entry activates, it calls `ctx.uiRenderer.mount(container)`. This package provides that service, installs the slot renderer, hydrates the existing boot DOM, switches to the assembled application before the next paint, and returns the React root's unmount disposer.
+The browser Cordis plugin that mounts webjsx slot outlets. [`freddie-client-web`](../web/README.md) renders a framework-free boot page and loads the complete client plugin roster before calling `ctx.uiRenderer.mount(container)`. Mount replaces the boot nodes with the assembled application and returns its unmount disposer.
 
-The client entry also owns the React implementation of slot outlets, session providers, and observable-to-uSES binding. Business plugins pass bare observable sources through typed slot `hooks`; the renderer binds them at the outlet. The plugin activates after `slots`, `sessions`, and `layout`, projects the selected session title, and performs the sole context-level `renderSlot('root')` call. React, React DOM, Cordis, ui-slots, and ui-primitives retain one browser identity through the web shell's static module table; this package arrives as a dynamic client bundle.
+Business plugins pass observable sources through typed slot `hooks`; the renderer binds them at the outlet. It projects the selected session title and performs the context-level `renderSlot('root')` call. Cordis, webjsx, ui-slots, and ui-primitives share browser identities through the shell's static module table.
+
+## Observable delivery
+
+The [static ui-slots owner](../ui-slots/README.md#observable-read-tracking) holds hook, revision and read-tracker identities across renderer HMR. Detached factories can build props and DOM but do not subscribe; connection synchronously reads current state and binds subscriptions.
+
+Hooks read snapshots synchronously; the equality argument is accepted but does not filter notifications. Each tracked render records the first notification revision of every source it reads. An outlet skips a source callback only when it already consumed that revision, including a render initiated by its ancestor. Unread provided hooks still invalidate the outlet. Mutable projection handles therefore retain their notifications.
+
+Adapted subscribers share one underlying subscription per source. Connected outlets supply their current DOM depth so ancestors receive source callbacks before descendants, independent of connection or HMR registration order. Fan-out remains synchronous and reaches every adapted subscriber before propagating subscriber errors. A single error retains its identity; multiple errors become an `AggregateError`. Reentrant outlet renders complete after the active render in the same call. Disconnect removes subscriptions; reconnect reads current state and binds them again.
 
 ## Model Experience
 
@@ -15,4 +23,4 @@ None; this package neither assembles nor sends provider requests.
 ## Known Limitations and Deferred Work
 
 - **The first application frame waits for every client entry** — the boot kernel hands over the mount point only after the loader roster settles. Per-region readiness remains deferred.
-- **Slot rendering has no Suspense integration or per-entry lazy loading** — the complete plugin roster settles before the renderer mounts the root.
+- **Slot rendering has no per-entry lazy loading** — the complete plugin roster settles before the renderer mounts the root.

@@ -1,33 +1,6 @@
-import { bindSnapshotSelector } from './bind.js'
+import { observableHook } from '@freddie/freddie-client-ui-slots'
 
 export class SlotAssemblyError extends Error {}
-
-export function observableHook(source) {
-  let hook = hookCache.get(source)
-  if (hook === undefined) {
-    const read = bindSnapshotSelector(source)
-    hook = (selector, equal) => {
-      readTracker?.add(source)
-      return read(selector, equal)
-    }
-    hookCache.set(source, hook)
-  }
-  return hook
-}
-const hookCache = new WeakMap()
-
-let readTracker = null
-
-export function trackReads(render) {
-  const reads = new Set()
-  const previous = readTracker
-  readTracker = reads
-  try {
-    return { result: render(), reads }
-  } finally {
-    readTracker = previous
-  }
-}
 
 const absentSource = {
   getSnapshot: () => undefined,
