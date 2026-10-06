@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, normalize, relative, resolve, sep } from 'node:path'
 import { Service } from '@freddie/cordis'
+import { parse } from 'es-module-lexer/minimal'
 import { sendFile } from '@freddie/freddie-host-webserver'
 import { optionalStringArray, stripClientSuffix } from './client/manifest.js'
 
@@ -108,18 +109,37 @@ function listClientFiles(root) {
   return files
 }
 
-function scanClientTree(root) {
+function scanClientTree(root, entryRelPath) {
   const files = listClientFiles(root).sort((a, b) => a.relPath.localeCompare(b.relPath))
   const hash = createHash('sha1')
+  const sources = new Map()
   for (const file of files) {
+    const source = readFileSync(file.absPath)
     hash.update(file.relPath)
     hash.update('\0')
-    hash.update(readFileSync(file.absPath))
+    hash.update(source)
     hash.update('\0')
+    if (file.relPath.endsWith('.js')) sources.set(file.relPath, source.toString('utf8'))
   }
+  const scripts = []
+  const visited = new Set()
+  const visit = (relPath) => {
+    if (visited.has(relPath)) return
+    visited.add(relPath)
+    const url = new URL(relPath, 'https://client.invalid/')
+    const source = sources.get(decodeURIComponent(url.pathname.slice(1)))
+    if (source === undefined) return
+    scripts.push(relPath)
+    for (const imported of parse(source)[0]) {
+      if (imported.d !== -1 || !imported.n?.startsWith('.')) continue
+      const dependency = new URL(imported.n, url)
+      visit(`${dependency.pathname.slice(1)}${dependency.search}${dependency.hash}`)
+    }
+  }
+  visit(entryRelPath)
   return {
     rev: hash.digest('hex').slice(0, 12),
-    scripts: files.filter(file => file.relPath.endsWith('.js')).map(file => file.relPath),
+    scripts,
   }
 }
 
@@ -171,8 +191,6 @@ export function orderByModuleGraph(entries) {
   for (const entry of entries) visit(entry)
   return ordered
 }
-
-const PRELOAD_EVERY_ROW = false
 
 const IMMUTABLE = 'public, max-age=31536000, immutable'
 
@@ -270,12 +288,11 @@ export class ClientModuleRegistry extends Service {
     const rows = [...this.composed.entries]
     rows.sort((a, b) => Number(b.immediately === true) - Number(a.immediately === true))
     for (const row of rows) {
-      if (!PRELOAD_EVERY_ROW && row.immediately !== true) continue
+      if (row.immediately !== true) continue
       const record = this.table.get(row.id)
       if (record === undefined) continue
-      const clientDir = `${dirname(record.meta.entryRelPath)}/`
       for (const relPath of record.scripts) {
-        if (relPath.startsWith(clientDir)) hrefs.push(bundleUrl(row.id, row.rev, relPath))
+        hrefs.push(bundleUrl(row.id, row.rev, relPath))
       }
     }
     return hrefs
@@ -300,7 +317,7 @@ export class ClientModuleRegistry extends Service {
   rebuilt(id) {
     const record = this.table.get(id)
     if (record === undefined) return undefined
-    const { rev, scripts } = scanClientTree(record.meta.clientRoot)
+    const { rev, scripts } = scanClientTree(record.meta.clientRoot, record.meta.entryRelPath)
     if (rev === record.entry.rev) return rev
     record.entry = graphRow(id, rev, record.meta)
     record.scripts = scripts
@@ -403,9 +420,9 @@ export class ClientModuleRegistry extends Service {
     return meta
   }
 
-  initialBundleRevision(pkgName, clientRoot) {
+  initialBundleRevision(pkgName, clientRoot, entryRelPath) {
     try {
-      return scanClientTree(clientRoot)
+      return scanClientTree(clientRoot, entryRelPath)
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
       throw new MissingClientBundleError(pkgName, clientRoot, error)
@@ -424,7 +441,7 @@ export class ClientModuleRegistry extends Service {
     if (this.table.has(entryName)) return false
     const meta = this.resolveMeta(entryName)
     if (meta === null) return false
-    const { rev, scripts } = this.initialBundleRevision(entryName, meta.clientRoot)
+    const { rev, scripts } = this.initialBundleRevision(entryName, meta.clientRoot, meta.entryRelPath)
     this.table.set(entryName, { entry: graphRow(entryName, rev, meta), meta, scripts })
     return true
   }

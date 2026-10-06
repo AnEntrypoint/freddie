@@ -1,5 +1,4 @@
 import { ConnectionController } from './connection.js'
-import { FixtureApiClient } from './fixture.js'
 import { WebApiClient } from './web-api-client.js'
 import { createWebConnectionRpc } from './rpc.js'
 import { isLoopbackHostname } from '../loopback-hostname.js'
@@ -12,10 +11,10 @@ export {
 
 export const inject = []
 
-export function apply(ctx) {
+export async function apply(ctx) {
   const pageLocation = typeof location === 'undefined' ? undefined : location
   const fixture = pageLocation !== undefined && new URLSearchParams(pageLocation.search).has('fixture')
-  const fixtureClient = fixture ? new FixtureApiClient() : undefined
+  const fixtureClient = fixture ? new (await import('./fixture.js')).FixtureApiClient() : undefined
   const transport = globalThis.__FREDDIE_TRANSPORT__
   const api = fixtureClient ?? transport?.createApiClient() ?? new WebApiClient()
   const rpc = fixtureClient?.rpc ?? createWebConnectionRpc(transport?.fetch)

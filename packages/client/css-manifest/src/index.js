@@ -3,7 +3,7 @@ import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Service } from '@freddie/cordis'
-import { sendFile } from '@freddie/freddie-host-webserver'
+import { sendBody, sendFile } from '@freddie/freddie-host-webserver'
 import { cssManifest } from './manifest.js'
 
 export { cssManifest } from './manifest.js'
@@ -97,7 +97,7 @@ export class CssManifest extends Service {
     const url = new URL(req.url ?? '/', 'http://x')
     const pathname = decodeURIComponent(url.pathname)
     if (pathname === BUNDLE_PATH) {
-      this.serveBundle(req, res, url.searchParams.get('rev'))
+      await this.serveBundle(req, res, url.searchParams.get('rev'))
       return
     }
     const id = pathname.startsWith(PREFIX) && pathname.endsWith(SUFFIX)
@@ -114,7 +114,7 @@ export class CssManifest extends Service {
     }
   }
 
-  serveBundle(req, res, rev) {
+  async serveBundle(req, res, rev) {
     const built = this.build()
     const etag = `"${built.rev}"`
     const headers = {
@@ -122,14 +122,7 @@ export class CssManifest extends Service {
       'cache-control': rev === built.rev ? IMMUTABLE : 'no-cache',
       'etag': etag,
     }
-    const ifNoneMatch = req.headers['if-none-match']
-    if (ifNoneMatch !== undefined && ifNoneMatch.split(',').some(token => token.trim() === etag)) {
-      res.writeHead(304, headers)
-      res.end()
-      return
-    }
-    res.writeHead(200, { ...headers, 'content-length': String(built.body.length) })
-    res.end(req.method === 'HEAD' ? undefined : built.body)
+    await sendBody(req, res, built.body, headers)
   }
 }
 

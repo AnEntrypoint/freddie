@@ -40,13 +40,13 @@ export function ChatNodeSeat({
       renderSlot('conversation.chat.node', routedOwner, {
         entryKey: routedNode.kind,
         hookContext: nodeKey,
-        fallback: (
-          cachedFallbackJsonBlock(routedNode, {
-            label: t('message.unknownSurface', { type: routedNode.kind }),
-            payload: routedNode.data,
-            truncatedLabel: total => t('json.truncated', { total }),
-          })
-        ),
+            get fallback() {
+              return cachedFallbackJsonBlock(routedNode, {
+                label: t('message.unknownSurface', { type: routedNode.kind }),
+                payload: routedNode.data,
+                truncatedLabel: total => t('json.truncated', { total }),
+              })
+            },
       }),
     )
   )

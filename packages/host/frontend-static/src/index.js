@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
-import { sendFile } from '@freddie/freddie-host-webserver'
+import { sendBody, sendFile } from '@freddie/freddie-host-webserver'
 import z from '@freddie/schemastery'
 
 export const name = 'frontend-static'
@@ -56,8 +56,7 @@ export async function serveStatic(pathname, req, res, distRoot, distIndex, rende
     res.end()
     return
   }
-  res.writeHead(200, { 'content-type': HTML_MIME })
-  res.end(req.method === 'HEAD' ? undefined : body)
+  await sendBody(req, res, body, { 'content-type': HTML_MIME })
 }
 
 export function apply(ctx, config) {
