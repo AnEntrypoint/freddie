@@ -10,7 +10,7 @@ A reconnect can deliver a pending user question before connection readiness resy
 
 The Web question provider rejects an already-aborted request before it creates a pending entry. A session clears answerable waits only when its ordered `session/subscribed` mux baseline arrives; the host emits the replayed waits after that frame. Resync does not clear waits, so an early replay remains visible.
 
-The HMR client tracks whether its EventSource has opened independently from its current liveness and increments the reconnect count on every later open. The existing composer remains the selected session's response control; Overview reports the blocking response without duplicating an action behind the composer takeover.
+The HMR client tracks whether its WebSocket has opened independently from its current liveness and increments the reconnect count on every later open. The existing composer remains the selected session's response control; Overview reports the blocking response without duplicating an action behind the composer takeover. The [transport decision](../architecture/2026-10-06-hmr-websocket-connection-budget.md) owns channel lifecycle.
 
 ## Alternatives considered
 

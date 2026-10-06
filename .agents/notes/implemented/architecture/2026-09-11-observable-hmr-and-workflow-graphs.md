@@ -8,7 +8,7 @@ Buildless client HMR can lose an SSE update while a browser reconnects, leaving 
 
 ## Decision
 
-The client HMR host stamps every SSE data frame with a monotonically increasing sequence. The browser records EventSource connection health and the last observed sequence in `window.__FREDDIE_HMR__`. A sequence gap serializes a shell remount, restoring a coherent module graph instead of attempting an unsafe partial replay.
+The client HMR host stamps every WebSocket JSON frame with a monotonically increasing sequence. The browser records connection health and its last observed sequence in `window.__FREDDIE_HMR__`. A sequence gap serializes a document reload because the missing module graph is unknown ([transport decision](2026-10-06-hmr-websocket-connection-budget.md)).
 
 `WorkflowGraphTracker` returns independent graph snapshots and publishes one independent retained-graph list after every accepted workflow lifecycle event. Observers use `subscribe()` and cannot mutate tracker-owned nodes, edges, phases, or logs; publishing the complete list makes terminal-history eviction observable.
 
@@ -22,6 +22,6 @@ The client HMR host stamps every SSE data frame with a monotonically increasing 
 
 ## Consequences
 
-Browser HMR status is directly inspectable during live development and recovers from omitted SSE frames by remounting the shell. The workflow seam gains a safe reactive graph observation API without claiming restart persistence or unifying unrelated orchestrators.
+Browser HMR status is directly inspectable during live development and recovers from omitted frames by reloading the document. The workflow seam gains a safe reactive graph observation API without claiming restart persistence or unifying unrelated orchestrators.
 
 Live verification checks browser HMR health at `window.__FREDDIE_HMR__` and exercises graph snapshots through the workflow engine's real lifecycle events.

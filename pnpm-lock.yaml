@@ -2049,6 +2049,9 @@ importers:
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
     devDependencies:
       '@freddie/cordis':
         specifier: '*'

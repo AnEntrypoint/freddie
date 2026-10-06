@@ -1,3 +1,4 @@
+import z from '@freddie/schemastery'
 import { EVENTS_ENDPOINT } from '../events.js'
 
 export { EVENTS_ENDPOINT } from '../events.js'
@@ -5,6 +6,10 @@ export { EVENTS_ENDPOINT } from '../events.js'
 export const name = 'client-hmr'
 
 export const inject = ['loader', 'modules']
+
+export const Config = z.object({
+  reconnectIntervalMs: z.number().step(1).min(1).default(1000),
+})
 
 const SHELL_PACKAGE = '@freddie/freddie-client-web'
 
@@ -99,7 +104,7 @@ async function swapStylesheet(href) {
   old.remove()
 }
 
-export function apply(ctx) {
+export function apply(ctx, config) {
   const modLoader = ctx.modules
   const loader = ctx.loader
   const status = { connected: false, lastSequence: undefined, reconnects: 0, lastError: undefined }
@@ -338,46 +343,67 @@ export function apply(ctx) {
 
   ctx.effect(() => {
     let opened = false
-    const source = new EventSource(EVENTS_ENDPOINT)
-    const armLiveness = () => {
+    let disposed = false
+    let source
+    let reconnectTimer
+    const url = new URL(EVENTS_ENDPOINT, globalThis.location.origin)
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    const armLiveness = (socket) => {
       clearTimeout(livenessTimer)
       livenessTimer = setTimeout(() => {
-        if (terminalRecovery) return
-        ctx.logger.warn('client-hmr: event source heartbeat timed out')
-        terminalReload({ kind: 'event-source-stalled' })
-        source.close()
+        if (disposed || terminalRecovery || source !== socket) return
+        ctx.logger.warn('client-hmr: event channel heartbeat timed out')
+        terminalReload({ kind: 'event-channel-stalled' })
+        socket.close()
       }, STALL_TIMEOUT_MS)
     }
-    source.addEventListener('open', () => {
-      if (opened) status.reconnects += 1
-      opened = true
-      status.connected = true
-      status.lastError = undefined
-      armLiveness()
-      record({ kind: 'event-source-open', reconnects: status.reconnects })
-    })
-    source.addEventListener('error', () => {
-      clearTimeout(livenessTimer)
-      status.connected = false
-      status.lastError = 'event-source-error'
-      record({ kind: 'event-source-error' })
-    })
-    source.addEventListener('message', (event) => {
-      armLiveness()
-      let frame
-      try {
-        frame = JSON.parse(event.data)
-      } catch {
-        ctx.logger.warn(`client-hmr: unparseable event frame: ${event.data}`)
-        record({ kind: 'unparseable-frame' })
-        return
-      }
-      handle(frame)
-    })
-    return () => {
-      clearTimeout(livenessTimer)
-      status.connected = false
-      source.close()
+    const connect = () => {
+      if (disposed || terminalRecovery) return
+      const socket = source = new WebSocket(url)
+      armLiveness(socket)
+      socket.addEventListener('open', () => {
+        if (disposed || terminalRecovery || source !== socket) return
+        if (opened) status.reconnects += 1
+        opened = true
+        status.connected = true
+        status.lastError = undefined
+        armLiveness(socket)
+        record({ kind: 'event-channel-open', reconnects: status.reconnects })
+      })
+      socket.addEventListener('error', () => {
+        if (disposed || terminalRecovery || source !== socket) return
+        status.connected = false
+        status.lastError = 'event-channel-error'
+        record({ kind: 'event-channel-error' })
+      })
+      socket.addEventListener('close', () => {
+        if (disposed || source !== socket) return
+        clearTimeout(livenessTimer)
+        status.connected = false
+        if (!terminalRecovery) reconnectTimer = setTimeout(connect, config.reconnectIntervalMs)
+      })
+      socket.addEventListener('message', (event) => {
+        if (disposed || terminalRecovery || source !== socket) return
+        armLiveness(socket)
+        let frame
+        try {
+          frame = JSON.parse(event.data)
+        } catch {
+          ctx.logger.warn(`client-hmr: unparseable event frame: ${event.data}`)
+          record({ kind: 'unparseable-frame' })
+          return
+        }
+        handle(frame)
+        if (terminalRecovery) socket.close()
+      })
     }
-  }, 'client-hmr: event source')
+    connect()
+    return () => {
+      disposed = true
+      clearTimeout(reconnectTimer)
+      clearTimeout(livenessTimer)
+      status.connected = false
+      source?.close()
+    }
+  }, 'client-hmr: event channel')
 }

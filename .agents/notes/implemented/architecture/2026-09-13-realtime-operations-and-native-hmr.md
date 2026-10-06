@@ -24,4 +24,4 @@ Normal source edits remain buildless and immediately hot-reloadable, while idle 
 
 ## Verification
 
-The running web GUI exposes a healthy HMR EventSource with sequence continuity through `window.__FREDDIE_HMR__`. A refreshed selected-session header renders the operations strip from live client state. Connection disposal is verified with a controlled backoff whose abort resolves the loop without another generation. Chrome live measurement reported 780 ms FCP, 2.824 s LCP, and zero CLS on the selected-session run.
+The running web GUI exposes a healthy HMR WebSocket with sequence continuity through `window.__FREDDIE_HMR__`. A refreshed selected-session header renders the operations strip from live client state. Connection disposal is verified with a controlled backoff whose abort resolves the loop without another generation. Chrome live measurement reported 780 ms FCP, 2.824 s LCP, and zero CLS on the selected-session run. Transport lifecycle is defined by the [WebSocket decision](2026-10-06-hmr-websocket-connection-budget.md).

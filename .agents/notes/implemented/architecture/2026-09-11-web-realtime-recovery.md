@@ -10,7 +10,7 @@ A browser can retain an open transport that has stopped delivering data, and an 
 
 `ConnectionController` owns a single, idempotent completion point for each connection generation. A failed readiness handshake aborts and completes that generation immediately, so the reconnect backoff begins without waiting for transport teardown. Stream completion and readiness failure share this completion point.
 
-The HMR host keeps each SSE response in a live registry only while guarded writes succeed. It sends periodic SSE comments to keep idle connections observable and removes closed, ended, or errored responses. Every EventSource connection receives the authoritative graph. A reconnect reconciles that graph even when its revision matches the browser's remembered revision, recovering an update missed while the HMR plugin reloaded itself.
+The HMR host keeps each WebSocket in a live registry only while guarded writes succeed, sends sequenced heartbeat frames, and removes closed, errored, or buffer-capped channels. Every connection receives the authoritative graph. Reconnect reconciles that graph after a missed update; a sequence gap requires terminal document recovery. The [WebSocket transport decision](2026-10-06-hmr-websocket-connection-budget.md) owns the channel lifecycle and connection-budget rationale.
 
 The framework-free boot page reports completed service count during startup. A startup failure names the failure and provides retry and copy-details actions, so recovery does not depend on a user discovering browser refresh or developer tools.
 
@@ -26,6 +26,6 @@ The workspace search input owns keyboard selection over the existing merged loca
 
 ## Consequences
 
-Connection recovery is deterministic when readiness fails, inactive SSE connections no longer accumulate, and a reconnect heals an HMR self-reload gap without another source edit. HMR remains coarse for custom elements and a failed plugin replacement still remounts the shell; those browser lifetime constraints remain explicit rather than presenting stale code as a successful reload.
+Connection recovery is deterministic when readiness fails, inactive HMR channels leave the live registry, and a reconnect heals an HMR self-reload gap without another source edit. HMR remains coarse for custom elements and a failed plugin replacement still remounts the shell; those browser lifetime constraints remain explicit rather than presenting stale code as a successful reload.
 
 Live verification uses the served Web GUI, its `window.__FREDDIE_HMR__` diagnostic state, and a source save observed through the actual `/plugins/events` channel.
