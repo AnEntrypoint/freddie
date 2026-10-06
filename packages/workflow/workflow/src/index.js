@@ -41,9 +41,9 @@ export function isFatalWorkflowError(error) {
 }
 
 export class WorkflowEngine extends Service {
-  constructor(ctx) {
+  constructor(ctx, { maxRetainedTerminalGraphs } = {}) {
     super(ctx, 'workflowEngine')
-    this.graphs = new WorkflowGraphTracker()
+    this.graphs = new WorkflowGraphTracker(maxRetainedTerminalGraphs === undefined ? {} : { maxRetainedTerminalGraphs })
   }
 
   start(request) {

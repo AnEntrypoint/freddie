@@ -10,7 +10,7 @@ Buildless client HMR can lose an SSE update while a browser reconnects, leaving 
 
 The client HMR host stamps every SSE data frame with a monotonically increasing sequence. The browser records EventSource connection health and the last observed sequence in `window.__FREDDIE_HMR__`. A sequence gap serializes a shell remount, restoring a coherent module graph instead of attempting an unsafe partial replay.
 
-`WorkflowGraphTracker` returns independent graph snapshots and publishes one independent snapshot after every accepted workflow lifecycle event. Observers use `subscribe()` and cannot mutate tracker-owned nodes, edges, phases, or logs.
+`WorkflowGraphTracker` returns independent graph snapshots and publishes one independent retained-graph list after every accepted workflow lifecycle event. Observers use `subscribe()` and cannot mutate tracker-owned nodes, edges, phases, or logs; publishing the complete list makes terminal-history eviction observable.
 
 ## Alternatives considered
 

@@ -96,6 +96,7 @@ export class FreddieObservabilityDock extends HTMLElement {
       obligationKind: node.obligationKind ?? '',
       prdId: node.prdId ?? '',
       routeFamily: node.routeFamily ?? '',
+      dependsOn: Array.isArray(node.dependsOn) ? node.dependsOn.join(', ') : '',
       witness: '',
     }
   }
@@ -103,6 +104,10 @@ export class FreddieObservabilityDock extends HTMLElement {
   #patchDraft(node, patch) {
     this.#draft = { ...this.#draftOf(node), ...patch }
     this.#render()
+  }
+
+  #dependencies(draft) {
+    return [...new Set(draft.dependsOn.split(',').map(value => value.trim()).filter(Boolean))]
   }
 
   async #run(action) {
@@ -206,6 +211,7 @@ export class FreddieObservabilityDock extends HTMLElement {
       field('Subject', 'subject', true),
       node.kind === 'prd' ? field('Status', 'status') : field('Obligation', 'obligationKind'),
       node.kind === 'prd' ? field('Route family', 'routeFamily') : field('PRD id', 'prdId'),
+      field('Depends on', 'dependsOn'),
       h('div', { class: css.controls ?? '' },
         h('button', {
           type: 'button',
@@ -219,6 +225,7 @@ export class FreddieObservabilityDock extends HTMLElement {
                 subject: draft.subject,
                 status: draft.status,
                 route_family: draft.routeFamily,
+                depends_on: this.#dependencies(draft),
               })
               : this.#edit('mutableAdd', {
                 id: node.id,
@@ -226,6 +233,7 @@ export class FreddieObservabilityDock extends HTMLElement {
                 obligation_kind: draft.obligationKind,
                 subject: draft.title,
                 text: draft.subject,
+                depends_on: this.#dependencies(draft),
               }))
           },
         }, this.#busy ? 'Saving' : 'Save'),

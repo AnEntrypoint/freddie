@@ -3347,6 +3347,8 @@ export interface Config {
   maxTotalAgents?: number
   /** Items accepted by a single `parallel()`/`pipeline()` call (default 4096). */
   maxItemsPerCall?: number
+  /** Terminal workflow graph snapshots retained after oldest-first pruning (default 20); active graphs remain retained. */
+  maxRetainedTerminalGraphs?: number
   /** vm timeout for the script's initial synchronous slice, inside the worker (default 5000 ms). */
   syncTimeoutMs?: number
   /**

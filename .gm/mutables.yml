@@ -2856,3 +2856,27 @@
   session_id: freddie-107108-1790937270938
   status: witnessed
   witness_evidence: 'degradation: Menu.js #armGrace and HoverCard.js #armClose both clearTimeout the previous timer, then set one 200ms timer. Live page: enter within 40ms of leave cancelled the close; a leave with no re-enter closed at 320ms. No unbounded wait.'
+- id: gm-graph-authoring-wire-shape
+  prd_id: gm-graph-dependency-authoring
+  obligation_kind: type-shape
+  subject: Every GM authoring path must preserve a dependency-id list losslessly from model schema or UI draft through the Remote to GM.
+  text: Witness the tool schemas, Typert request schemas, UI payload, and live GM progress graph edge after adding a dependent PRD or mutable.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: 'Live imports: buildGmTools emitted depends_on array properties for gm_prd_add and gm_mutable_add; Typert Remote schemas accepted {id:''child'',depends_on:[''root'']}; foldGmGraph emitted root->child depends edge; browser component import verified draft-to-request dependency handling.'
+- id: workflow-graph-retention-postcondition
+  prd_id: workflow-graph-retention-bound
+  obligation_kind: postcondition
+  subject: Workflow graph retention prunes only completed terminal records beyond the configured bound while preserving every running graph and snapshot isolation.
+  text: Execute WorkflowGraphTracker with a low terminal bound, complete multiple runs, retain a running run, and mutate a returned snapshot before a fresh read.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: Live imports of WorkflowGraphTracker with terminal bounds retained all active graphs, pruned oldest completed/cancelled/error graphs, and preserved snapshot isolation. WorkerThreadWorkflowEngine.Config exposes maxRetainedTerminalGraphs as number default 20.
+- id: workflow-graph-subscription-convergence
+  prd_id: workflow-graph-retention-bound
+  obligation_kind: postcondition
+  subject: A workflow graph subscriber must converge with bounded tracker state after a terminal graph is pruned.
+  text: Subscribe to a low-bound WorkflowGraphTracker, complete multiple runs, and compare the final subscriber list with list() after pruning.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: Live WorkflowGraphTracker subscription with terminal bound 1 published [two] after pruning one; final subscriber ids equaled list() and mutating a returned list did not alter tracker state.

@@ -6,7 +6,7 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 
 ## Durable progress event
 
-The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries lifecycle fields plus `nodes`, `edges`, and `walking` from [`foldGmGraph`](./src/graph.js). Running reports include the request `body` so walking can attach to a PRD or mutable id. Running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
+The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries lifecycle fields plus `nodes`, `edges`, and `walking` from [`foldGmGraph`](./src/graph.js). PRD and mutable add requests may author `depends_on` ids; the fold emits those durable dependency edges when the daemon returns them. Running reports include the request `body` so walking can attach to a PRD or mutable id. Running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
 
 ## Tools
 
@@ -16,9 +16,9 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_phase_status` | `phase-status` | none | Phase, transition history, pending PRD/mutable counts without instruction prose. |
 | `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?` (default `literal`), `root?`, `path?`, `glob?` | File:line hits. Omitted `mode` is `literal` (~1s tree walk). Pass `dual` only for ranked BM25+vector. `path`/`glob` bound the walk. |
 | `gm_recall` | `recall` | `query` | Semantic hits from gm's memory store (keys, not file:line). |
-| `gm_prd_add` | `prd-add` | `id`, optional fields | Add or rescope one PRD row. |
+| `gm_prd_add` | `prd-add` | `id`, optional fields including `depends_on?` | Add or rescope one PRD row. |
 | `gm_prd_resolve` | `prd-resolve` | `id`, `witness_evidence`, `commit_comment?` | Mark one PRD row resolved. Empty `witness_evidence` is rejected. |
-| `gm_mutable_add` | `mutable-add` | `id`, optional fields | Record one typed proof obligation. |
+| `gm_mutable_add` | `mutable-add` | `id`, optional fields including `depends_on?` | Record one typed proof obligation. |
 | `gm_mutable_resolve` | `mutable-resolve` | `id`, `witness_text` | Discharge one previously recorded mutable. `witness_text` is mapped to the daemon's `witness_evidence` field. |
 | `gm_transition` | `transition` | `to` | Advance phase when gates pass. |
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |

@@ -26,7 +26,7 @@ Workflow events are observe-only. They carry `WorkflowRunInfo` (`id` plus `meta`
 
 Same-process event payloads are borrowed immutable values. Every listener is independently contained: a synchronous throw or rejected returned promise is logged without starving peers or changing execution.
 
-`ctx.workflowEngine.graphs` is a native leaf-only tracker of those events: `workflow/start` opens a run graph, `phase`/`log`/`agent-start`/`agent-end` mutate owned nodes and edges, and `workflow/end` stamps the settlement. `list()` and `get(id)` return independent serializable snapshots with no live fibers or workers; `subscribe(listener)` publishes one independent snapshot after each accepted lifecycle event.
+`ctx.workflowEngine.graphs` is a native leaf-only tracker of those events: `workflow/start` opens a run graph, `phase`/`log`/`agent-start`/`agent-end` mutate owned nodes and edges, and `workflow/end` stamps the settlement. `list()` and `get(id)` return independent serializable snapshots with no live fibers or workers; `subscribe(listener)` publishes an independent complete retained-graph list after each accepted lifecycle event. The tracker retains every running graph and a bounded oldest-first-evicted terminal history; the worker-thread provider defaults that terminal history to 20.
 
 ## Failure discipline
 

@@ -8,6 +8,7 @@ const prdAddRequest = z.object({
   acceptance: z.string().optional(),
   status: z.string().optional(),
   route_family: z.string().optional(),
+  depends_on: z.array(z.string()).optional(),
 })
 const prdResolveRequest = z.object({
   id: z.string(),
@@ -20,6 +21,7 @@ const mutableAddRequest = z.object({
   obligation_kind: z.string().optional(),
   subject: z.string().optional(),
   text: z.string().optional(),
+  depends_on: z.array(z.string()).optional(),
 })
 const mutableResolveRequest = z.object({
   id: z.string(),

@@ -100,3 +100,15 @@
   route_family: observability
   status: pending
   session_id: freddie-27264-1790927965849
+- id: gm-sibling-dream-rsi-ticker-repair
+  title: Repair GM unattended Dream-RSI replay dispatch
+  subject: Sibling GM audit found the runner emits unhandled `dreamrsi-replay` work without the baseline/policy/world payload required by the registered replay implementation. The sibling tree has concurrent-owner dirty state, so mutation is unsafe until the owner clears or publishes it.
+  acceptance: When GM sibling worktree ownership permits a change, its ticker emits a registered replay-cycle verb with valid replay identifiers and a live spool witness shows successful receipt without policy deployment.
+  status: pending
+  route_family: execution
+  session_id: freddie-2359017-1791302765514
+- id: gui-hmr-http-connection-budget
+  subject: Measure and remove GUI boot/history stalls from long-lived HTTP event transport. Current committed API uses WebSockets; HMR alone uses EventSource /plugins/events. Node returns HTTP200 while Chrome dynamic imports/history/new navigation time out; closing two known obsolete agent app tabs allowed existing GUI mount. Do not claim HTTP1 causality yet. Witness actual pending request/connection count and before/after multi-tab real app boot, HMR graph/rebuilt/heartbeat/reconnect/gap/disposal semantics. Prefer HMR WebSocket via existing webServer.registerUpgrade if saturation proven, no unrelated tab closures or unsafe shared-host restart.
+  route_family: observability
+  session_id: gui-perf-scale-20261006
+  status: pending
