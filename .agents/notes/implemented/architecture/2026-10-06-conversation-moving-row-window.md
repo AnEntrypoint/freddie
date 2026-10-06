@@ -14,6 +14,8 @@ The saved position separates the owning `windowKey` from the precise `anchorKey`
 
 An unmounted logical tail cannot acquire bottom-follow ownership merely because the mounted slice reaches its own bottom. Newer rows remain hidden until revealed or explicitly followed. Unchanged reader scrolling saves position without diffing the flow. Jumping to the bottom restores the initial tail slice.
 
+Bottom positioning redraws only when the window bounds or bottom-follow flags change. First-open geometry restoration redraws only when it changes the bottom indicator. Props delivery and connection still render independently: detached props rendering collects observable dependencies, and connection establishes the live DOM and subscriptions. These decisions depend on owned window facts, not identity comparisons of mutable session handles.
+
 ## Alternatives considered
 
 **Keep growing the slice.** Visited history remains mounted, so the opening bound does not bound prolonged browsing.
@@ -31,3 +33,5 @@ Live Chrome traversal visits all 654 loaded rows in both directions with at most
 At a 6000-pixel viewport and budget 40, all 40 initial rows are visible; revealing mounts 80, advances the first key, and retains every previously visible row. Actual props and viewport are restored afterward. This proves the soft viewport exception, not a deployed configuration change.
 
 The bound does not cover nested tool-tree DOM, message bytes, or projection memory. Callback counts and mounted-row counts are evidence of bounded work, not isolated timing or frame-rate gains. [Sticky-composer](../bug-fix/2026-07-29-sticky-composer-conversation-scroll.md) and [reader-ledger](../bug-fix/2026-08-06-reader-scroll-attribution-observed-top-ledger.md) contracts remain active; this window adds bounds and nested restoration rather than replacing them.
+
+An actual Overview-to-Chat remount initializes 40 rows in two passes rather than four; one subsequent reactive props delivery remains, giving 120 row-render calls rather than 200 across the observed transition. Both observations use the same session and retain its first and last mounted keys. Within the optimized remount, the full ordered keys, scroll height, viewport height, and bottom position match exactly. This measures redundant initialization work, not input latency or frame rate.

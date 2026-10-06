@@ -212,11 +212,15 @@ export class FreddieChatView extends HTMLElement {
   #toBottom(el) {
     this.#anchor = null
     const order = this.#props?.useSession(s => s.chat.order)
-    this.#windowStart = Math.max(0, (order?.length ?? 0) - INITIAL_WINDOW_SIZE)
+    const windowStart = Math.max(0, (order?.length ?? 0) - INITIAL_WINDOW_SIZE)
+    const redraw = this.#windowStart !== windowStart
+      || this.#windowEnd !== Number.POSITIVE_INFINITY
+      || !this.#atBottom || !this.#atBottomRef
+    this.#windowStart = windowStart
     this.#windowEnd = Number.POSITIVE_INFINITY
     this.#atBottomRef = true
     this.#atBottom = true
-    this.#render()
+    if (redraw) this.#render()
     el.scrollTop = el.scrollHeight
     this.#observedTop = el.scrollTop
     this.#props?.chatScroll.save(null)
@@ -251,6 +255,7 @@ export class FreddieChatView extends HTMLElement {
     if (openState === 'open' && !this.#opened) {
       this.#opened = true
       const saved = chatScroll.read()
+      const wasAtBottom = this.#atBottom
       if (saved === null) {
         this.#toBottom(el)
       } else {
@@ -271,7 +276,7 @@ export class FreddieChatView extends HTMLElement {
       this.#lastSteeringId = lastSteeringId
       this.#followSig = followSig
       this.#lastWindowStart = this.#windowStart
-      this.#render()
+      if (saved !== null && this.#atBottom !== wasAtBottom) this.#render()
       return
     }
 
