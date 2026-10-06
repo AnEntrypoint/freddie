@@ -27,6 +27,7 @@ export class FreddieConversationRoot extends HTMLElement {
   disconnectedCallback() {
     this.#seatObserver?.disconnect()
     this.#seatObserver = null
+    this.#seatEl = null
   }
 
   #syncPendingWorkspace() {
