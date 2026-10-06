@@ -417,10 +417,22 @@ class OutletRenderCycle {
   }
 }
 
+function bindOutletSubscription(previous, source, key, onChange, subscribe) {
+  if (previous !== null && previous.source === source && previous.key === key) {
+    previous.onChange = onChange
+    return previous
+  }
+  previous?.unsubscribe()
+  if (source === null || source === undefined) return null
+  const binding = { source, key, onChange, unsubscribe: null }
+  binding.unsubscribe = subscribe(() => { binding.onChange() })
+  return binding
+}
+
 class OutletSubscriptions {
-  #unsubscribeVersion = null
-  #unsubscribeLocale = null
-  #unsubscribeSession = null
+  #version = null
+  #locale = null
+  #session = null
 
   connect(bindVersion, host, onChange) {
     bindVersion()
@@ -429,29 +441,29 @@ class OutletSubscriptions {
   }
 
   disconnect() {
-    this.#unsubscribeVersion?.()
-    this.#unsubscribeVersion = null
-    this.#unsubscribeLocale?.()
-    this.#unsubscribeLocale = null
-    this.#unsubscribeSession?.()
-    this.#unsubscribeSession = null
+    this.#version?.unsubscribe()
+    this.#version = null
+    this.#locale?.unsubscribe()
+    this.#locale = null
+    this.#session?.unsubscribe()
+    this.#session = null
   }
 
-  bindVersion(unsubscribe) {
-    this.#unsubscribeVersion?.()
-    this.#unsubscribeVersion = unsubscribe
+  bindVersion(host, key, onChange) {
+    this.#version = bindOutletSubscription(this.#version, host, key, onChange,
+      listener => host.subscribe(key, listener))
   }
 
   bindLocale(host, onChange) {
-    this.#unsubscribeLocale?.()
     const face = host()?.locale
-    this.#unsubscribeLocale = face === undefined ? null : face.subscribe(onChange)
+    this.#locale = bindOutletSubscription(this.#locale, face, undefined, onChange,
+      listener => face.subscribe(listener))
   }
 
   bindSession(host, onChange) {
-    this.#unsubscribeSession?.()
     const source = host()?.sessions.provideInfo
-    this.#unsubscribeSession = source === undefined ? null : source.subscribe(onChange)
+    this.#session = bindOutletSubscription(this.#session, source, undefined, onChange,
+      listener => source.subscribe(listener))
   }
 }
 
@@ -499,7 +511,7 @@ export class FreddieSlotOutlet extends HTMLElement {
 
   #bindVersion() {
     const host = this.#host
-    this.#subscriptions.bindVersion(host === null ? null : host.subscribe(this.#slotKey, () => { this.#render() }))
+    this.#subscriptions.bindVersion(host, this.#slotKey, () => { this.#render() })
   }
 
   #unbindHookSources() {
@@ -736,7 +748,7 @@ export class FreddieRootOutlet extends HTMLElement {
 
   #bindVersion() {
     const host = this.#host
-    this.#subscriptions.bindVersion(host === null ? null : host.subscribe('root', () => { this.#render() }))
+    this.#subscriptions.bindVersion(host, 'root', () => { this.#render() })
   }
 
   #render() {

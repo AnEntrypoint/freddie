@@ -12,6 +12,8 @@ Hooks read snapshots synchronously; the equality argument is accepted but does n
 
 Adapted subscribers share one underlying subscription per source. Connected outlets supply their current DOM depth so ancestors receive source callbacks before descendants, independent of connection or HMR registration order. Fan-out remains synchronous and reaches every adapted subscriber before propagating subscriber errors. A single error retains its identity; multiple errors become an `AggregateError`. Reentrant outlet renders complete after the active render in the same call. Disconnect removes subscriptions; reconnect reads current state and binds them again.
 
+Connected outlets retain registry, locale and session-provider subscriptions while their binding identities remain unchanged. Registry identity includes the host and slot key; locale and provider identity use the actual source, not the cached host. Each retained binding calls its latest render callback. Source or key replacement releases the previous subscription, and disconnect clears all bindings. Binding reuse never skips a prop application, render or source notification.
+
 ## Model Experience
 
 None, as the UI renderer only assembles browser UI and contributes no model-visible input.
