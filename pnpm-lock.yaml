@@ -6936,7 +6936,7 @@ importers:
         version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
-        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
+        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7129,7 +7129,7 @@ importers:
         version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
-        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
+        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -8073,7 +8073,7 @@ importers:
         version: link:../../../framework/schemastery
       libsql-plugkit-client:
         specifier: github:AnEntrypoint/libsql-plugkit-client
-        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24
+        version: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -10771,8 +10771,8 @@ packages:
   koffi@3.1.1:
     resolution: {integrity: sha512-mRX6AMeeKCxSOeOopqAcLAl5jcNvge7NAG8l7rF/8gGJATI0tdHFYjteIdE0mGOtWdsrJOij+PjnP8Q9c1gwgA==}
 
-  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24:
-    resolution: {gitHosted: true, integrity: sha512-hyEJ4xXdaeU1TKg1aCuxEhJ9mGIejVXK8m/ALG5aCmT3QuWkk+2fwGRfwINFrGTa6I2ocsr76wZt/ZtCXTot8A==, tarball: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24}
+  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d:
+    resolution: {gitHosted: true, integrity: sha512-g+8SXKCDyQVfLg1wtNSYPeckAPDxu3nxi2GFhIlaD0EQq4aWPdVzsrhFBGOEb1jmRwssSBpA3pUfmkbJCyqnsQ==, tarball: https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d}
     version: 0.0.15
     engines: {node: '>=20.0.0'}
 
@@ -12933,7 +12933,7 @@ snapshots:
       '@koromix/koffi-win32-ia32': 3.1.1
       '@koromix/koffi-win32-x64': 3.1.1
 
-  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24: {}
+  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d: {}
 
   long@5.3.2: {}
 
