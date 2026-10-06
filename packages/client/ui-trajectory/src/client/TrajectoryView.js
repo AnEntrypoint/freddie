@@ -185,8 +185,8 @@ export class FreddieTrajectoryView extends HTMLElement {
   #actualTime = false
   #searchQuery = ''
   #searchIndex = new TrajectorySearchIndex()
-  #searchIndexRevision = 0
   #searchIndexTimer = null
+  #pendingSearchLayouts = null
   #searchIndexInitialized = false
   #selectedTimelineIndex = null
   #timelineRecordSelection = null
@@ -206,6 +206,7 @@ export class FreddieTrajectoryView extends HTMLElement {
       clearTimeout(this.#searchIndexTimer)
       this.#searchIndexTimer = null
     }
+    this.#pendingSearchLayouts = null
   }
 
   #toggleTurn(turn) {
@@ -277,15 +278,19 @@ export class FreddieTrajectoryView extends HTMLElement {
 
     if (!this.#searchIndexInitialized) {
       this.#searchIndexInitialized = true
-      if (this.#searchIndex.update(searchLayouts)) this.#searchIndexRevision += 1
-    } else if (this.#searchIndexTimer === null) {
-      this.#searchIndexTimer = setTimeout(() => {
-        this.#searchIndexTimer = null
-        if (this.#searchIndex.update([finalizedTurns, partialSearchTurns])) {
-          this.#searchIndexRevision += 1
-        }
-        this.#render()
-      }, SEARCH_INDEX_THROTTLE_MS)
+      this.#searchIndex.update(searchLayouts)
+    } else {
+      this.#pendingSearchLayouts = searchLayouts
+      if (this.isConnected && this.#searchIndexTimer === null) {
+        this.#searchIndexTimer = setTimeout(() => {
+          this.#searchIndexTimer = null
+          const pending = this.#pendingSearchLayouts
+          this.#pendingSearchLayouts = null
+          if (this.isConnected && pending !== null && this.#searchIndex.update(pending)) {
+            this.#render()
+          }
+        }, SEARCH_INDEX_THROTTLE_MS)
+      }
     }
 
     const streamingCells = partialSearchTurns.flatMap(turn =>

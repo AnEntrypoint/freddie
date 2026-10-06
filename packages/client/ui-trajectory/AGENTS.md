@@ -2,6 +2,8 @@
 
 ## Rationale
 
+- `TrajectoryView.js` owns one connected search timer and replaces its pending layouts on every render. `TrajectorySearchIndex.update()` reports content or membership changes, not fresh array identities; an unchanged flush must not rearm itself ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-finite-search-index-flush.md)).
+
 - `src/client/layout.js` compaction node: chat owns the human-facing compaction marker, so the trajectory adds no duplicate cell but the node still advances the duration cursor (`prevAbsTime`).
 - `src/client/TrajectoryTimeline.js` `#tooltip`: webjsx calls a function component (`Tooltip`, a bare one-shot factory) synchronously on every `#render()`, which fires on every drag/hover/pan frame; that would recreate the `freddie-tooltip` element and drop its in-flight `#showTimer` hover delay. Tooltips are cached per key (one per call site for the earlier-history boundary, `span.index` for span tooltips); a stale key from a removed span just sits unused in the Map.
 
