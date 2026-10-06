@@ -163,7 +163,6 @@ int wmain()
 	P((int)JobObjectExtendedLimitInformation);
 	P(JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE);
 
-	// static assertions for the values the koffi module will hardcode
 	static_assert(sizeof(STARTUPINFOW) == 104, "STARTUPINFOW size");
 	static_assert(sizeof(PROCESS_INFORMATION) == 24, "PROCESS_INFORMATION size");
 	static_assert(sizeof(SECURITY_ATTRIBUTES) == 24, "SECURITY_ATTRIBUTES size");

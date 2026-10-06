@@ -30,7 +30,7 @@
  * Plain C11 over the raw Landlock UAPI — no libraries beyond libc (musl,
  * linked statically), so the whole audit surface is this file plus the
  * kernel's stable syscall contract. Built natively per architecture by
- * `scripts/build.ts` into the per-platform npm packages
+ * `scripts/build.js` into the per-platform npm packages
  * (`@freddie/node-addon-landlock-run-linux-{x64,arm64}`); the argv grammar,
  * exit codes, and report lines are pinned in `docs/cli-contract.md`.
  */
@@ -293,6 +293,5 @@ int main(int argc, char **argv) {
   }
 
   execvp(cli.command[0], cli.command);
-  /* exec only returns on failure. */
   return fail("exec failed", strerror(errno));
 }
