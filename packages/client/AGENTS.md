@@ -90,4 +90,3 @@ No comments in source: make the code self-explanatory; a fact a name cannot carr
 ## Known gaps
 
 - `ui-settings-general/package.json` `files` lists `lib/client.js`, which no build produces.
-- Block comments and JSDoc from before the comment sweep remain (e.g. `hmr/src/client/index.js`, `ui-renderer/src/client/scoped-slots.js`).

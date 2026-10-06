@@ -1,14 +1,3 @@
-/**
- * @freddie/freddie-client-vendor-modules — serves the vendored ESM copies of
- * every bare-specifier npm package the client bundle imports at runtime, and
- * contributes those specifiers' `/vendor/` URLs as import-map entries. The
- * webserver merges this package's entries with every other contributor's
- * (see @freddie/freddie-client-modules' `bootInjections`) into the page's one
- * `<script type="importmap">` — a document can carry only one, so no package
- * here renders its own tag.
- * @module @freddie/freddie-client-vendor-modules
- */
-
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -17,10 +6,8 @@ import { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './man
 
 export { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
 
-/** Stable Cordis plugin name. */
 export const name = 'vendor-modules'
 
-/** Service required to register the route and index injection. */
 export const inject = ['webServer']
 
 const packageRoot = fileURLToPath(new URL('..', import.meta.url))
@@ -29,16 +16,6 @@ const localRequire = createRequire(import.meta.url)
 
 const PREFIX = '/vendor/'
 
-/**
- * First-party workspace packages served under `/vendor/@freddie/<name>/...`
- * for browser bare-specifier compatibility, but resolved live through this
- * package's own real `workspace:^` dependency (a pnpm symlink) rather than a
- * frozen file copy -- a local edit is visible on the next request, never a
- * stale snapshot to regenerate. Genuine external deps (`@freddie/cordis`,
- * `@freddie/cordis-plugin-loader`, `@freddie/cosmokit` -- rescoped
- * republications of real upstream packages) stay on the static vendor/
- * tree below; those really are pinned, versioned releases.
- */
 const LIVE_WORKSPACE_PACKAGES = new Set([
   '@freddie/freddie-client-web',
   '@freddie/freddie-client-ui-slots',
@@ -46,14 +23,6 @@ const LIVE_WORKSPACE_PACKAGES = new Set([
   '@freddie/webjsx',
 ])
 
-/**
- * Resolve a `/vendor/@freddie/<name>@<version>/<rest>` path to a live
- * workspace package's real file, for the packages in
- * {@link LIVE_WORKSPACE_PACKAGES}.
- * @param relPath - request path with the `/vendor/` prefix already stripped.
- * @returns the absolute file path, or `undefined` when `relPath` does not
- *   name a live workspace package.
- */
 function resolveLiveWorkspaceFile(relPath) {
   const match = /^(@freddie\/[^/@]+)@[^/]+\/(.+)$/.exec(relPath)
   if (match === null || !LIVE_WORKSPACE_PACKAGES.has(match[1])) return undefined
@@ -122,7 +91,6 @@ function escapeHtmlAttribute(value) {
     .replaceAll('>', '&gt;')
 }
 
-/** Prefix reserved for build/runtime values a browser client may read from `process.env`. */
 const CLIENT_BUILD_ENV_PREFIX = 'FREDDIE_CLIENT_'
 
 function renderProcessShim() {
@@ -141,11 +109,6 @@ function renderTitle() {
   return `<title>${title}</title>`
 }
 
-/**
- * Claim the /vendor prefix route and contribute this package's import-map
- * entries and other head rows to the index injection table.
- * @param ctx - plugin context carrying the webServer service.
- */
 export function apply(ctx) {
   ctx.effect(() => ctx.webServer.register({ kind: 'prefix', path: '/vendor', handler: serveVendor }), 'vendor-modules: vendor route')
   ctx.on('webserver/index-inject', (table) => {
