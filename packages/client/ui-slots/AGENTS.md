@@ -2,6 +2,8 @@
 
 ## Rationale
 
+- `functionSlot` creates a registration-local plain wrapper, not a mutation of the supplied function or a native tag. This keeps explicit subscription choices independent when a component is reused ([decision](../../../.agents/notes/implemented/architecture/2026-10-06-read-tracked-chat-node-renderers.md)).
+
 - `src/observable.js` owns notification revisions and read tracking in the shell's static module identity: renderer HMR can retain connected custom elements from multiple module generations. Separate adapter caches duplicate subscriptions and lose ancestor-consumption deduplication across those generations.
 
 - `src/observable.js` delivery records distinguish remove/re-add from a retained registration. Each active traversal receives new records so ordering does not erase live-set additions, including additions inside nested notification; only records still registered run.

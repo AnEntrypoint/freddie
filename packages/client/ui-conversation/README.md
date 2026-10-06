@@ -52,6 +52,8 @@ A finished turn materializes one ordered `turn-tail` Conversation Node. Its engi
 
 Client activation awaits its conversation controller before publishing session input and slot consumers. Each input shell belongs to both the client plugin and its session scope; disposal of either releases its queue subscription and scoped input listeners. Plugin replacement recreates the shell ([rationale](../../../.agents/notes/implemented/bug-fix/2026-10-06-conversation-controller-publication-order.md)).
 
+Historical context, assistant and turn-tail registrations use explicit tracked reads; authoritative session and owner updates remain live. Their child compositions retain default subscriptions ([decision](../../../.agents/notes/implemented/architecture/2026-10-06-read-tracked-chat-node-renderers.md)).
+
 ## Model Experience
 
 None, as the conversation UI renders session history and streams in the browser; nothing here reaches a model request.

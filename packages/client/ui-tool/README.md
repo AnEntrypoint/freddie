@@ -6,6 +6,8 @@ Business UI packages register only their wire Tool names and atomic views. They 
 
 ## Rendering contract
 
+The `ToolCallTree` registration explicitly uses tracked-read subscriptions: host-description reads remain live, and the conversation supplies every current node, selection and callback update. Atomic toolviews and raw generic fallbacks retain default provided-hook delivery ([decision](../../../.agents/notes/implemented/architecture/2026-10-06-read-tracked-chat-node-renderers.md)).
+
 `ToolCallTree` receives one root `ToolCallBlock` that already contains recursive `subCalls`, selection state, the session `cwd`, and Host callbacks for opening files and inspecting calls. It recursively walks the standard call blocks and sends the root and children at every depth through the same atomic dispatch path, without subscribing to a separate parent-to-children map.
 
 Each root and child wrapper preserves the `data-chat-anchor-key="call:<id>"` and `data-chat-call-id` DOM contract used for paging and selection.

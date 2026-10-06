@@ -1,3 +1,4 @@
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { NS } from '../locales.js'
 import { AssistantNodeView } from './AssistantNodeView.js'
 import { CommandNodeView, ManualCompactionNodeView } from './CommandNodeView.js'
@@ -13,9 +14,9 @@ export function registerChatNodeRenderers(ctx) {
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'steering', locale: NS }, UserMessageNodeView))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'context', locale: NS }, ContextMessageNodeView))
+    { name: 'conversation.chat.node', key: 'context', locale: NS }, functionSlot(ContextMessageNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'assistant-step', locale: NS }, AssistantNodeView))
+    { name: 'conversation.chat.node', key: 'assistant-step', locale: NS }, functionSlot(AssistantNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'command',
@@ -40,7 +41,7 @@ export function registerChatNodeRenderers(ctx) {
       'conversation.chat.turnTail': { kind: 'chain', scope: 'session' },
       'conversation.chat.assistant-actions': { kind: 'list', scope: 'session' },
     },
-  }, TurnTailNodeView))
+  }, functionSlot(TurnTailNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'unknown', locale: NS }, UnknownNodeView))
 }

@@ -12,6 +12,12 @@ export function webjsxSlot(tag, { subscriptions = 'all' } = {}) {
   return component
 }
 
+export function functionSlot(component, { subscriptions = 'all' } = {}) {
+  const render = props => component(props)
+  Object.defineProperty(render, WEBJSX_SLOT_SUBSCRIPTIONS, { value: subscriptions, enumerable: true })
+  return render
+}
+
 export function webjsxSlotTagOf(component) {
   if (typeof component !== 'function') return undefined
   const tag = component[WEBJSX_SLOT_TAG]

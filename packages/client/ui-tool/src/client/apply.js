@@ -1,3 +1,4 @@
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { ToolCallTree } from './tool/ToolCallTree.js'
 import { ToolDetails } from './tool/ToolDetails.js'
 import { CONVERSATION_NS as NS } from './locale.js'
@@ -22,7 +23,7 @@ export function apply(ctx) {
       'tool.call.toolview': { kind: 'keyed', scope: 'session' },
     },
     inject: toolInject,
-  }, ToolCallTree))
+  }, functionSlot(ToolCallTree, { subscriptions: 'reads' })))
 
   ctx.slots.inject('conversation.details.tool', () => ctx.slots.register({
     name: 'conversation.details.tool',
