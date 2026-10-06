@@ -5,6 +5,7 @@ import { createChatStore } from './stores.js'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.js'
 import { ComposerBlockRegistry } from './input/blocks.js'
 import { InputHub } from './input/hub.js'
+import { projectClipboard } from './input/machine.js'
 import { ComposerSubmissionPolicy } from './input/submission-policy.js'
 import './skeleton/InputBar.js'
 import './settings/EnterBehaviorRow.js'
@@ -192,7 +193,14 @@ export async function apply(ctx, config) {
       return {
         views,
         releaseSessionImages: (id) => { conversation.releaseSessionImages(id) },
-        bindDraftMirror: write => inputHub.shell(sessionId).bindMirror(write),
+        bindDraftMirror: () => {
+          const store = slots.resolveStore(chatStore, sessionId)
+          const shell = inputHub.shell(sessionId)
+          const draft = store.readDraft()
+          if (shell.snapshot.draft === '' && draft !== '') shell.setDraft(draft)
+          store.writeDraft(projectClipboard(shell.snapshot))
+          return shell.bindMirror(store.writeDraft)
+        },
       }
     },
   }, webjsxSlot('freddie-conversation-session'))

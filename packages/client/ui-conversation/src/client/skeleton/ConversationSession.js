@@ -202,17 +202,15 @@ export class FreddieConversationSession extends HTMLElement {
     this.#unsubscribeStore = null
     this.#unmirror?.()
     this.#unmirror = null
+    this.#mirrorBoundActions = null
     if (this.#props !== null) this.#props.releaseSessionImages(this.#props.sessionId)
   }
 
   #syncMirror() {
-    if (this.#props === null) return
-    if (this.#props.actions !== this.#mirrorBoundActions) {
-      const inputState = this.#props.useInput(s => s)
-      const storedDraft = this.#props.useStore(s => s.draft)
+    if (this.#props === null || !this.isConnected) return
+    if (this.#props.actions !== this.#mirrorBoundActions || this.#unmirror === null) {
       this.#unmirror?.()
-      if (inputState.draft === '' && storedDraft !== '') this.#props.inputActions.setDraft(storedDraft)
-      this.#unmirror = this.#props.bindDraftMirror(this.#props.actions.setDraft)
+      this.#unmirror = this.#props.bindDraftMirror()
       this.#mirrorBoundActions = this.#props.actions
     }
   }
