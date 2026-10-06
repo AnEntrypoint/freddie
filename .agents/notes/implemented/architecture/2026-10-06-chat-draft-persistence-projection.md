@@ -24,11 +24,11 @@ Draft read and write methods remain private instance operations. The session inj
 
 ## Consequences
 
-Draft persistence remains synchronous under the existing key and format. Render subscribers receive every selection, view, and inspection change without subscribing to draft currency. Frame-scheduled input delivery still reaches the transcript through the parent composer layout.
+Draft persistence remains synchronous under the existing key and format. Render subscribers receive every selection, view, and inspection change without subscribing to draft currency. The [composer read policy](2026-10-06-composer-read-tracked-subscriptions.md) owns frame-scheduled layout delivery; this projection owns synchronous persistence isolation.
 
 ## Verification and limits
 
-Four genuine character keypresses each produce zero synchronous chat-store notifications, session-body props deliveries, and ChatView props deliveries, versus one, one, and two respectively before isolation. The same keys still persist synchronously. Separate frame-scheduled input delivery remains: each observed key delivers Root once, Session twice, and ChatView three times. These counts prove removal of the synchronous path, not frame rate or overall input latency.
+Four genuine character keypresses each produce zero synchronous chat-store notifications, session-body props deliveries, and ChatView props deliveries, versus one, one, and two respectively before isolation. The same keys still persist synchronously. These counts prove removal of the synchronous persistence path, not frame rate or overall input latency. Frame-scheduled delivery evidence belongs to the [composer read policy](2026-10-06-composer-read-tracked-subscriptions.md).
 
 Actual detached-body typing leaves storage unchanged; reconnecting the same body and store immediately persists the live draft. A real document reload hydrates the visible draft, with all 92 fibers active. Genuine view changes notify two simultaneous subscribers, and inspecting an existing tool call updates inspection state and renders Trajectory. Original draft, storage bytes, caret, session, and view are restored; probes are removed. View remounts can change mounted rows and absolute scroll geometry, so restoration evidence distinguishes tail ownership from numeric scroll equality.
 

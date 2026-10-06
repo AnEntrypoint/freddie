@@ -21,6 +21,8 @@ The store family (`defineStore` spec in / `StoreHandle<T, A>` out) types the sto
 
 ## Observable read tracking
 
+`webjsxSlot(tag, { subscriptions = 'all' } = {})` returns a native-element marker; `webjsxSlotTagOf(component)` reads its tag. `webjsxSlotSubscriptionsOf(component)` returns `'reads'` only for an explicitly opted-in marker, otherwise `'all'`. The `'reads'` policy asserts that tracked rendering reads every observable source affecting the entry, including its selector. Imperative reads outside that render do not establish subscriptions. It does not compare selected values or suppress notifications from mutable handles. The renderer applies this policy only when every evaluated participant opts in; legacy, mixed, empty and raw-fallback compositions retain provided-hook delivery. See [renderer delivery](../ui-renderer/README.md#observable-delivery).
+
 The static browser identity owns these DOM-free helpers across renderer reloads. Sources expose a pure `getSnapshot()` and `subscribe(listener): disposer` without initial delivery.
 
 - `observableHook(source)` returns a cached `(selector, equal?) => selected` synchronous reader. Equality is accepted but unused; mutable snapshot handles retain notification semantics.

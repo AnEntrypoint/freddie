@@ -14,7 +14,7 @@ export const CLIENT_SLOT_API = [
     kind: 'single',
     scope: 'session-maybe',
     summary: 'The whole center column, across both the no-session hero and a live conversation.',
-    doc: 'The whole center column, across both the no-session hero and a live\nconversation. OCCUPIED by ui-conversation\'s ConversationRoot, which\ndeclares the session body, composer, and input seats inside it —\nregistering here replaces the entire conversation surface (and removes\nevery seat it declares) rather than adding to it.\n\nCurrent-session-optional: the occupant owns both states without\nchanging its React identity, so it keeps its own state across a session\nswitch. It receives no owner props; session facts arrive through the\nframework hooks of the `session-maybe` scope.',
+    doc: 'The whole center column, across both the no-session hero and a live\nconversation. OCCUPIED by ui-conversation\'s ConversationRoot, which\ndeclares the session and composer bodies; the composer body owns\nthe input seats —\nregistering here replaces the entire conversation surface (and removes\nevery seat it declares) rather than adding to it.\n\nCurrent-session-optional: the occupant owns both states without\nchanging its React identity, so it keeps its own state across a session\nswitch. It receives no owner props; session facts arrive through the\nframework hooks of the `session-maybe` scope.',
     registerOptions: [],
     ownerProps: [
       '/** Conversation owner share: business state and actions belong to the registrant. */\nexport interface ConvOwnerProps {}',
@@ -232,7 +232,7 @@ export const CLIENT_SLOT_API = [
     kind: 'chain',
     scope: 'session',
     summary: 'The composer takeover chain: entries are selector-routed replacements of the default InputBar.',
-    doc: 'The composer takeover chain: entries are selector-routed replacements\nof the default InputBar. Declared by this package\'s \'conversation\'\nentry; the owner dispatches the ComposerChainProps currency and\nrouting lives in entry selectors — new takeover kinds register with\nzero owner changes.',
+    doc: 'The composer takeover chain: entries are selector-routed replacements\nof the default InputBar. Declared by this package\'s \'conversation.composer.body\'\nentry; the owner dispatches the ComposerChainProps currency and\nrouting lives in entry selectors — new takeover kinds register with\nzero owner changes.',
     registerOptions: [
       {
         name: 'select',
@@ -242,7 +242,7 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * Composer chain currency: what ConversationRoot dispatches at its\n * renderSlotChain site. The owner declares the currency only — never a\n * per-entry contract; takeover packages narrow it in their own selectors\n * (`interactions.find(i => i.kind === ...)`), so new takeover kinds register\n * with zero owner changes.\n */\nexport interface ComposerChainProps {\n  interactions: readonly PendingInteraction[]\n  /** Current conversation facts for feature-owned takeover selectors. */\n  session: ConversationSnapshot | undefined\n}',
+      '/**\n * Composer chain currency: what ConversationComposer dispatches at its\n * renderSlotChain site. The owner declares the currency only — never a\n * per-entry contract; takeover packages narrow it in their own selectors\n * (`interactions.find(i => i.kind === ...)`), so new takeover kinds register\n * with zero owner changes.\n */\nexport interface ComposerChainProps {\n  interactions: readonly PendingInteraction[]\n  /** Current conversation facts for feature-owned takeover selectors. */\n  session: ConversationSnapshot | undefined\n}',
     ],
     ownerPropsReferences: [
       'ConversationSnapshot',
@@ -260,7 +260,7 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-conversation ApprovalPanel',
       'client-ui-subagent SubagentReadOnlyComposer',
@@ -268,7 +268,7 @@ export const CLIENT_SLOT_API = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer\', () => ctx.slots.register(\n      { name: \'conversation.composer\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:171',
+    source: 'packages/client/ui-conversation/src/client/apply.js:159',
   },
   {
     key: 'conversation.composer.bar',
@@ -278,7 +278,7 @@ export const CLIENT_SLOT_API = [
     doc: 'The default composer body: a single slot rendered as the composer\nchain\'s fallback (a real entry, not a chain rider, so a\ntakeover election hides rather than unmounts it and the textarea DOM\nsurvives). Session-maybe: the bar stays mounted across the\nno-session/session transition — the no-workspace hero renders the SAME\ntextarea DOM as a read-only Workspace-picker trigger instead of a\nparallel inert tree — with the machine hooks absent until a session is\ncurrent. InputBar registers\nhere from this package\'s apply; its machine state arrives through the\nstandard provide channel (useInput + inputActions), the keyboard\ncommand face through its own inject.',
     registerOptions: [],
     ownerProps: [
-      '/**\n * Owner share of the composer-bar slot: ConversationRoot\'s layout-phase\n * inputs plus the input-region child-slot content it renders (the region\n * slots stay declared/rendered by the conversation entry; the bar hosts the\n * results as chrome).\n */\nexport interface ComposerBarOwnerProps {\n  /** Hero = empty-state centered card; composer = resident bottom bar. */\n  variant: \'hero\' | \'composer\'\n  /**\n   * A block another plugin raised for this session: the bar refuses input and\n   * shows the blocker\'s reason as the placeholder, but — unlike `disabled` —\n   * keeps the model seat live. Every block this contract has is one the user\n   * clears by choosing a model, so locking that seat too would leave the\n   * composer telling them to do the one thing it prevents.\n   */\n  blocked?: { readonly reason: string }\n  /**\n   * Inert no-workspace state: the bar locks message actions while preserving\n   * its normal DOM so the Workspace pick transitions in place.\n   */\n  disabled?: boolean\n  /** Whether the shared Workspace picker menu is expanded, regardless of which trigger opened it. */\n  workspacePickerOpen?: boolean\n  /** Open the existing Workspace picker from the inert textarea. */ /* …truncated — full shape in source */',
+      '/**\n * Owner share of the composer-bar slot: ConversationComposer\'s layout-phase\n * inputs plus the input-region child-slot content it renders (the region\n * slots stay declared/rendered by the composer-body entry; the bar hosts the\n * results as chrome).\n */\nexport interface ComposerBarOwnerProps {\n  /** Hero = empty-state centered card; composer = resident bottom bar. */\n  variant: \'hero\' | \'composer\'\n  /**\n   * A block another plugin raised for this session: the bar refuses input and\n   * shows the blocker\'s reason as the placeholder, but — unlike `disabled` —\n   * keeps the model seat live. Every block this contract has is one the user\n   * clears by choosing a model, so locking that seat too would leave the\n   * composer telling them to do the one thing it prevents.\n   */\n  blocked?: { readonly reason: string }\n  /**\n   * Inert no-workspace state: the bar locks message actions while preserving\n   * its normal DOM so the Workspace pick transitions in place.\n   */\n  disabled?: boolean\n  /** Whether the shared Workspace picker menu is expanded, regardless of which trigger opened it. */\n  workspacePickerOpen?: boolean\n  /** Open the existing Workspace picker from the inert textarea. */ /* …truncated — full shape in source */',
     ],
     ownerPropsReferences: [
       'Workspace',
@@ -295,13 +295,44 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-conversation InputBar',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.bar\', () => ctx.slots.register(\n      { name: \'conversation.composer.bar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:245',
+    source: 'packages/client/ui-conversation/src/client/apply.js:160',
+  },
+  {
+    key: 'conversation.composer.body',
+    kind: 'single',
+    scope: 'session-maybe',
+    summary: 'The composer body inside the resident seat: hero workspace controls, input regions, and takeover chain.',
+    doc: 'Declared by the conversation entry. Its hero owner prop follows the root layout phase; full session and input snapshots arrive through standard hooks. Replacing this entry replaces the composer and every child slot it declares, without replacing the transcript or root seat observer. The shipped body keeps the default input bar resident beneath takeover overlays.',
+    registerOptions: [],
+    ownerProps: [
+      'export interface ConversationComposerOwnerProps {\n  hero: boolean\n}',
+    ],
+    ownerPropsReferences: [],
+    standardProps: [
+      'useSessions: SnapshotSelectorHook<SessionListState>',
+      'useWorkspaces: SnapshotSelectorHook<import(\'./workspaces/service.ts\').WorkspaceListState>',
+      'useSession: MaybeSnapshotSelectorHook<ConversationSnapshot>',
+      'sessionId: SessionId | undefined',
+      'useProjection: UseProjection',
+      'useInput: MaybeSnapshotSelectorHook<InputState>',
+      'inputActions: InputActions | undefined',
+    ],
+    keyDomain: '',
+    hookContext: '',
+    slotInject: '',
+    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    occupants: [
+      'client-ui-conversation ConversationComposer',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
+    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.body\', () => ctx.slots.register(\n      { name: \'conversation.composer.body\' },\n      () => \'custom composer\',\n    ))\n  },\n}',
+    source: 'packages/client/ui-conversation/src/client/apply.js:151',
   },
   {
     key: 'conversation.composer.dock',
@@ -348,13 +379,13 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-conversation StatsLine id \'stats\'',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.dock\', () => ctx.slots.register(\n      { name: \'conversation.composer.dock\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:214',
+    source: 'packages/client/ui-conversation/src/client/apply.js:163',
   },
   {
     key: 'conversation.details.tool',
@@ -405,20 +436,20 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-agent-preset AgentPresetSeat',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.agentPreset\', () => ctx.slots.register(\n      { name: \'conversation.hero.agentPreset\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:189',
+    source: 'packages/client/ui-conversation/src/client/apply.js:168',
   },
   {
     key: 'conversation.hero.brand.mark',
     kind: 'single',
     scope: 'root',
     summary: 'Brand mark leading the blank-session headline.',
-    doc: 'Brand mark leading the blank-session headline. Declared by this\npackage\'s `conversation` entry; the shell supplies a fish fallback.',
+    doc: 'Brand mark leading the blank-session headline. Declared by this\npackage\'s `conversation.composer.body` entry; the shell supplies a fish fallback.',
     registerOptions: [],
     ownerProps: [
       '/** Presentation props supplied to the blank-session brand-mark occupant. */\nexport interface HeroBrandMarkOwnerProps {\n  /** Requested square edge in pixels. */\n  size: number\n  /** Host CSS class for preserving the default hero mark color and hover motion. */\n  className?: string | undefined\n}',
@@ -431,20 +462,20 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-brand-official OfficialBrandMark',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.brand.mark\', () => ctx.slots.register(\n      { name: \'conversation.hero.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:183',
+    source: 'packages/client/ui-conversation/src/client/apply.js:166',
   },
   {
     key: 'conversation.hero.workspace',
     kind: 'single',
     scope: 'root',
-    summary: 'The hero-phase Workspace picker hole: rendered by ConversationRoot while the session is blank (picking another workspace switches to that workspace\'s blank session, draft carried).',
-    doc: 'The hero-phase Workspace picker hole: rendered by ConversationRoot\nwhile the session is blank (picking another workspace switches to that\nworkspace\'s blank session, draft carried). Root scope: the picker\nreads the global workspace list.',
+    summary: 'The hero-phase Workspace picker hole: rendered by ConversationComposer while the session is blank (picking another workspace switches to that workspace\'s blank session, draft carried).',
+    doc: 'The hero-phase Workspace picker hole: rendered by ConversationComposer\nwhile the session is blank (picking another workspace switches to that\nworkspace\'s blank session, draft carried). Root scope: the picker\nreads the global workspace list.',
     registerOptions: [],
     ownerProps: [
       '/** Owner share common to the hero / New-Session Workspace pickers. */\nexport interface EmptyWorkspaceOwnerProps {\n  open: boolean\n  anchorRef?: RefObject<HTMLElement>\n  /** Currently active workspace (renders a trailing check in the picker list). */\n  selectedId?: WorkspaceId | undefined\n  onPick: (workspaceId: WorkspaceId) => void\n  onClose: () => void\n}',
@@ -459,13 +490,13 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-workspace WorkspacePicker',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.workspace\', () => ctx.slots.register(\n      { name: \'conversation.hero.workspace\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:178',
+    source: 'packages/client/ui-conversation/src/client/apply.js:167',
   },
   {
     key: 'conversation.hero.workspace.directoryFlow',
@@ -573,7 +604,7 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-conversation QueueDock id \'queue\'',
       'client-ui-conversation TodoDock id \'todo\'',
@@ -581,7 +612,7 @@ export const CLIENT_SLOT_API = [
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.dock\', () => ctx.slots.register(\n      { name: \'conversation.input.dock\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:205',
+    source: 'packages/client/ui-conversation/src/client/apply.js:162',
   },
   {
     key: 'conversation.input.left',
@@ -628,11 +659,11 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.left\', () => ctx.slots.register(\n      { name: \'conversation.input.left\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:223',
+    source: 'packages/client/ui-conversation/src/client/apply.js:164',
   },
   {
     key: 'conversation.input.model',
@@ -670,7 +701,7 @@ export const CLIENT_SLOT_API = [
     kind: 'list',
     scope: 'session',
     summary: 'The InputBar floating overlay anchor: MenuView (this package) and the popupSelect shell (ui-commands) contribute list entries; each reads its own store and renders null while closed.',
-    doc: 'The InputBar floating overlay anchor: MenuView (this package) and the\npopupSelect shell (ui-commands) contribute list entries; each reads its\nown store and renders null while closed. Declared (children table) by\nui-conversation\'s composer entry; the anchor hides with the input\nunder a takeover.',
+    doc: 'The InputBar floating overlay anchor: MenuView (this package) and the\npopupSelect shell (ui-commands) contribute list entries; each reads its\nown store and renders null while closed. Declared (children table) by\nui-conversation\'s composer-body entry; the anchor hides with the input\nunder a takeover.',
     registerOptions: [
       {
         name: 'id',
@@ -705,14 +736,14 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [
       'client-ui-commands PopupSelectView id \'command-popup\'',
       'client-ui-input-trigger MenuView id \'slash-menu\'',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.overlay\', () => ctx.slots.register(\n      { name: \'conversation.input.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-input-trigger/src/client/slots.ts:24',
+    source: 'packages/client/ui-conversation/src/client/apply.js:161',
   },
   {
     key: 'conversation.input.plan',
@@ -790,11 +821,11 @@ export const CLIENT_SLOT_API = [
     keyDomain: '',
     hookContext: '',
     slotInject: '',
-    declaredBy: 'an entry in \'conversation\' (client-ui-conversation), so it exists while that entry is mounted',
+    declaredBy: 'an entry in \'conversation.composer.body\' (client-ui-conversation), so it exists while that entry is mounted',
     occupants: [],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.right\', () => ctx.slots.register(\n      { name: \'conversation.input.right\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:231',
+    source: 'packages/client/ui-conversation/src/client/apply.js:165',
   },
   {
     key: 'conversation.message.images',

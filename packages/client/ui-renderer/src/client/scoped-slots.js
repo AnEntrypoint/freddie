@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, applyDiff } from '@freddie/webjsx'
 import {
-  SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf,
+  SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf, webjsxSlotSubscriptionsOf,
   observableHook, subscribeObserved, trackReads,
 } from '@freddie/freddie-client-ui-slots'
 import {
@@ -521,10 +521,10 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#readRevisions = new Map()
   }
 
-  #bindHookSources(sessionInfo, reads, revisions) {
+  #bindHookSources(sessionInfo, reads, revisions, readsOnly) {
     this.#readRevisions = revisions
     const sources = [...new Set([
-      ...Object.values(sessionInfo.hooks).filter((s) => s !== undefined),
+      ...(readsOnly ? [] : Object.values(sessionInfo.hooks).filter((s) => s !== undefined)),
       ...reads,
     ])]
     const unchanged = sources.length === this.#boundHookSources.length
@@ -547,14 +547,17 @@ export class FreddieSlotOutlet extends HTMLElement {
     if (host === null) return
     resyncOutletDiffCache(this)
     const sessionInfo = currentSessionMaybeProvideInfo(host)
+    const participants = new Set()
     const { reads, revisions } = trackReads(() => {
       const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
         this.#maybeIncarnation = next
-      })
+      }, entry => { participants.add(entry) })
       applyDiff(this, h('div', { 'data-slot': this.#slotKey, style: ANCHOR_STYLE }, content))
     })
     if (!this.isConnected) return
-    this.#bindHookSources(sessionInfo, reads, revisions)
+    const readsOnly = participants.size > 0
+      && [...participants].every(entry => webjsxSlotSubscriptionsOf(entry?.component) === 'reads')
+    this.#bindHookSources(sessionInfo, reads, revisions, readsOnly)
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
@@ -582,6 +585,7 @@ function renderOutletContent(
   sessionInfo,
   maybeIncarnation,
   setMaybeIncarnation,
+  onParticipant,
 ) {
   const spec = host.specOf(slotKey)
   if (!spec) return null
@@ -593,6 +597,7 @@ function renderOutletContent(
   const slotInjected = cachedSlotInject(spec.inject)
 
   const guarded = (entry, entryKeyValue, owner = ownerProps, matched) => {
+    onParticipant(entry)
     const hasHookContext = opts !== undefined && Object.hasOwn(opts, 'hookContext')
     const hookContext = opts?.hookContext
     const onEntryError = (error) => {
@@ -649,6 +654,7 @@ function renderOutletContent(
   if (spec.kind === 'chain') {
     let elected = null
     for (const entry of entries) {
+      onParticipant(entry)
       let matched
       try {
         matched = entry.select(ownerProps)
@@ -663,6 +669,7 @@ function renderOutletContent(
         break
       }
     }
+    if (elected === null || (opts?.overlay && opts.fallback !== undefined)) onParticipant(null)
     if (opts?.overlay) {
       const fallbackStyle = `display: ${elected === null ? 'contents' : 'none'}`
       return [

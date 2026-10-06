@@ -1,4 +1,5 @@
 [data-ce='freddie-conversation-root'],
+[data-ce='freddie-conversation-composer'],
 [data-ce='freddie-entry-host'] {
   display: contents;
 }

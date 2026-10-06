@@ -15,6 +15,7 @@ import { ApprovalPanel } from './skeleton/ApprovalPanel.js'
 import { todoDockEntry } from './skeleton/TodoPanel.js'
 import { queueDockEntry } from './queue/QueueDock.js'
 import './skeleton/ConversationRoot.js'
+import './skeleton/ConversationComposer.js'
 import './skeleton/ConversationSession.js'
 import { DetailsPanel } from './skeleton/DetailsPanel.js'
 import { en, NS } from './locales.js'
@@ -147,6 +148,14 @@ export async function apply(ctx, config) {
     children: {
       'conversation.session': { kind: 'single', scope: 'session' },
       'conversation.session.header': { kind: 'single', scope: 'session' },
+      'conversation.composer.body': { kind: 'single', scope: 'session-maybe' },
+    },
+  }, webjsxSlot('freddie-conversation-root', { subscriptions: 'reads' }))
+
+  slots.register({
+    name: 'conversation.composer.body',
+    locale: NS,
+    children: {
       'conversation.composer': { kind: 'chain', scope: 'session' },
       'conversation.composer.bar': { kind: 'single', scope: 'session-maybe' },
       'conversation.input.overlay': { kind: 'list', scope: 'session' },
@@ -180,7 +189,7 @@ export async function apply(ctx, config) {
         sessions.open(nextId)
       },
     }),
-  }, webjsxSlot('freddie-conversation-root'))
+  }, webjsxSlot('freddie-conversation-composer'))
 
   slots.register({
     name: 'conversation.session',
@@ -203,7 +212,7 @@ export async function apply(ctx, config) {
         },
       }
     },
-  }, webjsxSlot('freddie-conversation-session'))
+  }, webjsxSlot('freddie-conversation-session', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.session.header',
@@ -218,7 +227,7 @@ export async function apply(ctx, config) {
       views,
       open: (id) => { sessions.open(id) },
     }),
-  }, webjsxSlot('freddie-conversation-session-header'))
+  }, webjsxSlot('freddie-conversation-session-header', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.composer.bar',
@@ -349,7 +358,7 @@ export async function apply(ctx, config) {
         },
       }
     },
-  }, webjsxSlot('freddie-chat-view'))
+  }, webjsxSlot('freddie-chat-view', { subscriptions: 'reads' }))
 
   slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line'))
 
