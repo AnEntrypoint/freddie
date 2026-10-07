@@ -10,6 +10,7 @@ import {
   MarkdownText,
   Tooltip,
   defineElement,
+  resolveElementTag,
 } from '@freddie/freddie-client-ui-primitives'
 import { structuredPatch } from 'diff'
 import { formatElapsedSeconds, trajectoryRecordId } from './trajectory-record.js'
@@ -2784,7 +2785,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
 defineElement('freddie-trajectory-table', FreddieTrajectoryTable)
 
 export function TrajectoryTable(props) {
-  const el = document.createElement('freddie-trajectory-table')
-  el.setProps(props)
-  return el
+  return h(resolveElementTag('freddie-trajectory-table'), {
+    ref: (el) => { el?.setProps(props) },
+  })
 }

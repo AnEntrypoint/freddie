@@ -1,6 +1,6 @@
 
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
+import { renderTooltip, defineElement, resolveElementTag } from '@freddie/freddie-client-ui-primitives'
 import {
   deriveTrajectoryTimeline,
   formatTimelineOffset,
@@ -745,7 +745,7 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
 defineElement('freddie-trajectory-timeline', FreddieTrajectoryTimeline)
 
 export function TrajectoryTimeline(props) {
-  const el = document.createElement('freddie-trajectory-timeline')
-  el.setProps(props)
-  return el
+  return h(resolveElementTag('freddie-trajectory-timeline'), {
+    ref: (el) => { el?.setProps(props) },
+  })
 }

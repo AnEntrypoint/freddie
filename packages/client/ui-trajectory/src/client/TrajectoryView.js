@@ -455,9 +455,3 @@ export class FreddieTrajectoryView extends HTMLElement {
 }
 
 defineElement('freddie-trajectory-view', FreddieTrajectoryView)
-
-export function TrajectoryView(props) {
-  const el = document.createElement('freddie-trajectory-view')
-  el.setProps(props)
-  return el
-}

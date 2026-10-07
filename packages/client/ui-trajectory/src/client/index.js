@@ -6,7 +6,8 @@ import { registerTrajectoryMessageDefinitions } from './trajectory-message-defin
 import { registerTrajectoryRequestHeaderDefinition } from './trajectory-request-header-definition.js'
 import { registerTrajectoryConversationView } from './trajectory-snapshot-builder.js'
 import { registerTrajectoryToolDefinition } from './trajectory-tool-definition.js'
-import { TrajectoryView } from './TrajectoryView.js'
+import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
+import './TrajectoryView.js'
 
 export const inject = ['slots', 'conversationEvents', 'conversationViews', 'sessions', 'locale']
 
@@ -41,5 +42,5 @@ export function apply(ctx) {
         setActualDuration: (value) => { duration.set(value) },
       }
     },
-  }, TrajectoryView))
+  }, webjsxSlot('freddie-trajectory-view')))
 }

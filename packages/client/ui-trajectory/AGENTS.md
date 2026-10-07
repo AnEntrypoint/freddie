@@ -2,6 +2,8 @@
 
 ## Rationale
 
+- Register the view through its native slot marker. Table and Timeline return resolved-tag VNodes with unconditional current-props refs: ordinary delivery retains private state, while session/registration keys and changed class aliases replace owners ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-07-trajectory-native-render-owners.md)).
+
 - `TrajectoryTable.js` records current tail-follow state before notifying its virtualizer offset callback, because the queued render can run before the later pane scroll listener ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
 
 - `TrajectoryTable.js` defers virtualizer and initial-scroll setup until connected. Detached `setProps()` still renders current DOM, but its zero-sized pane must not establish viewport, tail-ready or older-page anchor state ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
