@@ -1627,6 +1627,11 @@ export class FreddieTrajectoryTable extends HTMLElement {
     })
   }
 
+  #syncTableTailFollow(pane) {
+    this.#followsTableTail =
+      pane.scrollHeight - pane.clientHeight - pane.scrollTop <= BOTTOM_FOLLOW_THRESHOLD_PX
+  }
+
   #ensureVirtualizer(
     virtualizationEnabled,
     count,
@@ -1663,7 +1668,10 @@ export class FreddieTrajectoryTable extends HTMLElement {
       observeElementOffset: (instance, cb) => {
         const element = instance.scrollElement
         if (element === null) return undefined
-        const notify = () => { cb(element.scrollTop, false) }
+        const notify = () => {
+          this.#syncTableTailFollow(element)
+          cb(element.scrollTop, false)
+        }
         notify()
         element.addEventListener('scroll', notify, { passive: true })
         return () => { element.removeEventListener('scroll', notify) }
@@ -1877,8 +1885,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
           'data-trajectory-scroll': '',
           onscroll: (event) => {
             const pane = event.currentTarget
-            this.#followsTableTail =
-              pane.scrollHeight - pane.clientHeight - pane.scrollTop <= BOTTOM_FOLLOW_THRESHOLD_PX
+            this.#syncTableTailFollow(pane)
             this.#requestOlder(pane, true)
           },
           onclick: (event) => {

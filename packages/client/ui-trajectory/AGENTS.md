@@ -2,6 +2,8 @@
 
 ## Rationale
 
+- `TrajectoryTable.js` records current tail-follow state before notifying its virtualizer offset callback, because the queued render can run before the later pane scroll listener ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
+
 - `TrajectoryView.js` owns one connected search timer and replaces its pending layouts on every render. `TrajectorySearchIndex.update()` reports content or membership changes, not fresh array identities; an unchanged flush must not rearm itself ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-finite-search-index-flush.md)).
 
 - `src/client/layout.js` compaction node: chat owns the human-facing compaction marker, so the trajectory adds no duplicate cell but the node still advances the duration cursor (`prevAbsTime`).
@@ -17,4 +19,4 @@
 
 ## CSS rationale
 
-- `views.css`: the ledger host clears the floating composer by `--freddie-composer-height`, which `ConversationRoot.js` publishes.
+- `views.css` selects native hosts by stable `data-ce`; the timeline must keep intrinsic height rather than divide the ledger's flex allocation. The ledger clears the floating composer using the live height published by ConversationRoot ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).

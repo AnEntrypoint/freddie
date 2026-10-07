@@ -1,10 +1,14 @@
-freddie-trajectory-view,
-freddie-trajectory-table,
-freddie-trajectory-timeline {
+[data-ce='freddie-trajectory-view'],
+[data-ce='freddie-trajectory-table'],
+[data-ce='freddie-trajectory-timeline'] {
   display: flex;
   flex: 1 1 0%;
   min-width: 0;
   min-height: 0;
+}
+
+[data-ce='freddie-trajectory-timeline'] {
+  flex: none;
 }
 
 .freddie-views__root {
