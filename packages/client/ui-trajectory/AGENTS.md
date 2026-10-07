@@ -21,4 +21,4 @@
 
 ## CSS rationale
 
-- `views.css` selects native hosts by stable `data-ce`; the timeline must keep intrinsic height rather than divide the ledger's flex allocation. The ledger clears the floating composer using the live height published by ConversationRoot ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
+- `views.css` selects native hosts by stable `data-ce`; the timeline keeps intrinsic height and a column flex axis so its inner section stretches across the available width instead of shrinking to the label column. The ledger clears the floating composer using the live height published by ConversationRoot ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).

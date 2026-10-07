@@ -10,7 +10,7 @@ Virtualized rows do not bound browser work when the observed table pane grows wi
 
 The conversation session custom element uses `display: contents`. For composer-overlay views, ConversationRoot also makes the two owning slot-outlet wrappers layout-transparent and constrains the actual session view area to the remaining flex height. Chat keeps its flowing transcript, stable gutter and sticky composer; overlay seat-width compensation remains unchanged.
 
-Trajectory structural rules select stable `data-ce` identities rather than versioned custom-element names. The timeline keeps its intrinsic height instead of sharing the ledger's expanding flex allocation. The table and inspector own vertical scrolling inside the bounded ledger; their existing padding reserves the live composer height plus 16 pixels.
+Trajectory structural rules select stable `data-ce` identities rather than versioned custom-element names. The timeline keeps its intrinsic height instead of sharing the ledger's expanding flex allocation. Its host uses a column flex axis so the inner section stretches across the available width; a horizontal axis shrinks that non-growing section to the fixed label column and leaves no plot track. The table and inspector own vertical scrolling inside the bounded ledger; their existing padding reserves the live composer height plus 16 pixels.
 
 The virtualizer's offset observer records bottom-follow state from the current pane before invoking its offset callback. The ordinary pane scroll handler uses the same calculation and remains the owner of older-page requests. A browser can run a microtask between native event listeners: the virtualizer callback queues a render, so relying exclusively on a later owner listener allows that render to follow the old tail state. The bottom threshold, selection navigation and history-anchor calculation remain unchanged.
 
@@ -33,6 +33,8 @@ The [inspection-ledger decision](../feature/2026-07-27-trajectory-inspection-led
 ## Consequences
 
 In the real Chromium composition, the loaded ledger contains 233 logical rows. The intrinsic pane measures 7,150 pixels and mounts all 233 rows. The bounded pane measures 741 pixels; top, middle and tail positions mount 37, 50 and 32 rows respectively, with virtual spacers and reachable records. Its timeline measures 51 pixels. Native PageUp settles away from the tail on the same View, Table and pane; Ctrl+End returns to the tail without replacing them.
+
+The column-axis repair expands the timeline section and plot from 44 to 1,000 pixels, with a 956-pixel track. Timeline height remains 51 pixels and ledger height 741 pixels. Genuine dragging creates a nonempty interval and right-click clears it. Stylesheet hot replacement preserves the current owners; it is not a class-replacement check.
 
 A genuine 12-line draft grows the composer from 144 to 408 pixels. The last row remains 16 pixels above the actual composer seat in both states. Actual tool selection exposes the current inspector; Overview, Chat and Trajectory navigation remain functional. A 10.5-second quiet interval retains the same owners and mounted rows, records no new errors, and reports all 92 client fibers active with awaited shell health succeeding. Probes are removed and the original session, Chat state, draft, caret, persistence bytes and scroll geometry restored.
 

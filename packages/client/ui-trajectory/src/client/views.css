@@ -9,6 +9,7 @@
 
 [data-ce='freddie-trajectory-timeline'] {
   flex: none;
+  flex-direction: column;
 }
 
 .freddie-views__root {

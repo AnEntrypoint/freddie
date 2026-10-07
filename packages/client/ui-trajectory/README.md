@@ -4,7 +4,7 @@ Trajectory renders a turn-aware event ledger with selectable User, Assistant, To
 
 ## Viewport and scrolling
 
-The timeline keeps its intrinsic height above a viewport-bounded ledger. The table initializes its virtualizer and initial scroll position only while connected. The table and inspector scroll independently and reserve the live composer height plus 16 pixels. Scrolling away from the bottom suspends tail following before virtualizer-driven rendering; returning to the bottom restores following ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
+The timeline keeps its intrinsic height and fills the available width above a viewport-bounded ledger. The table initializes its virtualizer and initial scroll position only while connected. The table and inspector scroll independently and reserve the live composer height plus 16 pixels. Scrolling away from the bottom suspends tail following before virtualizer-driven rendering; returning to the bottom restores following ([decision](../../../.agents/notes/implemented/bug-fix/2026-10-06-trajectory-bounded-viewport-and-scroll-follow.md)).
 
 ## Search updates
 
