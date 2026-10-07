@@ -107,8 +107,12 @@
   status: pending
   route_family: execution
   session_id: freddie-2359017-1791302765514
-- id: gui-hmr-http-connection-budget
-  subject: Measure and remove GUI boot/history stalls from long-lived HTTP event transport. Current committed API uses WebSockets; HMR alone uses EventSource /plugins/events. Node returns HTTP200 while Chrome dynamic imports/history/new navigation time out; closing two known obsolete agent app tabs allowed existing GUI mount. Do not claim HTTP1 causality yet. Witness actual pending request/connection count and before/after multi-tab real app boot, HMR graph/rebuilt/heartbeat/reconnect/gap/disposal semantics. Prefer HMR WebSocket via existing webServer.registerUpgrade if saturation proven, no unrelated tab closures or unsafe shared-host restart.
-  route_family: observability
-  session_id: gui-perf-scale-20261006
+- id: gui-perf-next-input-startup-20261006
+  subject: 'Full GUI performance goal, next evidence wave after binding reuse published b564: measure actual real-keyboard composer input-to-paint without profiler first, then isolate measured hot work; independently measure real fresh owned browser startup critical module/activation path. Preserve existing session content, draft, caret and scroll. Optimize only a proved cost with complete invalidation/lifecycle correctness, exercise actual prior failing action after source change, remove all instrumentation and publish scoped exact source under GitHub user. Completion claim limited to witnessed costs and surfaces, never full GUI closure from one improvement.'
+  SESSION_ID: gui-perf-next-20261006
+  session_id: gui-perf-next-20261006
+  status: pending
+- id: gui-trajectory-retained-render-owner-20261006
+  subject: Actual native earlier-history notifications remount TrajectoryView/Table and reset private search/selection ownership; bare TrajectoryView registration and child HTMLElement factories need source audit. Retain standard native registration/VDOM owners only after real same-owner search/history/selection/lifetime gates; preserve current props/session/provider/locale semantics and no arbitrary identity comparator/cache. Separate from finite idle search timer and viewport CSS atoms; no fabricated active-stream witness.
+  session_id: gui-perf-next-20261006
   status: pending
