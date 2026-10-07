@@ -1639,6 +1639,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
     getItemKey,
     scrollMargin,
   ) {
+    if (!this.isConnected) return null
     const pane = this.#tablePaneEl
     if (pane === null) return null
     const options = {
@@ -2751,6 +2752,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
     virtualizationEnabled,
     rowVirtualizer,
   ) {
+    if (!this.isConnected) return
     const pane = this.#tablePaneEl
     if (pane === null) return
     const { historyStartSeq } = this.#props
