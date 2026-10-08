@@ -63,7 +63,6 @@ export class WorkspaceFileSearch {
       promise: Promise.resolve([]),
     }
     generation.promise = this.scanWorkspace(controller.signal).catch((error) => {
-      /* v8 ignore next -- every owned abort clears `generation` synchronously; this only protects an unexpected scan failure */
       if (this.generation === generation) this.generation = undefined
       throw error
     })
@@ -77,7 +76,6 @@ export class WorkspaceFileSearch {
     for (let cursor = 0; cursor < directories.length && indexed.length < this.config.maxEntries; cursor += 1) {
       signal.throwIfAborted()
       const directory = directories[cursor]
-      /* v8 ignore next 3 -- cursor is bounded by this exact queue's length. */
       if (directory === undefined) {
         throw new Error('file search selected a missing directory')
       }
@@ -122,7 +120,6 @@ async function resolveDisplayDirectory(root, displayDirectory, signal) {
   const absolute = resolve(resolvedRoot, displayDirectory === '' ? '.' : displayDirectory)
   const fromRoot = relative(resolvedRoot, absolute)
   if (fromRoot === '..' || fromRoot.startsWith(`..${sep}`)) return undefined
-  /* v8 ignore next -- only Windows can produce a cross-volume absolute relative path */
   if (isAbsolute(fromRoot)) return undefined
   let current = resolvedRoot
   for (const segment of fromRoot.split(sep).filter(Boolean)) {
@@ -202,13 +199,10 @@ function kindRank(kind) {
 }
 
 function compareText(left, right) {
-  /* v8 ignore next -- entries and candidates are unique; host enumeration
-   * order determines which comparison direction sort requests. */
   return left < right ? -1 : left > right ? 1 : 0
 }
 
 function waitForPromise(promise, signal) {
-  /* v8 ignore next -- `list()` checks this signal immediately before its synchronous call into this helper */
   if (signal.aborted) return Promise.reject(errorReason(signal.reason, 'file search aborted'))
   return new Promise((resolvePromise, rejectPromise) => {
     const onAbort = () => { rejectPromise(errorReason(signal.reason, 'file search aborted')) }

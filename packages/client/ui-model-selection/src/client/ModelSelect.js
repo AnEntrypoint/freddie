@@ -89,6 +89,19 @@ export class FreddieModelSelect extends HTMLElement {
     this.#bindOutsideClose()
     this.#reload()
     this.#render()
+    this.#focusFirstItem()
+  }
+
+  #focusFirstItem() {
+    const first = this.#itemEls.find(item => item !== null && !item.disabled)
+    const target = first ?? this.#triggerEl
+    target?.focus()
+  }
+
+  #openPane(pane) {
+    this.#pane = pane
+    this.#render()
+    this.#focusFirstItem()
   }
 
   #close(restoreFocus = false) {
@@ -100,17 +113,20 @@ export class FreddieModelSelect extends HTMLElement {
   }
 
   #moveFocus(offset) {
-    const items = this.#itemEls.filter(item => item !== null)
+    const items = this.#itemEls.filter(item => item !== null && !item.disabled)
     if (items.length === 0) return
     const active = items.findIndex(item => item === document.activeElement)
-    const next = (Math.max(active, 0) + offset + items.length) % items.length
+    const next = active < 0
+      ? offset > 0 ? 0 : items.length - 1
+      : (active + offset + items.length) % items.length
     items[next]?.focus()
   }
 
   #onRootKeyDown(event) {
     if (event.key === 'Escape' && this.#open) {
       event.preventDefault()
-      if (this.#pane !== 'root') { this.#pane = 'root'; this.#render() } else this.#close(true)
+      if (this.#pane !== 'root') this.#openPane('root')
+      else this.#close(true)
       return
     }
     if (!this.#open) return
@@ -271,13 +287,13 @@ export class FreddieModelSelect extends HTMLElement {
             'aria-busy': state.status === 'loading' || busy,
           },
           pane === 'root' && [
-            h('button', { ref: itemRef(), type: 'button', role: 'menuitem', class: css.cell ?? '', onclick: () => { this.#pane = 'model'; this.#render() } },
+            h('button', { ref: itemRef(), type: 'button', role: 'menuitem', class: css.cell ?? '', onclick: () => { this.#openPane('model') } },
               h('span', { class: css.cellLabel ?? '' }, t('menu.model')),
               h('span', { class: css.cellValue ?? '' }, modelLabel),
               h(IconChevronRightOutline14, { className: css.cellChevron }),
             ),
             reasoning !== undefined && (
-              h('button', { ref: itemRef(), type: 'button', role: 'menuitem', class: css.cell ?? '', onclick: () => { this.#pane = 'effort'; this.#render() } },
+              h('button', { ref: itemRef(), type: 'button', role: 'menuitem', class: css.cell ?? '', onclick: () => { this.#openPane('effort') } },
                 h('span', { class: css.cellLabel ?? '' }, t('menu.effort')),
                 h('span', { class: css.cellValue ?? '' }, effortLabel),
                 h(IconChevronRightOutline14, { className: css.cellChevron }),

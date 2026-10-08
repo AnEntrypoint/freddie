@@ -23,7 +23,6 @@ export async function openDatabase(createClient, path) {
 async function configureConnectionSecurity(client, path) {
   await client.execute(sql('trusted-schema-off'))
   const trustedSchema = integerField(await scalarRow(client, 'select-trusted-schema'), 'trusted_schema')
-  /* v8 ignore next 3 */
   if (trustedSchema !== 0) {
     throw new Error(`session database at "${path}" retained trusted_schema=${trustedSchema}, expected 0`)
   }
@@ -56,9 +55,7 @@ async function configureDatabase(createClient, client, path) {
     await client.execute(sql('commit'))
     began = false
   } catch (error) {
-    /* v8 ignore else */
     if (began) {
-      /* v8 ignore next 5 */
       try {
         await client.execute(sql('rollback'))
       } catch {

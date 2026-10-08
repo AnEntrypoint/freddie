@@ -14,7 +14,6 @@ export function scrubbedParentEnv() {
 }
 
 export class SubprocessRuntime extends Service {
-  /* v8 ignore next -- abstract service construction is covered through concrete provider packages. */
   constructor(ctx) {
     super(ctx, 'subprocess')
   }

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { definesRenderSuspension, withRenderSuspension, } from "./renderSuspension.js";
 function updateEventListener(el, eventName, newHandler, oldHandler) {
     if (oldHandler && oldHandler !== newHandler) {
@@ -12,6 +11,15 @@ function updateEventListener(el, eventName, newHandler, oldHandler) {
     }
 }
 function updatePropOrAttr(el, key, value) {
+    if (key.startsWith("aria-")) {
+        if (value === undefined || value === null) {
+            el.removeAttribute(key);
+        }
+        else {
+            el.setAttribute(key, String(value));
+        }
+        return;
+    }
     if (el.namespaceURI === "http://www.w3.org/2000/svg") {
         if (value === false || value === undefined || value === null) {
             el.removeAttribute(key);

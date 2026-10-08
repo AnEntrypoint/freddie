@@ -12,7 +12,6 @@ export function createProcessShutdown(
   let forceExited = false
 
   const clearExitTimeout = () => {
-    /* v8 ignore else */
     if (timeout !== undefined) clearTimeout(timeout)
   }
 

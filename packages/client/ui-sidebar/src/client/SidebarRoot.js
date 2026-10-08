@@ -148,7 +148,7 @@ export class FreddieSidebarRoot extends HTMLElement {
         onpointerleave: this.#onPointerLeave,
       },
         h('div', {class: css.logoRow ?? ''},
-          wide && (
+          h('span', { style: 'display: contents;' }, wide && (
             h('button', {
               type: 'button',
               class: clsx(css.brand, css.wide),
@@ -171,11 +171,12 @@ export class FreddieSidebarRoot extends HTMLElement {
                 ),
               ),
             )
-          ),
+          )),
           this.#tooltip('toggle', {label: collapsed ? t('toggle.open') : t('toggle.collapse'), delayMs: 500, children: [
             h('button', {
               type: 'button',
               class: clsx(css.iconButton, css.toggle),
+              'data-sidebar-toggle': '',
               'aria-label': collapsed ? t('toggle.open') : t('toggle.collapse'),
               onclick: () => { toggleSidebar() },
             },

@@ -354,3 +354,9 @@
   opacity: 0.7;
   color: var(--freddie-alias-state-error-primary);
 }
+
+.freddie-inputBar__root > [data-ce='freddie-slot-outlet'] {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--freddie-composer-card-max-width);
+}

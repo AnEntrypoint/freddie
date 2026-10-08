@@ -52,11 +52,6 @@ if (typeof config.lifecycleActor !== 'string' || !config.lifecycleActor) {
   throw new Error('config.lifecycleActor is not set')
 }
 
-/**
- * Return Markdown outside balanced details elements.
- * @param {string} body Markdown body.
- * @returns {{text: string, balanced: boolean, detailsCount: number, allCollapsed: boolean}} Visible source and details shape.
- */
 export function extractOutsideDetails(body) {
   const source = body.replace(/<!--[\s\S]*?-->/g, '')
   const tag = /<\/?details\b[^>]*>/gi
@@ -86,11 +81,6 @@ export function extractOutsideDetails(body) {
   return { text, balanced, detailsCount, allCollapsed }
 }
 
-/**
- * Count contiguous Latin, numeric, or code tokens.
- * @param {string} body Markdown body.
- * @returns {{units: number, balanced: boolean, detailsCount: number, allCollapsed: boolean}} Visible unit count and details shape.
- */
 export function countVisibleUnits(body) {
   const outside = extractOutsideDetails(body)
   const visible = outside.text
@@ -117,11 +107,6 @@ function firstNonblankLine(body) {
     .find(Boolean)
 }
 
-/**
- * Validate required body sections and check Owner against assignees.
- * @param {{body: string, assignees: string[], allowUnassignedOwner?: boolean}} input Body input.
- * @returns {string[]} Validation errors.
- */
 export function validateBody({
   body,
   assignees,
@@ -154,11 +139,6 @@ export function validateBody({
   return errors
 }
 
-/**
- * Decide whether the human-review policy applies to a PR.
- * @param {{isDraft: boolean, authorType: string, reviewRequestCount: number, reviewCount: number}} input PR state.
- * @returns {boolean} Whether the PR policy is mandatory.
- */
 export function requiresPullRequestPolicy({
   isDraft,
   authorType,
@@ -169,12 +149,6 @@ export function requiresPullRequestPolicy({
   return !isDraft && !automated && (reviewRequestCount > 0 || reviewCount > 0)
 }
 
-/**
- * Translate a repository event into one resolving-Issue lifecycle command.
- * @param {string} eventName GitHub event name.
- * @param {{action?: string, review?: {state?: string}}} event GitHub event payload.
- * @returns {'implementation'|'review-requested'|'changes-requested'|null} Lifecycle command.
- */
 export function resolvingIssueStatusCommand(eventName, event) {
   if (eventName === 'pull_request') {
     if (event.action === 'review_requested') return 'review-requested'
@@ -190,13 +164,6 @@ export function resolvingIssueStatusCommand(eventName, event) {
   return null
 }
 
-/**
- * Plan one event-directed resolving-Issue status transition.
- * @param {string|null} currentStatus Current Project status.
- * @param {'implementation'|'review-requested'|'changes-requested'} command Lifecycle command.
- * @param {string|null} currentStatusActor Actor that last set the current Project status.
- * @returns {string|null} Status to write, or null when no permitted transition exists.
- */
 export function nextResolvingIssueStatus(currentStatus, command, currentStatusActor = null) {
   let target
   if (command === 'review-requested') target = 'In review'
@@ -231,11 +198,6 @@ function stripIgnoredMarkdown(body) {
   return kept.join('\n').replace(/\u0060[^\u0060]*\u0060/g, ' ')
 }
 
-/**
- * Parse same-repository resolving and informational references.
- * @param {{body: string, repository: string}} input PR body and repository.
- * @returns {{all: number[], resolving: number[], related: number[]}} References.
- */
 export function parseReferences({ body, repository }) {
   const source = stripIgnoredMarkdown(body)
   const expected = repository.toLowerCase()
@@ -266,12 +228,6 @@ export function parseReferences({ body, repository }) {
   }
 }
 
-/**
- * Retain only references that resolve to Issues rather than pull requests.
- * @param {{all: number[], resolving: number[], related: number[]}} references Parsed references.
- * @param {Map<number, unknown>} issues Resolved same-repository Issues.
- * @returns {{all: number[], resolving: number[], related: number[]}} Issue-only references.
- */
 export function retainIssueReferences(references, issues) {
   return {
     all: references.all.filter((number) => issues.has(number)),
@@ -280,11 +236,6 @@ export function retainIssueReferences(references, issues) {
   }
 }
 
-/**
- * Validate one Issue with its Project status.
- * @param {{title: string, body: string, assignees: string[], labels: string[], type: string|null, priority: string|null, status: string|null, state: string, stateReason: string|null}} issue Issue snapshot.
- * @returns {string[]} Validation errors.
- */
 export function validateIssue(issue) {
   const errors = validateBody(issue)
   const status = issue.status
@@ -326,11 +277,6 @@ export function validateIssue(issue) {
   return errors
 }
 
-/**
- * Validate PR metadata and its referenced Issues.
- * @param {{authorType: string, labels: string[], references: ReturnType<typeof parseReferences>, issues: Map<number, {priority: string|null}>}} input PR snapshot.
- * @returns {string[]} Validation errors.
- */
 export function validatePullRequest(input) {
   if (!requiresPullRequestPolicy(input)) return []
   const errors = []

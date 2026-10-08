@@ -82,7 +82,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
       const binding = { identity: Symbol(), service }
       this._persistenceBinding = binding
       childCtx.effect(() => () => {
-        /* v8 ignore next */
         if (this._persistenceBinding !== binding) return
         this._persistenceBinding = { identity: Symbol() }
       }, 'sessionQuerySqlite.persistenceBinding')
@@ -274,7 +273,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         began = true
         for (const row of persistentDeletes) await this._deleteSession('persisted', row.id)
         for (const entry of persistentChanges) {
-          /* v8 ignore next */
           if (entry.loaded === undefined) throw new Error(`missing loaded revision for session "${entry.header.id}"`)
           await this._replacePersistedSession(entry.loaded, entry.revision, nextMainGeneration)
         }
@@ -287,9 +285,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
         }
         await db.exec('COMMIT')
       } catch (error) {
-        /* v8 ignore next */
         if (began) {
-          /* v8 ignore next 5 */
           try {
             await db.exec('ROLLBACK')
           } catch {
@@ -560,7 +556,6 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
   }
 
   _requireDb() {
-    /* v8 ignore next */
     if (this._db === undefined) throw indexClosed()
     return this._db
   }

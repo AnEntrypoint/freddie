@@ -3,40 +3,8 @@ import { foldConsumedWork } from '@freddie/freddie-agent'
 import { finalAssistantOutput } from './assistant-output.js'
 import { SubagentRunId } from './types.js'
 
-/**
- * How one Activation's residency epoch ended, as both the terminal lifecycle
- * edge and the manager's own parent delivery report it.
- * @typedef {object} SubagentActivationTerminal
- * @property {'completed' | 'aborted' | 'max-tokens' | 'refusal' | 'error'} stopReason
- * @property {Array<object>} [output] - the epoch's final model-facing content, when any.
- */
 
-/**
- * Lifecycle observer for one Activation's residency epoch, so continuable
- * children emit the same start/end pair as one-shot runs. Package-private: the
- * continuation manager is the only consumer, and its call ordering is an
- * in-package contract rather than a published extension point.
- * @typedef {object} ActivationObserver
- * @property {function(object): void} start - mark the residency boundary once the child Agent exists.
- * @property {function(object): void} capture - snapshot the epoch's own final output before disposal.
- * @property {function(Error|undefined): SubagentActivationTerminal} terminal - the epoch's terminal edge for a given disposal failure, if any.
- * @property {function(Error|undefined): void} settle - emit the `subagent/end` edge.
- */
 
-/**
- * Publish one lifecycle edge with per-listener exception containment. Run edges
- * carry the delegating parent that keys scoped dispatch; provider removal has no
- * parent carrier and reaches listeners unscoped.
- *
- * The service owns this closure because scoped dispatch keys its carrier by the
- * exact service instance, whose own context filter composes into the carrier;
- * a narrowed stand-in would silently change scope filtering.
- * @callback SubagentLifecycleEmit
- * @param {string} name - the lifecycle event name (`subagent/start`, `subagent/end`).
- * @param {object} info - the event payload.
- * @param {object} [parent] - the delegating parent keying scoped dispatch, when any.
- * @returns {void}
- */
 
 export function createLifecycleEmitter(ctx, carrier) {
   return (name, info, parent) => {
@@ -126,9 +94,6 @@ function epochStopReason(events) {
     case undefined:
     case 'completed':
       return droppedUnrun ? 'aborted' : 'completed'
-    /* v8 ignore next 3 -- `TurnEndReason` is merge-extensible, so this arm needs a
-     * backend that adds a variant; treating an unnameable reason as success would
-     * report failed work as completed. */
     default:
       return 'error'
   }

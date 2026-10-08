@@ -30,6 +30,8 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
   const state = model.state === 'ok' && terminal !== null && terminalFailed(terminal)
     ? 'error'
     : model.state
+  const resultSummary = state === 'ok' && model.resultTitle !== undefined
+    && terminal === null && diff === null && read === null && search === null && web === null
   const singleFile = model.filePath !== undefined
   return (
     h('freddie-tool-row', {
@@ -38,8 +40,9 @@ export function GenericToolCard({ toolName, block, cwd, home, openFile, inspect,
       variant: model.variant,
       toolName: toolName,
       icon: VARIANT_ICONS[model.variant],
-      title: model.title,
-      summary: terminal?.description ?? search?.title ?? model.summary,
+      title: resultSummary ? model.resultTitle : model.title,
+      summary: resultSummary ? toolName : terminal?.description ?? search?.title ?? model.summary,
+      resultSummary,
       body: singleFile ? null : model.body,
       output: model.output,
       errorSummary: model.errorSummary,

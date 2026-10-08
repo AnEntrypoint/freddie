@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-/* v8 ignore file */
-
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { loadLayeredEnv } from '@freddie/freddie-app-boot'

@@ -4,7 +4,7 @@ Rules for `packages/client/*`, the browser half of the web GUI (shell entry `app
 
 ## Stack
 
-Buildless plain ESM `.js` with JSDoc, served as authored. No TypeScript, React, Vite, tsdown, `tsconfig`, `.ts`/`.tsx` source or test file exists under `packages/client` or `apps/web` ([why](../../.agents/notes/implemented/architecture/2026-09-02-buildless-workspace-no-transformation-at-launch.md)). Boot: `apps/web/src/main.js` → `AppWebEntry` (`web/src/boot.js`) reads `window.__FREDDIE_BOOT__` (the graph `modules` composes), boots the Cordis Loader over its rows, then `ui-renderer` mounts `root`. DOM is webjsx custom elements.
+Buildless plain ESM `.js`, served as authored. No TypeScript, React, Vite, tsdown, `tsconfig`, `.ts`/`.tsx` source or test file exists under `packages/client` or `apps/web` ([why](../../.agents/notes/implemented/architecture/2026-09-02-buildless-workspace-no-transformation-at-launch.md)). Boot: `apps/web/src/main.js` → `AppWebEntry` (`web/src/boot.js`) reads `window.__FREDDIE_BOOT__` (the graph `modules` composes), boots the Cordis Loader over its rows, then `ui-renderer` mounts `root`. DOM is webjsx custom elements.
 
 ## Package shape and manifest
 

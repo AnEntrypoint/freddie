@@ -38,7 +38,6 @@ export class SessionProjectionRegistry extends Service {
       }
       yield () => {
         const live = this.registrations.get(key)
-        /* v8 ignore next */
         if (live === undefined) return
         live.refs -= 1
         if (live.refs === 0) this.registrations.delete(key)

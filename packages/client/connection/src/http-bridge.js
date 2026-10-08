@@ -28,7 +28,6 @@ export async function bridge(
     }
     chunks.push(buffer)
   }
-  /* v8 ignore next 3 */
   const request = new Request(new URL(req.url ?? '/', 'http://freddie.internal'), {
     method: req.method ?? 'GET',
     headers: Object.fromEntries(Object.entries(req.headers).filter(([, v]) => typeof v === 'string')),

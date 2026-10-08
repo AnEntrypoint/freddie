@@ -21,7 +21,6 @@ function dotState(status) {
     case 'failed': return 'error'
     case 'cancelled':
     case 'interrupted': return 'warning'
-    /* v8 ignore next */
     default: return status
   }
 }
@@ -114,14 +113,12 @@ function existingPhaseState(
   key,
 ) {
   const phase = phases.get(key)
-  /* v8 ignore next */
   if (phase === undefined) throw new Error(`Missing disclosure state for phase ${key}`)
   return phase
 }
 
 function preventPendingHeaderFocus(event) {
   const header = (event.currentTarget).querySelector('[data-disclosure-row]')
-  /* v8 ignore next */
   if (header === null) throw new Error('Missing disclosure header')
   if (header.contains(event.target)) event.preventDefault()
 }

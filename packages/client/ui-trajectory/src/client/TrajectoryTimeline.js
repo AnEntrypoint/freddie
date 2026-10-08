@@ -184,9 +184,7 @@ function cssVarStyle(vars) {
 }
 
 export class FreddieTrajectoryTimeline extends HTMLElement {
-  #props = {
-    turns: [], mode: 'sequence', range: null, onRangeChange: () => {},
-  }
+  #props = null
 
   #drag = null
   #pan = null
@@ -332,12 +330,28 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
   }
 
   #render() {
+    if (this.#props === null) return
     const {
       turns, mode, range, hasEarlierRecords = false, onLoadEarlier,
       selectedIndex = null, searchMatchIndexes = null, onRangeChange,
-      onRecordSelect, onRecordFocus,
+      onRecordSelect, onRecordFocus, t,
     } = this.#props
     const model = deriveTrajectoryTimeline(turns, mode)
+    const loadedCount = turns.reduce((total, turn) => total + turn.groups.reduce(
+      (count, group) => count + group.cells.filter(cell => cell.requestOnly !== true).length,
+      0,
+    ), 0)
+    const caption = h('div', {class: css.caption, 'data-timeline-caption': ''},
+      h('span', null, t(`timeline.mode.${mode}`)),
+      mode === 'sequence' ? null : h('span', null, t(
+        mode === 'duration' ? 'timeline.idleOmitted' : 'timeline.gapsIncluded',
+      )),
+      h('span', null, `${t('timeline.loadedRecords')}: ${loadedCount}`),
+      mode === 'sequence' ? null : h('span', null,
+        `${t('timeline.timedRecords')}: ${model?.spans.length ?? 0} / ${loadedCount}`,
+      ),
+      hasEarlierRecords ? h('span', null, t('timeline.earlierNotLoaded')) : null,
+    )
     const detailByIndex = new Map(turns.flatMap(turn =>
       turn.groups.flatMap(group =>
         group.cells.map(cell => [cell.index, timelineRecordDetail(cell)]),
@@ -353,11 +367,14 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
           void onLoadEarlier().finally(() => { this.#loadingEarlier = false; this.#render() })
         }
       const vdom = (
-        h('section', {class: css.root ?? '', 'aria-label': 'Trajectory timeline'},
+        h('section', {class: css.root ?? '', 'aria-label': t('timeline.aria')},
+          caption,
           h('div', {class: css.plot ?? ''},
             h(LaneLabels, null),
             h('div', {class: css.track ?? ''},
-              h('span', {class: css.empty ?? ''}, 'No timing data'),
+              h('span', {class: css.empty ?? ''}, t(
+                mode === 'sequence' ? 'timeline.noRecords' : 'timeline.noTimestamps',
+              )),
               hasEarlierRecords
                 ? h(EarlierHistoryBoundary, {
                   loading: this.#loadingEarlier,
@@ -587,7 +604,16 @@ export class FreddieTrajectoryTimeline extends HTMLElement {
     }
 
     const vdom = (
-      h('section', {class: css.root ?? '', 'aria-label': 'Trajectory timeline'},
+      h('section', {class: css.root ?? '', 'aria-label': t('timeline.aria')},
+        caption,
+        h('div', {class: css.scale, 'data-timeline-scale': ''},
+          h('span', null, mode === 'sequence'
+            ? `${Number(domainStart.toFixed(1))} ${t('timeline.recordPosition')}`
+            : formatTimelineOffset(domainStart - model.start)),
+          h('span', null, mode === 'sequence'
+            ? `${Number((domainStart + domainDuration).toFixed(1))} ${t('timeline.recordPosition')}`
+            : formatTimelineOffset(Math.min(model.end, domainStart + domainDuration) - model.start)),
+        ),
         h('div', {class: css.plot ?? ''},
           h(LaneLabels, null),
           h('div', {

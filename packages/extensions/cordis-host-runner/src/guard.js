@@ -16,7 +16,6 @@ function isPlainRecord(value) {
       && hasIntrinsicConstructor(prototype, 'Object')
 }
 
-/* jscpd:ignore-start -- this VM boundary mirrors the session-owned realm-safe intrinsic test */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -39,7 +38,6 @@ function hasPlainArrayPrototype(value) {
     && Object.getPrototypeOf(objectPrototype) === null
     && hasIntrinsicConstructor(objectPrototype, 'Object')
 }
-/* jscpd:ignore-end */
 
 function isDensePlainArray(value) {
   if (!Array.isArray(value) || !hasPlainArrayPrototype(value) || Reflect.ownKeys(value).length !== value.length + 1) {
@@ -134,7 +132,6 @@ function cloneJson(value, path) {
     const entries = Object.entries(record)
     for (let index = entries.length - 1; index >= 0; index--) {
       const entry = entries[index]
-      /* v8 ignore next -- the loop is bounded by the captured entry count. */
       if (entry === undefined) continue
       tasks.push({
         kind: 'visit',
@@ -250,7 +247,6 @@ function normalizePropertyMap(entries, path, requiredNames, raw) {
       const mapEntries = Object.entries(task.entries)
       for (let index = mapEntries.length - 1; index >= 0; index--) {
         const entry = mapEntries[index]
-        /* v8 ignore next -- the loop is bounded by the captured entry count. */
         if (entry === undefined) continue
         tasks.push({
           kind: 'value',
@@ -380,12 +376,10 @@ function normalizePropertyMap(entries, path, requiredNames, raw) {
       case 'json':
         assertSchemaKeys(value, path, ['type', ...requiredKey, ...ANNOTATION_KEYS])
         break
-      /* v8 ignore next 2 -- SCHEMA_TYPES narrows this closed switch before dispatch. */
       default:
         throw new Error(`harness.defineTool ${path} must declare a valid type: ${VALID_TYPES}`)
     }
   }
-  /* v8 ignore next -- the root map task assigns before scheduling descendants. */
   return holder.value ?? {}
 }
 
@@ -495,7 +489,6 @@ function sandboxTools(ctx) {
   }
 }
 
-/* jscpd:ignore-start */
 function denyContext(value, service, reportFailure) {
   if (value instanceof Context) {
     return rejectGuard(reportFailure,
@@ -520,7 +513,6 @@ function guardedService(service, name, reportFailure) {
     },
   })
 }
-/* jscpd:ignore-end */
 
 function declaredInjects(ctx) {
   return new Set(Object.keys(ctx.fiber.inject))
@@ -550,7 +542,6 @@ function sandboxContext(ctx, reportFailure) {
     return guardedService(service, name, reportFailure)
   }
   const get = name => readService(name, false)
-  /* jscpd:ignore-start */
   return new Proxy({}, {
     get(_target, prop) {
       if (prop === 'tools') return tools
@@ -572,7 +563,6 @@ function sandboxContext(ctx, reportFailure) {
       || (typeof prop === 'string'
         && ((CTX_VERBS.has(prop) && (!TIMER_VERBS.has(prop) || declared.has('timer'))) || declared.has(prop))),
   })
-  /* jscpd:ignore-end */
 }
 
 export function isPlugin(value) {

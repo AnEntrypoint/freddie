@@ -19,6 +19,7 @@
 }
 
 .freddie-conversationRoot__header {
+  container-type: inline-size;
   position: relative;
   flex: none;
   padding: 12px 28px 0 20px;
@@ -103,7 +104,10 @@
 }
 
 .freddie-conversationRoot__crumbCurrent {
-  font-weight: 500;
+  max-width: none;
+  font-size: 17px;
+  line-height: 24px;
+  font-weight: 600;
   color: var(--freddie-alias-label-primary);
   cursor: default;
 }
@@ -135,13 +139,18 @@
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 36px;
+  gap: clamp(16px, 3vw, 36px);
+  min-width: 0;
+  overflow-x: auto;
+  scroll-padding-inline: 4px;
   margin-top: 4px;
-  padding-left: 8px;
+  padding: 4px 4px 0 8px;
+  scrollbar-width: thin;
 }
 
 .freddie-conversationRoot__tab {
   position: relative;
+  flex: none;
   padding: 0 0 11px;
   border: none;
   background: transparent;
@@ -150,6 +159,12 @@
   font-weight: 500;
   color: var(--freddie-alias-label-tertiary);
   cursor: pointer;
+}
+
+.freddie-conversationRoot__tab:focus-visible {
+  outline: 2px solid var(--freddie-alias-state-business-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .freddie-conversationRoot__tab::after {
@@ -209,6 +224,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
+  scroll-padding-block-end: var(--freddie-composer-height, 0px);
 }
 
 .freddie-conversationRoot__root[data-phase='active'] .freddie-conversationRoot__viewArea {
@@ -276,4 +292,34 @@
 
 .freddie-conversationRoot__root[data-phase='settling'] .freddie-conversationRoot__composerSeat {
   visibility: hidden;
+}
+
+@container (max-width: 520px) {
+  .freddie-conversationRoot__titleRow {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .freddie-conversationRoot__titleCluster {
+    display: contents;
+  }
+
+  .freddie-conversationRoot__crumbs {
+    flex: 1 1 100%;
+  }
+
+  .freddie-conversationRoot__crumbSeg {
+    min-width: 0;
+  }
+
+  .freddie-conversationRoot__crumbCurrent {
+    white-space: normal;
+    text-align: left;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+  }
+
+  .freddie-conversationRoot__headerUtilities {
+    margin-left: auto;
+  }
 }

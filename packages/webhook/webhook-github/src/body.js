@@ -1,10 +1,6 @@
 export class WebhookHttpError extends Error {
   name = 'WebhookHttpError'
 
-  /**
-   * @param {400 | 401 | 405 | 413 | 415 | 503} status - the HTTP status to answer with.
-   * @param {string} message - operator/sender-safe refusal text.
-   */
   constructor(status, message) {
     super(message)
     this.status = status
@@ -22,13 +18,6 @@ function contentLength(request) {
   return length
 }
 
-/**
- * Read one request body as exact, bounded UTF-8 text.
- * @param {import('node:http').IncomingMessage} request - incoming request before any parser consumes it.
- * @param {number} maxBodyBytes - positive byte ceiling.
- * @returns {Promise<string>} the decoded body after EOF.
- * @throws {WebhookHttpError} for invalid length, excessive bytes, invalid UTF-8, or an aborted stream.
- */
 export async function readBoundedUtf8Body(request, maxBodyBytes) {
   const declared = contentLength(request)
   if (declared !== undefined && declared > maxBodyBytes) {

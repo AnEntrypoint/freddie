@@ -1,14 +1,7 @@
 const MIN_CAPACITY = 16
 
-/**
- * A circular deque with amortized constant-time insertion and removal.
- * Removed entries are cleared immediately, and sparse storage shrinks after
- * the live entry count reaches one quarter of its capacity.
- * @template T
- */
 export class Deque {
   constructor() {
-    /** @type {(T | undefined)[]} */
     this.buffer = new Array(MIN_CAPACITY)
     this.head = 0
     this.count = 0
@@ -18,10 +11,6 @@ export class Deque {
     return this.count
   }
 
-  /**
-   * Append one entry after the current tail.
-   * @param {T} value - entry to append.
-   */
   pushBack(value) {
     this.ensureCapacity()
     const tail = this.head + this.count
@@ -29,10 +18,6 @@ export class Deque {
     this.count += 1
   }
 
-  /**
-   * Insert one entry before the current head.
-   * @param {T} value - entry to prepend.
-   */
   pushFront(value) {
     this.ensureCapacity()
     this.head = this.head === 0 ? this.buffer.length - 1 : this.head - 1
@@ -40,12 +25,6 @@ export class Deque {
     this.count += 1
   }
 
-  /**
-   * Remove the current head entry and clear its retained reference.
-   * Callers whose element type includes `undefined` use {@link Deque#size} to
-   * distinguish an empty deque from an `undefined` entry.
-   * @returns {T | undefined} the removed entry, or `undefined` when the deque is empty.
-   */
   popFront() {
     if (this.count === 0) return undefined
     const value = this.buffer[this.head]
@@ -78,7 +57,6 @@ export class Deque {
     }
   }
 
-  /** @param {number} capacity */
   resize(capacity) {
     const next = new Array(capacity)
     let source = this.head

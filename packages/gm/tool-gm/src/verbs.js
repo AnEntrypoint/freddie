@@ -8,6 +8,7 @@ import {
   presentCodesearchCall,
   presentCodesearchResult,
   presentGenericCall,
+  presentGmOutcomeResult,
   presentInstructionCall,
   presentInstructionResult,
   presentRecallCall,
@@ -49,7 +50,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       output,
       timeoutMs,
       presentCall,
-      presentResult,
+      presentResult: (args, result) => presentGmOutcomeResult(args, result) ?? presentResult?.(args, result),
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
         const startedAt = Date.now()
@@ -232,6 +233,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     output: jsonOutput,
     timeoutMs: GM_TOOL_TIMEOUT_MS,
     presentCall: () => presentGenericCall('gm exec_js'),
+    presentResult: presentGmOutcomeResult,
     async execute(args, exec) {
       const requested = typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs) ? args.timeoutMs : 0
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
@@ -282,9 +284,9 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'git_log',
     description: 'Dispatch gm\'s `git_log` verb: recent commit history for the session workspace.',
     parameters: {
-      max_count: { type: 'number', description: 'Optional commit cap.' },
+      limit: { type: 'number', description: 'Optional commit cap.' },
     },
-    toBody: args => (args.max_count === undefined ? {} : { max_count: args.max_count }),
+    toBody: args => (args.limit === undefined ? {} : { limit: args.limit }),
     presentCall: () => presentGenericCall('gm git_log'),
   })
 
@@ -304,10 +306,10 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'git_show',
     description: 'Dispatch gm\'s `git_show` verb: show one commit or object.',
     parameters: {
-      object: { type: 'string', description: 'Commit or object name; omit for HEAD.' },
+      rev: { type: 'string', description: 'Commit or object name; omit for HEAD.' },
     },
-    toBody: args => (typeof args.object === 'string' && args.object.trim().length > 0 ? { object: args.object } : {}),
-    presentCall: args => presentGenericCall(args.object === undefined ? 'gm git_show' : `gm git_show: ${args.object}`),
+    toBody: args => (typeof args.rev === 'string' && args.rev.trim().length > 0 ? { rev: args.rev } : {}),
+    presentCall: args => presentGenericCall(args.rev === undefined ? 'gm git_show' : `gm git_show: ${args.rev}`),
   })
 
   const gitPushTool = jsonTool({

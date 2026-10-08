@@ -13,7 +13,6 @@ import SqliteSessionQueryEngine from '@freddie/freddie-session-query-sqlite'
 export const name = 'acp-demo'
 const DEFAULT_PERSISTENCE_ROOT = './.sessions'
 
-/* jscpd:ignore-start */
 export const Config = z.object({
   provider: z.string().required(),
   model: z.string().required(),
@@ -33,7 +32,6 @@ export const Config = z.object({
   toolJobs: z.union([z.const(false), agentCore.ToolJobsConfigSchema]),
   goals: z.union([z.const(false), agentCore.GoalConfigSchema]),
 })
-/* jscpd:ignore-end */
 
 export async function apply(ctx, config) {
   const goals = config.goals ?? {}
@@ -42,7 +40,6 @@ export async function apply(ctx, config) {
     const spine = ctx.plugin(agentCore, { ...agentCore.pickSpineConfig(config), goals })
     await spine
     yield spine.dispose
-    /* jscpd:ignore-start */
     const persistence = ctx.plugin(JsonlSessionPersistence, {
       root: persistenceRoot,
       ...config.packChunks !== undefined ? { packChunks: config.packChunks } : {},
@@ -50,7 +47,6 @@ export async function apply(ctx, config) {
     })
     await persistence
     yield persistence.dispose
-    /* jscpd:ignore-end */
     const checkpoint = ctx.plugin(sessionCheckpointPolicy)
     await checkpoint
     yield checkpoint.dispose

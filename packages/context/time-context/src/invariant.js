@@ -95,7 +95,6 @@ function validateReading(
     fail(`time-context reading names turn ${turn}/step ${step}, expected turn ${expected.turn}/step ${expected.step}`)
   }
   const source = event.data.source
-  /* v8 ignore next 2 -- replay and dispatch callers select this exact package-owned source before validation. */
   if (source.kind !== 'plugin' || source.plugin !== SOURCE_NAME) {
     fail('time-context source must retain package ownership')
   }
@@ -125,7 +124,6 @@ function validateReading(
     fail(`time-context step ${step} uses the wrong elapsed-time baseline ${JSON.stringify(baseline)}`)
   }
   const rendered = match[3]
-  /* v8 ignore next -- the preceding fixed regexp always supplies capture group three. */
   if (rendered === undefined) fail('time-context reading omitted its rendered timestamp')
   const renderedTime = Date.parse(rendered.replace(/\[[^\]]+\]$/, ''))
   if (!Number.isFinite(renderedTime) || !Number.isSafeInteger(event.time)
@@ -149,7 +147,6 @@ function validateReading(
   }
 }
 
-/* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
 function validateSession(session, fail) {
   for (const [index, event] of session.events.entries()) {
     if (event.type !== 'user/message'
@@ -171,7 +168,6 @@ const install = Object.assign((ctx, fail) => {
     validateReading(session.events, event, fail)
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

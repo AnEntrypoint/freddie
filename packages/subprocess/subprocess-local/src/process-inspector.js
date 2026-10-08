@@ -2,36 +2,9 @@ import { closeSync, openSync, readFileSync, readdirSync, readSync } from 'node:f
 import { execFileSync } from 'node:child_process'
 import { createWindowsProcessInspector } from './windows-inspector.js'
 
-/**
- * PID plus start identity, preventing teardown escalation after PID reuse.
- * @typedef {{ pid: number, started: string }} ProcessIdentity
- */
 
-/**
- * Injectable OS process operations used by one local PTY session.
- * @typedef {object} ProcessInspector
- * @property {(shellPid: number) => number | undefined} foregroundPgid
- * @property {(pgid: number) => boolean} isStdinWaiting
- * @property {(rootPid: number) => ProcessIdentity[]} processTree - Return the root and its current transitive descendants, children first.
- * @property {(sessionId: number) => ProcessIdentity[]} processSession - Return current members of one POSIX process session when the platform exposes them.
- * @property {(identity: ProcessIdentity) => boolean} isAlive - Return whether the exact identity remains a non-quiescent process.
- * @property {(pgid: number, signal: string) => void} signalGroup
- * @property {(identity: ProcessIdentity, signal: 'SIGTERM' | 'SIGKILL') => void} signalProcess
- */
 
-/**
- * Testable boundary around filesystem, process-table, and signal syscalls.
- * @typedef {object} ProcessInspectorInternals
- * @property {(path: string) => string} readFile
- * @property {(path: string) => string[]} readDir
- * @property {(path: string) => number} open
- * @property {(fd: number, buffer: Buffer, length: number, position: number) => number} read
- * @property {(fd: number) => void} close
- * @property {(file: string, args: string[]) => string} exec
- * @property {(pid: number, signal: NodeJS.Signals) => void} kill
- */
 
-/* v8 ignore start -- thin OS bindings; injected logic is unit-tested and real platform composition exercises them. */
 const DEFAULT_INTERNALS = {
   readFile: path => readFileSync(path, 'utf8'),
   readDir: path => readdirSync(path),
@@ -41,18 +14,7 @@ const DEFAULT_INTERNALS = {
   exec: (file, args) => execFileSync(file, args, { encoding: 'utf8' }),
   kill: (pid, signal) => process.kill(pid, signal),
 }
-/* v8 ignore stop */
 
-/**
- * @typedef {object} ProcStat
- * @property {number} pid
- * @property {number} parentPid
- * @property {number} pgrp
- * @property {number} session
- * @property {string} state
- * @property {number} tpgid
- * @property {string} started
- */
 
 export function parseProcStat(text) {
   const open = text.indexOf('(')
@@ -108,11 +70,6 @@ function numericEntries(internals, path) {
   }
 }
 
-/**
- * @typedef {object} SyscallInfo
- * @property {number} number
- * @property {number[]} args
- */
 
 function readSyscall(internals, pid, tid) {
   try {
@@ -166,16 +123,6 @@ function epollHasStdin(internals, pid, epfd) {
   }
 }
 
-/**
- * @typedef {object} SyscallTable
- * @property {number} read
- * @property {number} [select]
- * @property {number} pselect
- * @property {number} [poll]
- * @property {number} ppoll
- * @property {number} [epollWait]
- * @property {number} epollPwait
- */
 
 const SYSCALLS = {
   x64: { read: 0, select: 23, pselect: 270, poll: 7, ppoll: 271, epollWait: 232, epollPwait: 281 },
@@ -217,9 +164,6 @@ class PosixProcessInspector {
   }
 }
 
-/**
- * @typedef {ProcessIdentity & { parentPid: number }} ProcessTreeEntry
- */
 
 function processTree(entries, rootPid) {
   const byPid = new Map(entries.map(entry => [entry.pid, entry]))

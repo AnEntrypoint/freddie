@@ -7,26 +7,6 @@ import { acpConfigurationFailure, DEFAULT_DISPOSE_EOF_GRACE_MS, DEFAULT_DISPOSE_
 export const name = 'subagent-acp'
 export const inject = ['subagents', 'subprocess']
 
-/**
- * @typedef {object} Config
- * @property {string} [providerName] - Provider name on `ctx.subagents` (default `acp`).
- * @property {string} command - The executable to spawn for each run (the child ACP agent).
- * @property {string[]} [args] - Arguments passed to `command`.
- * @property {string} [cwd] - Working directory override for the child process and its ACP
- *   session. Must be non-empty; a relative path resolves against the harness launch directory
- *   at load, and the result must be an existing directory. When omitted, each child inherits
- *   its delegating parent session's cwd — and starting one from a parent session that has no
- *   cwd fails.
- * @property {'allow' | 'reject'} [permission] - How to auto-answer the child's
- *   `session/request_permission` prompts: `reject` (default) or `allow` (approve via the first
- *   `allow_once`/`allow_always` option). No prompt is surfaced to a human.
- * @property {Record<string, string>} [env] - Extra environment variables for the child process,
- *   forwarded on top of a credential-scrubbed copy of the parent env.
- * @property {number} [disposeEofGraceMs] - Grace period (ms) for the child's EOF-driven quiesce
- *   on dispose. Must not exceed `MAX_TIMER_DELAY_MS`.
- * @property {number} [disposeGraceMs] - Failure-observation and termination-escalation grace
- *   (ms); must not exceed `MAX_TIMER_DELAY_MS`.
- */
 
 export const Config = z.object({
   providerName: z.string().default('acp'),
@@ -120,11 +100,6 @@ class AcpProvider {
   }
 }
 
-/**
- * Register one Profile-named ACP provider.
- * @param {import('@freddie/cordis').Context} ctx - context carrying shared subagent and subprocess services.
- * @param {Config} config - executable/args, workspace override, permission policy, child environment, and disposal grace.
- */
 export function apply(ctx, config) {
   assertPositiveFinite('disposeEofGraceMs', config.disposeEofGraceMs)
   assertPositiveFinite('disposeGraceMs', config.disposeGraceMs)

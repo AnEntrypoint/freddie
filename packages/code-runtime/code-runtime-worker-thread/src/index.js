@@ -44,7 +44,6 @@ function waitForPipeDrain(stream) {
     stream.once('end', done)
     stream.once('close', done)
     stream.once('error', done)
-    /* v8 ignore next -- this race cannot be scheduled deterministically between the adjacent state check and listener registration. */
     if (stream.readableEnded || stream.destroyed) done()
   })
 }
@@ -120,7 +119,6 @@ class OutputLedger {
       const prefix = truncateJsonStringBytes(text, availableBytes)
       if (prefix.length > 0) {
         const prefixBytes = jsonStringBytesUpTo(prefix, availableBytes)
-        /* v8 ignore next -- truncateJsonStringBytes guarantees its returned prefix fits the same budget. */
         if (prefixBytes === undefined) throw new Error('output ledger produced an oversized log prefix')
         retained.push(prefix)
         retainedBytes += prefixBytes + separatorBytes
@@ -257,7 +255,6 @@ export class WorkerThreadCodeRuntime extends CodeRuntime {
       let terminalOverride
 
       const captureStray = (chunk) => {
-        /* v8 ignore next -- a second post-overflow chunk races immediate worker termination; the first overflow path is covered. */
         if (terminalOverride !== undefined) return
         const text = chunk.toString('utf8')
         if (!output.admit(text, strayLogs)) {

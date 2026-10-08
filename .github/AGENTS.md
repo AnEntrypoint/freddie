@@ -8,3 +8,5 @@ Run jobs on Windows runners (`windows-*` labels) under native `pwsh`. The pull-r
 - `.github/issue-management/policy.mjs` reserves the retired label aliases so they cannot be recreated as new labels.
 - `transitionResolvingIssues` writes a Project status from a state read moments earlier because GraphQL has no compare-and-swap; a stronger guard needs per-Issue serialization or a conditional ProjectV2 update.
 - `countVisibleUnits` counts whitespace-delimited Latin, numeric and code tokens; the 50-unit limit applies to the exposed body outside `<details>`.
+
+- nextResolvingIssueStatus returns null when no permitted transition exists; callers skip the Project write. A changes-requested review moves In review back to In progress only when the configured lifecycle actor set the current status.

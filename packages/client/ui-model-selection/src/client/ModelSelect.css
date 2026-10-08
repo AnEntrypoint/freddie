@@ -247,3 +247,15 @@
   flex: 0 0 auto;
   color: var(--freddie-alias-label-tertiary);
 }
+
+@container (width > 0px) {
+  .freddie-modelSelect__root {
+    position: static;
+  }
+
+  .freddie-modelSelect__menu {
+    box-sizing: border-box;
+    min-width: min(240px, 100cqw);
+    max-width: min(420px, 100cqw);
+  }
+}

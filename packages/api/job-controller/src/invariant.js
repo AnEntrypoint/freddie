@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 const PACKAGE_NAME = '@freddie/freddie-job-controller'
 
 export const name = 'job-controller-invariant'
@@ -13,4 +12,3 @@ const install = Object.assign((ctx, fail) => {
 
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */

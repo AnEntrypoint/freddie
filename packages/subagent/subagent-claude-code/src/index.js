@@ -18,19 +18,6 @@ export const inject = ['subagents', 'subprocess']
 
 const DEFAULT_PROVIDER_NAME = 'claude-code'
 
-/**
- * @typedef {object} Config
- * @property {string} [providerName] - Provider name on `ctx.subagents` (default `claude-code`).
- * @property {string} [model] - Native Claude model fixed for this instance; omitted to inherit Claude settings.
- * @property {Record<string, string>} [env] - Explicit environment entries layered over the subprocess
- *   seam's credential-scrubbed parent environment.
- * @property {'dontAsk' | 'acceptEdits' | 'auto' | 'plan' | 'bypassPermissions'} [permissionMode] -
- *   Native non-interactive mode fixed for this Provider instance. Defaults to `dontAsk`;
- *   `acceptEdits` accepts edits, `auto` uses the native classifier, `plan` returns a plan without
- *   approving execution, and `bypassPermissions` explicitly skips permission checks.
- * @property {number} [disposeGraceMs] - Grace in milliseconds between Claude Code managed-range
- *   termination tiers.
- */
 
 export const Config = z.object({
   providerName: z.string().min(1).default(DEFAULT_PROVIDER_NAME),
@@ -84,11 +71,6 @@ class ClaudeCodeProvider {
   }
 }
 
-/**
- * Register one Profile-named Claude Code provider.
- * @param {import('@freddie/cordis').Context} ctx - context carrying shared subagent and subprocess services.
- * @param {Config} config - registry name, optional model, permission mode, child environment, and disposal grace.
- */
 export function apply(ctx, config) {
   const resolved = {
     providerName: config.providerName ?? DEFAULT_PROVIDER_NAME,

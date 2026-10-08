@@ -68,12 +68,9 @@ function asError(reason) {
   return reason instanceof Error ? reason : new Error(String(reason))
 }
 
-/* v8 ignore start -- a close failure of an abandoned handle has no consumer, and forcing one needs a filesystem torn down mid-request. */
 function swallowCloseFailure() {}
-/* v8 ignore stop */
 
 function messageOf(error) {
-  /* v8 ignore next -- node:fs rejects with Error instances; the String arm only satisfies the unknown narrowing. */
   return error instanceof Error ? error.message : String(error)
 }
 
@@ -86,7 +83,6 @@ async function directoryRow(
     try {
       enterable = (await raceAbort(stat(path), signal)).isDirectory()
     } catch {
-      /* v8 ignore next 2 -- an abort landing mid-probe needs a stalled stat; the per-candidate check in list covers the settled path. */
       if (signal?.aborted) throw asError(signal.reason)
       return null
     }
@@ -141,7 +137,6 @@ export default class BrowseDirectoryPicker extends DirectoryPicker {
         }
       } finally {
         const closing = level.close()
-        /* v8 ignore next 3 -- an abort between open and close needs a stalled read; the abandoned-close arm has no observable outcome. */
         if (signal?.aborted) {
           closing.catch(swallowCloseFailure)
         } else {

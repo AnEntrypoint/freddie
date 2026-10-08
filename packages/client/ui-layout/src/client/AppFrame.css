@@ -132,3 +132,8 @@
 .freddie-appFrame__overlayLayer > * {
   pointer-events: auto;
 }
+
+.freddie-appFrame__centerCol[hidden],
+.freddie-appFrame__detailsCol[hidden] {
+  display: none;
+}

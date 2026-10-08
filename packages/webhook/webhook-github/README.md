@@ -14,7 +14,7 @@ Signed GitHub HTTP webhook adapter: registers one exact route on the shared `Web
     maxBodyBytes: 1000000
 ```
 
-The route answers `202` after handing an authenticated delivery to `ctx.webhookRuntime.dispatch()` — never after a rule or its requested Session settles, since GitHub expects a fast response. Every other outcome is `4xx`/`503` with an operator-safe message and no request data echoed back: `405` (not POST), `415` (wrong content type), `400` (missing/ambiguous header, oversized-by-declaration or actually-oversized body, invalid UTF-8 or JSON, non-lossless JSON), `401` (signature does not verify), `503` (secret unconfigured, or the webhook runtime is unavailable/closing).
+The route answers `202` after handing an authenticated delivery to `ctx.webhookRuntime.dispatch()` — never after a rule or its requested Session settles, since GitHub expects a fast response. Every other outcome is `4xx`/`503` with an operator-safe message and no request data echoed back: `405` (not POST), `415` (wrong content type), `400` (malformed length, missing/ambiguous header, aborted body, invalid UTF-8 or JSON, non-lossless JSON), `413` (oversized-by-declaration or actually-oversized body), `401` (signature does not verify), `503` (secret unconfigured, or the webhook runtime is unavailable/closing).
 
 `secretEnv` is a credential reference (`@freddie/freddie-credentials`), not a literal secret — the same indirection every other credential-consuming plugin uses, so the value is never a plaintext `cordis.yml` field.
 

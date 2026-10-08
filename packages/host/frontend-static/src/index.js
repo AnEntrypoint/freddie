@@ -70,7 +70,6 @@ export function apply(ctx, config) {
       res.end()
       return
     }
-    /* v8 ignore next -- node:http always sets url on server requests */
     const rawPath = new URL(req.url ?? '/', 'http://x').pathname
     await serveStatic(decodeURIComponent(rawPath), req, res, distRoot, distIndex, renderIndex)
   }), 'frontend-static: fallback seat')

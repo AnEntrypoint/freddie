@@ -1,6 +1,3 @@
-// ABI probe: prints sizeof/offsetof/enum values from the actual MinGW Windows
-// headers on this machine. These numbers are the source of truth for the
-// koffi FFI definitions in the Node.js port.
 #include <Windows.h>
 #include <sddl.h>
 #include <AclAPI.h>
@@ -153,7 +150,6 @@ int wmain()
 	P(ERROR_NONE_MAPPED);
 	P(ERROR_BROKEN_PIPE);
 
-	// Job object (runner kill-on-close hardening)
 	P(sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
 	P(sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION));
 	P(sizeof(IO_COUNTERS));

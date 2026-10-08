@@ -1,13 +1,9 @@
-/* jscpd:ignore-start -- this executor mirrors freddie-bash-local call-for-call by
-   design (see this package's README), so the two import the same seam surface */
 import z from '@freddie/schemastery'
 import { SHELL_SETTINGS_NAMESPACE, ShellExecutor } from '@freddie/freddie-shell'
 import { installSettingsSection } from '@freddie/freddie-settings'
 import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@freddie/freddie-timeout'
-/* jscpd:ignore-end */
 import { resolvePwshPath } from './resolve.js'
 
-/* jscpd:ignore-start -- deliberate call-for-call mirror of freddie-bash-local (Agent Note: pwsh-tool-and-executor). */
 export const ENV_OVERRIDES = {
   NO_COLOR: '1',
   PAGER: 'cat',
@@ -148,11 +144,9 @@ export class PwshLocalExecutor extends ShellExecutor {
 
   static collected(handle) {
     const { stdout, stderr } = handle.collected
-    /* v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
     if (stdout === undefined || stderr === undefined) {
       throw new Error('pwsh-local: subprocess implementation dropped a requested collect stream')
     }
-    /* v8 ignore stop */
     return { stdout, stderr }
   }
 
@@ -239,6 +233,5 @@ export class PwshLocalExecutor extends ShellExecutor {
 
   onProcessDone(_proc, _stderr, _spawnFailed, _spawnError) {}
 }
-/* jscpd:ignore-end */
 
 export default PwshLocalExecutor

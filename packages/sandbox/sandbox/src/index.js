@@ -29,7 +29,6 @@ export class SandboxUnavailableError extends HarnessError {
 }
 
 export class SandboxProvider extends Service {
-  /* v8 ignore next */
   constructor(ctx) {
     super(ctx, 'sandbox')
   }

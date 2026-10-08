@@ -3,7 +3,6 @@ const PACKAGE_NAME = '@freddie/freddie-commands'
 export const name = 'commands-invariant'
 export const inject = ['invariants']
 
-/* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const runIds = new WeakMap()
   const validateEvent = (session, event) => {
@@ -40,7 +39,6 @@ const install = Object.assign((ctx, fail) => {
     validateEvent(session, event)
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

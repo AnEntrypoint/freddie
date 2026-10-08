@@ -7,11 +7,9 @@ if (process.send === undefined) throw new Error('win32-dialog-worker must run as
 const send = process.send.bind(process)
 
 const post = (message) => {
-  /* v8 ignore next 3 -- disconnect needs a live IPC channel the unit lane must not sever (built-worker.e2e.ts owns the real close path). */
   send(message, () => { if (process.connected) process.disconnect() })
 }
 
-/* v8 ignore next 3 -- the handler exits(0), which would kill the unit lane; built-worker.e2e.ts owns the real disconnect lifecycle. */
 process.on('disconnect', () => process.exit(0))
 
 void (async () => {

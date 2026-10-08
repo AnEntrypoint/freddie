@@ -109,7 +109,6 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     return handle
   }
 
-  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async spawnTerminal(spec) {
     const file = spec.argv[0]
     if (file === undefined || file.length === 0) {

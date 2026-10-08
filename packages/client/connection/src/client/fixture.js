@@ -463,7 +463,6 @@ function buildAlphaLog() {
   return events
 }
 
-/* v8 ignore next */
 const str = (value, fallback = '') => typeof value === 'string' ? value : fallback
 
 function presentCall(name, argsRaw) {
@@ -471,7 +470,6 @@ function presentCall(name, argsRaw) {
   try {
     args = JSON.parse(argsRaw)
   } catch {
-    /* v8 ignore next 2 */
     return undefined
   }
   switch (name) {
@@ -565,7 +563,6 @@ function viewFor(event, log) {
     const callId = String(event.data.message.source.callId)
     for (let i = log.length - 1; i >= 0; i--) {
       const candidate = log[i]
-      /* v8 ignore next */
       if (candidate !== undefined && candidate.type === 'tool/call' && String(candidate.data.callId) === callId) {
         const resultText = event.data.message.content[0].content.map(b => (b.type === 'text' ? b.text : '')).join('')
         const view = presentResult(candidate.data.name, candidate.data.arguments, resultText)
@@ -884,7 +881,6 @@ function projectionFramesOf(id, log, event) {
   if (frames.length > 0) return frames
   if (type === 'session/title') {
     const values = projectionValuesOf(log)
-    /* v8 ignore next */
     if (!Object.hasOwn(values, 'title')) return []
     return [{ type: 'session/projection', sessionId: id, key: 'title', value: values['title'], seq: event.seq }]
   }
@@ -936,7 +932,6 @@ function pageOf(
   let messages = 0
   for (let i = end - 1; i >= 0; i--) {
     const event = log[i]
-    /* v8 ignore next */
     if (event === undefined) break
     if (event.type === 'user/message' || event.type === 'assistant/message') messages++
     if (event.type === 'turn/start' && messages >= maxMessages) {
@@ -1294,7 +1289,6 @@ function createFixtureWorld(options) {
     const event = { seq: log.length, time: Date.now(), ...e }
     log.push(event)
     const view = viewFor(event, log)
-    /* v8 ignore next 3 */
     emitMux(view === undefined
       ? { type: 'session/event', sessionId: id, event }
       : { type: 'session/event', sessionId: id, event, view })
@@ -1782,7 +1776,6 @@ function createFixtureWorld(options) {
     const step = 0
     append(id, { type: 'step/start', data: { turn, step } })
     append(id, { type: 'assistant/chunk', data: { turn, step, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
-    /* v8 ignore next */
     const pieces = replyText.match(/[\s\S]{1,6}/gu) ?? [replyText]
     let i = 0
     const finish = (aborted) => {
@@ -1872,7 +1865,6 @@ function createFixtureWorld(options) {
         const cwd = workspace?.path ?? request.payload.cwd ?? '/tmp/fixture'
         const requestedId = request.payload.sessionId
         const attachWorkspace = (sessionId) => {
-          /* v8 ignore next */
           if (workspace === undefined || workspace.sessionIds.includes(sessionId)) return
           workspace.sessionIds = [sessionId, ...workspace.sessionIds]
           workspace.updatedAt = new Date().toISOString()
@@ -2258,7 +2250,6 @@ function createFixtureWorld(options) {
         if (beforeWorkspaceId !== workspaceId) {
           const previousOrder = workspaces.map(candidate => candidate.workspaceId)
           const [workspace] = workspaces.splice(source, 1)
-          /* v8 ignore next */
           if (workspace === undefined) throw new Error(`fixture lost workspace ${workspaceId}`)
           const at = beforeWorkspaceId === undefined
             ? workspaces.length
@@ -2487,7 +2478,6 @@ function createFixtureWorld(options) {
         const GAMMA_FLIP_INTERVAL_MS = 5000
         const timer = setInterval(() => {
           const gamma = summaryOf(sid('fx-gamma'))
-          /* v8 ignore next */
           if (gamma !== undefined) setRunning(gamma.sessionId, !gamma.running)
         }, GAMMA_FLIP_INTERVAL_MS)
         try {

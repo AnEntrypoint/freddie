@@ -100,7 +100,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   writerLockPath
 
-  /* jscpd:ignore-start */
 
   locate(meta) {
     return { kind: 'jsonl', path: logPath(this.root, meta.cwd, meta.id, this.compression) }
@@ -130,7 +129,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.coordinator.readFrom(id, fromSeq, signal)
   }
 
-  /* jscpd:ignore-end */
 
   async loadStored(id, signal) {
     signal?.throwIfAborted()
@@ -240,7 +238,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       signal?.throwIfAborted()
       const headerFrame = decodedFrames.next()
       signal?.throwIfAborted()
-      /* v8 ignore next */
       if (headerFrame.done) throw new Error('empty or header-less Zstandard session log')
       assertZstdHeaderFrame(headerFrame.value)
       const scanner = new SessionLogScanner(headerFrame.value)
@@ -271,7 +268,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
         signal?.throwIfAborted()
         recoveredPlaintext = await decompressZstdPrefix(buffer.subarray(tornStart))
       } catch {
-        /* v8 ignore next */
         if (signal?.aborted) signal.throwIfAborted()
       }
       signal?.throwIfAborted()
@@ -287,7 +283,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
         },
       }
     } catch (error) {
-      /* v8 ignore next */
       if (signal?.aborted) signal.throwIfAborted()
       throw error
     } finally {
@@ -397,7 +392,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     const finalPath = logPath(this.root, meta.cwd, meta.id, this.compression)
     await this.rejectOppositeArtifact(meta.cwd, meta.id)
     const content = await this.encodeMaterialization(meta, events)
-    /* v8 ignore next */
     if (process.platform === 'win32') {
       await this.materializeWin32(project, dir, finalPath, meta.id, content)
     } else {
@@ -405,7 +399,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     }
   }
 
-  /* v8 ignore start */
   async materializePosix(project, dir, finalPath, id, content) {
     await mkdir(this.root, { recursive: true, mode: 0o700 })
     await this.syncDirPosix(dirname(this.root))
@@ -420,19 +413,15 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await link(tmp, finalPath)
       linked = true
     } finally {
-      /* v8 ignore next */
       if (!linked) await rm(tmp, { force: true })
     }
     await this.syncDirPosix(dir)
     try {
       await rm(tmp, { force: true })
     } catch {
-      /* v8 ignore next */
     }
   }
-  /* v8 ignore stop */
 
-  /* v8 ignore start */
   async materializeWin32(project, dir, finalPath, id, content) {
     await ensureDurableDirectoryWin32(this.root)
     await ensureDurableDirectoryWin32(project)
@@ -446,10 +435,8 @@ export class JsonlSessionPersistence extends SessionPersistence {
       throw error
     }
   }
-  /* v8 ignore stop */
 
   async rejectExistingLog(finalPath, id) {
-    /* v8 ignore next 3 */
     if (await this.exists(finalPath)) {
       throw new Error(`refusing to materialize "${id}": a log already exists on disk (load/resume it instead)`)
     }
@@ -481,7 +468,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     return this.compression === 'zstd' ? compressZstdFrame(body) : body
   }
 
-  /* v8 ignore start */
   async syncDirPosix(dir) {
     const handle = await open(dir, 'r')
     try {
@@ -490,7 +476,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
     }
   }
-  /* v8 ignore stop */
 
   async appendLines(meta, events) {
     const content = await this.encodeEventBatch(events)
@@ -592,7 +577,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
           signal?.throwIfAborted()
           plaintext = await decompressZstdFrame(content.subarray(first.start, first.end))
         } catch (error) {
-          /* v8 ignore next */
           if (signal?.aborted) signal.throwIfAborted()
           throw new Error('corrupt Zstandard session log: header frame failed validation', { cause: error })
         }
@@ -666,9 +650,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
       return actual === expected
     } catch (error) {
       signal?.throwIfAborted()
-      /* v8 ignore else */
       if (isENOENT(error)) return false
-      /* v8 ignore next */
       throw error
     }
   }
@@ -802,17 +784,14 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
       return true
     } catch (error) {
-      /* v8 ignore else */
       if (isENOENT(error)) {
         await this.assertLogParentAllowsAbsence(path)
         return false
       }
-      /* v8 ignore next */
       throw error
     }
   }
 
-  /* v8 ignore start */
   async assertLogParentAllowsAbsence(path) {
     try {
       const parent = dirname(path)
@@ -827,7 +806,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
       throw error
     }
   }
-  /* v8 ignore stop */
 }
 
 export default JsonlSessionPersistence

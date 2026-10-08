@@ -26,7 +26,6 @@ export async function executeToolCalls(
   let next = 0
   let concluded = false
   while (next < planned.length) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded by the loop condition
     const first = planned[next]
     const mode = ctx.tools.executionMode(first.exec).kind
     const group = mode === 'parallel' ? planned.slice(next) : [first]
@@ -82,7 +81,6 @@ async function runGroup(
       const result = slot.needsPost
         ? await ctx.tools[TOOL_RUNTIME_SCHEDULER].finalize(slot.exec, slot.result)
         : ctx.tools[TOOL_RUNTIME_SCHEDULER].finish(slot.exec, slot.result)
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded index
       appendToolResult(session, turn, step, call.block, result, callSeqs[committed])
       for (const context of result.additionalContexts ?? []) acceptContext(context)
       concluded ||= result.concludesTurn === true
@@ -93,7 +91,6 @@ async function runGroup(
   const inFlight = new Map()
 
   const startCall = async (index) => {
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded index
     const call = group[index]
     callSeqs[index] = appendToolCall(session, turn, step, call.block)
     started++
@@ -120,7 +117,6 @@ async function runGroup(
       case 'final-result':
         slots[index] = { exec: prepared.exec, result: prepared.result, needsPost: false }
         break
-      /* v8 ignore next -- closed-union exhaustiveness guard */
       default:
         assertNever(prepared, 'tool-call scheduler prepare result')
     }
@@ -128,7 +124,6 @@ async function runGroup(
 
   const fillPool = async () => {
     while (!aborted && nextToStart < group.length && inFlight.size < maxParallelToolCalls) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion -- bounded by the loop condition
       const nextCall = group[nextToStart]
       if (nextToStart > 0 && mode === 'parallel'
         && ctx.tools.executionMode(nextCall.exec).kind !== 'parallel') break
@@ -162,7 +157,6 @@ async function runGroup(
     for (const call of group.slice(started)) appendSkippedToolCall(session, turn, step, call.block)
     return { consumed: group.length, aborted: true, concluded }
   }
-  /* v8 ignore next -- unreachable: a non-aborted group commits every started call */
   if (committed !== started) throw new Error('tool-call scheduler: uncommitted settled calls')
   return { consumed: started, aborted: false, concluded }
 }

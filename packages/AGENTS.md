@@ -24,13 +24,12 @@ These package-specific rules supplement the repo-wide [conventions](../AGENTS.md
 - Package READMEs document model, token, and KV-cache effects using the [canonical Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
 - Package READMEs put durable consumer gaps and non-obvious maintainer constraints under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.
 
-## Comment sweep (settings, shell, skill, spill, storage, subagent, subprocess, terminal, todo, typert, util, web, webhook, workflow, workspace)
-- Nothing compiles, typechecks, or emits declarations from JSDoc here (no tsconfig, no d.ts), so all JSDoc and prose comments were removed; contracts live in package READMEs, AGENTS.md and names.
-- Functional directives stay: `v8 ignore`, `oxlint-disable`, `jscpd:ignore`, shebangs. Files that held only a module header are `export {}`.
+## Source contracts
+
+- Source has no comments. Use self-explanatory code; keep public contracts in package READMEs and non-obvious maintainer facts in the nearest AGENTS.md. No current build, lint, coverage, duplication, or Typert consumer reads source comments. Preserve executable shebangs, legal notices, upstream dependency source, and frozen archives.
 
 ## core/ package invariants
 - `core/session/src/surface.js` is browser-safe (web bundle): no `node:` imports.
 - `core/session/src/chunk-rows.js` storage rows (`text-chunks`, `reasoning-chunks`, `tool-call-chunks`) are durable encoding only: never in `Session.events`, no `SessionEventMap` entry, slash-less tags; they losslessly pack same-block `assistant/chunk` delta runs.
 - `core/agent/src/consumed-work.js`: turn/step events alone cannot tell cut-short work from no-op turns; the inbox log (`removedCount`, `outcome: canceled`) is the disambiguator.
 - `core/agent-loop/src/tool-calls.js`: exclusive calls are barriers, parallel calls use a bounded rolling pool; policy/results stay model-ordered; abort records synthetic error results for skipped calls, a scheduler failure never fabricates results.
-- Generated files keep their do-not-edit headers: `core/scope/src/scoped-events.generated.js` (`pnpm run gen-scoped-events`), `core/session/src/known-event-types.js` (`pnpm run gen-persistence-catalog`). Lint/coverage/jscpd directives (`oxlint-disable`, `v8 ignore`, `jscpd:ignore`) remain as functional comments.

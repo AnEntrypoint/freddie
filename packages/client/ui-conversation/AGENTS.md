@@ -38,7 +38,7 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - `submission-settings.js`: the default keeps Enter-as-Queue for running conversations.
 - Custom elements converted from React hold former refs/state as private fields, re-render with `applyDiff(this, vdom)`, and pair bind/unbind methods with `connectedCallback`/`disconnectedCallback`; the one-shot `create*` helpers keep the old function-component call shape.
 
-## Comment sweep: chat, contract, conversation-nodes, apply
+## Rendering contracts
 
 - `chat/ContextBody.js`: model-facing text is bounded at the disclosure, not the producer. Content runs keep
 model order: adjacent text joins with no separator, an unknown block breaks the run and keeps its own fallback
@@ -64,6 +64,4 @@ the terminal error row; the retry node renders that history separately.
 - `contract/slots.js`: the approval face forwards render identity and question material from the carrier; `answer`
 owns the wire encoding, throws on a rejected carrier receipt, and panel removal stays frame-driven via the broadcast
 `approval/resolved`.
-- Source files carry no comments (only `v8 ignore` pragmas); the JSDoc typedef contracts were dropped because nothing
-consumes them.
 - Input visibility tiers: business packages see `InputState` through the InputZone currency; scoped input events carry the mutation verbs; only the conversation wiring layer sees the full `SessionInput`; `InputMachine` (`input/machine.js`) is package-private.

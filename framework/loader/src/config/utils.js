@@ -1,6 +1,5 @@
 import { valueMap } from '@freddie/cosmokit'
 
-// eslint-disable-next-line no-new-func
 export const evaluate = new Function('ctx', 'expr', `
   with (ctx) {
     return eval(expr)

@@ -41,7 +41,6 @@ export function apply(ctx) {
             tabsRevision = revision
             tabs = ctx.slots.entries('settings.plugins.tab')
               .map(entry => ({
-                /* v8 ignore next -- list-slot registration requires id */
                 id: entry.options.id ?? '',
                 order: entry.options.order ?? 0,
                 label: resolveSlotLabel(entry.options.label) ?? '',

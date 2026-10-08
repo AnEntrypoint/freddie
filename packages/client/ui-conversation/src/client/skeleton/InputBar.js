@@ -124,14 +124,12 @@ export class FreddieInputBar extends HTMLElement {
     this.#render()
   }
 
-  /* oxlint-disable typescript/no-unnecessary-condition */
   #selectionOf(el) {
     return {
       start: el.selectionStart ?? 0,
       end: el.selectionEnd ?? el.selectionStart ?? 0,
     }
   }
-  /* oxlint-enable typescript/no-unnecessary-condition */
 
   #revealCaret(caret) {
     const scrollEl = this.#scrollEl
@@ -154,7 +152,6 @@ export class FreddieInputBar extends HTMLElement {
 
   #revealSelectionFocus(el) {
     const caret = el.selectionDirection === 'backward' ? el.selectionStart : el.selectionEnd
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
     this.#revealCaret(caret ?? el.value.length)
   }
 
@@ -297,7 +294,6 @@ export class FreddieInputBar extends HTMLElement {
     }
     if (input === undefined || keyboard === undefined || inputActions === undefined) return
     if (e.key === 'Enter' && e.shiftKey) return
-    // oxlint-disable-next-line typescript/no-deprecated
     const composing = this.#composing || e.isComposing || e.keyCode === LEGACY_IME_COMPOSITION_KEYCODE
     const target = e.currentTarget
     if (!composing && !machineBusy && !locked
@@ -400,7 +396,6 @@ export class FreddieInputBar extends HTMLElement {
     this.#pendingEdit = null
     this.#safariNativeShrink = this.#safari && next.length < draft.length
     keyboard.setDraft(next, editRangeOf(pending, draft.length, next.length))
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
     keyboard.track(next, target.selectionStart ?? next.length)
     this.#render()
   }
@@ -586,7 +581,6 @@ export class FreddieInputBar extends HTMLElement {
         return
       }
       if (inputActions === undefined) return
-      /* v8 ignore next -- defensive: the primary button is disabled while empty||disabled, so a click cannot reach the false arm. */
       if (!empty && !disabled && !machineBusy) inputActions.submit()
     }
 

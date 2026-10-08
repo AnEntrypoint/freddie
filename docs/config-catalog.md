@@ -714,6 +714,30 @@ export interface Config {
 
 Source: [`packages/experimental/agent-team/src/types.js`](../packages/experimental/agent-team/src/types.js)
 
+<a id="freddie-experimental-browser-use-browserskill"></a>
+
+## `@freddie/freddie-experimental-browser-use-browserskill`
+
+Requires: `agents` · `browserUse` · `subprocess` · `tools`
+
+```ts config-catalog
+/** BrowserSkill CLI provider settings. */
+export interface Config {
+  /** BrowserSkill CLI executable or absolute path. */
+  bskPath?: string
+  /** Working directory used for BrowserSkill CLI calls. */
+  cwd?: string
+  /** Maximum milliseconds for one BrowserSkill CLI operation. */
+  defaultTimeoutMs?: number
+  /** Maximum BrowserSkill sessions owned by one Freddie Agent. */
+  maxSessions?: number
+}
+```
+
+Unreleased `experimental/` group. The provider is disabled in the base bundle and must be enabled in an operator-controlled profile after `bsk` and its Chrome or Edge extension are installed. It owns only BrowserSkill sessions started by its calling Agent, stops those sessions on Agent disposal, and uses the managed subprocess provider for every CLI invocation. `browserskill_status` reports the CLI, daemon, and extension readiness without falling back to another browser.
+
+Source: [`packages/experimental/browser-use-browserskill/src/index.js`](../packages/experimental/browser-use-browserskill/src/index.js)
+
 <a id="freddie-experimental-browser-use-chrome-devtools-mcp"></a>
 
 ## `@freddie/freddie-experimental-browser-use-chrome-devtools-mcp`

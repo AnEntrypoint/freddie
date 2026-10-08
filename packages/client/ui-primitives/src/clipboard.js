@@ -1,5 +1,4 @@
 export async function writeClipboard(text) {
-  /* oxlint-disable-next-line typescript/no-unnecessary-condition */
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text)
@@ -8,7 +7,6 @@ export async function writeClipboard(text) {
       return false
     }
   }
-  /* oxlint-disable typescript/no-deprecated */
   const exec = typeof document.execCommand === 'function'
     ? document.execCommand.bind(document)
     : undefined
@@ -27,5 +25,4 @@ export async function writeClipboard(text) {
   } finally {
     el.remove()
   }
-  /* oxlint-enable typescript/no-deprecated */
 }

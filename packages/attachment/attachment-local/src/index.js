@@ -66,7 +66,6 @@ class SharedRequest {
       }, (error) => {
         signal.removeEventListener('abort', abort)
         release(false)
-        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         reject(error)
       })
     })

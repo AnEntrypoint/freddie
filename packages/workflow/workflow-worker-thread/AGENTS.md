@@ -24,3 +24,5 @@ Worker side:
 - `session.js`: a child's settled promise gets a no-op consumer because an unconsumed rejection after a failed start or teardown would kill the worker. A cancel doubles as the gate release: `drive()` checks the cancelled state before the body, so the script never executes.
 - `index.js` `assertBodyParses`: parse only; the script object is discarded. `start` captures `ctx.subagents` while the call is still traced through the holder: Cordis strips the engine-provider shadow when the handle returns, so re-resolving later would walk the inactive engine fiber after an HMR unload and break the seam's holder-owned lifetime. `workflow/end` carries outcome data only; the value stays with the holder.
 - `worker.js`: `workerData` is untyped at the `node:worker_threads` boundary; the engine is the only spawner and always supplies a `WorkerInit` shape.
+
+- Worker child handles expose session identity, a settled outcome, and awaitable disposal over RPC; child Agents stay on the host. Infrastructure rejection of a result retains the fatal workflow distinction.

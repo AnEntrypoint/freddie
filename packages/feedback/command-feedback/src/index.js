@@ -5,7 +5,6 @@ export const inject = ['commands']
 
 const USAGE = 'Usage: /feedback <text>'
 
-/* v8 ignore next 3 -- only the ignored default arm calls this; the closed union cannot reach it via the public API. */
 function assertNever(value) {
   throw new Error(`command-feedback: unsupported sharing status ${JSON.stringify(value)}`)
 }
@@ -18,7 +17,6 @@ function sharingSentence(sharing) {
       return 'Session sharing is feedback-gated; recording feedback releases the session prefix for sharing.'
     case 'disabled':
       return 'Session sharing is disabled.'
-    /* v8 ignore next 2 -- the seam's closed union cannot reach the default; a future status must be given a sentence here. */
     default:
       return assertNever(sharing)
   }

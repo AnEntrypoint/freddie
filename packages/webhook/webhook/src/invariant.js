@@ -26,9 +26,4 @@ const install = Object.assign(function installWebhookMessages(ctx, fail) {
   inject: ['workspaceRegistry'],
 })
 
-/**
- * Register this package's relationship invariant.
- * @param {import('@freddie/cordis').Context} ctx - Cordis context carrying the invariant registry.
- * @returns {Promise<() => void>} the invariant registration disposer.
- */
 export const apply = ctx => Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

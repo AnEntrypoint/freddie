@@ -2,7 +2,7 @@
 
 ## Rationale
 
-- `Config` and the persistence passthroughs are deliberately duplicated per entry point (`jscpd:ignore` blocks): each app owns a complete, directly readable schema, and sharing them would make two small app contracts depend on a new facade.
+- `Config` and the persistence passthroughs are deliberately duplicated per entry point: each app owns a complete, directly readable schema, and sharing them would make two small app contracts depend on a new facade.
 - `toolOrder` uses `.default(undefined)`: absent means lexicographic order (as in the owning system-prompt schema), while schemastery's native `[]` default would read as an invalid configured list.
 - Composes agent-spine-demo, JSONL persistence, and the ACP bridge in one ordered lifecycle; unload is reverse so checkpoint/persistence listeners stay attached until ACP agents flush closing events.
 - Stdout is reserved for JSON-RPC: no logger, no `hmr`, diagnostics to stderr only; leaves must avoid stdout loggers.

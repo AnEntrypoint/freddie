@@ -1,29 +1,9 @@
 import { spawnSync } from 'node:child_process'
 import koffi from 'koffi'
 
-/**
- * One Toolhelp32 process-table row.
- * @typedef {{ pid: number, parentPid: number }} ProcessEntry
- */
 
-/**
- * Creation identity plus the process object's current wait state.
- * @typedef {object} WindowsProcessState
- * @property {string} started - GetProcessTimes creation identity used to fence PID reuse.
- * @property {boolean} active - Whether a zero-time process-handle wait reports the process still running.
- */
 
-/**
- * Injectable Windows process operations used by one local PTY session.
- * @typedef {object} WindowsProcessInspectorInternals
- * @property {() => ProcessEntry[]} snapshot - Enumerate the current process table (pid/parent pairs).
- * @property {(pid: number) => WindowsProcessState | undefined} processState - Return one process's creation identity and wait state, or undefined when unreadable.
- * @property {(pid: number, force: boolean) => void} taskkill - Terminate one process tree; `force` maps to taskkill `/F`.
- */
 
-/* jscpd:ignore-start -- the Windows inspector deliberately mirrors process-inspector.ts:
-   the decision logic (tree walk, identity fencing, group signalling) is the same contract over
-   Win32 primitives, per the persistent-pty note 2026-08-11-pwsh-persistent-pty. */
 export function windowsProcessTree(entries, rootPid, started) {
   const byPid = new Map(entries.map(entry => [entry.pid, entry]))
   const root = byPid.get(rootPid)
@@ -81,7 +61,6 @@ export class WindowsProcessInspector {
     if (this.isAlive(identity)) this.internals.taskkill(identity.pid, signal === 'SIGKILL')
   }
 }
-/* jscpd:ignore-end */
 
 export function createWindowsProcessInspector(internals = defaultWindowsProcessInternals()) {
   return new WindowsProcessInspector(internals)
@@ -98,17 +77,6 @@ export function isInvalidHandle(value) {
   return asBigInt === 0n || asBigInt === 0xFFFFFFFFFFFFFFFFn || asBigInt === -1n
 }
 
-/**
- * The lazy koffi binding table: every Win32 call the Windows inspector uses.
- * @typedef {object} Win32Bindings
- * @property {(flags: number, processId: number) => bigint} createToolhelp32Snapshot
- * @property {(snapshot: bigint, entry: bigint) => number} process32FirstW
- * @property {(snapshot: bigint, entry: bigint) => number} process32NextW
- * @property {(desiredAccess: number, inheritHandle: number, pid: number) => bigint} openProcess
- * @property {(process: bigint, creation: bigint, exit: bigint, kernel: bigint, user: bigint) => number} getProcessTimes
- * @property {(handle: bigint, milliseconds: number) => number} waitForSingleObject
- * @property {(handle: bigint) => number} closeHandle
- */
 
 const PVOID = koffi.pointer('void')
 
@@ -130,11 +98,9 @@ function win32Structs() {
     dwLowDateTime: 'uint32',
     dwHighDateTime: 'uint32',
   })
-  /* v8 ignore start -- a layout-mismatch guard fires only on ABI breakage; the windows-native suites exercise the real struct. */
   if (PROCESSENTRY32W.size !== 568) {
     throw new Error(`PROCESSENTRY32W layout mismatch: koffi computed ${PROCESSENTRY32W.size}, Windows headers say 568`)
   }
-  /* v8 ignore stop */
   cachedStructs = { PROCESSENTRY32W, FILETIME }
   return cachedStructs
 }
@@ -179,8 +145,6 @@ function allocNative(type, count) {
 function snapshotWindowsProcesses(bindings) {
   const { PROCESSENTRY32W } = win32Structs()
   const snapshot = bindings.createToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
-  /* v8 ignore next -- an invalid snapshot for the process flag is not producible through the public API;
-     the guard mirrors POSIX's unreadable-proc tolerance and isInvalidHandle is unit-tested. */
   if (isInvalidHandle(snapshot)) return []
   const entries = []
   try {
@@ -207,14 +171,9 @@ function windowsProcessState(bindings, pid) {
     const exit = allocNative(FILETIME, 1)
     const kernel = allocNative(FILETIME, 1)
     const user = allocNative(FILETIME, 1)
-    /* v8 ignore next -- a GetProcessTimes failure after a successful open races process exit and
-       cannot be staged deterministically; the absent-process path is covered and the caller
-       treats undefined as a detector miss. */
     if (bindings.getProcessTimes(handle, creation, exit, kernel, user) === 0) return undefined
     const record = koffi.decode(creation, FILETIME)
     const wait = bindings.waitForSingleObject(handle, 0)
-    /* v8 ignore next -- an opened process handle has exactly one of these two
-       zero-time wait states; an unexpected Win32 failure is an unreadable process. */
     if (wait !== WAIT_OBJECT_0 && wait !== WAIT_TIMEOUT) return undefined
     return {
       started: `${record.dwHighDateTime}:${record.dwLowDateTime}`,

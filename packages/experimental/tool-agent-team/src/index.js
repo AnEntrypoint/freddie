@@ -115,7 +115,6 @@ function jsonOutput(schema) {
 }
 
 function callingAgent(agent, toolName) {
-  /* v8 ignore next 2 -- Team tools are registered only in an exact Agent scope, so discovery supplies this carrier. */
   if (agent === undefined) throw new Error(`${toolName} requires a calling Agent`)
   return agent
 }

@@ -12,7 +12,6 @@ export class SessionCorpus {
       const service = childCtx.sessionPersistence
       this._persistence = service
       childCtx.effect(() => () => {
-        /* v8 ignore next */
         if (this._persistence === service) this._persistence = undefined
       }, 'sessionQuery.persistenceBinding')
     })
@@ -150,13 +149,11 @@ export class SessionCorpus {
       Array.from({ length: workerCount }, () => worker()),
     )
     if (signal?.aborted) signal.throwIfAborted()
-    /* v8 ignore start */
     for (const settlement of settlements) {
       if (settlement.status === 'rejected') {
         throw settlement.reason
       }
     }
-    /* v8 ignore stop */
     signal?.throwIfAborted()
     return orderedResults(ids, resolved)
   }
@@ -169,7 +166,6 @@ function projectSource(sessionId, source, project, signal) {
     signal?.throwIfAborted()
     return { sessionId, status: 'fulfilled', value }
   } catch (reason) {
-    /* v8 ignore next */
     if (signal?.aborted) signal.throwIfAborted()
     return { sessionId, status: 'rejected', reason }
   }

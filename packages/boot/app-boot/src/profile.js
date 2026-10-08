@@ -88,7 +88,6 @@ function ensureSymlink(link, target) {
   try {
     symlinkSync(target, link, 'junction')
   } catch (error) {
-    /* v8 ignore next 4 */
     if (error.code !== 'EEXIST'
       || !lstatSync(link).isSymbolicLink() || readlinkSync(link) !== target) {
       throw error
@@ -102,11 +101,9 @@ export function healProfilesModuleFallback(installAnchor, home = resolveFreddieH
   mkdirSync(modulesDir, { recursive: true })
   const appManifest = JSON.parse(readFileSync(installAnchor, 'utf8'))
   const links = new Map()
-  /* v8 ignore next */
   if (appManifest.name !== undefined) links.set(appManifest.name, dirname(installAnchor))
   const queue = [{ anchor: installAnchor, manifest: appManifest }]
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
-    /* v8 ignore next */
     for (const dep of [...Object.keys(next.manifest.dependencies ?? {}), ...Object.keys(next.manifest.peerDependencies ?? {})]) {
       if (links.has(dep)) continue
       const dir = packageDirFromAnchor(next.anchor, dep)
@@ -164,7 +161,6 @@ function normalizeShippedProfile(name, dir, manifest) {
 }
 
 function packageDirFromAnchor(anchor, packageName) {
-  /* v8 ignore next */
   for (const searchPath of createRequire(anchor).resolve.paths(packageName) ?? []) {
     const candidate = join(searchPath, packageName)
     if (existsSync(join(candidate, 'package.json'))) return candidate

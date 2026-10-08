@@ -53,7 +53,6 @@ export class WorkspaceManager {
       } catch (error) {
         this.state = 'error'
         const folded = transportError(error)
-        /* v8 ignore next */
         this.error = folded.ok ? null : folded.error
       } finally {
         this.refreshFrames = null

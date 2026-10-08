@@ -104,6 +104,9 @@ export class FreddieAppFrame extends HTMLElement {
   #resizeRaf = null
   #viewport = typeof window === 'undefined' ? 0 : window.innerWidth
   #lastSession = undefined
+  #lastSelection = undefined
+  #navigationOpen = false
+  #navigationReturnFocus = null
   #dragging = false
   #sidebarBase = 0
   #detailsBase = 0
@@ -171,11 +174,24 @@ export class FreddieAppFrame extends HTMLElement {
 
     const narrow = this.#viewport < SIDEBAR_AUTO_COLLAPSE
     actions.setNarrow(narrow)
-    const sidebarCollapsed = narrow ? !panels.narrowExpanded : panels.sidebar === 0
+    const currentSession = useSessions(s => s.current)
+    let navigationOpen = narrow && panels.narrowExpanded
+    if (navigationOpen && this.#lastSelection !== currentSession) {
+      actions.toggleSidebar()
+      navigationOpen = false
+    }
+    this.#lastSelection = currentSession
+    const navigationJustOpened = navigationOpen && !this.#navigationOpen
+    if (navigationJustOpened) this.#navigationReturnFocus = document.activeElement
+    const restoreNavigationFocus = this.#navigationOpen && !navigationOpen
+    this.#navigationOpen = navigationOpen
+    const sidebarCollapsed = narrow ? !navigationOpen : panels.sidebar === 0
     const sidebarPreference = sidebarCollapsed
       ? 0
       : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-    const cols = computeColumns(this.#viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+    const cols = navigationOpen
+      ? { sidebar: this.#viewport, center: 0, details: 0 }
+      : computeColumns(this.#viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
     this.#cols = cols
 
     const vdom = h('div', {
@@ -193,14 +209,22 @@ export class FreddieAppFrame extends HTMLElement {
           'data-connection-state': connectionState,
         }, `Connection: ${connectionLabel(connectionState)}`)
         : null,
-      h('div', { class: css.sidebarCol ?? '', 'data-sidebar-col': '' },
+      h('div', {
+          class: css.sidebarCol ?? '',
+          'data-sidebar-col': '',
+          onkeydown: event => {
+            if (!navigationOpen || event.key !== 'Escape' || event.defaultPrevented) return
+            event.preventDefault()
+            actions.toggleSidebar()
+          },
+        },
         asChild(renderSlot('sidebar', {
           collapsed: sidebarCollapsed,
           width: cols.sidebar,
         })),
       ),
-      h('div', { class: css.centerCol ?? '' }, asChild(renderSlot('conversation', {}))),
-      h('div', { class: css.detailsCol ?? '' }, asChild(renderSlot('details', {}))),
+      h('div', { class: css.centerCol ?? '', hidden: navigationOpen, inert: navigationOpen }, asChild(renderSlot('conversation', {}))),
+      h('div', { class: css.detailsCol ?? '', hidden: navigationOpen || cols.details === 0, inert: navigationOpen || cols.details === 0 }, asChild(renderSlot('details', {}))),
       h('div', { class: css.overlayLayer ?? '', 'data-shell-overlay': '' },
         asChild(renderSlot('shell.overlay', {})),
       ),
@@ -208,12 +232,22 @@ export class FreddieAppFrame extends HTMLElement {
       h('span', { 'data-details-handle-slot': '' }),
     )
     applyDiff(this, vdom)
+    if (navigationJustOpened || restoreNavigationFocus) {
+      const previous = this.#navigationReturnFocus
+      queueMicrotask(() => {
+        const target = restoreNavigationFocus && previous instanceof HTMLElement && previous !== document.body && previous.isConnected
+          ? previous
+          : this.querySelector('[data-sidebar-toggle]')
+        if (target instanceof HTMLElement) target.focus()
+      })
+      if (restoreNavigationFocus) this.#navigationReturnFocus = null
+    }
 
     const frame = this.querySelector('[data-sidebar-col]')?.parentElement ?? null
     if (frame !== null) this.#bindResizeObserver(frame)
 
     const sidebarSlot = this.querySelector('[data-sidebar-handle-slot]')
-    if (!sidebarCollapsed) {
+    if (!sidebarCollapsed && !narrow) {
       this.#sidebarHandle = renderDragHandle(this.#sidebarHandle, {
         side: 'sidebar', left: cols.sidebar, onStart: this.#onSidebarStart, onDrag: this.#onSidebarDrag, onEnd: this.#onDragEnd,
       })

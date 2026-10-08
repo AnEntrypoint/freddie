@@ -221,7 +221,6 @@ export class SlotRegistry extends Service {
 
   _release(handle) {
     const record = this._stores.get(handle)
-    /* v8 ignore next */
     if (record === undefined) return
     record.refs -= 1
     if (record.refs === 0) this._stores.delete(handle)

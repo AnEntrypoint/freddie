@@ -155,7 +155,6 @@ class LocalLspProvider {
   }
 
   assertActive(signal) {
-    /* v8 ignore next */
     if (this.isDisposed()) throw new LspError('lsp-stdio provider is disposed', 'LSP_DISPOSED')
     if (signal?.aborted) throw abortError(signal)
   }
@@ -224,7 +223,6 @@ class LocalLspProvider {
   }
 
   evictIfCurrent(workspace, instance) {
-    /* v8 ignore next */
     if (this.instances.get(workspace) === instance) this.instances.delete(workspace)
   }
 

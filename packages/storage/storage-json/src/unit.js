@@ -32,7 +32,6 @@ class JsonKvUnit {
     this.onClose = onClose
   }
 
-  // oxlint-disable-next-line typescript/require-await -- async keeps the closed guard a rejection, not a synchronous throw
   async loadAll() {
     this.assertOpen()
     const tables = {}

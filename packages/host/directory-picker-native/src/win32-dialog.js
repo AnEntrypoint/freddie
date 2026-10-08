@@ -5,11 +5,9 @@ export const DIALOG_TITLE = 'Select Workspace Directory'
 const CLOSE_RETRY_MS = 150
 const CLOSE_MAX_ATTEMPTS = 20
 
-/* v8 ignore start -- closed-union backstop; unreachable without a TypeScript contract violation */
 function assertNever(value) {
   throw new TypeError(`unknown win32 dialog worker message kind: ${String(value)}`)
 }
-/* v8 ignore stop */
 
 export async function pickWin32Directory(signal, internals = {}) {
   if (signal.aborted) throw new Error('native directory picker aborted')
@@ -74,7 +72,6 @@ export async function pickWin32Directory(signal, internals = {}) {
             reject(new Error(`win32 folder dialog failed: ${message.message}`))
           })
           return
-        /* v8 ignore next 2 -- closed worker-owned union; a fourth kind becomes a compile error */
         default:
           assertNever(message)
       }

@@ -40,16 +40,13 @@ async function assertOwnerOnly(filename) {
     await canonicalizeWatchPath(filename)
     return
   }
-  /* v8 ignore next -- POSIX coverage cannot take the Windows peer; native Windows coverage does. */
   if (process.platform === 'win32') return
-  /* v8 ignore start -- Windows has no POSIX mode enforcement; POSIX behavior tests enforce this peer. */
   const offending = mode & GROUP_OTHER_BITS
   if (offending === 0) return
   throw new Error(
     `credentials-local: ${filename} is readable beyond its owner (mode ${(mode & 0o777).toString(8)});`
     + ` run "chmod 600 ${filename}" before starting again`,
   )
-  /* v8 ignore stop */
 }
 
 function isENOENT(error) {
@@ -58,7 +55,6 @@ function isENOENT(error) {
 
 function describeYamlError(error) {
   const at = error.linePos?.[0]
-  /* v8 ignore next -- `prettyErrors` populates linePos on every error; the guard answers its optional type */
   const where = at === undefined ? '' : ` at line ${String(at.line)}, column ${String(at.col)}`
   return `${error.code}${where}`
 }
@@ -271,13 +267,8 @@ function renderRecord(text, key, record) {
 
 function deleteSectionEntry(document, section, key) {
   const map = document.get(section, true)
-  /* v8 ignore next -- both callers render a delete only for an entry they just
-     found in the parsed snapshot, so the section it lives in is always a map;
-     the guard is what narrows `get`'s `unknown`. */
   if (isMap(map)) {
     const first = map.items[0]
-    /* v8 ignore next -- a map that holds the entry has a first item, and the
-       parser admits only scalar keys, so only the identity test can be false. */
     if (first !== undefined && isScalar(first.key) && first.key.value === key) {
       map.commentBefore = null
     }
@@ -297,7 +288,6 @@ function sameJsonValue(left, right) {
 }
 
 export class LocalCredentialProvider extends CredentialProvider {
-  /* jscpd:ignore-start */
   static Config = z.object({
     path: z.string(),
     freddieHome: z.string(),
@@ -314,7 +304,6 @@ export class LocalCredentialProvider extends CredentialProvider {
   isClosed() {
     return this.closed
   }
-  /* jscpd:ignore-end */
 
   constructor(ctx, config) {
     super(ctx)
@@ -339,7 +328,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     }
     await this.loadInitial()
     if (!this.spec.watch) return
-    /* jscpd:ignore-start */
     const watcher = chokidarWatch(await canonicalizeWatchPath(this.spec.filename), {
       ignoreInitial: true,
       awaitWriteFinish: {
@@ -362,7 +350,6 @@ export class LocalCredentialProvider extends CredentialProvider {
       await watcher.close()
       await this.operations
     }
-    /* jscpd:ignore-end */
   }
 
   resolve(ref) {
@@ -456,7 +443,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     })
   }
 
-  /* jscpd:ignore-start */
   enqueue(operation) {
     const task = this.operations.then(operation)
     this.operations = task.then(() => undefined, () => undefined)
@@ -469,7 +455,6 @@ export class LocalCredentialProvider extends CredentialProvider {
       this.ctx.logger.error(error)
     })
   }
-  /* jscpd:ignore-end */
 
   async write(ref, value) {
     const verb = value === undefined ? 'unset' : 'set'
@@ -530,11 +515,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     return withFileLock(this.spec.filename, async () => {
       const current = await readFile(this.spec.filename, 'utf8')
       const migrated = renderFlatLayoutMigration(current)
-      /* v8 ignore next 2 -- the losing side of the cross-process migration race:
-         another boot rewrote the document between the unlocked recognize and
-         this lock. That interleaving cannot be scheduled deterministically
-         through a whole boot (migration.spec drives it best-effort); the
-         decision itself is the recognizer's covered versioned-document decline. */
       if (migrated === undefined) return current
       await writeFileAtomic(this.spec.filename, migrated, OWNER_ONLY_WRITE)
       this.ctx.logger.info(
@@ -546,7 +526,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     }, { waitMs: DOCUMENT_LOCK_WAIT_MS })
   }
 
-  /* jscpd:ignore-start */
   async refresh() {
     if (this.closed) return
     try {
@@ -579,7 +558,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     for (const ref of changedRefs) this.notifyUpdated(ref)
     for (const key of changedRecords) this.notifyRecordUpdated(key)
   }
-  /* jscpd:ignore-end */
 
   changedRefs(prev, next) {
     const changed = []

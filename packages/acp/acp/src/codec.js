@@ -12,7 +12,6 @@ export function turnEndToStopReason(reason) {
     case 'blocked':
     case 'error':
       return 'end_turn'
-    /* v8 ignore next 2 -- TurnEndReason is closed and every member is handled above */
     default:
       return 'end_turn'
   }

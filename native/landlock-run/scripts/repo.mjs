@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * Shared helpers for the repo scripts: package discovery, the checked-in
- * prebuild matrix, and binary verification. The package matrix is explicit
- * metadata — `packages/<name>/prebuilds.json` marks a platform package and
- * declares its binaries; everything else under `packages/` is an entry
- * package. Scripts derive from these files and never guess.
- */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,14 +7,12 @@ import { fileURLToPath } from 'node:url';
 export const root = fileURLToPath(new URL('..', import.meta.url));
 const packagesRoot = path.join(root, 'packages');
 
-/** ELF `e_machine` (offset 18, little-endian) per platform-package `cpu` value. */
 const E_MACHINE = { x64: 62, arm64: 183 };
 
 export function readJson(file) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-/** Platform packages: every `packages/<name>` carrying a `prebuilds.json`. */
 export function platformDirs() {
   return fs.readdirSync(packagesRoot)
     .filter((name) => fs.existsSync(path.join(packagesRoot, name, 'prebuilds.json')))
@@ -29,7 +20,6 @@ export function platformDirs() {
     .map((name) => path.join('packages', name));
 }
 
-/** Entry packages: every other `packages/<name>` with a `package.json`. */
 export function entryDirs() {
   return fs.readdirSync(packagesRoot)
     .filter((name) => !fs.existsSync(path.join(packagesRoot, name, 'prebuilds.json')))
@@ -38,17 +28,10 @@ export function entryDirs() {
     .map((name) => path.join('packages', name));
 }
 
-/** All published packages in publish order: platform packages before the entries that optionally depend on them. */
 export function packageDirs() {
   return [...platformDirs(), ...entryDirs()];
 }
 
-/**
- * Verify one platform package's binaries against its `prebuilds.json`:
- * every declared binary exists, nothing undeclared sits in `bin/`, and each
- * file's ELF `e_machine` matches the package's declared `cpu`. Throws with
- * a remediation message on the first mismatch.
- */
 export function verifyPlatformBinaries(packageDir) {
   const manifest = readJson(path.join(packageDir, 'package.json'));
   const prebuilds = readJson(path.join(packageDir, 'prebuilds.json'));

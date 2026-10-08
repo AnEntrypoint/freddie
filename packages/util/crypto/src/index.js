@@ -1,7 +1,3 @@
-/**
- * Generate an RFC 4122 version 4 UUID without requiring a secure context.
- * @returns {string} a UUID backed by `crypto.getRandomValues()`, which browsers expose on insecure origins.
- */
 export function randomUUID() {
   const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16))
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -11,11 +7,6 @@ export function randomUUID() {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-/**
- * Encode bytes as canonical base64 without overflowing `String.fromCharCode`'s argument limit.
- * @param {Uint8Array} data - bytes to encode.
- * @returns {string} base64 text.
- */
 export function bytesToBase64(data) {
   let binary = ''
   const chunk = 0x8000

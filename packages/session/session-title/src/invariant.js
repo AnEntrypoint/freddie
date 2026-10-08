@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 const PACKAGE_NAME = '@freddie/freddie-session-title'
 
 export const name = 'session-title-invariant'
@@ -19,4 +18,3 @@ const install = Object.assign((ctx, fail) => {
 
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */

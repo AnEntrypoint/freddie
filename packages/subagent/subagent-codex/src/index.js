@@ -18,17 +18,6 @@ export const inject = ['subagents', 'subprocess']
 
 const DEFAULT_PROVIDER_NAME = 'codex'
 
-/**
- * @typedef {object} Config
- * @property {string} [providerName] - Provider name on `ctx.subagents` (default `codex`).
- * @property {string} [model] - Native Codex model fixed for this instance; omitted to inherit Codex settings.
- * @property {Record<string, string>} [env] - Explicit environment entries layered over the subprocess
- *   seam's credential-scrubbed parent environment.
- * @property {'never' | 'approve-for-me' | 'dangerously-bypass-approvals-and-sandbox'} [permissionMode] -
- *   Native non-interactive permission mode fixed for this Provider instance. Defaults to `never`.
- * @property {number} [disposeGraceMs] - Grace in milliseconds between app-server managed-range
- *   termination tiers.
- */
 
 export const Config = z.object({
   providerName: z.string().min(1).default(DEFAULT_PROVIDER_NAME),
@@ -82,11 +71,6 @@ class CodexProvider {
   }
 }
 
-/**
- * Register one Profile-named Codex provider.
- * @param {import('@freddie/cordis').Context} ctx - context carrying shared subagent and subprocess services.
- * @param {Config} config - registry name, optional model, permission mode, child environment, and disposal grace.
- */
 export function apply(ctx, config) {
   const resolved = {
     providerName: config.providerName ?? DEFAULT_PROVIDER_NAME,

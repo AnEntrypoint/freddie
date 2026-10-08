@@ -6,7 +6,6 @@ import { defineElement } from './define-element.js'
 
 export const DEFAULT_DIFF_MAX_LINES = 16
 
-/* v8 ignore next 3 */
 function assertNever(value) {
   throw new Error(`unreachable diff row kind: ${String(value)}`)
 }
@@ -56,7 +55,6 @@ function copyText(rows) {
       case 'add': return `+ ${row.text}`
       case 'path': return row.text
       case 'gap': return row.text
-      /* v8 ignore next */
       default: return assertNever(row.kind)
     }
   }).join('\n')

@@ -162,6 +162,28 @@ export function presentTransitionResult(_args, result) {
   return { card: 'generic', title, rawInput: title }
 }
 
+export function presentGmOutcomeResult(_args, result) {
+  if (result.isError) return undefined
+  const block = result.content.find(block => block.type === 'text')
+  if (block === undefined || typeof block.text !== 'string') return undefined
+  let value
+  try {
+    value = JSON.parse(block.text)
+  } catch (invalidJson) {
+    void invalidJson
+    return undefined
+  }
+  const reply = asRecord(value)
+  if (reply?.ok !== false) return undefined
+  const refused = reply.gate_denied === true
+  const diagnostic = refused ? reply.reason ?? reply.error : reply.error ?? reply.reason
+  const detail = typeof diagnostic === 'string' && diagnostic !== ''
+    ? diagnostic.split('\n', 1)[0]
+    : typeof reply.error_code === 'string' ? reply.error_code : undefined
+  const title = refused ? 'GM refused' : 'GM failed'
+  return { card: 'generic', title: detail === undefined ? title : `${title} · ${detail}` }
+}
+
 export function presentGenericCall(title) {
   return { card: 'generic', title, rawInput: title }
 }

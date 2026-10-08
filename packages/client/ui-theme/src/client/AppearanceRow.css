@@ -47,3 +47,12 @@
   background: var(--freddie-alias-bg-module-platform);
   border-color: var(--dsw-static-neutral-bluish-400);
 }
+
+@container freddie-settings-content (max-width: 420px) {
+  .freddie-appearanceRow__themeCube {
+    flex-basis: 64px;
+    min-width: 0;
+    padding: 16px 8px;
+    overflow-wrap: anywhere;
+  }
+}

@@ -138,9 +138,9 @@ export class EntryTree {
       if (this.ctx.loader.internal) {
         return await this.ctx.loader.internal.import(name, this.ctx.baseUrl, {})
       } else if (name.startsWith('.')) {
-        return await import(/* @vite-ignore */new URL(name, this.ctx.baseUrl).href)
+        return await import( new URL(name, this.ctx.baseUrl).href)
       } else {
-        return await import(/* @vite-ignore */name)
+        return await import( name)
       }
     }, getOuterStack)
   }

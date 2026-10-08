@@ -6,7 +6,7 @@ export function TriggerContent({ wide, t }) {
   return (
     h('span', {class: css.triggerContent ?? ''},
       wide ? h(IconSettingsOutline16, {size: 16}) : h(IconSettingsOutline14, {size: 18}),
-      wide && h('span', {class: css.triggerLabel ?? ''}, t('trigger')),
+      h('span', {class: css.triggerLabel ?? '', 'data-collapsed': wide ? null : ''}, t('trigger')),
     )
   )
 }

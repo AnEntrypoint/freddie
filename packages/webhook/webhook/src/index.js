@@ -1,22 +1,3 @@
-/**
- * Fire-and-forget webhook rule registry and Workspace-backed Session runtime.
- *
- * @typedef {{ readonly kind: K; readonly source: import('./brand.js').WebhookSourceId; readonly deliveryId: import('./brand.js').WebhookDeliveryId; readonly event: unknown; readonly receivedAt: number }} VerifiedWebhookDelivery
- *   One authenticated and parsed provider delivery. `kind` is the provider family (e.g. `github`);
- *   `event` is that provider's normalized lossless JSON.
- * @template K
- * @typedef {{ readonly provider: string; readonly model: string; readonly maxTokens?: number }} WebhookModelSelection
- *   Optional explicit model route and output cap for a webhook-created Agent.
- * @typedef {{ readonly workspacePath: string; readonly title: string; readonly prompt: string; readonly agentPreset: string; readonly permissionPreset: string; readonly model?: WebhookModelSelection }} WebhookSessionRequest
- *   The sole runtime action: create and prompt one root Session. `workspacePath` is an existing local
- *   directory to resolve or create as a Workspace; omitting `model` uses the complete current default,
- *   including reasoning effort.
- * @typedef {object} WebhookRule
- *   Trusted code that optionally creates one Session for a delivery.
- * @property {import('./brand.js').WebhookRuleId} id
- * @property {string} kind
- * @property {function(Readonly<VerifiedWebhookDelivery<string>>, AbortSignal): (WebhookSessionRequest | null | Promise<WebhookSessionRequest | null>)} run
- */
 
 import { Service } from '@freddie/cordis'
 import { errorChain } from '@freddie/freddie-llm'
@@ -25,15 +6,6 @@ import { createWebhookSession } from './session.js'
 
 export * from './brand.js'
 
-/**
- * One effect-owned rule registration and the invocations that currently use it.
- * @typedef {object} WebhookRuleRegistration
- * @property {WebhookRule} rule
- * @property {AbortController} controller
- * @property {Set<Promise<void>>} active - contained invocations not yet settled.
- * @property {boolean} closing
- * @property {Promise<void>} [disposal] - the memoized teardown, once started.
- */
 
 function snapshotDelivery(delivery) {
   if (typeof delivery.kind !== 'string' || delivery.kind.trim() === '') {
@@ -71,18 +43,12 @@ export class WebhookRuntime extends Service {
     this.selfCtx = ctx
     ctx.effect(() => async () => {
       this.closing = true
-      /* v8 ignore next -- caller-owned registration effects normally dispose first; this covers provider-first unload. */
       await Promise.all(
         [...this.rules.values()].map(rule => this.disposeRegistration(rule)),
       )
     }, 'webhookRuntime.lifecycle()')
   }
 
-  /**
-   * Register one trusted programmatic rule.
-   * @param {WebhookRule} rule - unique id, provider kind, and arbitrary callback.
-   * @returns {() => Promise<void>} awaitable effect disposer that aborts and drains this rule's active callbacks.
-   */
   register(rule) {
     if (this.closing) throw new Error('webhook runtime is closing')
     if (typeof rule.id !== 'string' || rule.id.trim() === '') {
@@ -97,7 +63,6 @@ export class WebhookRuntime extends Service {
 
     let registration
     const disposeEffect = this.ctx.effect(() => {
-      /* v8 ignore next -- no await separates the public liveness check from this initializer. */
       if (this.closing) throw new Error('webhook runtime is closing')
       if (this.rules.has(rule.id)) throw new Error(`webhook rule "${rule.id}" is already registered`)
       registration = {
@@ -112,11 +77,6 @@ export class WebhookRuntime extends Service {
     return async () => { await disposeEffect() }
   }
 
-  /**
-   * Start every currently matching rule and return before any callback settles.
-   * @param {VerifiedWebhookDelivery<string>} delivery - authenticated provider data; snapshotted before dispatch.
-   * @throws synchronously when the runtime is closing or the delivery is malformed.
-   */
   dispatch(delivery) {
     if (this.closing) throw new Error('webhook runtime is closing')
     const snapshot = snapshotDelivery(delivery)

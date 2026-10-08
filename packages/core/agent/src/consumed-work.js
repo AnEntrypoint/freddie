@@ -7,10 +7,6 @@ function accountsForClaim(reason) {
     case 'interrupted':
     case 'error':
       return true
-    /* v8 ignore next 4 -- unreachable: the one unnamed built-in, `max-tokens`, requires a step,
-     * so its turn short-circuits as stepped before this call, and `TurnEndReasonMap` is
-     * merge-extensible, so a backend-added variant cannot be listed; an unnameable ending over
-     * consumed input must not read as success. */
     default:
       return true
   }

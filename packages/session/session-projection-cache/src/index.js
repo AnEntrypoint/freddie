@@ -143,7 +143,6 @@ export class SessionProjectionCache extends Service {
   }
 
   requireTable() {
-    /* v8 ignore next */
     if (this.table === undefined) throw new Error('session projection cache is not initialized')
     return this.table
   }

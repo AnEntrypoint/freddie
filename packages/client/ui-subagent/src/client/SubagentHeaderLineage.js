@@ -464,7 +464,6 @@ export class FreddieCatalogDropdown extends HTMLElement {
     if (props === null) return
     if (next) {
       const trigger = this.#triggerEl
-      /* v8 ignore next */
       if (trigger === null) return
       this.#open = true
       this.#menuPosition = catalogMenuPosition(trigger)
@@ -556,7 +555,6 @@ export class FreddieCatalogDropdown extends HTMLElement {
     this.#unbindPlacement()
     const placeMenu = () => {
       const trigger = this.#triggerEl
-      /* v8 ignore next */
       if (trigger === null) return
       this.#menuPosition = catalogMenuPosition(trigger)
       this.#render()

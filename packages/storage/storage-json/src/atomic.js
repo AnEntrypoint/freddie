@@ -20,7 +20,6 @@ export async function writeAtomic(path, data) {
   }
 }
 
-/* v8 ignore start -- Windows rejects O_RDONLY directory opens; POSIX coverage exercises this. */
 async function fsyncDirectory(path) {
   if (process.platform === 'win32') return
   const handle = await open(path, 'r')
@@ -30,4 +29,3 @@ async function fsyncDirectory(path) {
     await handle.close()
   }
 }
-/* v8 ignore stop */

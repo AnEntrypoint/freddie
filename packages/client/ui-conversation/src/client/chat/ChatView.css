@@ -149,3 +149,43 @@
 .freddie-chatView__modalAction {
   min-width: 72px;
 }
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) {
+  position: relative;
+  padding-inline-start: 20px;
+}
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"])::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0;
+  border-inline-start: 2px solid var(--freddie-alias-border-l2);
+  pointer-events: none;
+}
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) + .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) {
+  margin-block-start: -12px;
+}
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) + .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"])::before {
+  inset-block-start: -4px;
+}
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="assistant-step"], [data-chat-flow-kind="turn-tail"]) {
+  margin-inline-start: 36px;
+}
+
+.freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) + .freddie-chatView__flowItem[data-chat-flow-kind="assistant-step"] {
+  margin-block-start: 16px;
+}
+
+@container (max-width: 600px) {
+  .freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="context"], [data-chat-flow-kind="tool-call"]) {
+    padding-inline-start: 12px;
+  }
+
+  .freddie-chatView__column > .freddie-chatView__flowItem:is([data-chat-flow-kind="assistant-step"], [data-chat-flow-kind="turn-tail"]) {
+    margin-inline-start: 0;
+  }
+}

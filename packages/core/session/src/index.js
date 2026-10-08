@@ -103,7 +103,6 @@ export function snapshotSessionEvent(event) {
 function freezeRestoredObject(value) {
   const pending = [value]
   while (pending.length > 0) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const current = pending.pop()
     Object.freeze(current)
     for (const key in current) {
@@ -438,7 +437,6 @@ export class Session {
       this.derivedGeneration = generation
     }
     for (const seq of nodes.slice(this.derivedNodes)) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion
       const msg = this.deriveEventMessage(this.log[seq])
       if (msg) this.derived.push(msg)
     }
@@ -546,7 +544,6 @@ export class SessionStore extends Service {
 
   detachEntered(entry) {
     entry.detachRequested = false
-    /* v8 ignore next -- enter() rejects replacement while this single-shot detach capability is live. */
     if (this.store.get(entry.id) !== entry) return
     this.store.delete(entry.id)
     attachments.delete(entry.session)
@@ -593,7 +590,6 @@ export class SessionStore extends Service {
       try {
         return callback(...callbackArgs)
       } catch (error) {
-        // oxlint-disable-next-line typescript/prefer-promise-reject-errors
         return Promise.reject(error)
       }
     }))

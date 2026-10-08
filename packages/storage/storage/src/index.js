@@ -10,12 +10,6 @@ export function storageBackendServiceKey(name) {
   return `storage.backend.${name}`
 }
 
-/**
- * The merge-extensible map of mountable storage-form facilities, keyed by
- * form name. Each data-form package (the domain layer first) extends this map
- * by declaration merging and owns one key.
- * @typedef {Record<string, unknown>} StorageForms
- */
 
 export class Storage extends Service {
   backend = new BackendRegistry()

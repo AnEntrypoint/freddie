@@ -18,7 +18,6 @@ function renderPolicyContext(policy) {
       return `Current FREDDIE file policy: workspace-write. Any available operation enforced by the FREDDIE file sandbox may modify files under the session workspace: ${JSON.stringify(policy.workspaceRoot)}. Some platform temporary areas may also be writable.`
     case 'danger-full-access':
       return 'Current FREDDIE file policy: danger-full-access. The FREDDIE file sandbox does not restrict file modifications by available operations. Do not set sandbox_permissions: no wider mode exists.'
-    /* v8 ignore next 4 */
     default: {
       const mode = policy.mode
       throw new Error(`unreachable sandbox mode: ${String(mode)}`)

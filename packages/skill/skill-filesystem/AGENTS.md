@@ -5,3 +5,4 @@
 - `src/index.js` chokidar options: chokidar owns late native `fs.watch` errors only for persistent watchers; this provider's effect closes every handle explicitly at teardown.
 - `src/index.js` watcher-restart failures are swallowed on retry and teardown because watch startup already logged the underlying failure; the next incomplete discovery retries again.
 - TODO(file-watch-service): extract the chokidar and missing-root observation in `openStableWatcher` into a Cordis service; keep skill filtering and invalidation in this package.
+- Watcher health and teardown may change during awaited probes/startup. Recheck them after each await, close a newly opened watcher if teardown won, and never publish that abandoned handle. Non-absence filesystem faults produce incomplete discovery; special files are skipped.

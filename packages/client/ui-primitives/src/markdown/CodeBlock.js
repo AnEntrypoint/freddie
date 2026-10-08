@@ -56,8 +56,6 @@ export class FreddieCodeBlock extends HTMLElement {
   #onCopy = () => {
     if (this.#copied) return
     const trimmed = this.#trimmed()
-    /* v8 ignore next -- both arms always mount a <pre>; trimmed is the
-       typed fallback if the DOM shape ever diverges. */
     const text = this.querySelector('pre')?.textContent ?? trimmed
     void writeClipboard(text).then((ok) => {
       if (!ok) return

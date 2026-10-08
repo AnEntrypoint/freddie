@@ -93,7 +93,6 @@ export class CssManifest extends Service {
       res.end()
       return
     }
-    /* v8 ignore next -- node:http always sets url on server requests */
     const url = new URL(req.url ?? '/', 'http://x')
     const pathname = decodeURIComponent(url.pathname)
     if (pathname === BUNDLE_PATH) {

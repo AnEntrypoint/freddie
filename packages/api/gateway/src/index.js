@@ -20,7 +20,6 @@ class RemoteInvocationCancelled extends Error {
   }
 }
 
-/** @typert service typertGateway */
 export class TypertGatewayService extends Service {
   static inject = ['typert']
 
@@ -314,7 +313,6 @@ export class TypertGatewayService extends Service {
     const value = decode(parameter.codec, args[parameter.wire], 'input-invalid', endpoint, parameter.wire)
     if (parameter.source === 'json') return value
     const key = parameter.lookup
-    /* v8 ignore next */
     if (key === undefined) {
       throw new TypertGatewayError(
         'lookup-unavailable',
@@ -448,7 +446,6 @@ function methodParameterNames(service, method, endpoint) {
   const source = Function.prototype.toString.call(implementation)
   const open = source.indexOf('(')
   const close = source.indexOf(')', open + 1)
-  /* v8 ignore next */
   if (open < 0 || close < 0) return invalidSignature(endpoint, method)
   const body = source.slice(open + 1, close).trim()
   if (body.length === 0) return []
@@ -533,7 +530,6 @@ function assertJsonValue(value, ancestors) {
     if (Object.getOwnPropertySymbols(value).length > 0) throw new TypeError('symbol property is not JSON-safe')
     for (const key of Reflect.ownKeys(value)) {
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
-      /* v8 ignore next */
       if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor)) {
         throw new TypeError('non-data property is not JSON-safe')
       }

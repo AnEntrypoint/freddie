@@ -131,7 +131,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
 
   #confirmDelete() {
     const { api, controller } = this.#injected
-    /* v8 ignore next -- the action only renders with a target and is disabled while a deletion is pending */
     if (this.#deleteTarget === undefined || this.#deleting) return
     this.#deleting = true
     this.#deleteFailure = undefined
@@ -154,7 +153,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
 
     if (state.status === 'idle') void controller.load()
     if (state.status === 'error') {
-      /* v8 ignore next -- an error status always carries text; the fallback satisfies the nullable type */
       const errorText = state.error ?? ''
       applyDiff(this, h('div', { class: styles['section'] ?? '' },
         h('p', { class: styles['error'] ?? '' }, `${t('loadFailed')}: ${errorText}`),
@@ -200,7 +198,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
         configured.map((row) => {
           const target = targetOf(row)
           const namespace = state.namespaces.get(target.settingsNs)
-          /* v8 ignore next -- the join marks a row configured only when its namespace resolved */
           if (namespace === undefined) return null
           if (needsSetup(row, anyUsable) && !this.#dismissedSetup.has(row.entry.provider)) {
             return h('li', { key: row.entry.provider, class: styles['setupCard'] ?? '' },
@@ -297,7 +294,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
                 onchange: (event) => {
                   const value = event.target.value
                   const row = addable.find(candidate => candidate.entry.provider === value)
-                  /* v8 ignore next -- the select only lists addable rows */
                   if (row === undefined) return
                   this.#editing = targetOf(row)
                   this.#render()
@@ -329,7 +325,6 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
               disabled: addable.length === 0 || !state.writable,
               onclick: () => {
                 const first = addable[0]
-                /* v8 ignore next -- the button is disabled while nothing is addable */
                 if (first === undefined) return
                 this.#savedTarget = undefined
                 this.#adding = true

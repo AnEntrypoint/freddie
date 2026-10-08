@@ -24,9 +24,9 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
 | `gm_git_status` | `git_status` | none | Working-tree porcelain status. |
-| `gm_git_log` | `git_log` | `max_count?` | Recent commit history. |
+| `gm_git_log` | `git_log` | `limit?` | Recent commit history. |
 | `gm_git_diff` | `git_diff` | `path?` | Unstaged/staged diff. |
-| `gm_git_show` | `git_show` | `object?` | Show one commit or object. |
+| `gm_git_show` | `git_show` | `rev?` | Show one commit or object. |
 | `gm_git_push` | `git_push` | none | Push the current branch. |
 | `gm_git_pull` | `git_pull` | none | Pull the current branch. |
 | `gm_git_stash` | `git_stash` | `message?` | Stash working-tree changes. |
@@ -42,6 +42,8 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_codesearch` (360000, matching live dual-index duration on this machine) and `gm_scan_deps` (180000). `gm_exec_js` polls for `max(120000, args.timeoutMs)` so a larger snippet budget is not truncated by the host tool timeout. Each tool forwards `exec.signal` into `Gm.call`, so a cancelled turn stops the poll instead of waiting the remaining timeout.
 
 `gm_codesearch` presents a search card from `bm25_hits.symbol.path`/`line_start`, `vector_hits.path`, filename `hits.path`, or commit-vector `commits`. Truncation follows the verb body's `truncated` field. `gm_recall` presents a generic summary of hit keys. `gm_instruction` and `gm_transition` present a compact title (verb, phase, PRD-pending count when those fields exist).
+
+Every GM tool presents a concise diagnostic for its own top-level reply with `ok: false`: `GM refused` for `gate_denied: true`, otherwise `GM failed`, followed by the first line of `reason` or `error` when available. Historical JSON text replies use the same presenter during replay. Nested result values do not determine this summary. Tool execution `isError`, durable content, and raw inspection stay authoritative and unchanged.
 
 ```yaml
 - id: tool-gm

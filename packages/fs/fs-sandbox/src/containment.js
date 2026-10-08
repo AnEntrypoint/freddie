@@ -24,9 +24,7 @@ async function statIfPresent(path) {
   try {
     return await stat(path, { bigint: true })
   } catch (error) {
-    /* v8 ignore else -- a non-missing stat failure requires a host permission or I/O fault after resolve reached this ancestor. */
     if (isMissing(error)) return undefined
-    /* v8 ignore next -- requires a host permission or I/O fault after resolve already reached this ancestor. */
     throw error
   }
 }

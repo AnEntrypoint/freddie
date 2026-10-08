@@ -114,7 +114,6 @@ export class FreddieProjectRowItem extends HTMLElement {
               items: workspaceMenuItems,
               onSelect: (id) => {
                 this.#menuOpen = false
-                /* v8 ignore next */
                 if (id !== 'rename' && id !== 'delete') { this.#render(); return }
                 if (id === 'rename') actions.rename()
                 else actions.delete()
@@ -170,7 +169,6 @@ export class FreddieProjectRowItem extends HTMLElement {
 
 defineElement('freddie-project-row-item', FreddieProjectRowItem)
 
-/* v8 ignore next 3 */
 function assertNever(value) {
   throw new Error(`unknown pending interaction: ${String(value)}`)
 }
@@ -199,7 +197,6 @@ function sessionStatuses(node, t) {
       pending = { state: 'warning', label: t('status.waitingAnswer') }
       break
     case undefined: break
-    /* v8 ignore next */
     default: return assertNever(node.pendingInteraction)
   }
   if (pending !== undefined) return subagents === undefined ? [pending] : [pending, subagents]

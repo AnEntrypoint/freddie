@@ -734,7 +734,6 @@ export class FreddieRootOutlet extends HTMLElement {
     }, () => outletDepth(this)))
   }
 
-  // oxlint-disable-next-line sonarjs/no-identical-functions
   connectedCallback() {
     this.#subscriptions.connect(
       () => { this.#bindVersion() },

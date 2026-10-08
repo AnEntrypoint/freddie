@@ -472,11 +472,9 @@ export class FreddieSessionTree extends HTMLElement {
                     ? undefined
                     : {
                       rename: () => {
-                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
                       },
                       delete: () => {
-                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onDeleteRequest(group.workspaceId, group.label)
                       },
                     },
@@ -495,13 +493,11 @@ export class FreddieSessionTree extends HTMLElement {
                     active: sameGroupDrag,
                     marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
                     hover: (half) => {
-                    /* v8 ignore next */
                       if (this.#drag === null) return
                       this.#drag = { ...this.#drag, over: { id: node.id, half } }
                       this.#render()
                     },
                     drop: (half) => {
-                    /* v8 ignore next */
                       if (this.#drag === null) return
                       commitSessionDrag(this.#drag, { id: node.id, half })
                     },
@@ -1060,7 +1056,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   #confirmDelete() {
     const props = this.#props
     const deleteTarget = this.#deleteTarget
-    /* v8 ignore next */
     if (props === null || this.#deleting || deleteTarget === null) return
     this.#deleting = true
     this.#deleteCommittedId = null

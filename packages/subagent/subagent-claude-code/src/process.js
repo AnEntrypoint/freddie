@@ -5,11 +5,6 @@ function thrown(value) {
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/**
- * Encode the SDK's complete child environment as a subprocess overlay.
- * @param {Record<string, string>} env - SDK-composed child environment after its removals and replacements.
- * @returns {Record<string, string | undefined>} explicit values plus tombstones for surviving ambient names the SDK removed.
- */
 export function sdkEnvironmentOverlay(env) {
   const overlay = { ...env }
   for (const name of Object.keys(scrubbedParentEnv())) {
@@ -18,12 +13,6 @@ export function sdkEnvironmentOverlay(env) {
   return overlay
 }
 
-/**
- * Translate one official SDK spawn request to the shared process owner.
- * @param {import('@anthropic-ai/claude-agent-sdk').SpawnOptions} options - command, arguments, workspace, environment, and forwarded signal from the SDK.
- * @param {number} graceMs - managed-range termination grace.
- * @returns {import('@freddie/freddie-subprocess').SubprocessSpawnSpec} the fully explicit shared subprocess request.
- */
 export function claudeSpawnSpec(options, graceMs) {
   if (options.cwd === undefined || options.cwd.length === 0) {
     throw new Error('subagent-claude-code: SDK spawn request omitted its workspace')
@@ -39,10 +28,6 @@ export function claudeSpawnSpec(options, graceMs) {
 }
 
 export class ManagedClaudeCodeProcess {
-  /**
-   * Project a managed process with piped stdin and stdout.
-   * @param {import('@freddie/freddie-subprocess').SubprocessHandle} child - shared handle that remains the managed-range authority.
-   */
   constructor(child) {
     this.child = child
     this.stdin = child.stdin
@@ -78,11 +63,6 @@ export class ManagedClaudeCodeProcess {
     return this.outcomeValue
   }
 
-  /**
-   * Route the SDK's termination request to the managed-range process owner.
-   * @param {NodeJS.Signals} _signal - SDK-selected signal; the shared seam owns its escalation ladder.
-   * @returns {boolean} false only after exit or a previous termination request.
-   */
   kill(_signal) {
     if (this.killRequested || this.outcomeValue !== undefined) {
       return false

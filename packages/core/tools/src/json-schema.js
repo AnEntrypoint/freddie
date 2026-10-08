@@ -22,7 +22,6 @@ const CONSTRAINT_KEYWORDS = new Set([
 const ANNOTATION_KEYWORDS = new Set(['description', 'title', 'default', 'examples'])
 const SCHEMA_TYPES = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
 
-/* jscpd:ignore-start -- this realm boundary mirrors the session-owned lossless-JSON intrinsic test */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -59,7 +58,6 @@ function hasPlainArrayPrototype(value) {
     && objectPrototype !== null
     && isIntrinsicObjectPrototype(objectPrototype)
 }
-/* jscpd:ignore-end */
 
 function hasOnlyEnumerableStringKeys(value) {
   try {
@@ -98,7 +96,6 @@ function scalarMatches(type, value) {
     case 'integer': return isJsonNumber(value) && Number.isInteger(value)
     case 'boolean': return typeof value === 'boolean'
     case 'null': return value === null
-    /* v8 ignore next -- JsonSchemaScalarType is closed; this retains compile-time exhaustiveness. */
     default: return assertNever(type, 'JsonSchemaType')
   }
 }
@@ -231,7 +228,6 @@ function checkSchemaNode(root, rootPath, violations, seen) {
             const entries = Object.entries(properties)
             for (let index = entries.length - 1; index >= 0; index--) {
               const entry = entries[index]
-              /* v8 ignore next -- the loop is bounded by the captured entry count. */
               if (entry === undefined) continue
               tasks.push({ kind: 'enter', node: entry[1], path: `${path}.properties.${entry[0]}` })
             }
@@ -268,7 +264,6 @@ function checkSchemaNode(root, rootPath, violations, seen) {
         }
         break
       }
-      /* v8 ignore next -- schemaType was narrowed from the closed SCHEMA_TYPES table above. */
       default: assertNever(schemaType, 'JsonSchemaType')
     }
   }
@@ -363,13 +358,11 @@ function checkValue(schema, value, path) {
 
   while (frames.length > 0) {
     const frame = frames.at(-1)
-    /* v8 ignore next -- the loop condition guarantees a current frame. */
     if (frame === undefined) break
     try {
       if (frame.phase === 'children') {
         if (frame.childIndex < frame.children.length) {
           const child = frame.children[frame.childIndex]
-          /* v8 ignore next -- childIndex is bounded by children.length. */
           if (child === undefined) throw new Error('missing schema-value child frame')
           frame.childIndex++
           frames.push(valueFrame(child.node, child.value, child.path))
@@ -495,7 +488,6 @@ function checkValue(schema, value, path) {
     }
   }
 
-  /* v8 ignore next -- every root frame finishes or throws. */
   return rootResult ?? losslessValueViolation(path)
 }
 

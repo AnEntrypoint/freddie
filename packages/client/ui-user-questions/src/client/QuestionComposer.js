@@ -20,7 +20,6 @@ export function parseRecommendedLabel(label) {
 const LEGACY_IME_COMPOSITION_KEY_CODE = 229
 
 function isComposing(event) {
-  // oxlint-disable-next-line typescript/no-deprecated
   return event.isComposing || event.keyCode === LEGACY_IME_COMPOSITION_KEY_CODE
 }
 
@@ -130,7 +129,6 @@ export class FreddieQuestionFlow extends HTMLElement {
   }
 
   #updateDraft(update) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     this.#drafts = this.#drafts.map((item, itemIndex) => itemIndex === this.#index ? update(item) : item)
     this.#error = null
   }
@@ -218,7 +216,6 @@ export class FreddieQuestionFlow extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const questions = props.pending.questions
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const draft = this.#drafts[this.#index]
     if (!this.#answered(draft)) {
       this.#error = { key: 'error.unanswered' }
@@ -267,9 +264,7 @@ export class FreddieQuestionFlow extends HTMLElement {
     const busy = this.#busy
     const error = this.#error
     const minimized = this.#minimized
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const question = questions[index]
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const draft = drafts[index]
     const hasOptions = (question.options?.length ?? 0) > 0
 

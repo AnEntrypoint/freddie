@@ -15,4 +15,4 @@
 - The plugin entry stays explicitly `async`: Cordis treats a prototype-bearing ordinary function as a constructor whose returned Promise is not startup work.
 - Stdio transport env reuses the subprocess seam's credential scrub; the MCP SDK owns the actual spawn.
 - MCP content decoding is a network trust boundary: required spec fields (mimeType, text) are guarded with fallbacks; image blocks decode only canonical RFC 4648 base64 and a raster MIME set, else the whole result projects images as text.
-- `src/connection.js` `jscpd:ignore` wraps delay validation that parallels llm retry-policy and is not extractable.
+- `src/connection.js` owns delay validation independently of the LLM retry policy; keep transport policy local.

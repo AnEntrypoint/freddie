@@ -41,7 +41,6 @@ function optionsOf(value, t) {
 export function apply(ctx) {
   const command = ctx.get('commandUi')
   const sessions = ctx.sessions
-  /* jscpd:ignore-start */
   ctx.effect(() => ctx.locale.register(ACCESS_NS, 'en', {
     'confirm.title': accessEn['confirm.title'],
     'confirm.description': accessEn['confirm.description'],
@@ -49,7 +48,6 @@ export function apply(ctx) {
     'confirm.cancel': accessEn['confirm.cancel'],
     'confirm.enable': accessEn['confirm.enable'],
   }), 'ui-permission: Full access confirmation dictionaries')
-  /* jscpd:ignore-end */
   const t = ctx.locale.bind(ACCESS_NS)
   const sessionFor = session =>
     sessions.binding(session.sessionId)?.session

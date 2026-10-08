@@ -110,7 +110,6 @@ export class HarnessClient {
       this.transport?.close()
       this.failSubscriptions(this.closedError('Freddie runtime failed to start'))
     })
-    /* v8 ignore next */
     child.stdin.on('error', () => {})
     let stderrBuffer = ''
     child.stderr.setEncoding('utf8')
@@ -179,7 +178,6 @@ export class HarnessClient {
       throw this.closedError('Freddie runtime is not running')
     }
     const transport = this.transport
-    /* v8 ignore next */
     if (transport === undefined) throw new TransportClosedError('Freddie runtime is not running')
     const timeout = timeoutMs ?? this.options.requestTimeoutMs
     try {
@@ -270,7 +268,6 @@ export class HarnessClient {
       if (parent === undefined) return false
       current = parent
     }
-    /* v8 ignore next */
     return false
   }
 
@@ -307,6 +304,5 @@ export function isRecord(value) {
 }
 
 function errorMessage(error) {
-  /* v8 ignore next */
   return error instanceof Error ? error.message : String(error)
 }

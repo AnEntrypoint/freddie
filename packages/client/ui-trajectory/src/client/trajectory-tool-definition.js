@@ -1,6 +1,5 @@
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start */
 const MAX_DEPTH = 256
 
 function rootCall(match) {
@@ -236,7 +235,6 @@ const trajectoryToolDefinition = {
     return trajectoryNode(context, anchorSeq, { kind: 'tool', root })
   },
 }
-/* jscpd:ignore-end */
 
 export function registerTrajectoryToolDefinition(ctx) {
   ctx.conversationEvents.register(trajectoryToolDefinition)

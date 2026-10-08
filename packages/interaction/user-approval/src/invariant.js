@@ -32,7 +32,6 @@ function applyApprovalTransition(pending, transition) {
   else pending.delete(transition.id)
 }
 
-/* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   const traces = new WeakMap()
   const staged = new WeakMap()
@@ -63,7 +62,6 @@ const install = Object.assign((ctx, fail) => {
     }
     if (event.type !== 'approval/asked' && event.type !== 'approval/decided') return
     const candidate = staged.get(event)
-    /* v8 ignore next */
     if (candidate === undefined || candidate.session !== session) return fail('approval audit event published without pre-commit validation')
     staged.delete(event)
     applyApprovalTransition(trace.pending, candidate.transition)
@@ -75,7 +73,6 @@ const install = Object.assign((ctx, fail) => {
     if (transition !== undefined) staged.set(event, { session, transition })
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

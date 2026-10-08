@@ -2656,6 +2656,9 @@
   text: After the current active agent loop ends, query the official HMR snapshot and browser journal for reload, then dispatch a fresh GUI GM tool and read its runtime metric.
   session_id: freddie-2128598-1790941468204
   status: unknown
+  blockedBy:
+  - external
+  deferReason: Inherited historical HMR postcondition belongs freddie-2128598-1790941468204 and gm-runtime-host-hmr-activation. Current new browser journal is bounded to its connection event and cannot witness the prior agent-loop idle reload; no truthful resolution asserted. Original owning HMR investigation must supply original host snapshot/journal and actual GUI GM runtime metric. Keep row unknown/external; current DADA GUI access/presentation work does not depend on the historical reload.
 - id: free-rank-source
   prd_id: openrouter-free-fallback
   obligation_kind: precondition
@@ -2880,3 +2883,56 @@
   session_id: freddie-2359017-1791302765514
   status: witnessed
   witness_evidence: Live WorkflowGraphTracker subscription with terminal bound 1 published [two] after pruning one; final subscriber ids equaled list() and mutating a returned list did not alter tracker state.
+- id: browserskill-cli-contract
+  prd_id: browserskill-capability-seam
+  obligation_kind: precondition
+  subject: The BrowserSkill 0.3.2 CLI command names, JSON shapes, cancellation semantics, and ownership rules must be known before Freddie emits a provider.
+  text: Witness by inspecting official 0.3.2 CLI help plus upstream DSH BrowserSkill tool routing and exercising bsk doctor/status. The integration will only invoke documented CLI commands and always use plugin-owned session IDs.
+  depends_on: []
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: Official BrowserSkill v0.3.2 was installed at /config/.local/bin/bsk. `bsk --version` returned 0.3.2; `bsk --help`, `bsk session/tab/window/debug/network/screenshot/record/request-help/download/upload/browsers --help` provided the concrete command contract; upstream packages/dsh-plugin-browserskill/src/browser-tools.ts and runner.ts confirm the six grouped tool families, JSON mode, and session ownership approach.
+- id: browserskill-provider-ownership
+  prd_id: browserskill-capability-seam
+  obligation_kind: invariant
+  subject: Only sessions created by a Freddie agent may be selected, acted on, or stopped by that agent; agent disposal must stop every owned session.
+  text: Witness through an agent-scoped registry keyed by Agent identity and a disposal effect that issues bounded bsk session stop calls only for the recorded IDs.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/index.js:39-49 restricts use to per-Agent recorded session ids; :110-120 and :164-166 attach idempotent cleanup to the provider and each owner Agent Fiber, stopping only recorded sessions; :132-177 records a bsk-created id, enforces the per-Agent max, and cleans a failed post-start navigation.
+- id: browserskill-subprocess-lifecycle
+  prd_id: browserskill-capability-seam
+  obligation_kind: resource-bound
+  subject: Every bsk invocation must use the Freddie subprocess seam, inherit its credential scrubbing, be abortable, and have bounded output and termination grace.
+  text: Witness by implementing one runner over ctx.subprocess.spawn with explicit stdout/stderr byte caps, AbortSignal propagation, and bounded graceMs; live execution will show a real CLI result.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/runner.js:22-48 invokes every command through ctx.subprocess.resolveExecutable/spawn without a shell, sets 512 KiB stdout/stderr bounds and 3 s teardown grace, forwards AbortSignal, parses bsk JSON errors, and exposes nonzero `doctor` diagnostic JSON. `bsk doctor --json` ran live with the installed 0.3.2 CLI and confirmed a reachable daemon plus a truthful disconnected-extension failure; pnpm run publint passed.
+- id: browserskill-tool-schema
+  prd_id: browserskill-capability-seam
+  obligation_kind: type-shape
+  subject: Model-facing BrowserSkill tools must group all documented 0.3.2 capabilities without leaking transport internals or accepting command injection.
+  text: Witness by defining action enums with bounded typed fields for session, page, inspect/debug, interactions/files, tabs, and assist/human-help; runner constructs argv only from validated named fields.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/index.js:122-279 defines the status tool and six BrowserSkill tool groups. :71-98 rejects missing action-dependent values before argv creation; action maps construct fixed command names and flags from typed fields only. BrowserSkill 0.3.2 CLI help was read for session/page/inspect/interact/tabs/assist commands, and pnpm run publint passed.
+- id: browserskill-unavailable-state
+  prd_id: browserskill-live-verification
+  obligation_kind: postcondition
+  subject: When no extension is connected, Freddie must report BrowserSkill's real actionable readiness state rather than manufacture sessions or silently fall back to another browser.
+  text: Witness with bsk doctor JSON and a provider health/availability tool that preserves the official diagnostic text, separately from a live end-to-end session after extension connection.
+  depends_on:
+  - browserskill-capability-seam
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: Live `/config/.local/bin/bsk doctor --json` on 2026-10-07 reported bsk home writable, daemon PID 57709, matching local peer identity and protocol 1.3/app 0.3.2; it reported `extension connected` failed with `0 browsers connected` and the official Chrome/Edge extension install hint. packages/experimental/browser-use-browserskill/src/runner.js:47-49 returns this nonzero diagnostic JSON from browserskill_status rather than throwing or substituting a browser.
+- id: gui-dada-narrow-outcome-andon-20261007
+  subject: 'M5A Evidence critic Andon: 390px collapsed Tool call GM failed unknown ... hides operation and offending field; expanded screenshot only shows raw tail. Invariant: owner-supplied result diagnostics readable with operation/reason at320/390, unchanged raw payload and authoritative isError; postcondition independent native disclosure and visible summary proof.'
+  session_id: gui-dada-root-20261007
+  status: unknown

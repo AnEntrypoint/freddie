@@ -67,7 +67,6 @@ export class WorkerRun {
     this.worker = new Worker(entry, options)
     this.worker.on('message', (message) => { this.onMessage(message) })
     this.worker.on('error', (error) => { this.onWorkerDeath(`workflow worker failed: ${renderThrown(error)}`, false) })
-    /* v8 ignore next -- messageerror: not constructible from the engine's own protocol (every payload is JSON data) */
     this.worker.on('messageerror', (error) => { this.onWorkerDeath(`workflow worker message failed to deserialize: ${renderThrown(error)}`, false) })
     this.worker.on('exit', (code) => {
       this.workerGone = true
@@ -119,7 +118,6 @@ export class WorkerRun {
       this.reapChildren('workflow disposed')
     })().then(
       () => { claimed.resolve(undefined) },
-      /* v8 ignore next -- result/quiescence never reject and Worker.terminate is the only external promise */
       (error) => { claimed.reject(error) },
     )
     return this.disposed
@@ -130,7 +128,6 @@ export class WorkerRun {
     try {
       this.worker.postMessage({ type, ...payload })
     } catch (error) {
-      /* v8 ignore next -- postMessage teardown race (a throw between exit and its event): not constructible in-process */
       this.ctx.logger.warn(`workflow-worker-thread: postMessage failed: ${renderThrown(error)}`)
     }
   }
@@ -163,7 +160,6 @@ export class WorkerRun {
       case WorkerToHostType.Result:
         this.onResult(message.result)
         break
-      /* v8 ignore next 2 -- closed engine-owned union; the arm only makes adding a message type a compile error */
       default:
         assertNever(message, 'worker-to-host message')
     }
@@ -193,7 +189,6 @@ export class WorkerRun {
     this.pendingStarts.add(task)
     void task.then(
       () => { this.finishPendingStart(task) },
-      /* v8 ignore next -- startChild contains provider and cleanup failures */
       () => { this.finishPendingStart(task) },
     )
   }
@@ -349,7 +344,6 @@ export class WorkerRun {
   }
 
   endAgent(end) {
-    /* v8 ignore next -- a real end still in flight across the grace force-settle: not orderable in-process */
     if (!this.liveAgents.delete(end.seq)) return
     this.observer.agentEnd(end)
   }
@@ -361,7 +355,6 @@ export class WorkerRun {
   }
 
   cancelledResult(agentsStarted) {
-    /* v8 ignore next */
     const reason = this.cancelReason ?? 'workflow cancelled'
     return { value: null, stopReason: 'cancelled', error: `workflow run cancelled: ${reason}`, agentsStarted }
   }
@@ -376,7 +369,6 @@ export class WorkerRun {
   }
 
   settleResult(result) {
-    /* v8 ignore next -- defensive fallback outside the claimed state machine */
     if (this.settled) return
     this.terminalClaimed = true
     this.settled = true

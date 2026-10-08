@@ -42,14 +42,12 @@ export const PROCESS_INFORMATION = koffi.struct('PROCESS_INFORMATION', {
   dwThreadId: 'uint32',
 })
 
-/* v8 ignore start */
 if (STARTUPINFOW.size !== abi.STARTUPINFOW_SIZE) {
   throw new Error(`STARTUPINFOW layout mismatch: koffi computed ${STARTUPINFOW.size}, header probe says ${abi.STARTUPINFOW_SIZE}`)
 }
 if (PROCESS_INFORMATION.size !== abi.PROCESS_INFORMATION_SIZE) {
   throw new Error(`PROCESS_INFORMATION layout mismatch: koffi computed ${PROCESS_INFORMATION.size}, header probe says ${abi.PROCESS_INFORMATION_SIZE}`)
 }
-/* v8 ignore stop */
 
 export function allocPtrSlot() {
   return koffi.alloc(PVOID, 1)

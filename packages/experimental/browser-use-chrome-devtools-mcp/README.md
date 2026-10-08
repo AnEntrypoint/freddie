@@ -2,7 +2,7 @@
 
 Use Chrome DevTools MCP to inspect pages and operate Chromium through its upstream tools. The provider starts a Session's MCP connection inside `agent/created` and holds that Agent until discovery settles, so its first turn already carries the complete tool catalog; the connection is retained across later turns. Launch a separate browser, or attach one Session to an existing browser with its current tabs and login state.
 
-The `@freddie/freddie-bundle-base` profile mounts this provider by default (`mode: launch`, `headless: true`, `excludePresets: [minimal]`); a deployment can still exclude more presets or disable the row entirely.
+The `@freddie/freddie-bundle-base` profile resolves this provider but keeps its row disabled. Enable exactly one browser-use provider in an operator-controlled profile; this provider can still exclude selected presets after it is enabled.
 
 ## Use this package
 

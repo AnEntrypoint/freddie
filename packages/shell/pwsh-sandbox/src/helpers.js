@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 import { accessSync, constants, statSync } from 'node:fs'
 
 const EXECUTABLE_SPAWN_CODES = new Set(['EACCES', 'ENOENT'])
@@ -52,4 +51,3 @@ export function matchesSignature(exitCode, stderr, signatures) {
   const lowered = stderr.toLowerCase()
   return signatures.some(signature => lowered.includes(signature.toLowerCase()))
 }
-/* jscpd:ignore-end */

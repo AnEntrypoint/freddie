@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 
 export const MIN_PACKED_ROW_MEMBERS = 3
 export const MAX_PACKED_ROW_MEMBERS = 1_024
@@ -125,7 +124,6 @@ function emitBoundedRun(out, kind, completeRun) {
       offset += 1
       continue
     }
-    /* v8 ignore next */
     out.push(acceptedRow ?? malformed(kind, 'bounded encoder lost its accepted row'))
     offset += accepted
   }
@@ -266,4 +264,3 @@ export function decodeSerializedChunkRow(tag, seq0, time0, serializedData) {
   if (bytes > MAX_PACKED_DATA_BYTES) malformed(tag, `data exceeds ${MAX_PACKED_DATA_BYTES} UTF-8 bytes`)
   return expandRow(validateRow({ type: tag, seq0, time0, data: JSON.parse(serializedData) }, tag, bytes))
 }
-/* jscpd:ignore-end */

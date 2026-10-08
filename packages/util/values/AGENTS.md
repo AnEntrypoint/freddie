@@ -1,0 +1,3 @@
+# AGENTS.md — values
+
+Use assertNever only for closed unions; JavaScript performs no compile-time exhaustiveness check. Lossless JSON rejects sparse arrays, cycles, exotic prototypes, negative zero, non-finite numbers, and own fields JSON discards. Durable boundaries use snapshotJsonValue, detaching with one read per property; isJsonValue does not detach. deepEqualJson requires accepted JSON data and is not cycle-safe. Freeze graphs in place while leaving live AbortSignal objects mutable. WeakMapWithValues strongly retains values, requires one key per value, and relies on owner delete/clear for cleanup. [Public API](README.md).

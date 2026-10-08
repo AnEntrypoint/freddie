@@ -99,7 +99,6 @@ export function parseDshArgs(argv, version) {
   } catch (error) {
     return process.exit(error instanceof CommanderError ? error.exitCode : 1)
   }
-  /* v8 ignore next */
   if (resolved === undefined) throw new Error('freddie: no invocation resolved')
   return resolved
 }

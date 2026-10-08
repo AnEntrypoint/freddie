@@ -41,7 +41,6 @@ export function parseSessionReferenceText(text) {
     bareUri,
   ) => {
     const uri = markdownUri ?? bareUri
-    /* v8 ignore next -- the two-alternative regex always captures exactly one URI group. */
     if (uri === undefined) throw new SessionReferenceError('session reference URI is missing', 'SESSION_REFERENCE_INVALID_REFERENCE')
     const sessionId = decodeSessionReferenceUri(uri)
     const label = rawLabel === undefined ? sessionId : unescapeLabel(rawLabel)

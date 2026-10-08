@@ -3,7 +3,6 @@ import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline1
 import { NS } from '../locales.js'
 import css from './TodoPanel.css.js'
 
-/* v8 ignore next 3 -- closed-union backstop; only reached if status is forged */
 function assertNever(value) {
   throw new Error(`unreachable todo status: ${String(value)}`)
 }
@@ -51,7 +50,6 @@ function StatusGlyph({ status }) {
     case 'completed': return h(CompletedGlyph, null)
     case 'in_progress': return h(ProgressGlyph, null)
     case 'pending': return h(PendingGlyph, null)
-    /* v8 ignore next -- closed TodoItem status union */
     default: return assertNever(status)
   }
 }

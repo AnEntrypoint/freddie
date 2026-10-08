@@ -124,6 +124,7 @@
     "@freddie/freddie-inspector": "*",
     "@freddie/freddie-computer-use": "*",
     "@freddie/freddie-browser-use": "*",
+    "@freddie/freddie-experimental-browser-use-browserskill": "*",
     "@freddie/freddie-experimental-browser-use-chrome-devtools-mcp": "*",
     "@freddie/freddie-compaction-image-offload": "*",
     "@freddie/freddie-time-context": "*",

@@ -26,7 +26,7 @@ export class ClientModuleSystem {
     this.manifest = options.manifest
     this.seed = new Map(Object.entries(options.staticModules))
     this.importModule = options.importModule
-      ?? (url => import(/* @vite-ignore */ new URL(url.replace(/^\/+/, ''), document.baseURI).href))
+      ?? (url => import(  new URL(url.replace(/^\/+/, ''), document.baseURI).href))
 
     for (const row of options.manifest.modules) {
       if (this.graphRows.has(row.id)) throw new Error(`client-modules: duplicate graph entry "${row.id}"`)

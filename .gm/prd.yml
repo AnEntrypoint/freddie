@@ -112,7 +112,33 @@
   SESSION_ID: gui-perf-next-20261006
   session_id: gui-perf-next-20261006
   status: pending
-- id: gui-trajectory-retained-render-owner-20261006
-  subject: Actual native earlier-history notifications remount TrajectoryView/Table and reset private search/selection ownership; bare TrajectoryView registration and child HTMLElement factories need source audit. Retain standard native registration/VDOM owners only after real same-owner search/history/selection/lifetime gates; preserve current props/session/provider/locale semantics and no arbitrary identity comparator/cache. Separate from finite idle search timer and viewport CSS atoms; no fabricated active-stream witness.
-  session_id: gui-perf-next-20261006
+- id: gui-dada-design-closure-20261007
+  subject: Use located /config/workspace/gdaa/skills/dada/SKILL.md in Adaptive mode to improve Freddie complete GUI. Required artifacts Freddie DESIGN-LOG.md traversal/frontier, pre-move records, independent five-critic rendered panels, ledger, compliance. Verify desktop/narrow/mobile, keyboard, real session interactions, visual hierarchy, ambition push and two WHOLE saturation rounds. Do not substitute performance-only work or declare completion without S1-S5.
+  session_id: gui-dada-root-20261007
+  status: pending
+- id: gm-freddie-adapter-canonical-fields-20261007
+  subject: Real populated GUI historic GM calls repeatedly failed because registered Freddie tool-gm schemas still expose max_count/git_show object; live daemon accepts limit/rev. Update owner-adapter schema, current references and README from actual accepted_fields; preserve historical raw logs, verify real registration and daemon dispatch. This is witnessed product workflow friction, complements diagnostic GUI presentation.
+  session_id: gui-dada-root-20261007
+  status: pending
+- id: browserskill-web-observability
+  title: Integrate BrowserSkill state into Freddie Web
+  subject: 'Pre: BrowserSkill provider produces tool calls and screenshot paths but Freddie Web has no first-class BrowserSkill session pane or screenshot attachment integration. Invariant: visual browser-task observation is derived from durable tool/session facts and does not leak foreign session or browser-profile data. Post: the Web UI shows owned BrowserSkill activity with correctly bounded, model-visible state.'
+  acceptance: Design and implement any client/host projection required for a BrowserSkill activity panel or tool presentation, verify it in the actual Web GUI, and retain session ownership boundaries.
+  status: pending
+  route_family: observability
+  depends_on:
+  - browserskill-capability-seam
+  session_id: freddie-2723231-1791306788857
+- id: gui-dada-m5-break-comparison-20261007
+  subject: Render both pre-recorded M5A work rail and M5B work dossier BREAK alternatives, independently convene five Adaptive critics using staged CRP on each, resolve Andons/OBJECTs, compare observed Pugh criteria, retain winning actual source and supersede losing record without losing original session owners/chronology.
+  depends_on: []
+  session_id: gui-dada-root-20261007
+  status: pending
+- id: gui-disclosure-closed-aria-state-20261007
+  subject: Actual ToolRow disclosure closed state omits aria-expanded while open exposes true. Preserve explicit false through renderer/consumer and verify native closed/open/close on real historical row.
+  session_id: gui-dada-root-20261007
+  status: pending
+- id: gui-sticky-composer-focus-clearance-20261007
+  subject: Independent native320 center-start gm_git_show Enter/Tab focuses original OUT at y653–819 behindstickycomposer y604–844. Preserve measured composer seat clearance in native scroll alignment, real repeat fromnormalmidscroll withnonemptydraft and owner identities. NewUsability focusvisibilityAndon, resultvisibilityAndonreleased separately.
+  session_id: gui-dada-root-20261007
   status: pending

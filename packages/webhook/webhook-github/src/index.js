@@ -5,12 +5,6 @@ import { createGitHubWebhookHandler } from './handler.js'
 export const name = 'webhook-github'
 export const inject = ['webServer', 'webhookRuntime', 'credentials']
 
-/**
- * @typedef {{ readonly source: string; readonly path: string; readonly secretEnv: string; readonly maxBodyBytes: number }} Config
- *   Required GitHub ingress configuration. `source` is the adapter instance name carried to rules;
- *   `path` is the exact absolute route path; `secretEnv` names the credential reference holding the
- *   shared webhook secret; `maxBodyBytes` is the positive raw body ceiling.
- */
 
 export const Config = z.object({
   source: z.string().required(),
@@ -29,11 +23,6 @@ function assertConfig(config) {
   }
 }
 
-/**
- * Register one signed GitHub endpoint on the injected WebServer.
- * @param {import('@freddie/cordis').Context} ctx - plugin context.
- * @param {Config} config - resolved plugin configuration.
- */
 export function apply(ctx, config) {
   assertConfig(config)
   const route = {

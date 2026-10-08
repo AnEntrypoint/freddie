@@ -75,7 +75,7 @@ async function remountInDocument(rev) {
     globalThis.location.reload()
     return
   }
-  const { AppWebEntry } = await import(/* @vite-ignore */ new URL(`/__hmr/${encodeURIComponent(rev)}${shellUrl}`, globalThis.location.origin).href)
+  const { AppWebEntry } = await import(  new URL(`/__hmr/${encodeURIComponent(rev)}${shellUrl}`, globalThis.location.origin).href)
   await shell.dispose()
   const next = new AppWebEntry(shell.container)
   globalThis.__FREDDIE_SHELL__ = next

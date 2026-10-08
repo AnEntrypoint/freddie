@@ -160,7 +160,6 @@ export async function reconcileInstructionContext(
 ) {
   const session = agent.session
   const effective = visibleInstructionChanges(agent, options.authorityMessages)
-  /* v8 ignore next -- normal agents carry an absolute session cwd. */
   const cwd = session.header.cwd ?? process.cwd()
   const projectRoot = options.projectRoot
     ?? await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, options.signal)
@@ -179,7 +178,6 @@ export async function reconcileInstructionContext(
     for (const scope of baselineScopes) scopes.add(scope)
   }
   for (const message of options.scopeMessages) {
-    /* v8 ignore next -- the plugin passes its workspace-only pending projection. */
     if (!isWorkspaceContextSource(message.source)) continue
     for (const change of workspaceInstructionChanges(message.source)) {
       if (!options.includeBaselineScopes && baselineScopes.has(change.scope)) continue

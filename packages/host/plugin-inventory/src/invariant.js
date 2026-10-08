@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 const PACKAGE_NAME = '@freddie/freddie-host-plugin-inventory'
 
 export const name = 'host-plugin-inventory-invariant'
@@ -8,4 +7,3 @@ const install = () => {}
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */

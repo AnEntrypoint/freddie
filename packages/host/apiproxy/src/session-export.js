@@ -199,12 +199,10 @@ export function streamSessionLogZip(deps, root, sessionId, includeDescendants, c
   return new ReadableStream({
     start(controller) {
       const archive = new Zip((error, data, final) => {
-        /* v8 ignore next 3 -- fflate reports only internal zip failures, unreachable for valid inputs */
         if (error) {
           controller.error(error)
           return
         }
-        /* v8 ignore next -- fflate may emit empty chunks; not controllable from tests */
         if (data.byteLength > 0) controller.enqueue(data)
         if (final) controller.close()
       })
@@ -222,7 +220,6 @@ export function streamSessionLogZip(deps, root, sessionId, includeDescendants, c
           }
           archive.end()
         } catch (error) {
-          /* v8 ignore next -- typed backends reject with Error, and DOMException is one in Node */
           terminateZip()
           controller.error(error instanceof Error ? error : new Error(String(error)))
         }

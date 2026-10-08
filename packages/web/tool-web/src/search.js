@@ -55,27 +55,7 @@ export function presentSearchCall(args) {
   return { card: 'generic', title, kind: 'search', rawInput: title }
 }
 
-/**
- * The `web_search` tool's private `tool/result` `meta` payload: the structured
- * sources, the optional provider answer, and the truncation flag. Attached
- * opaquely (as `JsonValue`) on the tool result and persisted with the session
- * log, so `presentResult` reproduces the search card on replay. This projection
- * is the only faithful route to the per-source fields, which the lossy render
- * text cannot carry (the owning rationale is the web-result-card Agent Note).
- * @typedef {object} WebSearchMeta
- * @property {WebSource[]} sources
- * @property {boolean} truncated
- * @property {string} [answer] - the provider's own synthesized answer, when supplied.
- */
 
-/**
- * One projected search source: every field present in the seam's outcome.
- * @typedef {object} WebSource
- * @property {string} url
- * @property {string} [title]
- * @property {string} [snippet]
- * @property {string} [publishedAt]
- */
 
 function projectSource(source) {
   return {

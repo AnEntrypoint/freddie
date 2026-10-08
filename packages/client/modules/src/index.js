@@ -500,7 +500,6 @@ export class ClientModuleRegistry extends Service {
       res.end()
       return
     }
-    /* v8 ignore next */
     const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
     const prefix = '/workspace/'
     if (!pathname.startsWith(prefix)) {
@@ -539,7 +538,6 @@ export class ClientModuleRegistry extends Service {
       res.end()
       return
     }
-    /* v8 ignore next */
     const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
     const resolved = this.resolveBundlePath(pathname)
     if (resolved === undefined) {

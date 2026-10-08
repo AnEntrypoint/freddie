@@ -171,7 +171,6 @@ export class MessageFeedbackController {
       if (options.seed !== false) {
         const loaded = await this.ensure()
         if (!loaded.ok) return loaded
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
         if (this.disposed) return DISPOSED
       }
       try {

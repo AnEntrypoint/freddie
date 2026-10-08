@@ -22,7 +22,6 @@ export async function canonicalizeWatchPath(path) {
     } catch (error) {
       if (error.code !== 'ENOENT') throw error
       const parent = dirname(current)
-      /* v8 ignore next -- a filesystem root exists, so traversal resolves before this guard */
       if (parent === current) throw error
       missing.push(basename(current))
       current = parent

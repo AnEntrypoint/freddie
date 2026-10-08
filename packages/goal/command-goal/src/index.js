@@ -6,11 +6,9 @@ export const inject = ['commands', 'goals']
 
 const USAGE = 'Usage: /goal [<objective>|clear|edit <objective>|pause|resume]'
 
-/* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
 function assertNever(value, label) {
   throw new TypeError(`unknown ${label}: ${String(value)}`)
 }
-/* v8 ignore stop */
 
 function parseGoalCommand(rawInput) {
   const input = rawInput.trim()
@@ -30,7 +28,6 @@ function phaseLabel(phase) {
     case 'paused': return 'paused'
     case 'blocked': return 'blocked'
     case 'complete': return 'complete'
-    /* v8 ignore next 2 -- GoalPhase is closed and every member is handled above */
     default: return assertNever(phase, 'goal phase')
   }
 }
@@ -47,14 +44,12 @@ function commandHint(goal) {
       return '/goal edit <objective>, /goal resume, /goal clear'
     case 'complete':
       return '/goal <objective>, /goal clear'
-    /* v8 ignore next 2 -- the active branch and every non-active phase are handled above */
     default: return assertNever(goal.phase, 'goal phase')
   }
 }
 
 function renderGoal(title, goal) {
   const reason = goal.phase === 'blocked' ? goal.blockedReason : undefined
-  /* v8 ignore next -- durable replay guarantees every blocked goal carries its validated reason */
   if (goal.phase === 'blocked' && reason === undefined) throw new TypeError('blocked goal is missing its reason')
   const blocker = reason === undefined ? [] : [`Blocker: ${reason.code}: ${reason.message}`]
   return {
@@ -140,7 +135,6 @@ function executeGoalCommand(ctx, invocation) {
         if (current === undefined) return { kind: 'success', text: 'No goal to clear.' }
         ctx.goals.clear(invocation.agent, goalRef(current))
         return { kind: 'success', text: 'Goal cleared.' }
-      /* v8 ignore next 2 -- GoalCommand is closed and every member is handled above */
       default: return assertNever(command, 'goal command')
     }
   } catch (error) {

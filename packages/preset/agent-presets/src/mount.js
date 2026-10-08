@@ -13,7 +13,6 @@ const harnessBase = new WeakMap()
 function importFrom(tree, base, name, getOuterStack, relativeBase) {
   const specifier = isAbsolute(name) ? pathToFileURL(name).href : name
   const internal = tree.ctx.loader.internal
-  /* v8 ignore next 3 */
   if (base === undefined || internal === undefined) {
     return EntryTree.prototype.import.call(tree, name.startsWith('.') ? name : specifier, getOuterStack)
   }
@@ -90,7 +89,6 @@ export function leakedServices(ctx, mount) {
   const leaked = []
   for (const key of Object.getOwnPropertySymbols(store)) {
     const impl = store[key]
-    /* v8 ignore next */
     if (impl === undefined) continue
     if (!withinFiber(impl.fiber, mount)) continue
     if (rootIsolate[impl.name] === key) leaked.push(impl.name)
@@ -118,7 +116,6 @@ export function serviceForAgent(
   const store = ctx.reflect.store
   for (const key of Object.getOwnPropertySymbols(store)) {
     const impl = store[key]
-    /* v8 ignore next */
     if (impl === undefined) continue
     if (impl.name !== name) continue
     if (withinFiber(impl.fiber, mount.fiber)) return impl.value
@@ -131,7 +128,6 @@ export function inactiveRows(tree) {
   for (const entry of tree.entries()) {
     if (entry.disabled) continue
     const fiber = entry.fiber
-    /* v8 ignore next 4 */
     if (fiber === undefined) {
       lines.push(`${entry.options.id} (${entry.options.name}): never started`)
       continue
@@ -145,7 +141,6 @@ export function inactiveRows(tree) {
 }
 
 function mountDetail(error) {
-  /* v8 ignore next */
   if (!(error instanceof Error)) return String(error)
   if (!(error instanceof AggregateError)) return error.message
   return [error.message, ...error.errors.map(cause => `- ${mountDetail(cause)}`)].join('\n')
@@ -163,14 +158,12 @@ export async function mountPreset(agentCtx, preset) {
   const config = inline
     ? { rows: structuredClone(preset.rows), baseUrl: preset.baseUrl }
     : { path: pathToFileURL(preset.path).href }
-  /* v8 ignore next */
   if (agentCtx.baseUrl !== undefined) harnessBase.set(config, agentCtx.baseUrl)
   pruneDisposedMounts()
   const handle = agentCtx.plugin(inline ? InlinePresetTree : PresetTree, config)
   try {
     await handle.await()
     const subtree = mounted.get(config)
-    /* v8 ignore next */
     if (subtree === undefined) throw new Error('mounted subtree did not publish its entry tree')
     const { tree, fiber } = subtree
     const unusable = inactiveRows(tree)
@@ -188,7 +181,6 @@ export async function mountPreset(agentCtx, preset) {
   } catch (error) {
     try {
       await handle.dispose()
-    /* v8 ignore next 5 */
     } catch {
     }
     throw new PresetMountError(preset.id, `${mountDetail(error)} (${preset.path})`, { cause: error })

@@ -50,7 +50,6 @@ const serveVendor = async (req, res) => {
     res.end()
     return
   }
-  /* v8 ignore next -- node:http always sets url on server requests */
   const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
   if (!pathname.startsWith(PREFIX)) {
     res.writeHead(404)

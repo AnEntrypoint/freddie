@@ -14,6 +14,12 @@ Each root and child wrapper preserves the `data-chat-anchor-key="call:<id>"` and
 
 The package also fills `conversation.details.tool` with `ToolDetails`. The row and details renderers share the same pure card models for `terminal`, `read`, `diff`, `search`, and `web` render intents. Unknown intent tags and malformed wire card data fall back to flattened Tool result text.
 
+Completed generic rows with a nonempty owner-supplied result title display that title as a
+wrapping heading, with the tool name beneath it. Rows without that title retain their argument
+summary. The title changes neither execution state nor specialized card presentation. Expanded
+output retains the durable result text; narrow rows stack IN/OUT labels above their data using
+the row's actual width.
+
 Generic rows classify known Tool names into search, read, shell, write, edit, code, or generic variants. Running, successful, failed, and interrupted lifecycle states come only from the frozen call/result slice. File paths resolve against the session `cwd` only when the user invokes the Host open-file callback; presentation code does not read Session services.
 
 ## Atomic Tool views

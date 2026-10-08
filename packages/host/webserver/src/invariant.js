@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 const PACKAGE_NAME = '@freddie/freddie-host-webserver'
 
 export const name = 'host-webserver-invariant'
@@ -23,4 +22,3 @@ const install = (ctx, fail) => {
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */

@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 export const CLIENT_NOTES = [
   'Contribute UI only through `ctx.slots.register(options, Component)`; declare `inject: [\'slots\']` in your returned plugin (object form) or the seat is withheld.',
   'Wrap every registration in `ctx.slots.inject(key, () => ctx.slots.register(...))`. A slot exists only while the entry that declared it is mounted, and registering into an undeclared slot throws; `inject` runs your registration when the declaration is (or becomes) live and re-runs it if the owner remounts.',
@@ -1844,4 +1843,3 @@ export const CLIENT_SLOT_API = [
     source: 'packages/extensions/ui-cordis/src/client/slots.ts:31',
   },
 ]
-/* jscpd:ignore-end */

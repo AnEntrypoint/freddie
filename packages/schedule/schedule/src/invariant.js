@@ -9,13 +9,11 @@ function validate(events, seedLength, fail) {
   try {
     foldScheduleEvents(events, seedLength)
   } catch (error) {
-    /* v8 ignore next */
     if (!(error instanceof ScheduleLogError)) throw error
     fail(error.message)
   }
 }
 
-/* jscpd:ignore-start */
 const install = Object.assign((ctx, fail) => {
   for (const session of ctx.sessions.list()) {
     validate(session.events, session.header.seedLength ?? 0, fail)
@@ -30,7 +28,6 @@ const install = Object.assign((ctx, fail) => {
     validate([...session.events, event], session.header.seedLength ?? 0, fail)
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

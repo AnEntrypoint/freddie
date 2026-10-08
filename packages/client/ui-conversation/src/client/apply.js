@@ -112,7 +112,6 @@ export async function apply(ctx, config) {
   const viewTabs = () => {
     const tabs = []
     for (const entry of slots.entries('conversation.view')) {
-      /* v8 ignore next */
       if (entry.options.id === undefined) continue
       tabs.push({ id: entry.options.id, label: resolveSlotLabel(entry.options.label) ?? entry.options.id })
     }

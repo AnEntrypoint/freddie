@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * Pack every published package into release tarballs, in publish order
- * (platform packages first, then the entries that optionally depend on
- * them), and write `publish-order.txt` next to them. `pnpm pack` produces
- * the EXACT bytes `pnpm publish` would upload and runs each package's
- * `prepack` gate, so a missing binary or unbuilt `lib/` refuses here.
- *
- * Usage: `node scripts/pack-release.mjs [dest] [--current-platform-only]`.
- * The flag packs only THIS host's platform package plus the entries — for
- * per-architecture CI legs, where the other architecture's binary does not
- * exist (the exact refusal its prepack gate exists for).
- */
 
 import fs from 'node:fs';
 import path from 'node:path';

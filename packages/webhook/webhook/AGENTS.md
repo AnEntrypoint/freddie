@@ -1,0 +1,3 @@
+# AGENTS.md — webhook
+
+Authenticated deliveries are snapshotted and frozen before dispatch. Dispatch synchronously rejects malformed data or closing state, starts matching rules, and returns before callbacks settle; contained callback failures are logged. Registration disposers abort and drain active invocations. Delivery ids carry identity with no deduplication. Rule results are null or absolute-directory Workspace-backed Session requests; omitting model uses the complete current default including reasoning effort. Successful prompt admission ends webhook ownership; pre-admission failure rolls back attachment and disposes the Agent. [Public API](README.md).

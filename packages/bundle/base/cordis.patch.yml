@@ -138,8 +138,18 @@
     - id: browser-use
       name: '@freddie/freddie-browser-use'
 
+    - id: browser-use-browserskill
+      name: '@freddie/freddie-experimental-browser-use-browserskill'
+      disabled: true
+      config:
+        bskPath: !!js process.env.BSK_PATH || 'bsk'
+        cwd: !!js process.cwd()
+        defaultTimeoutMs: 120000
+        maxSessions: 5
+
     - id: browser-use-chrome-devtools-mcp
       name: '@freddie/freddie-experimental-browser-use-chrome-devtools-mcp'
+      disabled: true
       config:
         mode: launch
         headless: true

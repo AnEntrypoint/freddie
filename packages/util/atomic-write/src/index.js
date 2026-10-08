@@ -34,12 +34,6 @@ const LOCK_RETRY_MAX_MS = 200
 
 const DEFAULT_LOCK_WAIT_MS = 2_000
 
-/**
- * Acquisition options for {@link withFileLock}.
- * @typedef {object} FileLockOptions
- * @property {number} [waitMs] - how long to wait for a contended lock before
- * failing; defaults to {@link DEFAULT_LOCK_WAIT_MS}.
- */
 
 export async function withFileLock(filename, operation, options) {
   const lockPath = `${filename}.lock`

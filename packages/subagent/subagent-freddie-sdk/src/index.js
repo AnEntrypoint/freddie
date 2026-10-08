@@ -11,25 +11,6 @@ import {
 export const name = 'subagent-freddie-sdk'
 export const inject = ['subagents']
 
-/**
- * @typedef {object} Config
- * @property {string} [providerName] - Provider name on `ctx.subagents` (default `freddie-sdk`).
- * @property {string} command - Executable that boots the child runtime's SDK JSON-RPC server
- *   (e.g. `node`), resolved and checked at plugin load.
- * @property {string[]} [args] - Arguments to `command` (e.g. `['path/to/bin.js', '--config', 'cordis.yml']`).
- * @property {string} [cwd] - Working directory override for the child process and its SDK session
- *   workspace. A relative path resolves against the harness launch directory at load, and the
- *   result must be an existing directory. When omitted, each child inherits its delegating
- *   parent session's cwd — and starting one from a parent session that has no cwd fails.
- * @property {string} provider - Provider route the child runtime initializes with.
- * @property {string} model - Model the child runtime initializes with.
- * @property {number} [maxTokens] - Optional per-request output-token cap for the child runtime.
- * @property {Record<string, string>} [env] - Extra environment variables for the child process,
- *   forwarded on top of a credential-scrubbed copy of the parent env.
- * @property {number} [shutdownTimeoutMs] - Bound (ms) on the protocol `shutdown` exchange during dispose.
- * @property {number} [disposeEofGraceMs] - Grace period (ms) for the child's EOF-driven quiesce on dispose.
- * @property {number} [disposeGraceMs] - Termination confirmation window (ms), including forced exit.
- */
 
 export const Config = z.object({
   providerName: z.string().default('freddie-sdk'),
@@ -98,11 +79,6 @@ class SdkSubagentProvider {
   }
 }
 
-/**
- * Register one Profile-named Freddie SDK provider.
- * @param {import('@freddie/cordis').Context} ctx - context carrying the shared subagent registry.
- * @param {Config} config - launch command/args, workspace override, model route, and disposal timing.
- */
 export function apply(ctx, config) {
   assertPositiveFinite('subagent-freddie-sdk', 'shutdownTimeoutMs', config.shutdownTimeoutMs)
   assertPositiveFinite('subagent-freddie-sdk', 'disposeEofGraceMs', config.disposeEofGraceMs)

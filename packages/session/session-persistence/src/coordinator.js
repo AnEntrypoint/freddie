@@ -156,7 +156,6 @@ function migrateLegacyTurnStartEvent(event, id) {
 function migrateLegacyTurnEndEvent(event, id) {
   if (event.type !== 'turn/end') return event
   const data = asRecord(event.data)
-  /* v8 ignore next */
   if (data === undefined) return event
   const malformed = () => {
     throw new Error(`session "${id}" contains malformed pre-react-loop turn/end at seq ${event.seq}`)
@@ -617,7 +616,6 @@ export class PersistenceCoordinator {
     const events = session.events
     await this.flush(session)
     const state = this.states.get(session.id)
-    /* v8 ignore next */
     if (state === undefined) throw new Error(`session "${session.id}" lost persistence state during load`)
     if (events.length === 0) throw new Error(`session "${session.id}" not found`)
     if (interruptedTurnClosers(events).length > 0) {
@@ -706,9 +704,7 @@ export class PersistenceCoordinator {
         try {
           await this.backend.close?.()
         } catch (closeError) {
-          /* v8 ignore start */
           if (disposeError === undefined) throw closeError
-          /* v8 ignore stop */
         }
       }
     }, `${this.backend.name} write path`)
@@ -795,7 +791,6 @@ export class PersistenceCoordinator {
   async seedMatchesPersisted(id, seed, cursor) {
     if (cursor === 0) return true
     const stored = await this.backend.loadStored(id)
-    /* v8 ignore next */
     if (stored === undefined) return false
     this.assertStoredId(id, stored.meta)
     return seedCoversPrefix(seed, snapshotStoredEvents(stored.events, id).slice(0, cursor))
@@ -805,7 +800,6 @@ export class PersistenceCoordinator {
     const id = session.header.id
     const tracked = this.states.get(id)
     if (tracked !== undefined) {
-      /* v8 ignore next */
       if (tracked.owner === session) return
       if (tracked.owner === undefined) {
         if (tracked.meta.cwd !== session.header.cwd) {
@@ -836,7 +830,6 @@ export class PersistenceCoordinator {
     const meta = { ...session.header }
     await this.createCore(meta)
     const created = this.states.get(id)
-    /* v8 ignore next */
     if (created !== undefined) created.owner = session
     if (seed.length > 0) await this.appendCore(id, seed)
   }
@@ -891,7 +884,6 @@ export class PersistenceCoordinator {
 
   async appendLiveBatch(id, batch) {
     const state = this.states.get(id)
-    /* v8 ignore next */
     const cursor = state?.cursor ?? 0
     const fresh = batch.filter(e => e.seq >= cursor)
     await this.appendCore(id, fresh)

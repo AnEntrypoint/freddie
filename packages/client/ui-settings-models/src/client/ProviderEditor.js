@@ -138,12 +138,10 @@ export class FreddieProviderEditor extends HTMLElement {
     const node = schema.nodeAtPath(root, settingsPath)
     if (this.#props.credentialOnly !== true) {
       const failure = validateDeepSeekModels(schema.getPath(next, ['models']))
-      /* v8 ignore next 3 -- unreachable from the card: the same failure disables submit */
       if (failure !== undefined) {
         return `${t('model')} ${String(failure.index + 1)}: ${t(failure.key)}`
       }
     }
-    /* v8 ignore next -- apply is only reachable from the rendered card, which required a resolved node */
     if (this.#props.credentialOnly !== true && node !== undefined && settingsPath.length === 0) {
       const sectionError = schema.validate(node, next)
       if (sectionError !== undefined) return sectionError

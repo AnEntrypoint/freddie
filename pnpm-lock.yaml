@@ -1358,6 +1358,9 @@ importers:
       '@freddie/freddie-credentials-local':
         specifier: '*'
         version: link:../../credentials/credentials-local
+      '@freddie/freddie-experimental-browser-use-browserskill':
+        specifier: '*'
+        version: link:../../experimental/browser-use-browserskill
       '@freddie/freddie-experimental-browser-use-chrome-devtools-mcp':
         specifier: '*'
         version: link:../../experimental/browser-use-chrome-devtools-mcp
@@ -4763,6 +4766,31 @@ importers:
       '@freddie/freddie-subagent-spawn-in-process':
         specifier: '*'
         version: link:../../subagent/subagent-spawn-in-process
+
+  packages/experimental/browser-use-browserskill:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent':
+        specifier: '*'
+        version: link:../../core/agent
+      '@freddie/freddie-browser-use':
+        specifier: '*'
+        version: link:../../browser-use/browser-use
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-subprocess':
+        specifier: '*'
+        version: link:../../subprocess/subprocess
+      '@freddie/freddie-tools':
+        specifier: '*'
+        version: link:../../core/tools
 
   packages/experimental/browser-use-chrome-devtools-mcp:
     dependencies:

@@ -422,6 +422,7 @@ export class FreddieTrajectoryView extends HTMLElement {
           onRangeChange: handleTimelineRangeChange,
           onRecordSelect: handleTimelineRecordSelect,
           onRecordFocus: handleTimelineRecordFocus,
+            t: t,
         }),
         h('div', {class: css.ledger ?? ''},
           h(TrajectoryTable, {

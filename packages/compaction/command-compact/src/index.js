@@ -6,11 +6,9 @@ export const inject = ['commands', 'compaction']
 
 const USAGE = 'Usage: /compact (no arguments)'
 
-/* v8 ignore start -- closed-union backstop is unreachable without violating the TypeScript contract */
 function assertNever(value) {
   throw new TypeError(`unknown manual compaction error code: ${String(value)}`)
 }
-/* v8 ignore stop */
 
 function expectedFailure(error) {
   switch (error.code) {
@@ -41,7 +39,6 @@ function expectedFailure(error) {
         kind: 'error',
         text: 'Compaction finished, but the session could not be saved.',
       }
-    /* v8 ignore next 2 -- ManualCompactionErrorCode is closed and every member is handled above */
     default: return assertNever(error.code)
   }
 }

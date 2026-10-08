@@ -11,7 +11,6 @@ function defaultTruncatedLabel(total) {
 function bodyText(payload, truncatedLabel) {
   let s
   try {
-    // oxlint-disable-next-line typescript/no-unnecessary-condition
     s = JSON.stringify(payload, null, 2) ?? String(payload)
   } catch {
     s = String(payload)

@@ -1,9 +1,4 @@
 #!/usr/bin/env node
-/**
- * Bump, stage, and commit a release in one command:
- * `pnpm release:commit <major|minor|patch|x.y.z>`. The namespaced tag stays
- * manual — create it from the merged release commit.
- */
 
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
