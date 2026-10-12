@@ -2936,3 +2936,60 @@
   subject: 'M5A Evidence critic Andon: 390px collapsed Tool call GM failed unknown ... hides operation and offending field; expanded screenshot only shows raw tail. Invariant: owner-supplied result diagnostics readable with operation/reason at320/390, unchanged raw payload and authoritative isError; postcondition independent native disclosure and visible summary proof.'
   session_id: gui-dada-root-20261007
   status: unknown
+- id: usage-map-cache-split
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: mapUsage splits xAI prompt_tokens_details.cached_tokens out of inputTokens
+  text: packages/llm/llm-deepseek/src/translate.js:17-25 subtracts prompt_tokens_details.cached_tokens from prompt_tokens and records cacheReadTokens plus reasoningTokens.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: translate.js:18-23 reads prompt_tokens_details.cached_tokens and completion_tokens_details.reasoning_tokens. Live chunk prompt_tokens 1250 minus cached_tokens 1152 becomes inputTokens 98, outputTokens 1, cacheReadTokens 1152, reasoningTokens 50.
+- id: state-usage-durable
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: Provider usage that reaches the assembler is stored on assistant/message
+  text: packages/core/agent-loop/src/agent.js:343 spreads assembler.usage onto assistant/message. translate.js mapUsage keeps cache reads disjoint.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: agent.js:343 spreads assembler.usage onto assistant/message. translate.js:18-24 maps prompt_tokens_details.cached_tokens to cacheReadTokens and subtracts it from inputTokens. Live chunk prompt 1250 / cached 1152 becomes inputTokens 98.
+- id: conc-readonly-disjoint
+  prd_id: gm-readonly-parallel
+  obligation_kind: invariant
+  subject: Read-only GM verbs may overlap; mutating verbs stay exclusive
+  text: verbs.js marks only instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show concurrency-safe. PRD, mutable, transition, and git write verbs omit the marker, so executionMode stays exclusive.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: codesearch of verbs.js shows isConcurrencySafe only at lines 90, 104, 134, 151, 239, 283, 295, 307, 319. git_finalize, prd, mutable, and transition tools have no marker, so tools.executionMode keeps them exclusive.
+- id: sec-usage-no-secret
+  prd_id: token-usage-forward
+  obligation_kind: invariant
+  subject: Forwarded usage contains token counts only
+  text: Live usage chunk fields are prompt_tokens, completion_tokens, total_tokens, token details, and cost ticks. No authorization header or key is copied into the SSE usage object.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: exec_js 1791106377744 usage slice contains only prompt_tokens, completion_tokens, total_tokens, token detail counts, and cost_in_usd_ticks. No authorization or key field.
+- id: res-usage-absent-ok
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: A stream with no usage chunk still finishes
+  text: server.js writes the finish chunk, then the usage chunk only when ev.usage is present, then [DONE]. An upstream that omits usage keeps the previous finish path.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: server.js writes the finish SSE chunk unconditionally, then writes the usage chunk only inside if (usage), then writes [DONE]. A missing upstream usage object leaves the prior finish path.
+- id: inventory-method
+  prd_id: repo-inventory
+  obligation_kind: precondition
+  subject: Which C:/dev directories are AnEntrypoint git repos and how far they lag origin is unknown.
+  text: Witness by reading each .git origin URL and status -sb without fetch or checkout.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: exec_js 1791229530502 listed 182 AnEntrypoint origin checkouts from C:/dev with branch, HEAD, dirty, and tracking. 32 were clean and behind; 20 were clean and diverged.
+- id: wallclock-daemon-scan
+  prd_id: wallclock-factor
+  obligation_kind: precondition
+  subject: The dominant wall-clock cost of a read-only GM verb versus the underlying git call is unmeasured.
+  text: Witness with isolated spool dispatches against a direct git status, and daemon-status active_projects.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: 'exec_js 1791230479527: five isolated git status --porcelain calls averaged 272ms (145,147,146,437,487); five isolated spool git_status summary calls averaged 1299ms (1307,1385,599,1923,1281), factor 4.78. daemon-status.json active_projects=128. Parallel read-only verbs in exec_js 1791230134606 saved only 1.2x and 1.33x because the daemon is single-writer.'
+>

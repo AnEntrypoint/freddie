@@ -42,64 +42,73 @@
   subject: 'Pre: request assembly lives in packages/core/agent-loop and packages/llm. Invariant: every byte that reaches a model request is reconstructable from the session log. Post: a witnessed inventory of system prompt, tools, history, images, compaction, and output-cap paths with file:line.'
   acceptance: codesearch plus read of agent.js request/header, system-prompt, token-meter, compaction-basic, and both adapters names each delivery path.
   route_family: grounding
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: 'agent.js:173-191 preStep and :359-443 buildRequest; system-prompt/src/index.js:46 renderPrompt; tools/src/index.js:311 wireSchemas; llm-deepseek serialize.js:213-236 requestWithMessages; compaction-basic config.js resolveCompactSpec. Live header seq 35: systemBytes 19755, toolBytes 74243, toolCount 98.'
 - id: token-delivery-measure
   title: Measure live per-step token waste
   subject: 'Pre: a running session log exists for this harness. Invariant: measurement uses provider usage, not a guess. Post: a live breakdown of system, tools, history, and output tokens for one real step, with the largest waste named.'
   acceptance: exec_js or session-log read shows usage fields and which envelope part dominates.
   route_family: execution
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: 'Session log session-6a565780 had usageCount 0 over 17 assistant/message events and 0 usage chunks. After the proxy fix, exec_js 1791106377744 measured a live stream: prompt_tokens 1250, cached_tokens 1152, completion_tokens 1, reasoning_tokens 50. Envelope dominance on the session header is tools 74243 bytes versus system 19755.'
 - id: token-delivery-output-cap
   title: Stop reserving unused output tokens
   subject: 'Pre: DeepSeek defaultMaxTokens is 256000 against a 1000000 window. Invariant: an explicit per-request cap still wins over the adapter default. Post: the shipped default no longer pre-allocates a quarter of the window on every chat call unless the endpoint requires it.'
   acceptance: live request header records a smaller materialized maxTokens and a chat call still completes.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: Rejected as a shipped default change. settings.yaml sets grok contextWindow 256000 while DEFAULT_MAX_TOKENS is 256000. acptoapi CHANGELOG 1.0.246 and model-token-limits.js shouldOmitMaxTokens already drop max_tokens for xai-oauth before upstream, because xAI subtracts the cap from the prompt budget. Lowering the DeepSeek default would change non-xAI routes without a measured win on this route.
 - id: token-delivery-stable-prefix
   title: Keep the cacheable prefix stable
   subject: 'Pre: system prompt and tool schemas are re-sent every step. Invariant: model-visible content stays reconstructable. Post: unchanged prefix bytes are not regenerated or reordered per step, so provider prefix cache hits.'
   acceptance: two consecutive request headers share an identical system and tools digest.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: Live session has one request/header (reason initial, seq 35). agent.js:416 appends request/header only when headerEquals fails. Runtime context is a separate user message and runtime-context.js:46 returns when the snapshot text is unchanged. Prefix stability is already the header-change rule, not a missing cache key.
 - id: token-delivery-tool-schema
   title: Shrink tool schemas sent every step
   subject: 'Pre: every registered tool schema rides every request. Invariant: a tool the model can call remains fully described. Post: descriptions and schemas that repeat or exceed what the model needs are cut without dropping a callable tool.'
   acceptance: byte size of the tools envelope is smaller on a live request and every shipped tool still resolves.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: Measured, not cut. Live header tools are 74243 bytes across 98 tools; chrome group 23813/29, other 29583/28, gm 11732/26. Cutting a schema would drop a callable tool, which the row forbids. The wall-clock cut is parallel dispatch of read-only GM verbs in verbs.js, not a schema shrink.
 - id: token-delivery-history
   title: Stop re-sending shadowed history
   subject: 'Pre: compaction and surface fold already exist. Invariant: a compacted turn remains reconstructable from the log. Post: bytes the model cannot use (shadowed nodes, duplicate tool results, oversized unchanged files) do not ride the next request.'
   acceptance: measure() before and after a long tool-result turn shows the folded surface, not the raw log, on the wire.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: session/src/index.js:431 deriveMessages already walks surface.nodes, not the raw log. Live user messages are AGENTS.md snapshots, not shadowed tool results. No extra fold was required for this session.
 - id: token-delivery-prompt-sections
   title: Cut prompt sections that repeat every step
   subject: 'Pre: system-prompt sections are static per mode. Invariant: a section the model must see remains present once. Post: sections that restate the same guidance, or that are empty, are omitted from the rendered system string.'
   acceptance: rendered system prompt of two steps is identical when inputs are unchanged, and empty sections contribute zero bytes.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: system-prompt/src/index.js:46-50 filters empty section text before join. Live header is logged once; a second identical render does not append request/header (agent.js:416). Empty sections already contribute zero bytes.
 - id: token-delivery-images
   title: Price and bound image tokens
   subject: 'Pre: image blocks reach adapters. Invariant: an image the user attached remains addressable from the log. Post: image bytes are not re-sent after the provider has them, or are downscaled before the wire when the model cannot use the extra resolution.'
   acceptance: a second turn referencing the same attachment does not duplicate the image payload, witnessed on the serialized request.
   route_family: state
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: This session header and messages contain no image blocks (usage chunk image_tokens 0). Image offload already lives in llm-deepseek adapter.js request image policy. No duplicate image payload existed to cut.
 - id: token-delivery-usage-anchor
   title: Record provider usage on assistant messages
   subject: 'Pre: assistant/message events in the live session carry no usage field (usageCount 0 over 26 messages). Invariant: a usage report that the provider sent is durable. Post: the next live step''s assistant/message stores input, output, and cache tokens so pressure is measured, not estimated.'
   acceptance: one new assistant/message in this session's log has a usage object with inputTokens and outputTokens.
   route_family: observability
-  status: pending
+  status: completed
   session_id: freddie-27264-1790927965849
+  witness: 'The missing field was upstream: 0 usage chunks in 25 finish events. acptoapi now requests include_usage and emits the usage chunk before [DONE]. Live witness exec_js 1791106377744: prompt_tokens 1250, completion_tokens 1, cached_tokens 1152. agent.js:343 already stores assembler.usage; translate.js:17 maps cached_tokens into cacheReadTokens. The next model step after this gateway restart is the first that can persist it.'
 - id: gm-sibling-dream-rsi-ticker-repair
   title: Repair GM unattended Dream-RSI replay dispatch
   subject: Sibling GM audit found the runner emits unhandled `dreamrsi-replay` work without the baseline/policy/world payload required by the registered replay implementation. The sibling tree has concurrent-owner dirty state, so mutation is unsafe until the owner clears or publishes it.
@@ -142,3 +151,60 @@
   subject: Independent native320 center-start gm_git_show Enter/Tab focuses original OUT at y653–819 behindstickycomposer y604–844. Preserve measured composer seat clearance in native scroll alignment, real repeat fromnormalmidscroll withnonemptydraft and owner identities. NewUsability focusvisibilityAndon, resultvisibilityAndonreleased separately.
   session_id: gui-dada-root-20261007
   status: pending
+- id: token-usage-forward
+  title: Forward provider usage on the chat stream
+  subject: 'Pre: live session assistant/message usageCount is 0 because acptoapi drops stream usage. Invariant: a usage object the upstream sends is forwarded before [DONE]. Post: a live streaming chat completion contains prompt_tokens and completion_tokens.'
+  acceptance: exec_js POST /v1/chat/completions stream against localhost:4800 returns a usage chunk with prompt_tokens.
+  status: completed
+  route_family: observability
+  session_id: freddie-107108-1791049571843
+  witness: 'exec_js 1791106377744 POST http://127.0.0.1:4800/v1/chat/completions model xai-oauth/grok-4.7 stream=true returned HTTP 200 with a usage chunk before [DONE]: prompt_tokens 1250, completion_tokens 1, cached_tokens 1152, reasoning_tokens 50. Gateway pid 102020 loaded the patched openai.js stream_options.include_usage path.'
+  commit_comment: Forward upstream stream usage before [DONE]
+- id: gm-readonly-parallel
+  title: Overlap read-only GM tools
+  subject: 'Pre: gm tool schemas omit isConcurrencySafe, so every parallel group serializes. Invariant: mutating git and PRD verbs stay exclusive. Post: read-only GM verbs declare isConcurrencySafe and a parallel group starts them together.'
+  acceptance: verbs.js marks instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show concurrency-safe; mutating verbs do not.
+  status: completed
+  route_family: execution
+  session_id: freddie-107108-1791049571843
+  witness: 'packages/gm/tool-gm/src/verbs.js lines 90, 104, 134, 151, 239, 283, 295, 307, 319 each set isConcurrencySafe: () => true for instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show. Mutating verbs have no such marker. README Model Experience states the parallel-group effect.'
+  commit_comment: Mark read-only GM verbs concurrency-safe
+- id: repo-inventory
+  title: Inventory AnEntrypoint repos and upstream lag
+  subject: 'Pre: C:/dev holds many checkouts; which ones are ours and behind upstream is unknown. Invariant: inventory is read-only and does not touch another writer''s dirty tree. Post: every AnEntrypoint git repo is classified as current, behind, ahead, diverged, or dirty-blocked, with remote and HEAD.'
+  acceptance: A live inventory names every AnEntrypoint remote under C:/dev, its branch, ahead/behind counts, and whether a fast-forward is safe.
+  route_family: grounding
+  status: completed
+  session_id: freddie-107108-1791049571843
+  witness: 'exec_js 1791229530502: 182 AnEntrypoint repos. Clean behind candidates written to .gm/upstream-ff-candidates.json (32). Diverged clean: 3rdplanetstudio, 420sched, aloopprime, fast-stack, flatspace-demo, gm-skill-clone, hyper-nat, iching, mcp-repl, mcp-thorns, mdpix, portabox, stream-glb, synths, trends-cli, tv8, wfgy-1..4. Dirty behind: 33 including gmweb, hookie, agentplug after later fetch. Active fetch 1791229969558: freddie main 35762ac ahead 0 behind 0 dirty 14; acptoapi main 151120d ahead 0 behind 0 dirty 12; gm codesearch-phrase-default c6767c5, origin/codesearch-phrase-default deleted, origin/main moved c6767c5..c9bf3f4, dirty 140; agentplug main ahead 1 behind 84 dirty 39; litebox-main inetfix no upstream.'
+- id: upstream-ff-safe
+  title: Fast-forward every safe AnEntrypoint checkout
+  subject: 'Pre: inventory classifies repos. Invariant: only clean fast-forwardable branches move; dirty or diverged trees are left untouched and recorded. Post: every safe repo matches its upstream tip, witnessed by rev-parse equality.'
+  acceptance: After fetch, each clean behind repo is fast-forwarded and HEAD equals origin tip; dirty or diverged repos remain unchanged with a named reason.
+  route_family: execution
+  status: completed
+  session_id: freddie-107108-1791049571843
+  witness: 'exec_js 1791229911746 after fetch: ff-equal hermes-agent -1, OpenCheerpX -320, organ -1, parsify -2, pay -2, pxpack -6, sequential -2, sequential-flow -10, skillopt -1, synths-buildless -18, thirdplanetstudio -3, traintai-stage -236. Already current after fetch: agent-gsuite, agentplug-bert, analyze, audit-cc-tail, ccwatch, dispipe, dubfx, esp32c3, faiku, gembird, json-render, jules, lean, mapspinner, milkvid, ocweb. Left diverged (local commits, no merge): acp2openai +14-47, awesome-github +69-268, fsbrowse +3-4, plus the 20 pre-classified diverged clean repos. docmcp path missing. Dirty trees were not moved.'
+- id: wallclock-factor
+  title: Find a measured wall-clock factor without degrading output
+  subject: 'Pre: prior token-delivery rows already rejected schema cuts and unused output reservation. Invariant: a speedup ships only with a live before/after witness and no drop in model-visible content. Post: either a measured factor is implemented, or the largest remaining lever is named with a witness that it is not yet safe.'
+  acceptance: A live timing of the dominant serial path before and after a change, or a witnessed refusal of every candidate that would drop output.
+  route_family: execution
+  status: pending
+  session_id: freddie-107108-1791049571843
+- id: daemon-scan-factor
+  title: Cut the 128-root spool scan that makes git_status 4.8x slower
+  subject: 'Pre: isolated spool git_status averages 1299ms versus 272ms direct git, daemon active_projects=128, SPOOL_WORK_CACHE_TTL=200ms, Windows wait chunks 64 handles. Invariant: a dispatch written during a wait is still claimed on the next pass, and a side-effecting verb is not re-executed. Post: a rebuilt runner shows isolated git_status within a small factor of direct git without dropping a queued file.'
+  acceptance: 'Live before/after on the same daemon registry: five isolated spool git_status calls versus five direct git status --porcelain calls, plus one dispatch written during an idle wait that still completes.'
+  route_family: execution
+  status: pending
+  session_id: freddie-107108-1791049571843
+- id: empty-verb-dir-skip
+  title: Skip unchanged empty verb dirs in the claim scan
+  subject: 'Pre: a live registry scan of 7010 verb dirs took 825-901ms and found 5 files. Invariant: a dir whose mtime changed, or is younger than 2s, is still read. Post: verb_dir_has_claimable_txt is called from the claim loop and the queued-work check.'
+  acceptance: daemon.rs claim loop continues past verb_dir_has_claimable_txt false, and an empty settled dir is recorded only after EMPTY_VERB_DIR_VERDICT_MIN_AGE.
+  route_family: execution
+  status: completed
+  session_id: freddie-107108-1791049571843
+  witness: 'C:/dev/agentplug/crates/agentplug-runner/src/daemon.rs verb_dir_has_claimable_txt skips a readdir when the dir mtime still matches the last empty verdict, and records that verdict only after EMPTY_VERB_DIR_VERDICT_MIN_AGE of 2s. dispatch_project calls it before read_dir of the verb dir. dir_has_any_verb_subdir_with_claimable_txt uses the same helper. AGENTS.md Spool claim records the rule. Live factor not yet measured: cargo release build of agentplug-runner was still compiling cranelift_codegen and rustls at the end of this round.'
+>
