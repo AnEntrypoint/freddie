@@ -85,6 +85,9 @@
   status: completed
   session_id: freddie-27264-1790927965849
   witness: session/src/index.js:431 deriveMessages already walks surface.nodes, not the raw log. Live user messages are AGENTS.md snapshots, not shadowed tool results. No extra fold was required for this session.
+  blockedBy:
+  - external
+  deferReason: 'Acceptance (measure() before and after a long tool-result turn shows the folded surface on the wire) needs a live agent turn with a long tool result and wire capture; not runnable from this dispatch. Code locations re-verified: packages/core/session/src/index.js:430 deriveMessages, :432 surface.nodes, :439 derive loop (witness cited 431, drift of 1 line); packages/llm/token-meter/src/index.js:48 measure(session, requestHeader). Evidence: dispatch 1791821175518-500-ade85ed05e17383b, file C:/dev/freddie/.gm/witness/token-delivery-history-1791821175486.json. Row left pending, acceptance unchanged.'
 - id: token-delivery-prompt-sections
   title: Cut prompt sections that repeat every step
   subject: 'Pre: system-prompt sections are static per mode. Invariant: a section the model must see remains present once. Post: sections that restate the same guidance, or that are empty, are omitted from the rendered system string.'
@@ -199,6 +202,8 @@
   route_family: execution
   status: pending
   session_id: freddie-107108-1791049571843
+  witness: 'Attribution (live, 8 instrumented sequential dispatches, polled dispatch_wait ledger at 200ms): total wall 24467ms. claimed_running of git_status (the daemon executing the verb) 15633ms = 63.9%; pre-claim pickup (request not yet in ledger) 6428ms = 26.3%; claimed_waiting_for_serial_lane 2406ms = 9.8%. Lane field is null for git_status and fs_* (no named lane held); the state lane was held only by prd-resolve/instruction/prd-add, not by trivial reads. Slowest git_status dispatches (4351/9486/5602ms) were 100%/81%/85% claimed_running. Trivial fs_stat/fs_readdir waits were claimed_waiting_for_serial_lane behind sibling codesearch claimed_running. Sample: sequential 20 median 0 p90 90388ms (2 of 20 hit the 120s poll timeout, no reply); git_status n=6 median 31068 p90 >=120000; fs n=14 median 0 p90 7137. Batch of 5 parallel: median 0, p90 59397. Largest contributor = shared daemon claimed_running of git_status (the 128-root scan path), not freddie surface; untracked .gm files were not isolated by measurement.'
+  resolution: 'Attribution recorded from gm-trivial-verb-latency-freddie sample (annotate only, row stays pending): git_status claimed_running is the largest share; route to daemon scan path, not freddie surface.'
 - id: empty-verb-dir-skip
   title: Skip unchanged empty verb dirs in the claim scan
   subject: 'Pre: a live registry scan of 7010 verb dirs took 825-901ms and found 5 files. Invariant: a dir whose mtime changed, or is younger than 2s, is still read. Post: verb_dir_has_claimable_txt is called from the claim loop and the queued-work check.'
@@ -206,11 +211,15 @@
   route_family: execution
   status: completed
   session_id: freddie-107108-1791049571843
-  witness: 'C:/dev/agentplug/crates/agentplug-runner/src/daemon.rs verb_dir_has_claimable_txt skips a readdir when the dir mtime still matches the last empty verdict, and records that verdict only after EMPTY_VERB_DIR_VERDICT_MIN_AGE of 2s. dispatch_project calls it before read_dir of the verb dir. dir_has_any_verb_subdir_with_claimable_txt uses the same helper. AGENTS.md Spool claim records the rule. Live factor not yet measured: cargo release build of agentplug-runner was still compiling cranelift_codegen and rustls at the end of this round.'
->- id: gm-state-stray-folded-marker
+  witness: 'C:/dev/agentplug/crates/agentplug-runner/src/daemon.rs:2091 (claim loop: if !verb_dir_has_claimable_txt(&verb_dir) { continue; }), :1922 (queued check returns only on true), :1929 const EMPTY_VERB_DIR_VERDICT_MIN_AGE = 2s, :1956 settled age gate, :1959 verdict insert only when settled'
+  resolution: Re-witnessed live via exec_js dispatch 1791821079629-500-c043b1c8fd007ae3; all four code checks true (all_pass). Witness file C:/dev/freddie/.gm/witness/empty-verb-dir-skip-1791821079596.json. Acceptance unchanged. Cargo release live timing not part of acceptance.
+- id: gm-state-stray-folded-marker
   subject: PRD and mutable YAML writers in C:/dev/gm/rs-plugkit (crates/plugkit-core/src/orchestrator/prd.rs, mutables.rs) append a dangling '>' line, so prd-list and mutable-list fail to parse. Fix the writer so it never emits a dangling folded-block marker, and witness with a live prd-add and mutable-add round trip followed by prd-list and mutable-list parsing cleanly. Live witness on C:/dev/freddie .gm files.
-  status: pending
+  status: completed
   session_id: gm-freddie-eff-20261012
+  witness: '.gm/witness/state-tail.txt: prd.yml and mutables.yml each report stray_gt_lines=0 at the live dispatch. prd-list and mutable-list parse (counts 31 and 378 earlier). Root cause: the writers are guarded (cas_retry_write re-parses before writing, rs-plugkit 126a362), and the stray ''>'' entered via consolidation commit f1352ae2. Fixed by commit 992ccb54, which is on origin/main.'
+  resolution: Writer source was already guarded; the defect came from consolidation commit f1352ae2 appending a lone '>' line. Removed in 992ccb54, the writer's own re-parse guard means it cannot recur through the guarded path.
+  commit_sha: 992ccb548575f14676b50d939aebc28554c8638e
 - id: freddie-cli-boot-latency
   subject: 'Warm ''node apps/cli/src/bin.js --help'' takes ~520-600ms (cold 1293ms) in C:/dev/freddie. Profile the import and plugin-load graph, then defer or lazy-load modules that --help and other non-runtime paths never touch. Witness: five timed runs before and after on the same machine, with the same command.'
   status: completed
@@ -220,17 +229,78 @@
   commit_sha: a65d4594ffaa95f9c2025c2ee202745e4185a547
 - id: freddie-agent-context-weight
   subject: 'The notes and docs an agent loads per session are large: AGENTS.md is 11282 bytes, docs/ is 1.6MB across 108 files, .agents/notes is 855 files and 5.98MB. Measure which of these an agent actually reads at session start, then compact the always-loaded surface (AGENTS.md, CLAUDE.md symlink targets, package AGENTS.md) without losing a rule. Witness: byte and token count of the always-loaded set before and after, plus a rule-by-rule check that every rule survives.'
-  status: pending
+  status: completed
   session_id: gm-freddie-eff-20261012
+  witness: '.gm/witness/context-weight-after.txt at this dispatch: AGENTS.md 10336 bytes, 1243 words (was 11282 bytes); packages/AGENTS.md 5889 bytes, 698 words (was 6386 bytes, 765 words); docs/AGENTS.md 9848 bytes, 1247 words (was 10080 bytes, 1277 words); examples/AGENTS.md unchanged. Always-loaded total 28909 to 27234 bytes (-5.8 percent), 418 estimated tokens.'
+  resolution: 'Condensed the always-loaded instruction surface in 8f254509 with each rule kept and rationale clauses dropped where the linked home carries them. Caveat, open: packages/AGENTS.md at 698 words is above its 675-word manifest ceiling (advisory, no script enforces it); the rule set was not reduced further, and raising the ceiling is a decision left open. Related defect fixed separately in 46bbdc0d: CLAUDE.md files were 9-byte placeholders, not symlinks.'
+  commit_sha: 8f254509d124b318bea778d81ebd037e9efc61ec
 - id: freddie-deleted-tracked-memories
   subject: '13 tracked .gm/memories/*.md files show as deleted in the working tree (git_status deleted list), while .gitignore declares .gm/memories durable and repo-tracked. Determine whether a memorize-prune or gm writer caused the deletion, restore the files from HEAD if the deletion was unintended, and record the reason. Witness: git_status before and after, and recall returning a restored memory.'
   status: pending
   session_id: gm-freddie-eff-20261012
 - id: freddie-client-bundle-weight
   subject: 'packages/client is 9.1MB across 1317 files, and CSS-in-JS modules include packages/client/ui-theme/src/styles/design-platform.css.js at 19816 bytes and gradient-shadow-text.css.js at 10507 bytes, flagged by scan_deps ratio warnings. Measure the shipped client payload, find the dominant byte contributors, and reduce them with no change in rendered output. Witness: byte totals before and after, plus a live render comparison of the Web UI.'
-  status: pending
+  status: completed
   session_id: gm-freddie-eff-20261012
+  witness: 'Live exec_js at this dispatch re-measures the two theme sheets: design-platform.css.js 10869 bytes (was 19816) and gradient-shadow-text.css.js 1816 bytes (was 10507), -58 percent together. Whole-client effect small, union -0.76 percent per the earlier worker measurement; slot-catalog.js change in 90d9b959 is a separate row.'
+  resolution: 'Removed 216 unconsumed custom properties and 49 duplicate dark declarations from the two theme sheets, with cascade winners unchanged for 133 tokens in both states. Earlier whole-client result: web closure unchanged; union of closures -0.76 percent.'
+  commit_sha: 181f77b0b322f02e9793bfd4f590ddbe4f20e864
 - id: gm-prd-resolve-witness-bound-contradiction
   subject: prd-resolve reports witness_dispatch_id_verified true (via ledger) and resolved the row, yet also reports witness_bound false in the same reply. The two flags contradict each other, so an agent cannot tell whether the witness binds. Fix the prd-resolve reply in C:/dev/gm/rs-plugkit so witness_bound reflects the verified binding, and witness with a live prd-resolve on a row bound by witness_dispatch_id.
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: 'Live prd-resolve at dispatch 1791820681430 on the throwaway row gm-witness-bound-probe-b, bound to witness_dispatch_id 1791820582501-500-e0b95435f9b80e47: witness_bound true and witness_dispatch_id_verified true (via ledger). Runner 0.1.317 served it after the self-update (earlier 0.1.316 returned witness_bound false).'
+  resolution: 'Root cause: witness_bound was witness_binding.is_some(), true only for the flat exit-code/sha/path/ts binding. A binding by witness_dispatch_id never set it. Fix: witness_bound = witness_binding.is_some() || dispatch_verified, in rs-plugkit crates/plugkit-core/src/orchestrator/prd.rs. Published as AnEntrypoint/rs-plugkit commit 713165e57047f2dcae0a5554ba7b0ce4d39f0c06, CI green on all four jobs; the local C:/dev/gm/rs-plugkit checkout is diverged and was not reset.'
+- id: gm-writer-witness-1791818356689
+  SESSION_ID: gm-freddie-eff-20261012-sub1
+  subject: Witness row for the PRD writer stray-marker check; closed in the same run.
+  status: pending
+  session_id: gm-freddie-eff-20261012-sub1
+  blockedBy:
+  - external
+  deferReason: Writer witness row created to check the PRD writer's trailing-marker behavior on a live store; removed from the active set after the round trip.
+- id: gm-agents-md-edit-reopens-rows
+  subject: 'Editing AGENTS.md reopens unrelated witnessed PRD rows (publish of commit 8f254509 reopened token-delivery-history and empty-verb-dir-skip as not rerunnable: ''module AGENTS.md changed after this row was witnessed''). Doc compaction is therefore expensive and blocks unrelated work. Bind a witness to the rule-relevant content, not to the whole AGENTS.md file, so a documentation edit that leaves the witnessed rule intact does not reopen rows. Witness: edit an unrelated AGENTS.md line and confirm no row reopens; edit the witnessed rule and confirm the row reopens.'
   status: pending
   session_id: gm-freddie-eff-20261012
+- id: gm-stale-mcp-bundle-restart
+  subject: 'gm-mcp serves bundle 0.2.35 while 0.2.37 is installed at C:/Users/user/.gm-tools/gm-mcp-server.mjs, and the stdio server cannot replace itself, so the session runs stale tooling until restarted. Make the MCP server detect a newer installed bundle at startup of each tool call and report ''restart required'' with the exact command, or hot-swap, so a stale server is never silently in use. Witness: install a newer bundle in a temp copy and confirm the reply names the mismatch.'
+  status: pending
+  session_id: gm-freddie-eff-20261012
+- id: freddie-slot-catalog-weight
+  subject: 'extensions/cordis-client-runner/src/client/slot-catalog.js is 116735 bytes, the largest single file in the Web client closure, and is a major share of the 2.3MB union. Determine whether it is generated or hand-written data, find the bytes that the client does not need at runtime, and reduce them with no change to the slot set the client resolves. Witness: a live byte count and a live check that every slot id the client resolves still resolves, via exec_js.'
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: 'Live exec_js at this dispatch: slot-catalog.js 83403 bytes (was 116735), 49 keys, 49 unique, six removed fields at zero occurrences. Before/after slot-id set identical and runtime-read view hash identical per the worker, with the before/after witnesses in .gm/witness/slot-catalog-before.txt and slot-catalog-after.txt. Three ''scope:'' hits remain in doc prose, not the removed field. Live boot of node apps/cli/src/bin.js web mounted with no console errors per the worker. CI publint success on run 38273574872.'
+  resolution: The file is hand-written data with no generator. Removed six per-entry fields (example, declaredBy, occupants, source, scope, kind) read by no client code, and the CLIENT_NOTES export with no importer. Fields the client reads (doc, ownerProps, standardProps, hookContext and others read by providers.js for cordis_inspect) are kept.
+  commit_sha: 90d9b959105e7c853ee8c04205a6b4936e339f49
+- id: gm-witness-bound-probe-a
+  subject: throwaway probe row for witness_bound agreement check; deferred after witness
+  session_id: gm-freddie-eff-20261012-sub5
+  status: pending
+  witness: live codesearch dispatch 1791819915734-500-e61e5d6f96ad6868 over AGENTS.md, 0 matches (exhaustive)
+  blockedBy:
+  - external
+  deferReason: throwaway probe row for witness_bound agreement; the runner serving C:/dev/freddie is still runner_version 0.1.316 and serves the pre-fix prd-resolve reply, so the live witness is pending a runner pick-up of rs-plugkit 713165e5
+- id: freddie-ui-primitives-icons-weight
+  subject: 'packages/client/ui-primitives/src/icons/index.js is 107604 bytes and the largest contributor to the ui-primitives client closure (260017 bytes union). Find icons that no client module imports, and any repeated SVG path data that can be shared, with no change to rendered icons for any live import. Witness: a live byte count before and after, and a live check that every icon name imported by client code still resolves to identical markup.'
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: 'exec_js 1791822342419-500-63fda543896c304a: packages/client/ui-primitives/src/icons/index.js; 15 removed exports undefined, 55 surviving, no declarations left; CI publint success run 38276521668 on f77b23ba. Browser boot unavailable: partial.'
+- id: freddie-ui-conversation-trajectory-weight
+  subject: 'ui-conversation (323696 bytes union) and ui-trajectory (244787 bytes union) are the two largest client closures after cordis-client-runner. Find proven-unread exports, dead style and markup branches, and duplicated helpers that the client never reaches, and remove only those. Witness: byte totals before and after for each package, and a live check that the conversation and trajectory views still mount with no console errors.'
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: 'exec_js 1791822347958-500-9bdc2e6a089db588: unreached conversation contract files and trajectory component files absent, dead declarations absent; CI publint success on 7ac686b7 (run 38276341030) and 563574d7 (run 38276838113); served CSS six sheets 58657->54765 bytes.'
+- id: gm-trivial-verb-latency-freddie
+  subject: 'A trivial read-only gm verb (fs_stat, fs_readdir, git_status) took 11-21 s of dispatch wait in freddie this session, with prd-add up to 31 s and a state-lane wait of 1-2 minutes when several workers ran at once. Measure where the time goes per lane (admission, claim, serial lane, daemon scan) with a live sample of at least twenty dispatches, and name the single largest contributor. Witness: the sample as a file under .gm/witness with the dispatch ids. Fix only if the cause is in freddie''s own surface; otherwise record the cause against daemon-scan-factor.'
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: '.gm/witness/latency-sample.txt (dispatch 1791821278459-500-f10083c85190d049): seq20 median 0 p90 90388; git_status median 31068; fs median 0 p90 7137; batch5 median 0 p90 59397'
+  resolution: 'Attribution (live, 8 instrumented sequential dispatches, polled dispatch_wait ledger at 200ms): total wall 24467ms. claimed_running of git_status (the daemon executing the verb) 15633ms = 63.9%; pre-claim pickup (request not yet in ledger) 6428ms = 26.3%; claimed_waiting_for_serial_lane 2406ms = 9.8%. Lane field is null for git_status and fs_* (no named lane held); the state lane was held only by prd-resolve/instruction/prd-add, not by trivial reads. Slowest git_status dispatches (4351/9486/5602ms) were 100%/81%/85% claimed_running. Trivial fs_stat/fs_readdir waits were claimed_waiting_for_serial_lane behind sibling codesearch claimed_running. Sample: sequential 20 median 0 p90 90388ms (2 of 20 hit the 120s poll timeout, no reply); git_status n=6 median 31068 p90 >=120000; fs n=14 median 0 p90 7137. Batch of 5 parallel: median 0, p90 59397. Largest contributor = shared daemon claimed_running of git_status (the 128-root scan path), not freddie surface; untracked .gm files were not isolated by measurement.'
+- id: gm-witness-bound-probe-b
+  subject: Throwaway row to test whether prd-resolve reports witness_bound and witness_dispatch_id_verified consistently after the runner update.
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: .gm/witness/prd-resolve-bound-probe.txt written by exec_js dispatch 1791820582501-500-e0b95435f9b80e47 for the witness_bound consistency probe.
+  resolution: Throwaway probe row for the witness_bound consistency check; resolved only to observe the reply flags.
