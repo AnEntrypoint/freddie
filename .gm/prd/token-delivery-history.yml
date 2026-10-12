@@ -1,0 +1,11 @@
+id: token-delivery-history
+title: Stop re-sending shadowed history
+subject: 'Pre: compaction and surface fold already exist. Invariant: a compacted turn remains reconstructable from the log. Post: bytes the model cannot use (shadowed nodes, duplicate tool results, oversized unchanged files) do not ride the next request.'
+acceptance: measure() before and after a long tool-result turn shows the folded surface, not the raw log, on the wire.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: session/src/index.js:431 deriveMessages already walks surface.nodes, not the raw log. Live user messages are AGENTS.md snapshots, not shadowed tool results. No extra fold was required for this session.
+blockedBy:
+- external
+deferReason: 'Acceptance (measure() before and after a long tool-result turn shows the folded surface on the wire) needs a live agent turn with a long tool result and wire capture; not runnable from this dispatch. Code locations re-verified: packages/core/session/src/index.js:430 deriveMessages, :432 surface.nodes, :439 derive loop (witness cited 431, drift of 1 line); packages/llm/token-meter/src/index.js:48 measure(session, requestHeader). Evidence: dispatch 1791821175518-500-ade85ed05e17383b, file C:/dev/freddie/.gm/witness/token-delivery-history-1791821175486.json. Row left pending, acceptance unchanged.'

@@ -1,0 +1,5 @@
+SESSION_ID: root-ecab108
+id: ecab108-origin-and-remediation
+subject: 'Pre: commit ecab108 and its push timing are alleged. Invariant: local/remote timestamps and payload provenance are independently witnessed without execution or deletion. Post: origin confidence is bounded and confirmed cleanup targets have recoverable forensic references.'
+route_family: grounding
+status: pending

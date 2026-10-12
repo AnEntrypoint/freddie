@@ -1,0 +1,5 @@
+SESSION_ID: comment-sweep-1790669479148
+id: comment-sweep-jsdoc-contracts
+route_family: representation
+subject: 'Pre: exhaustive first-party JS scan found 281 JSDoc starts across 77 files. Invariant: public contracts remain discoverable and accurate while source carries no explanatory prose. Post: every JSDoc contract is represented in the owning package README/AGENTS.md or eliminated where code states it, with imports/live paths preserved.'
+status: pending

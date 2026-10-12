@@ -1,0 +1,8 @@
+id: gm-writer-witness-1791818356689
+SESSION_ID: gm-freddie-eff-20261012-sub1
+subject: Witness row for the PRD writer stray-marker check; closed in the same run.
+status: pending
+session_id: gm-freddie-eff-20261012-sub1
+blockedBy:
+- external
+deferReason: Writer witness row created to check the PRD writer's trailing-marker behavior on a live store; removed from the active set after the round trip.

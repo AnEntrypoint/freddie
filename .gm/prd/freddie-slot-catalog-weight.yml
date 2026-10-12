@@ -1,0 +1,7 @@
+id: freddie-slot-catalog-weight
+subject: 'extensions/cordis-client-runner/src/client/slot-catalog.js is 116735 bytes, the largest single file in the Web client closure, and is a major share of the 2.3MB union. Determine whether it is generated or hand-written data, find the bytes that the client does not need at runtime, and reduce them with no change to the slot set the client resolves. Witness: a live byte count and a live check that every slot id the client resolves still resolves, via exec_js.'
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: 'Live exec_js at this dispatch: slot-catalog.js 83403 bytes (was 116735), 49 keys, 49 unique, six removed fields at zero occurrences. Before/after slot-id set identical and runtime-read view hash identical per the worker, with the before/after witnesses in .gm/witness/slot-catalog-before.txt and slot-catalog-after.txt. Three ''scope:'' hits remain in doc prose, not the removed field. Live boot of node apps/cli/src/bin.js web mounted with no console errors per the worker. CI publint success on run 38273574872.'
+resolution: The file is hand-written data with no generator. Removed six per-entry fields (example, declaredBy, occupants, source, scope, kind) read by no client code, and the CLIENT_NOTES export with no importer. Fields the client reads (doc, ownerProps, standardProps, hookContext and others read by providers.js for cordis_inspect) are kept.
+commit_sha: 90d9b959105e7c853ee8c04205a6b4936e339f49

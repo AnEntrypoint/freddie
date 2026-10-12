@@ -1,0 +1,9 @@
+id: empty-verb-dir-skip
+title: Skip unchanged empty verb dirs in the claim scan
+subject: 'Pre: a live registry scan of 7010 verb dirs took 825-901ms and found 5 files. Invariant: a dir whose mtime changed, or is younger than 2s, is still read. Post: verb_dir_has_claimable_txt is called from the claim loop and the queued-work check.'
+acceptance: daemon.rs claim loop continues past verb_dir_has_claimable_txt false, and an empty settled dir is recorded only after EMPTY_VERB_DIR_VERDICT_MIN_AGE.
+route_family: execution
+status: completed
+session_id: freddie-107108-1791049571843
+witness: 'C:/dev/agentplug/crates/agentplug-runner/src/daemon.rs:2091 (claim loop: if !verb_dir_has_claimable_txt(&verb_dir) { continue; }), :1922 (queued check returns only on true), :1929 const EMPTY_VERB_DIR_VERDICT_MIN_AGE = 2s, :1956 settled age gate, :1959 verdict insert only when settled'
+resolution: Re-witnessed live via exec_js dispatch 1791821079629-500-c043b1c8fd007ae3; all four code checks true (all_pass). Witness file C:/dev/freddie/.gm/witness/empty-verb-dir-skip-1791821079596.json. Acceptance unchanged. Cargo release live timing not part of acceptance.

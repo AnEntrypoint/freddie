@@ -1,0 +1,7 @@
+id: gm-sibling-dream-rsi-ticker-repair
+title: Repair GM unattended Dream-RSI replay dispatch
+subject: Sibling GM audit found the runner emits unhandled `dreamrsi-replay` work without the baseline/policy/world payload required by the registered replay implementation. The sibling tree has concurrent-owner dirty state, so mutation is unsafe until the owner clears or publishes it.
+acceptance: When GM sibling worktree ownership permits a change, its ticker emits a registered replay-cycle verb with valid replay identifiers and a live spool witness shows successful receipt without policy deployment.
+status: pending
+route_family: execution
+session_id: freddie-2359017-1791302765514

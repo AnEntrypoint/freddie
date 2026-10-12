@@ -1,0 +1,8 @@
+id: token-delivery-measure
+title: Measure live per-step token waste
+subject: 'Pre: a running session log exists for this harness. Invariant: measurement uses provider usage, not a guess. Post: a live breakdown of system, tools, history, and output tokens for one real step, with the largest waste named.'
+acceptance: exec_js or session-log read shows usage fields and which envelope part dominates.
+route_family: execution
+status: completed
+session_id: freddie-27264-1790927965849
+witness: 'Session log session-6a565780 had usageCount 0 over 17 assistant/message events and 0 usage chunks. After the proxy fix, exec_js 1791106377744 measured a live stream: prompt_tokens 1250, cached_tokens 1152, completion_tokens 1, reasoning_tokens 50. Envelope dominance on the session header is tools 74243 bytes versus system 19755.'

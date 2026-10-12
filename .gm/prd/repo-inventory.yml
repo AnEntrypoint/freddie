@@ -1,0 +1,8 @@
+id: repo-inventory
+title: Inventory AnEntrypoint repos and upstream lag
+subject: 'Pre: C:/dev holds many checkouts; which ones are ours and behind upstream is unknown. Invariant: inventory is read-only and does not touch another writer''s dirty tree. Post: every AnEntrypoint git repo is classified as current, behind, ahead, diverged, or dirty-blocked, with remote and HEAD.'
+acceptance: A live inventory names every AnEntrypoint remote under C:/dev, its branch, ahead/behind counts, and whether a fast-forward is safe.
+route_family: grounding
+status: completed
+session_id: freddie-107108-1791049571843
+witness: 'exec_js 1791229530502: 182 AnEntrypoint repos. Clean behind candidates written to .gm/upstream-ff-candidates.json (32). Diverged clean: 3rdplanetstudio, 420sched, aloopprime, fast-stack, flatspace-demo, gm-skill-clone, hyper-nat, iching, mcp-repl, mcp-thorns, mdpix, portabox, stream-glb, synths, trends-cli, tv8, wfgy-1..4. Dirty behind: 33 including gmweb, hookie, agentplug after later fetch. Active fetch 1791229969558: freddie main 35762ac ahead 0 behind 0 dirty 14; acptoapi main 151120d ahead 0 behind 0 dirty 12; gm codesearch-phrase-default c6767c5, origin/codesearch-phrase-default deleted, origin/main moved c6767c5..c9bf3f4, dirty 140; agentplug main ahead 1 behind 84 dirty 39; litebox-main inetfix no upstream.'

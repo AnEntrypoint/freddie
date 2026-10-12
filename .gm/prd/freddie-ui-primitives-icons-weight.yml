@@ -1,0 +1,5 @@
+id: freddie-ui-primitives-icons-weight
+subject: 'packages/client/ui-primitives/src/icons/index.js is 107604 bytes and the largest contributor to the ui-primitives client closure (260017 bytes union). Find icons that no client module imports, and any repeated SVG path data that can be shared, with no change to rendered icons for any live import. Witness: a live byte count before and after, and a live check that every icon name imported by client code still resolves to identical markup.'
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: 'exec_js 1791822342419-500-63fda543896c304a: packages/client/ui-primitives/src/icons/index.js; 15 removed exports undefined, 55 surviving, no declarations left; CI publint success run 38276521668 on f77b23ba. Browser boot unavailable: partial.'

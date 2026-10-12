@@ -1,0 +1,5 @@
+SESSION_ID: comment-sweep-1790669479148
+id: vendor-manifest-regeneration-drift
+route_family: execution
+subject: 'Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/src/index.js. Invariant: immutable version URLs are never silently overwritten. Post: vendor resolution and checked-in payload have deliberate matching provenance, and generate-vendor completes without bypassing its drift guard.'
+status: pending

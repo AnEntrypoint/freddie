@@ -1,0 +1,6 @@
+id: gm-witness-bound-probe-b
+subject: Throwaway row to test whether prd-resolve reports witness_bound and witness_dispatch_id_verified consistently after the runner update.
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: .gm/witness/prd-resolve-bound-probe.txt written by exec_js dispatch 1791820582501-500-e0b95435f9b80e47 for the witness_bound consistency probe.
+resolution: Throwaway probe row for the witness_bound consistency check; resolved only to observe the reply flags.

@@ -1,0 +1,8 @@
+id: token-delivery-tool-schema
+title: Shrink tool schemas sent every step
+subject: 'Pre: every registered tool schema rides every request. Invariant: a tool the model can call remains fully described. Post: descriptions and schemas that repeat or exceed what the model needs are cut without dropping a callable tool.'
+acceptance: byte size of the tools envelope is smaller on a live request and every shipped tool still resolves.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: Measured, not cut. Live header tools are 74243 bytes across 98 tools; chrome group 23813/29, other 29583/28, gm 11732/26. Cutting a schema would drop a callable tool, which the row forbids. The wall-clock cut is parallel dispatch of read-only GM verbs in verbs.js, not a schema shrink.

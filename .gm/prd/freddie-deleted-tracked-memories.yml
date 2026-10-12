@@ -1,0 +1,4 @@
+id: freddie-deleted-tracked-memories
+subject: '13 tracked .gm/memories/*.md files show as deleted in the working tree (git_status deleted list), while .gitignore declares .gm/memories durable and repo-tracked. Determine whether a memorize-prune or gm writer caused the deletion, restore the files from HEAD if the deletion was unintended, and record the reason. Witness: git_status before and after, and recall returning a restored memory.'
+status: pending
+session_id: gm-freddie-eff-20261012

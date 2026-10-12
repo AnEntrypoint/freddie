@@ -1,0 +1,8 @@
+id: upstream-ff-safe
+title: Fast-forward every safe AnEntrypoint checkout
+subject: 'Pre: inventory classifies repos. Invariant: only clean fast-forwardable branches move; dirty or diverged trees are left untouched and recorded. Post: every safe repo matches its upstream tip, witnessed by rev-parse equality.'
+acceptance: After fetch, each clean behind repo is fast-forwarded and HEAD equals origin tip; dirty or diverged repos remain unchanged with a named reason.
+route_family: execution
+status: completed
+session_id: freddie-107108-1791049571843
+witness: 'exec_js 1791229911746 after fetch: ff-equal hermes-agent -1, OpenCheerpX -320, organ -1, parsify -2, pay -2, pxpack -6, sequential -2, sequential-flow -10, skillopt -1, synths-buildless -18, thirdplanetstudio -3, traintai-stage -236. Already current after fetch: agent-gsuite, agentplug-bert, analyze, audit-cc-tail, ccwatch, dispipe, dubfx, esp32c3, faiku, gembird, json-render, jules, lean, mapspinner, milkvid, ocweb. Left diverged (local commits, no merge): acp2openai +14-47, awesome-github +69-268, fsbrowse +3-4, plus the 20 pre-classified diverged clean repos. docmcp path missing. Dirty trees were not moved.'

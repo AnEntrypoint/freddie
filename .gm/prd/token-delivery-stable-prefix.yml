@@ -1,0 +1,8 @@
+id: token-delivery-stable-prefix
+title: Keep the cacheable prefix stable
+subject: 'Pre: system prompt and tool schemas are re-sent every step. Invariant: model-visible content stays reconstructable. Post: unchanged prefix bytes are not regenerated or reordered per step, so provider prefix cache hits.'
+acceptance: two consecutive request headers share an identical system and tools digest.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: Live session has one request/header (reason initial, seq 35). agent.js:416 appends request/header only when headerEquals fails. Runtime context is a separate user message and runtime-context.js:46 returns when the snapshot text is unchanged. Prefix stability is already the header-change rule, not a missing cache key.

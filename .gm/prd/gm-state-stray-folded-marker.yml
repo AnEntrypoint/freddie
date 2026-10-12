@@ -1,0 +1,7 @@
+id: gm-state-stray-folded-marker
+subject: PRD and mutable YAML writers in C:/dev/gm/rs-plugkit (crates/plugkit-core/src/orchestrator/prd.rs, mutables.rs) append a dangling '>' line, so prd-list and mutable-list fail to parse. Fix the writer so it never emits a dangling folded-block marker, and witness with a live prd-add and mutable-add round trip followed by prd-list and mutable-list parsing cleanly. Live witness on C:/dev/freddie .gm files.
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: '.gm/witness/state-tail.txt: prd.yml and mutables.yml each report stray_gt_lines=0 at the live dispatch. prd-list and mutable-list parse (counts 31 and 378 earlier). Root cause: the writers are guarded (cas_retry_write re-parses before writing, rs-plugkit 126a362), and the stray ''>'' entered via consolidation commit f1352ae2. Fixed by commit 992ccb54, which is on origin/main.'
+resolution: Writer source was already guarded; the defect came from consolidation commit f1352ae2 appending a lone '>' line. Removed in 992ccb54, the writer's own re-parse guard means it cannot recur through the guarded path.
+commit_sha: 992ccb548575f14676b50d939aebc28554c8638e

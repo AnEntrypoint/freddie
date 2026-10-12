@@ -1,0 +1,9 @@
+id: gm-readonly-parallel
+title: Overlap read-only GM tools
+subject: 'Pre: gm tool schemas omit isConcurrencySafe, so every parallel group serializes. Invariant: mutating git and PRD verbs stay exclusive. Post: read-only GM verbs declare isConcurrencySafe and a parallel group starts them together.'
+acceptance: verbs.js marks instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show concurrency-safe; mutating verbs do not.
+status: completed
+route_family: execution
+session_id: freddie-107108-1791049571843
+witness: 'packages/gm/tool-gm/src/verbs.js lines 90, 104, 134, 151, 239, 283, 295, 307, 319 each set isConcurrencySafe: () => true for instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show. Mutating verbs have no such marker. README Model Experience states the parallel-group effect.'
+commit_comment: Mark read-only GM verbs concurrency-safe
