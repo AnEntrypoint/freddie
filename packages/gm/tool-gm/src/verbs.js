@@ -42,6 +42,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall,
     presentResult,
     timeoutMs = GM_TOOL_TIMEOUT_MS,
+    isConcurrencySafe,
   }) => {
     return defineTool({
       name,
@@ -49,6 +50,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       parameters,
       output,
       timeoutMs,
+      ...isConcurrencySafe === undefined ? {} : { isConcurrencySafe },
       presentCall,
       presentResult: (args, result) => presentGmOutcomeResult(args, result) ?? presentResult?.(args, result),
       async execute(args, exec) {
@@ -86,6 +88,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     presentCall: presentInstructionCall,
     presentResult: presentInstructionResult,
+    isConcurrencySafe: () => true,
   })
 
   const phaseStatusTool = jsonTool({
@@ -99,6 +102,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       presentationMeta: (_args, value) => compactMetaFromValue('gm phase-status', value),
     },
     presentCall: () => presentGenericCall('gm phase-status'),
+    isConcurrencySafe: () => true,
   })
 
   const codesearchTool = jsonTool({
@@ -128,6 +132,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall: presentCodesearchCall,
     presentResult: presentCodesearchResult,
     timeoutMs: GM_CODESEARCH_TIMEOUT_MS,
+    isConcurrencySafe: () => true,
   })
 
   const recallTool = jsonTool({
@@ -144,6 +149,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     presentCall: presentRecallCall,
     presentResult: presentRecallResult,
+    isConcurrencySafe: () => true,
   })
 
   const prdAddTool = jsonTool({
@@ -234,6 +240,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     timeoutMs: GM_TOOL_TIMEOUT_MS,
     presentCall: () => presentGenericCall('gm exec_js'),
     presentResult: presentGmOutcomeResult,
+    isConcurrencySafe: () => true,
     async execute(args, exec) {
       const requested = typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs) ? args.timeoutMs : 0
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
@@ -277,6 +284,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     parameters: {},
     toBody: () => ({}),
     presentCall: () => presentGenericCall('gm git_status'),
+    isConcurrencySafe: () => true,
   })
 
   const gitLogTool = jsonTool({
@@ -288,6 +296,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     toBody: args => (args.limit === undefined ? {} : { limit: args.limit }),
     presentCall: () => presentGenericCall('gm git_log'),
+    isConcurrencySafe: () => true,
   })
 
   const gitDiffTool = jsonTool({
@@ -299,6 +308,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     toBody: args => (typeof args.path === 'string' && args.path.trim().length > 0 ? { path: args.path } : {}),
     presentCall: () => presentGenericCall('gm git_diff'),
+    isConcurrencySafe: () => true,
   })
 
   const gitShowTool = jsonTool({
@@ -310,6 +320,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     toBody: args => (typeof args.rev === 'string' && args.rev.trim().length > 0 ? { rev: args.rev } : {}),
     presentCall: args => presentGenericCall(args.rev === undefined ? 'gm git_show' : `gm git_show: ${args.rev}`),
+    isConcurrencySafe: () => true,
   })
 
   const gitPushTool = jsonTool({

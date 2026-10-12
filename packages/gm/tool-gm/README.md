@@ -56,7 +56,7 @@ Every GM tool presents a concise diagnostic for its own top-level reply with `ok
 
 #### What the model sees
 
-Twenty-six tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
+Twenty-six tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text. Read-only verbs (`gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_exec_js`, `gm_git_status`, `gm_git_log`, `gm_git_diff`, `gm_git_show`) declare `isConcurrencySafe`, so a parallel tool group overlaps them. Mutating verbs stay exclusive.
 
 #### Token effect
 
