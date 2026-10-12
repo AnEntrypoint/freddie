@@ -207,4 +207,30 @@
   status: completed
   session_id: freddie-107108-1791049571843
   witness: 'C:/dev/agentplug/crates/agentplug-runner/src/daemon.rs verb_dir_has_claimable_txt skips a readdir when the dir mtime still matches the last empty verdict, and records that verdict only after EMPTY_VERB_DIR_VERDICT_MIN_AGE of 2s. dispatch_project calls it before read_dir of the verb dir. dir_has_any_verb_subdir_with_claimable_txt uses the same helper. AGENTS.md Spool claim records the rule. Live factor not yet measured: cargo release build of agentplug-runner was still compiling cranelift_codegen and rustls at the end of this round.'
->
+>- id: gm-state-stray-folded-marker
+  subject: PRD and mutable YAML writers in C:/dev/gm/rs-plugkit (crates/plugkit-core/src/orchestrator/prd.rs, mutables.rs) append a dangling '>' line, so prd-list and mutable-list fail to parse. Fix the writer so it never emits a dangling folded-block marker, and witness with a live prd-add and mutable-add round trip followed by prd-list and mutable-list parsing cleanly. Live witness on C:/dev/freddie .gm files.
+  status: pending
+  session_id: gm-freddie-eff-20261012
+- id: freddie-cli-boot-latency
+  subject: 'Warm ''node apps/cli/src/bin.js --help'' takes ~520-600ms (cold 1293ms) in C:/dev/freddie. Profile the import and plugin-load graph, then defer or lazy-load modules that --help and other non-runtime paths never touch. Witness: five timed runs before and after on the same machine, with the same command.'
+  status: completed
+  session_id: gm-freddie-eff-20261012
+  witness: '.gm/witness/boot-help-after.txt: ten live runs of node apps/cli/src/bin.js --help at HEAD a65d4594, median 188 ms, help_sha256 14208329c89c62da2787e09c0c75c85cc43fed9613182d63eed7781767f6e19b. Baseline from the sub2 A/B: median 332 ms before the change, 245 ms after in that run, so the change is about 26 percent faster on the measured median. The 1293 ms cold figure was not reproduced.'
+  resolution: bin.js statically imported @freddie/freddie-app-boot, pulling js-yaml and the Cordis core into every invocation. The import is now dynamic inside the profile case only. --help, --version and --profile web --dump-default-config are byte-identical to baseline. CI publint success on run 38269098782.
+  commit_sha: a65d4594ffaa95f9c2025c2ee202745e4185a547
+- id: freddie-agent-context-weight
+  subject: 'The notes and docs an agent loads per session are large: AGENTS.md is 11282 bytes, docs/ is 1.6MB across 108 files, .agents/notes is 855 files and 5.98MB. Measure which of these an agent actually reads at session start, then compact the always-loaded surface (AGENTS.md, CLAUDE.md symlink targets, package AGENTS.md) without losing a rule. Witness: byte and token count of the always-loaded set before and after, plus a rule-by-rule check that every rule survives.'
+  status: pending
+  session_id: gm-freddie-eff-20261012
+- id: freddie-deleted-tracked-memories
+  subject: '13 tracked .gm/memories/*.md files show as deleted in the working tree (git_status deleted list), while .gitignore declares .gm/memories durable and repo-tracked. Determine whether a memorize-prune or gm writer caused the deletion, restore the files from HEAD if the deletion was unintended, and record the reason. Witness: git_status before and after, and recall returning a restored memory.'
+  status: pending
+  session_id: gm-freddie-eff-20261012
+- id: freddie-client-bundle-weight
+  subject: 'packages/client is 9.1MB across 1317 files, and CSS-in-JS modules include packages/client/ui-theme/src/styles/design-platform.css.js at 19816 bytes and gradient-shadow-text.css.js at 10507 bytes, flagged by scan_deps ratio warnings. Measure the shipped client payload, find the dominant byte contributors, and reduce them with no change in rendered output. Witness: byte totals before and after, plus a live render comparison of the Web UI.'
+  status: pending
+  session_id: gm-freddie-eff-20261012
+- id: gm-prd-resolve-witness-bound-contradiction
+  subject: prd-resolve reports witness_dispatch_id_verified true (via ledger) and resolved the row, yet also reports witness_bound false in the same reply. The two flags contradict each other, so an agent cannot tell whether the witness binds. Fix the prd-resolve reply in C:/dev/gm/rs-plugkit so witness_bound reflects the verified binding, and witness with a live prd-resolve on a row bound by witness_dispatch_id.
+  status: pending
+  session_id: gm-freddie-eff-20261012

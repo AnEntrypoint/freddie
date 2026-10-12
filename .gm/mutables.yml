@@ -2992,4 +2992,9 @@
   session_id: freddie-107108-1791049571843
   status: witnessed
   witness_evidence: 'exec_js 1791230479527: five isolated git status --porcelain calls averaged 272ms (145,147,146,437,487); five isolated spool git_status summary calls averaged 1299ms (1307,1385,599,1923,1281), factor 4.78. daemon-status.json active_projects=128. Parallel read-only verbs in exec_js 1791230134606 saved only 1.2x and 1.33x because the daemon is single-writer.'
->
+- SESSION_ID: gm-freddie-eff-20261012-sub1
+  id: gm-writer-witness-m-1791818387740
+  text: Writer witness mutable for the mutables.yml trailing-marker check; resolved in the same run.
+  status: witnessed
+  session_id: gm-freddie-eff-20261012-sub1
+  witness_evidence: 'Live round trip: mutable-add then mutable-list parsed the row by id; the store was checked for a dangling > line after the write, and this row is closed with that check.'
