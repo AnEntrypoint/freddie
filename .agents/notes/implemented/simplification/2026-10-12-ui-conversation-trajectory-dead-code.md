@@ -8,7 +8,7 @@ Closure = JS files reached from each package's entry (`src/index.js`, `src/invar
 
 - ui-conversation closure: 324506 B -> 323880 B (-626 B). Unreached source: 3 B -> 0 B.
 - ui-trajectory closure: 245089 B -> 245089 B (no change). Unreached source: 1975 B -> 0 B. Its removals were all files no entry reached, so none were served.
-- Served CSS (concatenated by css-manifest from `git ls-files '*.css'`): 58657 B across the removed or edited sheets before; the after figure is recorded in the commit body.
+- Served CSS (concatenated by css-manifest from `git ls-files '*.css'`) across the six touched sheets: 58657 B -> 54765 B (-3892 B). HeroShell.css 3865 -> 2010, InputBar.css 8413 -> 8302, TrajectoryTable.css 44711 -> 44453, and the three removed trajectory sheets 534 + 245 + 889 -> 0.
 
 ## What was removed
 
