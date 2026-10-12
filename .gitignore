@@ -86,3 +86,6 @@ native/*/.gm/
 
 # Local harness homes used for live verification runs.
 .freddie-home*/
+
+# gm codesearch spill files, one per oversized call, written into the repo root
+.gm/codesearch-result-*.json
