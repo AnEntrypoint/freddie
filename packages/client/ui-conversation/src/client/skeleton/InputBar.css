@@ -105,12 +105,6 @@
   color: var(--freddie-alias-state-warn-label);
 }
 
-.freddie-inputBar__hlSegment {
-  border-radius: 4px;
-  background-color: transparent;
-  color: transparent;
-}
-
 .freddie-inputBar__hint {
   color: var(--freddie-alias-label-caption);
 }

@@ -158,11 +158,6 @@
   white-space: nowrap;
 }
 
-.freddie-trajectoryTable__eventHeader {
-  padding-right: 4px !important;
-  text-align: right !important;
-}
-
 .freddie-trajectoryTable__table td {
   box-sizing: border-box;
   height: 30px;
@@ -585,11 +580,6 @@
   .freddie-trajectoryTable__turnLabelCompact {
     transition-property: max-width, opacity;
   }
-}
-
-.freddie-trajectoryTable__user {
-  color: var(--freddie-alias-state-business-primary);
-  background: var(--freddie-alias-state-business-tertiary);
 }
 
 .freddie-trajectoryTable__systemNeutral {

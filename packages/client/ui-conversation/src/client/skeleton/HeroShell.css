@@ -29,60 +29,9 @@
   color: var(--freddie-alias-label-primary);
 }
 
-.freddie-heroShell__headlineText {
-  grid-row: 1;
-  grid-column: 2;
-}
-
-.freddie-heroShell__previewBadge {
-  grid-row: 1;
-  grid-column: 3;
-  align-self: start;
-  margin-top: 2px;
-  margin-left: -3px;
-  padding: 1px 7px 0;
-  border: 1px solid var(--freddie-alias-interactive-bg-hover);
-  border-radius: 24px;
-  background: var(--freddie-alias-state-business-tertiary);
-  color: var(--freddie-alias-label-primary-bluish);
-  font-family: var(--ds-font-family-code);
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.freddie-heroShell__fishHitbox {
-  grid-row: 1;
-  grid-column: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .freddie-heroShell__fish {
   color: var(--freddie-alias-label-primary);
   transform-origin: 50% 60%;
-}
-
-@keyframes freddie-heroShell__hero-fish-swim {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-
-  35% {
-    transform: translate(-1px, -1px) rotate(-5deg);
-  }
-
-  70% {
-    transform: translate(1px, 0) rotate(3deg);
-  }
-}
-
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .freddie-heroShell__fishHitbox:hover .freddie-heroShell__fish {
-    animation: freddie-heroShell__hero-fish-swim var(--ds-transition-duration-slow) var(--ds-ease-in-out);
-  }
 }
 
 .freddie-heroShell__body {
@@ -97,14 +46,6 @@
 .freddie-heroShell__body > * {
   position: relative;
   z-index: 1;
-}
-
-.freddie-heroShell__body > .freddie-heroShell__workspaceRow {
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  padding-left: 8px;
 }
 
 .freddie-heroShell__workspace {
@@ -147,29 +88,6 @@
 .freddie-heroShell__chevron {
   flex: none;
   color: var(--freddie-alias-label-caption);
-}
-
-.freddie-heroShell__modalInput {
-  box-sizing: border-box;
-  width: 100%;
-  height: 44px;
-  padding: 7px 14px;
-  border: 1px solid var(--freddie-alias-border-l2);
-  border-radius: 22px;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 22px;
-  color: var(--freddie-alias-label-primary);
-}
-
-.freddie-heroShell__modalInput::placeholder {
-  color: var(--freddie-alias-label-caption);
-}
-
-.freddie-heroShell__modalInput:disabled {
-  color: var(--freddie-alias-label-dimmed);
 }
 
 .freddie-heroShell__modalAction {

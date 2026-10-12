@@ -169,12 +169,6 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 
 defineElement('freddie-conversation-session-header', FreddieConversationSessionHeader)
 
-export function ConversationSessionHeader(props) {
-  const el = document.createElement('freddie-conversation-session-header')
-  el.setProps(props)
-  return el
-}
-
 export class FreddieConversationSession extends HTMLElement {
   #props = null
   #unsubscribeViews = null
