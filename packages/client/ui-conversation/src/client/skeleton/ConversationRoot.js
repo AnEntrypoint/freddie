@@ -40,10 +40,10 @@ export class FreddieConversationRoot extends HTMLElement {
 
   #render() {
     if (this.#props === null) return
-    const { sessionId, useSession, useSessions, renderSlot } = this.#props
+    const { sessionId, useComposer, useSessionHeader, useSessions, renderSlot } = this.#props
 
-    const openState = useSession(s => s.openState)
-    const composerPhase = useSession(s => s.composerPhase)
+    const openState = useComposer(s => s.openState)
+    const { composerPhase } = useSessionHeader(s => s)
     const summaryBlank = useSessions(s => sessionId === undefined ? undefined : s.byId[sessionId]?.blank)
 
     const settling = sessionId !== undefined && composerPhase === 'blank' && openState === 'loading'

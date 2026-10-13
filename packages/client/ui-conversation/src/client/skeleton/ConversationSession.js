@@ -212,12 +212,11 @@ export class FreddieConversationSession extends HTMLElement {
 
   #render() {
     if (this.#props === null) return
-    const { sessionId, useSession, useStore, actions, renderSlot, views } = this.#props
+    const { sessionId, useSessionHeader, useStore, actions, renderSlot, views } = this.#props
     const tabs = views.list()
     const selectedId = useStore(s => s.view)
     const active = resolveActiveView(tabs, selectedId)
-    const composerPhase = useSession(s => s.composerPhase)
-    const blank = useSession(s => s.blank)
+    const { composerPhase, blank } = useSessionHeader(s => s)
     const inspect = useStore(s => s.inspect ?? null)
     void sessionId
 

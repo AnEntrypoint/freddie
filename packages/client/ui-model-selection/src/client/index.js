@@ -113,6 +113,6 @@ export function apply(ctx) {
             : Promise.resolve(false),
         }
       },
-    }, webjsxSlot('freddie-model-select')))
+    }, webjsxSlot('freddie-model-select', { subscriptions: 'reads' })))
   })
 }

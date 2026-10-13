@@ -193,7 +193,7 @@ export async function apply(ctx, config) {
         sessions.open(nextId)
       },
     }),
-  }, webjsxSlot('freddie-conversation-composer'))
+  }, webjsxSlot('freddie-conversation-composer', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.session',
@@ -312,7 +312,7 @@ export async function apply(ctx, config) {
         },
       }
     },
-  }, webjsxSlot('freddie-input-bar'))
+  }, webjsxSlot('freddie-input-bar', { subscriptions: 'reads' }))
 
   slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, ApprovalPanel)
 

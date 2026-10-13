@@ -50,11 +50,11 @@ export class FreddieConversationComposer extends HTMLElement {
   #render(skipWhenUnchanged = false) {
     if (this.#props === null) return
     const {
-      hero, sessionId, useSession, useSessions, useWorkspaces, useInput, useComposerBlock,
+      hero, sessionId, useComposer, useSessions, useWorkspaces, useInput, useComposerBlock,
       renderSlot, renderSlotChain, selectWorkspace, t,
     } = this.#props
 
-    const facts = useSession(s => ({
+    const facts = useComposer(s => ({
       pending: s.pending ?? EMPTY_PENDING,
       subagent: s.subagent,
       running: s.running,

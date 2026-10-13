@@ -8,7 +8,7 @@ export function apply(ctx) {
   ctx.slots.inject('conversation.input.attachments', () => ctx.slots.register({
     name: 'conversation.input.attachments',
     locale: 'conversation',
-  }, ComposerAttachments))
+  }, functionSlot(ComposerAttachments, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.message.images', () => ctx.slots.register({
     name: 'conversation.message.images',
     locale: 'conversation',

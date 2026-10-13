@@ -1,4 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { NS } from '../locales.js'
 import css from './TodoPanel.css.js'
@@ -139,6 +140,6 @@ export const todoDockEntry = {
   inject: ['slots'],
   apply(ctx) {
     ctx.slots.inject('conversation.input.dock', () =>
-      ctx.slots.register({ name: 'conversation.input.dock', id: 'todo', order: 0, locale: NS }, TodoDock))
+      ctx.slots.register({ name: 'conversation.input.dock', id: 'todo', order: 0, locale: NS }, functionSlot(TodoDock, { subscriptions: 'reads' })))
   },
 }

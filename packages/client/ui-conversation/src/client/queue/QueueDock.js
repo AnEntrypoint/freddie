@@ -1,4 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronUpOutline14, IconCloseOutline16,
   IconEditOutline16, IconQueueOutline14, IconSendOutline14, IconTrashOutline16, Tooltip,
@@ -28,9 +29,9 @@ export class FreddieQueueDock extends HTMLElement {
 
   #syncFromProps() {
     if (this.#props === null) return
-    const inbox = this.#props.useSession(s => s.queue)
+    const inbox = this.#props.useComposer(s => s.queue)
     const queue = inbox.filter(row => row.placement === 'queued')
-    const queueMutable = this.#props.useSession(s => s.subagent === null)
+    const queueMutable = this.#props.useComposer(s => s.subagent === null)
     if (queue.length === 0 && !this.#collapsed) this.#collapsed = true
     if (this.#editing !== null && (!queueMutable || !queue.some(row => row.id === this.#editing?.id))) {
       this.#editing = null
@@ -69,11 +70,11 @@ export class FreddieQueueDock extends HTMLElement {
 
   #render() {
     if (this.#props === null) return
-    const { useSession, t } = this.#props
-    const inbox = useSession(s => s.queue)
+    const { useComposer, t } = this.#props
+    const inbox = useComposer(s => s.queue)
     const queue = inbox.filter(row => row.placement === 'queued')
-    const running = useSession(s => s.running)
-    const queueMutable = useSession(s => s.subagent === null)
+    const running = useComposer(s => s.running)
+    const queueMutable = useComposer(s => s.subagent === null)
     const editing = this.#editing
     const busy = this.#busy
     const listId = this.#listId
@@ -274,6 +275,6 @@ export const queueDockEntry = {
           notify: (level, text) => { conversation.input.for(actx).notify(level, text) },
         }
       },
-    }, QueueDock))
+    }, functionSlot(QueueDock, { subscriptions: 'reads' })))
   },
 }

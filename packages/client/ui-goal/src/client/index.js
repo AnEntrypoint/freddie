@@ -60,5 +60,5 @@ export function apply(ctx) {
         return await ctx.remote.goals.clear(sessionId, ref)
       },
     }),
-  }, webjsxSlot('freddie-goal-dock')))
+  }, webjsxSlot('freddie-goal-dock', { subscriptions: 'reads' })))
 }

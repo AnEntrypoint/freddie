@@ -192,22 +192,22 @@ export class FreddieInputBar extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const {
-      useInput, useSession, useNotices, useProjection, draftImages, sessionId, t,
+      useInput, useComposer, useNotices, useProjection, draftImages, sessionId, t,
     } = props
 
     const input = useInput(s => s)
     const notice = useNotices(s => s)
-    const promptError = useSession(s => s.promptError) ?? null
+    const promptError = useComposer(s => s.promptError) ?? null
     const imageLimits = useProjection('imageLimits')
     const draft = input?.draft ?? ''
     const attachments = input === undefined || draftImages === undefined ? [] : draftImages(input.imageIds)
     const inputActions = props.inputActions
     const keyboard = props.keyboard
-    const removed = useSession(s => s.removed) ?? false
+    const removed = useComposer(s => s.removed) ?? false
     const inert = props.disabled ?? false
     const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
     const blocked = props.blocked
-    const subagent = useSession(s => s.subagent) ?? null
+    const subagent = useComposer(s => s.subagent) ?? null
     const continuable = subagent?.address.mode === 'continuable'
     const parentOffline = continuable && !subagent.parentAvailable
     const locked = removed || inert || !live || blocked !== undefined || parentOffline
@@ -266,12 +266,12 @@ export class FreddieInputBar extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const {
-      onRequestWorkspace, useInput, keyboard, inputActions, resolveSubmitMode, useSession,
+      onRequestWorkspace, useInput, keyboard, inputActions, resolveSubmitMode, useComposer,
     } = props
     const input = useInput(s => s)
-    const running = useSession(s => s.running) ?? false
-    const subagent = useSession(s => s.subagent) ?? null
-    const removed = useSession(s => s.removed) ?? false
+    const running = useComposer(s => s.running) ?? false
+    const subagent = useComposer(s => s.subagent) ?? null
+    const removed = useComposer(s => s.removed) ?? false
     const inert = props.disabled ?? false
     const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
     const blocked = props.blocked
@@ -379,11 +379,11 @@ export class FreddieInputBar extends HTMLElement {
     const { keyboard, useInput } = props
     const input = useInput(s => s)
     const draft = input?.draft ?? ''
-    const removed = props.useSession(s => s.removed) ?? false
+    const removed = props.useComposer(s => s.removed) ?? false
     const inert = props.disabled ?? false
     const live = input !== undefined && keyboard !== undefined && props.inputActions !== undefined
     const blocked = props.blocked
-    const subagent = props.useSession(s => s.subagent) ?? null
+    const subagent = props.useComposer(s => s.subagent) ?? null
     const continuable = subagent?.address.mode === 'continuable'
     const parentOffline = continuable && !subagent.parentAvailable
     const locked = removed || inert || !live || blocked !== undefined || parentOffline
@@ -406,11 +406,11 @@ export class FreddieInputBar extends HTMLElement {
     const { keyboard, useInput } = props
     const input = useInput(s => s)
     const draft = input?.draft ?? ''
-    const removed = props.useSession(s => s.removed) ?? false
+    const removed = props.useComposer(s => s.removed) ?? false
     const inert = props.disabled ?? false
     const live = input !== undefined && keyboard !== undefined && props.inputActions !== undefined
     const blocked = props.blocked
-    const subagent = props.useSession(s => s.subagent) ?? null
+    const subagent = props.useComposer(s => s.subagent) ?? null
     const continuable = subagent?.address.mode === 'continuable'
     const parentOffline = continuable && !subagent.parentAvailable
     const locked = removed || inert || !live || blocked !== undefined || parentOffline
@@ -445,12 +445,12 @@ export class FreddieInputBar extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const { keyboard, useInput } = props
-    const removed = props.useSession(s => s.removed) ?? false
+    const removed = props.useComposer(s => s.removed) ?? false
     const inert = props.disabled ?? false
     const input = useInput(s => s)
     const live = input !== undefined && keyboard !== undefined && props.inputActions !== undefined
     const blocked = props.blocked
-    const subagent = props.useSession(s => s.subagent) ?? null
+    const subagent = props.useComposer(s => s.subagent) ?? null
     const continuable = subagent?.address.mode === 'continuable'
     const parentOffline = continuable && !subagent.parentAvailable
     const locked = removed || inert || !live || blocked !== undefined || parentOffline
@@ -535,7 +535,7 @@ export class FreddieInputBar extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const {
-      useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
+      useComposer, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
       toggleCommandMenu, stop, command, t,
       renderSlot, useNotices, useLexicon, useMenuLauncher,
       useProjection, variant, disabled: inert = false, blocked,
@@ -547,9 +547,9 @@ export class FreddieInputBar extends HTMLElement {
     const notice = useNotices(s => s)
     const lexicon = useLexicon(s => s)
     const commandMenuOpen = useMenuLauncher(source => source === 'command')
-    const running = useSession(s => s.running) ?? false
-    const subagent = useSession(s => s.subagent) ?? null
-    const removed = useSession(s => s.removed) ?? false
+    const running = useComposer(s => s.running) ?? false
+    const subagent = useComposer(s => s.subagent) ?? null
+    const removed = useComposer(s => s.removed) ?? false
     const planActive = useProjection('plan', plan => plan !== undefined && (plan.pending ? !plan.active : plan.active))
     const hasGoal = useProjection('goal', goal => goal != null)
     const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
