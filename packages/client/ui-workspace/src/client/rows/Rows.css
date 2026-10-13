@@ -104,11 +104,6 @@
   animation: freddie-rows__row-in 150ms var(--ds-ease-in-out);
 }
 
-.freddie-rows__sessionRow:not(.freddie-rows__dropBefore):not(.freddie-rows__dropAfter) {
-  content-visibility: auto;
-  contain-intrinsic-size: 32px;
-}
-
 .freddie-rows__sessionRow:focus-visible {
   outline-offset: -2px;
 }
