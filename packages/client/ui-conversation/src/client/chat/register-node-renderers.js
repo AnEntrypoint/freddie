@@ -26,13 +26,13 @@ export function registerChatNodeRenderers(ctx) {
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'manual-compaction', locale: NS }, ManualCompactionNodeView))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'compaction', locale: NS }, CompactionNodeView))
+    { name: 'conversation.chat.node', key: 'compaction', locale: NS }, functionSlot(CompactionNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'model-retry', locale: NS }, RetryNodeView))
+    { name: 'conversation.chat.node', key: 'model-retry', locale: NS }, functionSlot(RetryNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'turn-error', locale: NS }, TurnErrorNodeView))
+    { name: 'conversation.chat.node', key: 'turn-error', locale: NS }, functionSlot(TurnErrorNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'turn-max-tokens', locale: NS }, TurnMaxTokensNodeView))
+    { name: 'conversation.chat.node', key: 'turn-max-tokens', locale: NS }, functionSlot(TurnMaxTokensNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'turn-tail',
@@ -43,5 +43,5 @@ export function registerChatNodeRenderers(ctx) {
     },
   }, functionSlot(TurnTailNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'unknown', locale: NS }, UnknownNodeView))
+    { name: 'conversation.chat.node', key: 'unknown', locale: NS }, functionSlot(UnknownNodeView, { subscriptions: 'reads' })))
 }
