@@ -552,8 +552,7 @@ export class FreddieSlotOutlet extends HTMLElement {
       applyDiff(this, h('div', { 'data-slot': this.#slotKey, style: ANCHOR_STYLE }, content))
     })
     if (!this.isConnected) return
-    const readsOnly = participants.size > 0
-      && [...participants].every(entry => webjsxSlotSubscriptionsOf(entry?.component) === 'reads')
+    const readsOnly = [...participants].every(entry => webjsxSlotSubscriptionsOf(entry?.component) === 'reads')
     this.#bindHookSources(sessionInfo, reads, revisions, readsOnly, host.specOf(this.#slotKey)?.scope !== 'root')
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true

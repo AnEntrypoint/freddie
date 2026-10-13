@@ -24,7 +24,7 @@ Rejected: keeping `useSession` in `DetailsPanel` and relying on `shallowEqual`. 
 Live, `stream-bench` with `DIAG=1 MSGS=400 TOKENS=200 INTERVAL=16` on the committed tree, per-slot `setProps` calls per streamed token (counted before the outlet's own skip check):
 
 - `details` 0.98 to 0.03; `conversation.composer.dock` 0.95 to 0.01.
-- `conversation.input.overlay`, `conversation.input.left`, `conversation.input.right`: 0.01 each.
+- `conversation.input.overlay`, `conversation.input.left`, `conversation.input.right`: setProps 0.01 each. This was a count of setProps, which returns early when owner props are unchanged. Real renders were 0.95 per token. See [empty slot outlets](2026-10-13-empty-slot-outlets-skip-session-subscription.md) for the corrected numbers.
 - `shape.newestUserVisible` true. Errors are the three fixture RPC errors only.
 - Boot probe on a fresh app: `1+1` evaluates, no new exceptions.
 
