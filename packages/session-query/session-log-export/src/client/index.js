@@ -1,3 +1,4 @@
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { SessionLogDownloadController } from './controller.js'
 import { SessionLogDownloadHeaderAction } from './HeaderAction.js'
 import { en, NS } from './locales.js'
@@ -21,5 +22,5 @@ export function apply(ctx) {
       request: sessionId => controller.download(sessionId),
       dismiss: (sessionId) => { controller.dismiss(sessionId) },
     }),
-  }, SessionLogDownloadHeaderAction))
+  }, functionSlot(SessionLogDownloadHeaderAction, { subscriptions: 'reads' })))
 }

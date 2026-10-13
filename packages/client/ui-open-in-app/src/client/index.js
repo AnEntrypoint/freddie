@@ -23,6 +23,6 @@ export function apply(ctx) {
         launch: (appId, path) => controller.launch(appId, path),
         iconUrl: appId => controller.iconUrl(appId),
       }),
-    }, webjsxSlot('freddie-open-in-app-action')),
+    }, webjsxSlot('freddie-open-in-app-action', { subscriptions: 'reads' })),
   )
 }

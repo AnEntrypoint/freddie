@@ -8,8 +8,8 @@ export class SessionProvideChannel {
   constructor(host) {
     this.host = host
     this.providers.push({
-      hooks: ['session'],
-      resolve: binding => ({ hooks: { session: binding.session } }),
+      hooks: ['session', 'sessionHeader'],
+      resolve: binding => ({ hooks: { session: binding.session, sessionHeader: binding.header } }),
     })
     this.maybeInfoCache = this.materializeMaybeInfo()
     this.currentSnapshot = this.maybeInfoCache

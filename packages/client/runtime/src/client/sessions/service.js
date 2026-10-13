@@ -2,6 +2,7 @@ import { SESSION_SEARCH_RESULT_LIMIT } from '@freddie/freddie-host-apiproxy/api'
 import { createSnapshotStore } from '../contract/store.js'
 import { createScope, scopeOf as scopeTagOf } from '../agents/scope.js'
 import { SessionManager } from './manager.js'
+import { createSessionHeaderSource } from './header.js'
 import { SessionProvideChannel } from './provide.js'
 import { loadUserPrompts } from './user-prompts.js'
 
@@ -288,7 +289,7 @@ export class SessionRuntime {
     const { fiber, ctx } = createScope(this.rootCtx, id)
     const session = this.manager.get(id)
     session.bindScope(ctx)
-    const binding = { sessionId: id, session, ctx }
+    const binding = { sessionId: id, session, ctx, header: createSessionHeaderSource(session) }
     const record = {
       fiber,
       ctx,

@@ -13,6 +13,6 @@ export function apply(ctx) {
       id: 'job-list',
       order: 20,
       locale: NS,
-    }, webjsxSlot('freddie-job-list-action')),
+    }, webjsxSlot('freddie-job-list-action', { subscriptions: 'reads' })),
   )
 }

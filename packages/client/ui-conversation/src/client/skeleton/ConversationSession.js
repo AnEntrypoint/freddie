@@ -58,13 +58,12 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 
   #render() {
     if (this.#props === null) return
-    const { sessionId, useSession, useSessions, useStore, actions, renderSlot, views, open, t } = this.#props
+    const { sessionId, useSessionHeader, useSessions, useStore, actions, renderSlot, views, open, t } = this.#props
     const tabs = views.list()
     const selectedId = useStore(s => s.view)
     const active = resolveActiveView(tabs, selectedId)
     const ancestry = useSessions(s => deriveAncestry(s, sessionId))
-    const composerPhase = useSession(s => s.composerPhase)
-    const blank = useSession(s => s.blank)
+    const { composerPhase, blank } = useSessionHeader(s => s)
     const hideChrome = blank && composerPhase === 'blank'
 
     const vdom = h(

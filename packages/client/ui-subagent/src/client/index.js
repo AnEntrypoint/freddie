@@ -35,7 +35,7 @@ export function apply(ctx) {
       name: 'conversation.session.header.lineage',
       locale: NS,
       inject: catalogActions,
-    }, webjsxSlot('freddie-subagent-header-lineage')),
+    }, webjsxSlot('freddie-subagent-header-lineage', { subscriptions: 'reads' })),
   )
   ctx.slots.inject(
     'conversation.composer',

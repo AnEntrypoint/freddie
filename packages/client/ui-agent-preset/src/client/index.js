@@ -1,4 +1,5 @@
 
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { AgentPresetLabel } from './AgentPresetLabel.js'
 import { AgentPresetRow } from './AgentPresetRow.js'
 import { AgentPresetSeat } from './AgentPresetSeat.js'
@@ -103,7 +104,7 @@ export function apply(ctx) {
         order: -10,
         locale: 'settings.agentPreset',
         inject: labelInjected,
-      }, AgentPresetLabel))
+      }, functionSlot(AgentPresetLabel, { subscriptions: 'reads' })))
     }, 'ui-agent-preset: new-session chip and header label')
   })
 
