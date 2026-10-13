@@ -37,6 +37,8 @@
 
 .freddie-chatView__flowItem {
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 }
 
 .freddie-chatView__flowItem:empty {
