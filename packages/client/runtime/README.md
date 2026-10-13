@@ -86,6 +86,10 @@ None, as the session object layer selects the provider/model route used by a lat
 
 Changing the model selection can change or invalidate provider-side cache reuse; this package does not alter the prompt prefix itself.
 
+## Snapshot store updates
+
+`createSnapshotStore(init).update(mutator)` runs the mutator on a copy-on-write draft of the current snapshot. Untouched subtrees keep their identity; a write of an equal value leaves the snapshot unchanged, and an update that changes nothing returns the same snapshot without notifying. A net-zero sequence of writes may still return a new snapshot. Dev builds freeze the state; production builds do not. Object references shared between two state paths are not preserved across updates. Rationale: [structural sharing note](../../../.agents/notes/implemented/architecture/2026-10-13-snapshot-store-structural-sharing.md).
+
 ## Known Limitations and Deferred Work
 
 - **`loader.unload` is a stub** — it throws not-implemented; the client has no unload chain from fiber disposal through registration and style removal.
