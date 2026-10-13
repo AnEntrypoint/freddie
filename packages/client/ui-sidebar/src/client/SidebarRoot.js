@@ -31,6 +31,11 @@ export class FreddieSidebarRoot extends HTMLElement {
 
   #renderedOnce = false
 
+  #expandSidebar = () => {
+    const props = this.#props
+    if (props?.collapsed) props.toggleSidebar()
+  }
+
   setProps(props) {
     const prevCollapsed = this.#props?.collapsed
     this.#props = props
@@ -205,7 +210,7 @@ export class FreddieSidebarRoot extends HTMLElement {
         h('div', {class: css.regionArea ?? ''},
           embedHostedSlotAsWebjsxChild(renderSlot('sidebar.workspaces', {
             wide,
-            expandSidebar: () => { if (collapsed) toggleSidebar() },
+            expandSidebar: this.#expandSidebar,
           })),
         ),
 
