@@ -7,19 +7,6 @@ export class InputHub {
     this.rootCtx = rootCtx
     this.t = t
     this.shells = new Map()
-    this.triggers = undefined
-    this.controllers = new WeakMap()
-  }
-
-  bindTriggers(service) {
-    this.triggers = service
-    this.controllers = new WeakMap()
-  }
-
-  unbindTriggers(service) {
-    if (this.triggers !== service) return
-    this.triggers = undefined
-    this.controllers = new WeakMap()
   }
 
   for(actx) {
@@ -128,13 +115,8 @@ export class InputHub {
   }
 
   controller(actx) {
-    const triggers = this.triggers
-    if (triggers === undefined) return undefined
-    const cached = this.controllers.get(actx)
-    if (cached !== undefined && !cached.disposed) return cached
-    const controller = triggers.sessionOf(actx)
-    this.controllers.set(actx, controller)
-    return controller
+    const inputTriggers = this.rootCtx.get('inputTriggers')
+    return inputTriggers?.sessionOf(actx)
   }
 
   popup(actx) {
