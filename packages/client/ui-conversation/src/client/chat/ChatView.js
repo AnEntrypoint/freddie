@@ -121,16 +121,19 @@ class FreddieTurnStatus extends HTMLElement {
   #mountedAt = Date.now()
   #elapsedMs = 0
   #tickId = null
+  #clockShown = false
 
   setProps(startTime, t) {
     this.#startTime = startTime
     this.#t = t
-    this.#tick()
+    this.#elapsedMs = this.#elapsedNow()
+    this.#render()
   }
 
   connectedCallback() {
     this.#mountedAt = Date.now()
-    this.#tick()
+    this.#elapsedMs = this.#elapsedNow()
+    this.#render()
     this.#tickId = setInterval(() => { this.#tick() }, 1000)
   }
 
@@ -138,14 +141,20 @@ class FreddieTurnStatus extends HTMLElement {
     if (this.#tickId !== null) { clearInterval(this.#tickId); this.#tickId = null }
   }
 
+  #elapsedNow() {
+    return Math.max(0, Date.now() - (this.#startTime ?? this.#mountedAt))
+  }
+
   #tick() {
-    const anchor = this.#startTime ?? this.#mountedAt
-    this.#elapsedMs = Math.max(0, Date.now() - anchor)
+    const elapsedMs = this.#elapsedNow()
+    if (elapsedMs < 15_000 && !this.#clockShown) return
+    this.#elapsedMs = elapsedMs
     this.#render()
   }
 
   #render() {
     const showClock = this.#elapsedMs >= 15_000
+    this.#clockShown = showClock
     const vdom = h(
       'div',
       { class: css.turnStatus ?? '', role: 'status', 'aria-live': 'polite' },
