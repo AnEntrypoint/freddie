@@ -812,12 +812,23 @@ function contextPressureOf(
   }
 }
 
+function gmProgressValueOf(data) {
+  return {
+    verb: null, status: 'idle', phase: null, prdPendingCount: null, mutablesPendingCount: null,
+    sessionId: null, belongsToConfiguredSession: false, startedAt: null, finishedAt: null,
+    durationMs: null, error: null, runtime: null, nodes: [], edges: [], walking: null,
+    ...data,
+  }
+}
+
 function projectionValuesOf(log) {
   const values = {}
   const titleEvent = log.findLast(item => item.type === 'session/title')
   if (titleEvent !== undefined) {
     values['title'] = titleEvent.data.title
   }
+  const progressEvent = log.findLast(item => item.type === 'gm/progress')
+  if (progressEvent !== undefined) values['gmProgress'] = gmProgressValueOf(progressEvent.data)
   values['todos'] = backscanTodos(log) ?? null
   values['permissions'] = permissionSelectOf(log)
   values['plan'] = planViewOf(log)
@@ -839,6 +850,9 @@ function projectionValuesOf(log) {
 
 function projectionFramesOf(id, log, event) {
   const type = event.type
+  if (type === 'gm/progress') {
+    return [{ type: 'session/projection', sessionId: id, key: 'gmProgress', value: gmProgressValueOf(event.data), seq: event.seq }]
+  }
   const frames = []
   const advancesBothTokenMeterUnits = usageSampleOf(event) !== undefined
   if (advancesBothTokenMeterUnits) {
@@ -1768,6 +1782,16 @@ function createFixtureWorld(options) {
     },
     breakStreams() {
       for (const breakNow of [...streamBreakers]) breakNow()
+    },
+    gmProgress(id, data) {
+      append(sid(id), { type: 'gm/progress', ignorable: true, data })
+    },
+    terminalOutput(id, name, text) {
+      emitMux({
+        type: 'terminal/activity',
+        sessionId: sid(id),
+        activity: { type: 'output', text, snapshot: { sessionId: `${id}-${name}`, name, status: { kind: 'running' } } },
+      })
     },
   }
   ;(globalThis).__fxTiming = timingHooks
