@@ -1,4 +1,0 @@
-id: gm-freddie-adapter-canonical-fields-20261007
-subject: Real populated GUI historic GM calls repeatedly failed because registered Freddie tool-gm schemas still expose max_count/git_show object; live daemon accepts limit/rev. Update owner-adapter schema, current references and README from actual accepted_fields; preserve historical raw logs, verify real registration and daemon dispatch. This is witnessed product workflow friction, complements diagnostic GUI presentation.
-session_id: gui-dada-root-20261007
-status: pending
