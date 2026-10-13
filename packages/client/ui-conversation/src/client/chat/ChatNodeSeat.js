@@ -1,5 +1,5 @@
-import { createElement as h } from '@freddie/webjsx'
-import { renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
+import { applyDiff } from '@freddie/webjsx'
+import { defineElement, renderJsonBlock } from '@freddie/freddie-client-ui-primitives'
 import css from './ChatView.css.js'
 
 const cachedFallback = new WeakMap()
@@ -28,35 +28,48 @@ function seatOptionsOf(routedNode, nodeKey, t) {
   return opts
 }
 
-export function ChatNodeSeat({
-  key, nodeKey, selectedCallId, cwd, openFile, inspectCall, forkAt,
-  renderMessageImages, fileMentions, useSession, renderSlot, t,
-}) {
-  const node = useSession(snapshot => snapshot.chat.nodes.get(nodeKey))
-  const routedNode = node
-  const owner = node === undefined
-    ? null
-    : {
-      selectedCallId,
-      cwd,
-      openFile,
-      inspectCall,
-      forkAt,
-      renderMessageImages,
-      fileMentions,
-    }
-  if (routedNode === undefined || owner === null) return null
-  const routedOwner = { ...owner, node: routedNode }
-  return (
-    h('div',
-      {
-        key: key ?? routedNode.key,
-        class: css.flowItem ?? '',
-        'data-chat-anchor-key': routedNode.key,
-        'data-chat-flow-key': routedNode.key,
-        'data-chat-flow-kind': routedNode.kind,
-      },
-      renderSlot('conversation.chat.node', routedOwner, seatOptionsOf(routedNode, nodeKey, t)),
-    )
-  )
+const SEAT_PROPS = [
+  'nodeKey', 'selectedCallId', 'cwd', 'openFile', 'inspectCall', 'forkAt',
+  'renderMessageImages', 'fileMentions', 'renderSlot', 't', 'useSession',
+]
+
+function sameSeatProps(left, right) {
+  return SEAT_PROPS.every(name => Object.is(left[name], right[name]))
 }
+
+const FLOW_DATA_ATTRIBUTES = ['chatAnchorKey', 'chatFlowKey', 'chatFlowKind']
+
+export class FreddieChatNodeSeat extends HTMLElement {
+  #props = null
+  #node = undefined
+  #rendered = false
+
+  setProps(props) {
+    const node = props.useSession(snapshot => snapshot.chat.nodes.get(props.nodeKey))
+    const unchanged = this.#rendered && node === this.#node && sameSeatProps(props, this.#props)
+    this.#props = props
+    this.#node = node
+    if (unchanged) return
+    this.#render()
+  }
+
+  #render() {
+    const { nodeKey, selectedCallId, cwd, openFile, inspectCall, forkAt, renderMessageImages, fileMentions, renderSlot, t } = this.#props
+    const node = this.#node
+    this.#rendered = true
+    this.style.display = 'block'
+    this.className = css.flowItem ?? ''
+    if (node === undefined) {
+      for (const name of FLOW_DATA_ATTRIBUTES) delete this.dataset[name]
+      applyDiff(this, [])
+      return
+    }
+    this.dataset.chatAnchorKey = node.key
+    this.dataset.chatFlowKey = node.key
+    this.dataset.chatFlowKind = node.kind
+    const owner = { selectedCallId, cwd, openFile, inspectCall, forkAt, renderMessageImages, fileMentions, node }
+    applyDiff(this, renderSlot('conversation.chat.node', owner, seatOptionsOf(node, nodeKey, t)))
+  }
+}
+
+defineElement('freddie-chat-node-seat', FreddieChatNodeSeat)

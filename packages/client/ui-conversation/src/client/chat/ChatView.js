@@ -1,7 +1,7 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { Button, IconChevronDownOutline14, renderModal, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { PendingSteeringBubble } from './MessageItem.js'
-import { ChatNodeSeat } from './ChatNodeSeat.js'
+import './ChatNodeSeat.js'
 import { formatRunDuration } from './message-chrome.js'
 import css from './ChatView.css.js'
 
@@ -596,19 +596,23 @@ export class FreddieChatView extends HTMLElement {
           order.slice(
             Math.min(this.#windowStart, order.length),
             this.#windowEnd,
-          ).map(nodeKey => h(ChatNodeSeat, {
+          ).map(nodeKey => h('freddie-chat-node-seat', {
             key: nodeKey,
-            nodeKey,
-            useSession,
-            selectedCallId,
-            cwd,
-            openFile: this.#openFile,
-            inspectCall,
-            forkAt,
-            renderMessageImages: this.#renderMessageImages,
-            fileMentions,
-            renderSlot,
-            t,
+            ref: (seat) => {
+              seat?.setProps({
+                nodeKey,
+                useSession,
+                selectedCallId,
+                cwd,
+                openFile: this.#openFile,
+                inspectCall,
+                forkAt,
+                renderMessageImages: this.#renderMessageImages,
+                fileMentions,
+                renderSlot,
+                t,
+              })
+            },
           })),
           this.#windowEnd < order.length && (
             h(
