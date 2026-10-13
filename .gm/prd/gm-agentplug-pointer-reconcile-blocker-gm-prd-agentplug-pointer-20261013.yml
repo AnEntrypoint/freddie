@@ -1,0 +1,4 @@
+id: gm-agentplug-pointer-reconcile-blocker-gm-prd-agentplug-pointer-20261013
+subject: 'COMPLETE blocked for gm-agentplug-pointer-reconcile: prd-resolve refused witness_dispatch_id 1791868129586-500-e8f2275aa165577f as not_recorded in freddie''s ledger, because the fetch ran in the gm submodule project. Re-witness from a dispatch recorded in freddie''s ledger (or bind witness_exit_code, witness_output_sha256, witness_output_path, witness_ts), then prd-resolve. Evidence in .gm/receipts/gm-agentplug-pointer-reconcile/. Substance: pointer 714ed34 is reachable from agentplug origin/main; no commit needed.'
+session_id: gm-prd-agentplug-pointer-20261013
+status: pending
