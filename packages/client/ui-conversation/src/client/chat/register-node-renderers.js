@@ -10,9 +10,9 @@ import { TurnTailNodeView } from './TurnTailNodeView.js'
 
 export function registerChatNodeRenderers(ctx) {
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'user', locale: NS }, UserMessageNodeView))
+    { name: 'conversation.chat.node', key: 'user', locale: NS }, functionSlot(UserMessageNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
-    { name: 'conversation.chat.node', key: 'steering', locale: NS }, UserMessageNodeView))
+    { name: 'conversation.chat.node', key: 'steering', locale: NS }, functionSlot(UserMessageNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(
     { name: 'conversation.chat.node', key: 'context', locale: NS }, functionSlot(ContextMessageNodeView, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register(

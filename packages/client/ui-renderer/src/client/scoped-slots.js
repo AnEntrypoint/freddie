@@ -534,10 +534,10 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#readRevisions = new Map()
   }
 
-  #bindHookSources(sessionInfo, reads, revisions, readsOnly) {
+  #bindHookSources(sessionInfo, reads, revisions, readsOnly, sessionScoped) {
     this.#readRevisions = revisions
     const sources = [...new Set([
-      ...(readsOnly ? [] : Object.values(sessionInfo.hooks).filter((s) => s !== undefined)),
+      ...(readsOnly || !sessionScoped ? [] : Object.values(sessionInfo.hooks).filter((s) => s !== undefined)),
       ...reads,
     ])]
     const unchanged = sources.length === this.#boundHookSources.length
@@ -570,7 +570,7 @@ export class FreddieSlotOutlet extends HTMLElement {
     if (!this.isConnected) return
     const readsOnly = participants.size > 0
       && [...participants].every(entry => webjsxSlotSubscriptionsOf(entry?.component) === 'reads')
-    this.#bindHookSources(sessionInfo, reads, revisions, readsOnly)
+    this.#bindHookSources(sessionInfo, reads, revisions, readsOnly, host.specOf(this.#slotKey)?.scope !== 'root')
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
