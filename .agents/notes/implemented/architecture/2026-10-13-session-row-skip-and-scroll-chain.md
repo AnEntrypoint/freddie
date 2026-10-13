@@ -41,8 +41,17 @@ At N=500 the chat stayed pinned (distance from bottom 0), `aria-selected` sat on
 
 Scroll per step: no row `setProps` happened during scroll (counter 0), so the scroll-step cost is layout and paint, not re-rendering. Its layout part grows with N (1.9 ms at 200, 3.7 ms at 500). This was not traced further.
 
+### Regression found in the skip path and fixed
+
+`sameSessionRowView` did not compare `node.errored`, which `sessionStatuses` reads. A status mutation can set `errored` while `running`, `completed` and `updatedAt` stay unchanged, so the row skipped its re-render and kept the completed status. Witness on the element class (`customElements.get('freddie-session-node-item')`), props differing only in `errored`: before the fix the text kept `status.completed`; after the fix it shows `status.errored`. Fixed in `rows/Rows.js` by comparing `errored`.
+
+### Drag reorder, live
+
+Fixture `?fixture&fixtureSessions=50`, headless Chrome over CDP: press, 12 moves, hover, release, using `Input.dispatchMouseEvent`. Each of these matched both the DOM order and the stored `sessionOrderByAccount` order: a tree drop after a row, a tree drop before a row, and a flat-list drop after a row. A hover sweep across three rows showed a single drop marker that moved with the pointer and was gone after release. Release outside the list commits the last hovered slot; this end-commit behavior predates this change (the `end` closure is unchanged in its diff) and is not addressed here.
+
+Scroll, 50 sessions: `freddie-workspaceBrowser__list` (overflow auto) reaches its maximum scrollTop and the last row is in view in both tree and flat views, and returns to top. Streaming: 200 reasoning chunks at 16 ms in the active session completed with distance from bottom 0 throughout.
+
 ## Open items
 
 - Scroll-step layout grows with session count (above). Not yet attributed; the candidates are the inline `freddie-session-node-item` wrappers with `display: contents` parents and the `content-visibility` placement on the inner row.
-- Drag reorder in the tree and flat list was not exercised live after the commit refactor. Only the render path and selection were witnessed.
 - The 91 to 250 ms long tasks seen once per storm were not attributed.

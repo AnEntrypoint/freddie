@@ -31,7 +31,7 @@ function sameSessionRowView(a, b) {
   return x.id === y.id && x.title === y.title && x.blank === y.blank && x.running === y.running
     && x.runningSubagentCount === y.runningSubagentCount && x.completed === y.completed
     && x.updatedAt === y.updatedAt && x.pendingInteraction === y.pendingInteraction
-    && x.readOnly === y.readOnly
+    && x.readOnly === y.readOnly && x.errored === y.errored
     && (a.currentId === x.id) === (b.currentId === y.id)
     && a.accountKey === b.accountKey && a.flat === b.flat && a.t === b.t
     && a.onOpen === b.onOpen && a.onRename === b.onRename && a.onFork === b.onFork && a.onArchive === b.onArchive
