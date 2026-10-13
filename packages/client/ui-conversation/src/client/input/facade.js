@@ -14,6 +14,12 @@ const EMPTY_QUEUE = []
 
 const EMPTY_LEXICON = new Map()
 
+function sameFields(previous, next) {
+  const keys = Object.keys(next)
+  return keys.length === Object.keys(previous).length
+    && keys.every(key => Object.is(previous[key], next[key]))
+}
+
 export class SessionInputShell {
   constructor(deps) {
     this.deps = deps
@@ -384,7 +390,8 @@ export class SessionInputShell {
 
   publish() {
     const next = this.compose()
-    this.state.set(next)
+    const previous = this.state.getSnapshot()
+    if (!sameFields(previous, next)) this.state.set(next)
     const mirroredDraft = projectClipboard(next)
     if (mirroredDraft !== this.lastMirroredDraft) {
       this.lastMirroredDraft = mirroredDraft

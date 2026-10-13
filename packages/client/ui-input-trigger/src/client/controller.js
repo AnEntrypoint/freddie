@@ -179,6 +179,10 @@ export class InputTriggerController {
     this.#reduce({ type: 'close' })
   }
 
+  get disposed() {
+    return this.#disposed
+  }
+
   dispose() {
     this.#disposed = true
     this.#stopFetch()

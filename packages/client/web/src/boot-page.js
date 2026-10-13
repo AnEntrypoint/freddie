@@ -18,7 +18,6 @@ export class BootPage {
   progress
   statusGrid
   renderFrame
-  elapsedTimer
   startedAt = performance.now()
   currentId
   states = new Map()
@@ -51,7 +50,6 @@ export class BootPage {
     this.card.append(this.wordmark, this.spinner, this.hint, this.progress, this.statusGrid, this.loadingDetail, this.current)
     this.root.append(this.card)
     container.append(this.root)
-    this.elapsedTimer = setInterval(() => { this.scheduleRender() }, 1000)
     this.render()
   }
 
@@ -108,7 +106,6 @@ export class BootPage {
 
   dispose() {
     if (this.renderFrame !== undefined) cancelAnimationFrame(this.renderFrame)
-    clearInterval(this.elapsedTimer)
     this.root.remove()
   }
 

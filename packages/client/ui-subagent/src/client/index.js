@@ -6,12 +6,11 @@ import { en, NS } from './locales.js'
 
 export const inject = ['sessions', 'slots', 'locale']
 
-function selectReadOnlySubagent(owner) {
-  const subagent = owner.session?.subagent
+function selectReadOnlySubagent({ subagent, running }) {
   if (subagent === undefined || subagent === null) return null
   if (subagent.address.mode === 'one-shot') return { reason: 'one-shot' }
   if (subagent.parentAvailable) return null
-  const runningChildKeepsDefaultComposerForStop = owner.session?.running === true
+  const runningChildKeepsDefaultComposerForStop = running === true
   return runningChildKeepsDefaultComposerForStop ? null : { reason: 'parent-unavailable' }
 }
 

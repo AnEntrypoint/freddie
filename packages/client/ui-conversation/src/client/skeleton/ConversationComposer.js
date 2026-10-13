@@ -4,18 +4,27 @@ import { HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.js'
 import css from './ConversationRoot.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
+const EMPTY_PENDING = []
+
+function sameKey(previous, next) {
+  return previous !== null
+    && previous.length === next.length
+    && next.every((value, index) => Object.is(value, previous[index]))
+}
+
 export class FreddieConversationComposer extends HTMLElement {
   #props = null
   #pickerOpen = false
   #pendingWorkspaceId
   #pickerAnchor = { current: null }
+  #renderedKey = null
 
   #renderedOnce = false
 
   setProps(props) {
     this.#props = props
     this.#syncPendingWorkspace()
-    this.#render()
+    this.#render(true)
   }
 
   connectedCallback() {
@@ -38,15 +47,18 @@ export class FreddieConversationComposer extends HTMLElement {
     }
   }
 
-  #render() {
+  #render(skipWhenUnchanged = false) {
     if (this.#props === null) return
     const {
       hero, sessionId, useSession, useSessions, useWorkspaces, useInput, useComposerBlock,
       renderSlot, renderSlotChain, selectWorkspace, t,
     } = this.#props
 
-    const pending = useSession(s => s.pending) ?? []
-    const session = useSession(s => s)
+    const facts = useSession(s => ({
+      pending: s.pending ?? EMPTY_PENDING,
+      subagent: s.subagent,
+      running: s.running,
+    }))
     const inputState = useInput(s => s)
     const cwd = useSessions(s => sessionId === undefined ? undefined : s.byId[sessionId]?.cwd)
     const workspaces = useWorkspaces(s => s)
@@ -63,9 +75,6 @@ export class FreddieConversationComposer extends HTMLElement {
       workspace => workspace.workspaceId === pendingWorkspaceId,
     )
 
-    const zone =
-      session === undefined || inputState === undefined ? undefined : { session, input: inputState }
-
     const chipTitle = pendingWorkspace?.title
       ?? (sessionId === undefined
         ? undefined
@@ -73,6 +82,16 @@ export class FreddieConversationComposer extends HTMLElement {
           ?? (workspaces.phase === 'ready' || cwd === undefined || cwd === ''
             ? undefined
             : workspaceLabel(cwd)))
+
+    const hasSession = facts !== undefined
+    const renderKey = [
+      hero, sessionId, hasSession, facts?.pending, facts?.subagent, facts?.running, inputState,
+      composerBlock, chipTitle, sessionWorkspace?.workspaceId, pickerOpen, pendingWorkspaceId,
+      t, selectWorkspace, renderSlot, renderSlotChain,
+    ]
+    if (skipWhenUnchanged && sameKey(this.#renderedKey, renderKey)) return
+
+    const zone = hasSession && inputState !== undefined ? { input: inputState } : undefined
 
     const heroWorkspaceRow = h(
       'div',
@@ -133,11 +152,12 @@ export class FreddieConversationComposer extends HTMLElement {
 
     const composer = renderSlotChain(
       'conversation.composer',
-      { interactions: pending, session },
+      { interactions: facts?.pending ?? EMPTY_PENDING, subagent: facts?.subagent, running: facts?.running },
       { fallback: composerBar, overlay: true },
     )
 
     applyDiff(this, composer)
+    this.#renderedKey = renderKey
     this.#renderedOnce = true
   }
 }
