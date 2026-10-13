@@ -124,6 +124,11 @@ export async function apply(ctx, config) {
   }
 
   const inputHub = new InputHub(sessions, ctx, t)
+  ctx.inject(['inputTriggers'], (scope) => {
+    const service = scope.inputTriggers
+    inputHub.bindTriggers(service)
+    scope.effect(() => () => { inputHub.unbindTriggers(service) }, 'conversation.input: trigger binding')
+  })
 
   const composerBlocks = new ComposerBlockRegistry()
 
