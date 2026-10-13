@@ -9,6 +9,25 @@ function cachedFallbackJsonBlock(identity, props) {
   return el
 }
 
+const seatOptions = new WeakMap()
+function seatOptionsOf(routedNode, nodeKey, t) {
+  const cached = seatOptions.get(routedNode)
+  if (cached !== undefined && cached.nodeKey === nodeKey && cached.t === t) return cached.opts
+  const opts = {
+    entryKey: routedNode.kind,
+    hookContext: nodeKey,
+    get fallback() {
+      return cachedFallbackJsonBlock(routedNode, {
+        label: t('message.unknownSurface', { type: routedNode.kind }),
+        payload: routedNode.data,
+        truncatedLabel: total => t('json.truncated', { total }),
+      })
+    },
+  }
+  seatOptions.set(routedNode, { nodeKey, t, opts })
+  return opts
+}
+
 export function ChatNodeSeat({
   key, nodeKey, selectedCallId, cwd, openFile, inspectCall, forkAt,
   renderMessageImages, fileMentions, useSession, renderSlot, t,
@@ -37,17 +56,7 @@ export function ChatNodeSeat({
         'data-chat-flow-key': routedNode.key,
         'data-chat-flow-kind': routedNode.kind,
       },
-      renderSlot('conversation.chat.node', routedOwner, {
-        entryKey: routedNode.kind,
-        hookContext: nodeKey,
-            get fallback() {
-              return cachedFallbackJsonBlock(routedNode, {
-                label: t('message.unknownSurface', { type: routedNode.kind }),
-                payload: routedNode.data,
-                truncatedLabel: total => t('json.truncated', { total }),
-              })
-            },
-      }),
+      renderSlot('conversation.chat.node', routedOwner, seatOptionsOf(routedNode, nodeKey, t)),
     )
   )
 }

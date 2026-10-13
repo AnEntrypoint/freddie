@@ -501,6 +501,11 @@ export class FreddieChatView extends HTMLElement {
     props.loadOlder()
   }
 
+  #renderMessageImages = (owner) => {
+    const props = this.#props
+    return props.renderSlot('conversation.message.images', { ...owner, loadImage: props.loadImage })
+  }
+
   #render() {
     const props = this.#props
     if (props === null) return
@@ -543,7 +548,6 @@ export class FreddieChatView extends HTMLElement {
     }
     const selectedCallId = useStore(s => s.selection?.callId)
     const pendingSteering = inbox.filter(item => item.placement === 'steering')
-    const renderMessageImages = owner => renderSlot('conversation.message.images', { ...owner, loadImage: props.loadImage })
     const runningTurnStart = runningTurnStartTime(timeline)
 
     const vdom = h(
@@ -601,7 +605,7 @@ export class FreddieChatView extends HTMLElement {
             openFile: this.#openFile,
             inspectCall,
             forkAt,
-            renderMessageImages,
+            renderMessageImages: this.#renderMessageImages,
             fileMentions,
             renderSlot,
             t,
@@ -626,7 +630,7 @@ export class FreddieChatView extends HTMLElement {
             key: item.id,
             identity: item,
             content: item.content,
-            renderMessageImages,
+            renderMessageImages: this.#renderMessageImages,
             t,
           })),
         ),

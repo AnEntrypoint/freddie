@@ -13,6 +13,17 @@ function codeLabelsFor(t) {
   return labels
 }
 
+const imageGroupsByBlock = new WeakMap()
+function imagesForGroup(group) {
+  const cached = imageGroupsByBlock.get(group[0])
+  if (cached !== undefined && cached.group.length === group.length && cached.group.every((block, i) => block === group[i])) {
+    return cached.images
+  }
+  const images = group.map(({ attachment }) => ({ attachment }))
+  imageGroupsByBlock.set(group[0], { group, images })
+  return images
+}
+
 class FreddieAssistantMarkdown extends HTMLElement {
   #props
   #cachedBlocks = new Map()
@@ -64,7 +75,7 @@ class FreddieAssistantMarkdown extends HTMLElement {
           rendered.push(
             h('div', { key: start, class: css.contents ?? '' },
               renderMessageImages({
-                images: group.map(({ attachment }) => ({ attachment })),
+                images: imagesForGroup(group),
                 align: 'start',
               }),
             ),
