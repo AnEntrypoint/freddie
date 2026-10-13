@@ -1145,6 +1145,9 @@ function createFixtureWorld(options) {
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },
     { sessionId: sid('fx-beta'), updatedAt: Date.now() - 60_000, running: false, blank: false, parentSessionId: sid('fx-alpha'), cwd: '/tmp/fixture' },
     { sessionId: sid('fx-gamma'), updatedAt: Date.now() - 120_000, running: false, blank: false, cwd: '/tmp/fixture' },
+    ...options.lineage === 'running' || options.lineage === 'pending'
+      ? [{ sessionId: sid('fx-lineage-running'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture', origin: 'subagent', parentSessionId: sid('fx-alpha') }]
+      : [],
     ...Array.from({ length: Math.max(0, (options.sessionCount ?? 0) - 3) }, (_, index) => ({ sessionId: sid(`fx-bulk-${index}`), updatedAt: Date.now() - (index + 3) * 60_000, running: false, blank: false, cwd: '/tmp/fixture' })),
   ]
   const logs = new Map([[sid('fx-alpha'), buildAlphaLog()]])
@@ -2148,7 +2151,12 @@ function createFixtureWorld(options) {
       },
     },
     subagents: {
-      list: request => ok(request, { entries: [], parentAvailable: true }),
+      list: request => ok(request, {
+        entries: options.lineage === 'running' && request.payload.parentSessionId === sid('fx-alpha')
+          ? [{ kind: 'child', id: sid('fx-lineage-running'), mode: 'continuable', label: 'Fixture running subagent', activity: 'running', hasChildren: false }]
+          : [],
+        parentAvailable: true,
+      }),
       history: (request) => {
         const log = logs.get(request.payload.childSessionId) ?? []
         return Promise.resolve(ok(
@@ -2469,6 +2477,9 @@ function createFixtureWorld(options) {
           for (const key of Object.keys(values)) {
             conn.push({ rpcId: mint(), payload: { type: 'session/projection', sessionId: s.sessionId, key, value: values[key], seq: log.length - 1 } })
           }
+          if (s.origin === 'subagent') {
+            conn.push({ rpcId: mint(), payload: { type: 'session/projection', sessionId: s.sessionId, key: 'subagentTiming', value: { settledMs: 0, active: { since: Date.now() - 65_000, through: Date.now() } }, seq: log.length - 1 } })
+          }
         }
         if (approvalPending) {
           conn.push({
@@ -2769,5 +2780,6 @@ function fixtureOptionsFromLocation() {
     failWorkspaceAttach: query.get('fixtureAttach') === 'fail',
     dropSessionCreateResponse: query.get('fixtureSessionCreate') === 'drop-response',
     createFrameOrder: query.get('fixtureFrames') === 'workspace-first' ? 'workspace-first' : 'session-first',
+    lineage: query.get('fixtureLineage') ?? undefined,
   }
 }

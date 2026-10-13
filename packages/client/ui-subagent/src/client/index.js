@@ -15,6 +15,7 @@ function selectReadOnlySubagent({ subagent, running }) {
 }
 
 export function apply(ctx) {
+  if (new URLSearchParams(globalThis.location?.search ?? '').has('fixtureLineage')) void import('./SubagentHeaderLineage.js')
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-subagent: dictionaries')
   const sessions = ctx.sessions
   const catalogActions = (_parentSessionId) => ({

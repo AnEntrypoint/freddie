@@ -583,7 +583,14 @@ export class FreddieCatalogDropdown extends HTMLElement {
     const summaries = props.useSessions(state => state.byId)
     const descendants = indexSubagentDescendants(summaries).get(props.rootSessionId) ?? NO_DESCENDANTS
     if (descendants.runningCount === 0) return
-    this.#runningTimer = setInterval(() => { this.#now = Date.now(); this.#render() }, 1_000)
+    this.#runningTimer = setInterval(() => { if (this.#hasChildEntries()) this.#render() }, 1_000)
+  }
+
+  #hasChildEntries() {
+    const props = this.#props
+    if (props === null) return false
+    const catalog = props.useSessions(state => state.subagentsByParent)[props.rootSessionId]
+    return catalog?.entries.some(entry => entry.kind === 'child') === true
   }
 
   #unbindRunningTimer() {
@@ -622,6 +629,7 @@ export class FreddieCatalogDropdown extends HTMLElement {
   #render() {
     const props = this.#props
     if (props === null) { applyDiff(this, []); return }
+    this.#now = Date.now()
     const {
       rootSessionId, currentSessionId, displayTitle, openTitle, variant, separator = false,
       useSessions, openChild, refresh, t,
