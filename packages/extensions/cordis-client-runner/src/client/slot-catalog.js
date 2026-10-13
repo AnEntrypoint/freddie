@@ -178,7 +178,7 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * Composer chain currency: what ConversationComposer dispatches at its\n * renderSlotChain site. The owner declares the currency only — never a\n * per-entry contract; takeover packages narrow it in their own selectors\n * (`interactions.find(i => i.kind === ...)`), so new takeover kinds register\n * with zero owner changes.\n */\nexport interface ComposerChainProps {\n  interactions: readonly PendingInteraction[]\n  /** Current conversation facts for feature-owned takeover selectors. */\n  session: ConversationSnapshot | undefined\n}',
+      '/**\n * Composer chain currency: what ConversationComposer dispatches at its\n * renderSlotChain site. The owner declares the currency only — never a\n * per-entry contract; takeover packages narrow it in their own selectors\n * (`interactions.find(i => i.kind === ...)`), so new takeover kinds register\n * with zero owner changes. Facts are dispatched as their own fields, never as\n * the whole session: a field that changes per streamed token would re-render\n * the composer on every token.\n */\nexport interface ComposerChainProps {\n  interactions: readonly PendingInteraction[]\n  /** The session\'s subagent attachment; undefined when no session is current. */\n  subagent: ConversationSnapshot[\'subagent\'] | undefined\n  /** Whether the session has a running turn; undefined when no session is current. */\n  running: boolean | undefined\n}',
     ],
     ownerPropsReferences: [
       'ConversationSnapshot',
@@ -271,10 +271,9 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * The input-region slot currency: dock/left/right entries read\n * the conversation snapshot and the live input state as owner props (both\n * are point-in-time snapshots — the dispatching skeleton re-renders on\n * either store\'s change, so entries stay current without subscribing).\n */\nexport interface InputZone {\n  readonly session: ConversationSnapshot\n  readonly input: InputState\n}',
+      '/**\n * The input-region slot currency: dock/left/right entries read the live input\n * state as the owner prop `input`. It is a point-in-time snapshot: the\n * dispatching skeleton re-renders when it changes, so entries stay current\n * without subscribing. Conversation facts are not part of this currency; an\n * entry that needs them reads them through its standard hooks, which keeps the\n * composer from re-rendering on every streamed token.\n */\nexport interface InputZone {\n  readonly input: InputState\n}',
     ],
     ownerPropsReferences: [
-      'ConversationSnapshot',
       'InputState',
     ],
     standardProps: [
@@ -439,10 +438,9 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * The input-region slot currency: dock/left/right entries read\n * the conversation snapshot and the live input state as owner props (both\n * are point-in-time snapshots — the dispatching skeleton re-renders on\n * either store\'s change, so entries stay current without subscribing).\n */\nexport interface InputZone {\n  readonly session: ConversationSnapshot\n  readonly input: InputState\n}',
+      '/**\n * The input-region slot currency: dock/left/right entries read the live input\n * state as the owner prop `input`. It is a point-in-time snapshot: the\n * dispatching skeleton re-renders when it changes, so entries stay current\n * without subscribing. Conversation facts are not part of this currency; an\n * entry that needs them reads them through its standard hooks, which keeps the\n * composer from re-rendering on every streamed token.\n */\nexport interface InputZone {\n  readonly input: InputState\n}',
     ],
     ownerPropsReferences: [
-      'ConversationSnapshot',
       'InputState',
     ],
     standardProps: [
@@ -484,10 +482,9 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * The input-region slot currency: dock/left/right entries read\n * the conversation snapshot and the live input state as owner props (both\n * are point-in-time snapshots — the dispatching skeleton re-renders on\n * either store\'s change, so entries stay current without subscribing).\n */\nexport interface InputZone {\n  readonly session: ConversationSnapshot\n  readonly input: InputState\n}',
+      '/**\n * The input-region slot currency: dock/left/right entries read the live input\n * state as the owner prop `input`. It is a point-in-time snapshot: the\n * dispatching skeleton re-renders when it changes, so entries stay current\n * without subscribing. Conversation facts are not part of this currency; an\n * entry that needs them reads them through its standard hooks, which keeps the\n * composer from re-rendering on every streamed token.\n */\nexport interface InputZone {\n  readonly input: InputState\n}',
     ],
     ownerPropsReferences: [
-      'ConversationSnapshot',
       'InputState',
     ],
     standardProps: [
@@ -615,10 +612,9 @@ export const CLIENT_SLOT_API = [
       },
     ],
     ownerProps: [
-      '/**\n * The input-region slot currency: dock/left/right entries read\n * the conversation snapshot and the live input state as owner props (both\n * are point-in-time snapshots — the dispatching skeleton re-renders on\n * either store\'s change, so entries stay current without subscribing).\n */\nexport interface InputZone {\n  readonly session: ConversationSnapshot\n  readonly input: InputState\n}',
+      '/**\n * The input-region slot currency: dock/left/right entries read the live input\n * state as the owner prop `input`. It is a point-in-time snapshot: the\n * dispatching skeleton re-renders when it changes, so entries stay current\n * without subscribing. Conversation facts are not part of this currency; an\n * entry that needs them reads them through its standard hooks, which keeps the\n * composer from re-rendering on every streamed token.\n */\nexport interface InputZone {\n  readonly input: InputState\n}',
     ],
     ownerPropsReferences: [
-      'ConversationSnapshot',
       'InputState',
     ],
     standardProps: [
