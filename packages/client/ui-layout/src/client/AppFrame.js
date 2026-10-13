@@ -173,7 +173,7 @@ export class FreddieAppFrame extends HTMLElement {
     }
 
     const narrow = this.#viewport < SIDEBAR_AUTO_COLLAPSE
-    actions.setNarrow(narrow)
+    if (panels.narrow !== narrow) actions.setNarrow(narrow)
     const currentSession = useSessions(s => s.current)
     let navigationOpen = narrow && panels.narrowExpanded
     if (navigationOpen && this.#lastSelection !== currentSession) {
