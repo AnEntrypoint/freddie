@@ -199,7 +199,7 @@ function rafBatch(notify) {
 
 export function createSnapshotStore(init, opts) {
   const api = createStore(devFreeze(init))
-  if (opts?.persist) attachPersistence(api, opts.persist.name)
+  const cancelPersistence = opts?.persist ? attachPersistence(api, opts.persist.name) : () => {}
 
   let subscribe = fn => api.subscribe(fn)
   if (opts?.flush === 'raf') {
@@ -215,6 +215,7 @@ export function createSnapshotStore(init, opts) {
   return {
     getSnapshot: () => api.getState(),
     subscribe: fn => subscribe(fn),
+    cancelPersistence,
     update: (mutator) => {
       const previous = api.getState()
       const next = produce(previous, mutator)
@@ -242,8 +243,10 @@ export function singleFlight(fn) {
   }
 }
 
+const PERSIST_DELAY_MS = 1000
+
 function attachPersistence(api, name) {
-  if (typeof localStorage === 'undefined') return
+  if (typeof localStorage === 'undefined') return () => {}
   try {
     const raw = localStorage.getItem(name)
     if (raw !== null) {
@@ -252,13 +255,30 @@ function attachPersistence(api, name) {
   } catch (error) {
     console.error(`snapshot store '${name}' rehydration failed:`, error)
   }
-  api.subscribe((state) => {
+  let timer = null
+  const write = () => {
+    timer = null
     try {
-      localStorage.setItem(name, JSON.stringify(state))
+      localStorage.setItem(name, JSON.stringify(api.getState()))
     } catch (error) {
       console.error(`snapshot store '${name}' persistence failed:`, error)
     }
+  }
+  const cancel = () => {
+    clearTimeout(timer)
+    timer = null
+  }
+  api.subscribe(() => {
+    if (timer === null) timer = setTimeout(write, PERSIST_DELAY_MS)
   })
+  if (typeof addEventListener === 'function') {
+    addEventListener('pagehide', () => {
+      if (timer === null) return
+      cancel()
+      write()
+    })
+  }
+  return cancel
 }
 
 function isProduction() {
@@ -304,6 +324,7 @@ export function defineStore(decl) {
         subscribe: fn => store.subscribe(fn),
         store,
         clearPersisted: () => {
+          store.cancelPersistence()
           if (persistKey === undefined || typeof localStorage === 'undefined') return
           try {
             localStorage.removeItem(persistKey)

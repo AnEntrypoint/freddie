@@ -36,6 +36,12 @@ Shared object references inside one state are not preserved across updates. Old 
 
 **Why not keep structuredClone and skip only the deep compare?** The clone is the dominant cost (about 9 ms at this size), so removing the compare alone would not reach the hitch budget.
 
+## Persistence writes
+
+Persisted stores (`opts.persist`, `defineStore` with `persist`) used to call `JSON.stringify` of the whole state and `localStorage.setItem` on every update. Measured with an 815 KB state: a token append cost 2.42 ms persisted against 0.26 ms unpersisted. Writes are now trailing and throttled: the first update after a write arms a one-second timer, later updates within that second do not re-arm it, and the timer writes the latest state. A `pagehide` flush writes a pending state immediately. `cancelPersistence()` on the store drops a pending write; `clearPersisted()` calls it before removing the key, so a delayed write cannot restore a cleared value. Measured persisted token append after the change: 0.38 ms.
+
+Verification: unit-level exercise through the real `ui-conversation` chat store (`createChatStore(scope).create(scope)`): an action wrote nothing immediately, wrote `dsh.conversation.chat.scope-test` after one second, and `clearPersisted` removed it. The web profile boots and serves the page. A live browser check of the `pagehide` flush was not run because the browser extension was disconnected.
+
 ## Consequences
 
 A future store action that writes one object into two state paths and expects them to stay in sync breaks silently; reviewers should check for that pattern. A mutator that holds a draft and writes through it after the produce has returned throws (the copies are frozen). Remaining cost per token append is one array copy and one shallow freeze of the message list (about 0.26 ms at 3000 messages); chunking long lists would remove that and is deferred.
