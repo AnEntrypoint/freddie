@@ -136,36 +136,20 @@ function cachedRootInject(entry, actions) {
   return props
 }
 
-function cachedSessionInject(entry, info, actions) {
-  let perInfo = sessionInjectCache.get(entry)
-  if (!perInfo) {
-    perInfo = new WeakMap()
-    sessionInjectCache.set(entry, perInfo)
-  }
-  let props = perInfo.get(info)
-  if (!props) {
-    props = runInject(entry, info, actions)
-    perInfo.set(info, props)
-  }
+function cachedSessionInjectFor(cache, entry, info, actions) {
+  const cached = cache.get(entry)
+  if (cached !== undefined && cached.sessionId === info.sessionId && cached.actions === actions) return cached.props
+  const props = runInject(entry, info, actions)
+  cache.set(entry, { sessionId: info.sessionId, actions, props })
   return props
 }
 
-function cachedSessionMaybeInject(
-  entry,
-  info,
-  actions,
-) {
-  let perInfo = sessionMaybeInjectCache.get(entry)
-  if (!perInfo) {
-    perInfo = new WeakMap()
-    sessionMaybeInjectCache.set(entry, perInfo)
-  }
-  let props = perInfo.get(info)
-  if (!props) {
-    props = runInject(entry, info, actions)
-    perInfo.set(info, props)
-  }
-  return props
+function cachedSessionInject(entry, info, actions) {
+  return cachedSessionInjectFor(sessionInjectCache, entry, info, actions)
+}
+
+function cachedSessionMaybeInject(entry, info, actions) {
+  return cachedSessionInjectFor(sessionMaybeInjectCache, entry, info, actions)
 }
 
 const localeSeatCache = new WeakMap()
