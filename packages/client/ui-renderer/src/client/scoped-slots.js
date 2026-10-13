@@ -385,6 +385,13 @@ function pruneStaleOutletChildren(el) {
   }
 }
 
+function sameOwnerProps(a, b) {
+  if (a === b) return true
+  if (a == null || b == null) return false
+  const keys = Object.keys(a)
+  return keys.length === Object.keys(b).length && keys.every(key => Object.is(a[key], b[key]))
+}
+
 function resyncOutletDiffCache(el) {
   const cache = el.__webjsx_childNodes
   const live = [...el.childNodes]
@@ -482,6 +489,11 @@ export class FreddieSlotOutlet extends HTMLElement {
   #renderedOnce = false
 
   setProps(props) {
+    const unchanged = this.#renderedOnce
+      && props.host === this.#host
+      && props.slotKey === this.#slotKey
+      && props.opts === this.#opts
+      && sameOwnerProps(props.ownerProps, this.#ownerProps)
     this.#host = props.host
     this.#slotKey = props.slotKey
     this.#ownerProps = props.ownerProps
@@ -491,6 +503,7 @@ export class FreddieSlotOutlet extends HTMLElement {
       this.#subscriptions.bindLocale(() => this.#host, () => { this.#render() })
       this.#subscriptions.bindSession(() => this.#host, () => { this.#render() })
     }
+    if (unchanged) return
     this.#render()
   }
 
