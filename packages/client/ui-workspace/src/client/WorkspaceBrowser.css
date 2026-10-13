@@ -10,6 +10,22 @@
   padding-right: var(--freddie-session-list-edge-inset);
 }
 
+freddie-workspace-browser {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+freddie-session-tree,
+freddie-flat-list,
+freddie-search-results {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .freddie-workspaceBrowser__root.freddie-workspaceBrowser__rail {
   padding-right: 0;
 }

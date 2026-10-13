@@ -1145,6 +1145,7 @@ function createFixtureWorld(options) {
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },
     { sessionId: sid('fx-beta'), updatedAt: Date.now() - 60_000, running: false, blank: false, parentSessionId: sid('fx-alpha'), cwd: '/tmp/fixture' },
     { sessionId: sid('fx-gamma'), updatedAt: Date.now() - 120_000, running: false, blank: false, cwd: '/tmp/fixture' },
+    ...Array.from({ length: Math.max(0, (options.sessionCount ?? 0) - 3) }, (_, index) => ({ sessionId: sid(`fx-bulk-${index}`), updatedAt: Date.now() - (index + 3) * 60_000, running: false, blank: false, cwd: '/tmp/fixture' })),
   ]
   const logs = new Map([[sid('fx-alpha'), buildAlphaLog()]])
   const modelSelections = new Map(sessions.map(session => [
@@ -1177,7 +1178,7 @@ function createFixtureWorld(options) {
     workspaceId: wid('fx-ws-fixture'),
     path: '/tmp/fixture',
     title: 'fixture',
-    sessionIds: [sid('fx-alpha'), sid('fx-beta'), sid('fx-gamma')],
+    sessionIds: sessions.map(session => session.sessionId),
     createdAt: fixtureEpoch,
     updatedAt: fixtureEpoch,
   }, {
@@ -2763,6 +2764,7 @@ function fixtureOptionsFromLocation() {
   const query = new URLSearchParams(location.search)
   return {
     empty: query.get('fixture') === 'empty',
+    sessionCount: Number(query.get('fixtureSessions') ?? 0),
     rejectPrompt: query.get('fixturePrompt') === 'reject',
     failWorkspaceAttach: query.get('fixtureAttach') === 'fail',
     dropSessionCreateResponse: query.get('fixtureSessionCreate') === 'drop-response',

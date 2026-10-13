@@ -242,6 +242,13 @@
   overflow: hidden;
 }
 
+.freddie-sidebarRoot__regionArea > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .freddie-sidebarRoot__collapsed .freddie-sidebarRoot__regionArea {
   margin-left: 0;
   margin-right: 0;

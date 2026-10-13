@@ -25,6 +25,22 @@ function hoverTimeLabel(updatedAt, now, t) {
   return unit === 'now' ? t('time.now') : t('time.ago', { t: t(`time.${unit}`, { n }) })
 }
 
+function sameSessionRowView(a, b) {
+  const x = a.node
+  const y = b.node
+  return x.id === y.id && x.title === y.title && x.blank === y.blank && x.running === y.running
+    && x.runningSubagentCount === y.runningSubagentCount && x.completed === y.completed
+    && x.updatedAt === y.updatedAt && x.pendingInteraction === y.pendingInteraction
+    && x.readOnly === y.readOnly
+    && (a.currentId === x.id) === (b.currentId === y.id)
+    && a.accountKey === b.accountKey && a.flat === b.flat && a.t === b.t
+    && a.onOpen === b.onOpen && a.onRename === b.onRename && a.onFork === b.onFork && a.onArchive === b.onArchive
+    && (a.drag === undefined) === (b.drag === undefined)
+    && a.drag?.active === b.drag?.active && a.drag?.marker === b.drag?.marker
+    && timeLabel(x.updatedAt, a.now, a.t) === timeLabel(y.updatedAt, b.now, b.t)
+    && hoverTimeLabel(x.updatedAt, a.now, a.t) === hoverTimeLabel(y.updatedAt, b.now, b.t)
+}
+
 function createdLabel(createdAt, t) {
   const d = new Date(createdAt)
   const pad2 = (v) => String(v).padStart(2, '0')
@@ -272,7 +288,9 @@ export class FreddieSessionNodeItem extends HTMLElement {
   #menu = null
 
   setProps(props) {
+    const previous = this.#props
     this.#props = props
+    if (previous !== null && sameSessionRowView(previous, props)) return
     this.#render()
   }
 
