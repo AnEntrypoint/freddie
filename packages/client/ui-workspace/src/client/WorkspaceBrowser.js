@@ -36,6 +36,19 @@ function ProjectRowItem(cache, rowId, props) {
 function SessionNodeItem(cache, rowId, props) {
   return cachedRowItem(cache, 'freddie-session-node-item', rowId, props)
 }
+
+function sessionRowMarker(drag, accountKey, id) {
+  return drag !== null && drag.accountKey === accountKey && drag.over?.id === id ? drag.over.half : null
+}
+
+function repaintSessionRow(cache, rows, drag, id) {
+  const row = rows.get(id)
+  if (row === undefined) return
+  SessionNodeItem(cache, id, {
+    ...row.props,
+    drag: { ...row.props.drag, marker: sessionRowMarker(drag, row.accountKey, id) },
+  })
+}
 import { FLAT_SESSION_ORDER_KEY } from './stores.js'
 import { renderWorkspacePickFlow } from './WorkspacePicker.js'
 import css from './WorkspaceBrowser.css.js'
@@ -233,6 +246,7 @@ export class FreddieSessionTree extends HTMLElement {
   #promotedCurrentGroup = undefined
   #projectRowCache = new Map()
   #sessionNodeCache = new Map()
+  #sessionRows = new Map()
 
   setProps(props) {
     this.#props = props
@@ -249,6 +263,16 @@ export class FreddieSessionTree extends HTMLElement {
 
   #syncNativeDragAcceptance(active) {
     this.#nativeDrag.sync(active)
+  }
+
+  #hoverSessionRow(id, half) {
+    const drag = this.#drag
+    if (drag === null) return
+    const previous = drag.over
+    if (previous !== null && previous.id === id && previous.half === half) return
+    this.#drag = { ...drag, over: { id, half } }
+    if (previous !== null && previous.id !== id) repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, previous.id)
+    repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, id)
   }
 
   #render() {
@@ -380,6 +404,7 @@ export class FreddieSessionTree extends HTMLElement {
       && workspaceDrag?.over?.id === groups[0].workspaceId
       && workspaceDrag?.over?.half === 'before'
 
+    const sessionRows = new Map()
     const vdom = (
       h('div', {class: clsx(css.treeBody, css.wide)},
         workspaceDropAtListStart && h('span', {class: css.listTopDropIndicator ?? '', 'aria-hidden': 'true'}),
@@ -491,12 +516,8 @@ export class FreddieSessionTree extends HTMLElement {
                       this.#render()
                     },
                     active: sameGroupDrag,
-                    marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
-                    hover: (half) => {
-                      if (this.#drag === null) return
-                      this.#drag = { ...this.#drag, over: { id: node.id, half } }
-                      this.#render()
-                    },
+                    marker: sessionRowMarker(drag, group.key, node.id),
+                    hover: (half) => this.#hoverSessionRow(node.id, half),
                     drop: (half) => {
                       if (this.#drag === null) return
                       commitSessionDrag(this.#drag, { id: node.id, half })
@@ -508,18 +529,20 @@ export class FreddieSessionTree extends HTMLElement {
                       this.#sessionDropCommitted = false
                     },
                   }
+                  const rowProps = {
+                    node,
+                    currentId: current,
+                    now,
+                    onOpen: open,
+                    onRename: onSessionRename,
+                    onFork: forkSession,
+                    onArchive: onSessionArchive,
+                    drag: dragProps,
+                    t,
+                  }
+                  sessionRows.set(node.id, { accountKey: group.key, props: rowProps })
                   return h('div', { key: node.id, style: 'display:contents' },
-                    SessionNodeItem(this.#sessionNodeCache, node.id, {
-                      node,
-                      currentId: current,
-                      now,
-                      onOpen: open,
-                      onRename: onSessionRename,
-                      onFork: forkSession,
-                      onArchive: onSessionArchive,
-                      drag: dragProps,
-                      t,
-                    }),
+                    SessionNodeItem(this.#sessionNodeCache, node.id, rowProps),
                   )
                 }),
                 group.sessions.length > COLLAPSED_SESSION_LIMIT && (
@@ -550,6 +573,7 @@ export class FreddieSessionTree extends HTMLElement {
     )
     pruneRowCache(this.#projectRowCache, groups.map(group => group.key))
     pruneRowCache(this.#sessionNodeCache, groups.flatMap(group => group.sessions.map(node => node.id)))
+    this.#sessionRows = sessionRows
     applyDiff(this, vdom)
   }
 }
@@ -569,6 +593,7 @@ export class FreddieFlatList extends HTMLElement {
   #previousOrderBy = null
   #nativeDrag = new NativeDragAcceptance()
   #sessionNodeCache = new Map()
+  #sessionRows = new Map()
 
   setProps(props) {
     this.#props = props
@@ -585,6 +610,16 @@ export class FreddieFlatList extends HTMLElement {
 
   #syncNativeDragAcceptance(active) {
     this.#nativeDrag.sync(active)
+  }
+
+  #hoverSessionRow(id, half) {
+    const drag = this.#drag
+    if (drag === null) return
+    const previous = drag.over
+    if (previous !== null && previous.id === id && previous.half === half) return
+    this.#drag = { ...drag, over: { id, half } }
+    if (previous !== null && previous.id !== id) repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, previous.id)
+    repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, id)
   }
 
   #render() {
@@ -646,6 +681,7 @@ export class FreddieFlatList extends HTMLElement {
     }
     const now = Date.now()
 
+    const sessionRows = new Map()
     const vdom = (
       h('div', {class: clsx(css.treeBody, css.wide)},
         h('div', {class: clsx(css.list, css.flatList), role: 'tree', 'aria-label': t('section.sessions')},
@@ -654,41 +690,39 @@ export class FreddieFlatList extends HTMLElement {
           ),
           rows.map((node) => {
             const active = drag !== null
-            return h('div', { key: node.id, style: 'display:contents' },
-              SessionNodeItem(this.#sessionNodeCache, node.id, {
-                node,
-                currentId: list.current,
-                now,
-                onOpen: open,
-                onRename: onSessionRename,
-                onFork: forkSession,
-                onArchive: onSessionArchive,
-                flat: true,
-                drag: {
-                  start: () => {
-                    this.#dropCommitted = false
-                    this.#drag = { accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, over: null }
-                    this.#render()
-                  },
-                  active,
-                  marker: active && drag.over?.id === node.id ? drag.over.half : null,
-                  hover: (half) => {
-                    if (this.#drag === null) return
-                    this.#drag = { ...this.#drag, over: { id: node.id, half } }
-                    this.#render()
-                  },
-                  drop: (half) => {
-                    if (this.#drag !== null) commitDrag(this.#drag, { id: node.id, half })
-                  },
-                  end: () => {
-                    const d = this.#drag
-                    if (d?.over !== null && d?.over !== undefined) commitDrag(d, d.over)
-                    else { this.#drag = null; this.#render() }
-                    this.#dropCommitted = false
-                  },
+            const rowProps = {
+              node,
+              currentId: list.current,
+              now,
+              onOpen: open,
+              onRename: onSessionRename,
+              onFork: forkSession,
+              onArchive: onSessionArchive,
+              flat: true,
+              drag: {
+                start: () => {
+                  this.#dropCommitted = false
+                  this.#drag = { accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, over: null }
+                  this.#render()
                 },
-                t,
-              }),
+                active,
+                marker: sessionRowMarker(drag, FLAT_SESSION_ORDER_KEY, node.id),
+                hover: (half) => this.#hoverSessionRow(node.id, half),
+                drop: (half) => {
+                  if (this.#drag !== null) commitDrag(this.#drag, { id: node.id, half })
+                },
+                end: () => {
+                  const d = this.#drag
+                  if (d?.over !== null && d?.over !== undefined) commitDrag(d, d.over)
+                  else { this.#drag = null; this.#render() }
+                  this.#dropCommitted = false
+                },
+              },
+              t,
+            }
+            sessionRows.set(node.id, { accountKey: FLAT_SESSION_ORDER_KEY, props: rowProps })
+            return h('div', { key: node.id, style: 'display:contents' },
+              SessionNodeItem(this.#sessionNodeCache, node.id, rowProps),
             )
           }),
         ),
@@ -696,6 +730,7 @@ export class FreddieFlatList extends HTMLElement {
       )
     )
     pruneRowCache(this.#sessionNodeCache, rows.map(node => node.id))
+    this.#sessionRows = sessionRows
     applyDiff(this, vdom)
   }
 }
