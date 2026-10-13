@@ -872,6 +872,7 @@ function applyMutation(summaries, mutation) {
           ...summary,
           running: mutation.running,
           blank: summary.blank && !mutation.running,
+          ...mutation.running ? { errored: false } : {},
           ...mutation.errored === undefined ? {} : { errored: mutation.errored },
         }
         : summary)

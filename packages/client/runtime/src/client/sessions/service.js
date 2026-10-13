@@ -326,6 +326,7 @@ export class SessionRuntime {
         displayTitle: displayTitleOf(entry.title, entry.cwd, entry.sessionId),
         running: entry.running,
         ...(entry.completed ? { completed: true } : {}),
+        ...(entry.errored ? { errored: true } : {}),
         blank: entry.blank,
         updatedAt: entry.updatedAt,
         ...(entry.pendingInteraction === undefined
