@@ -1290,9 +1290,13 @@ function createFixtureWorld(options) {
   }
   const setRunning = (id, running) => {
     const summary = summaryOf(id)
-    if (summary === undefined || summary.running === running) return
+    if (summary === undefined) return
+    const wasErrored = summary.errored === true
+    const errored = running ? false : wasErrored
+    if (summary.running === running && wasErrored === errored) return
     summary.running = running
-    emitHost({ type: 'host/session-status', sessionId: id, running })
+    summary.errored = errored
+    emitHost({ type: 'host/session-status', sessionId: id, running, errored })
   }
   const logOf = (id) => {
     let log = logs.get(id)
@@ -1627,6 +1631,24 @@ function createFixtureWorld(options) {
       const log = logOf(sid(id))
       const messageSeqs = log.filter(event => event.type === 'user/message').map(event => event.seq)
       append(sid(id), { type: 'session/title', data: { title, messageSeqs, source: { kind: 'provider', provider: 'fixture' } } })
+    },
+    describeSessions() {
+      return sessions.map(s => ({ id: s.sessionId, running: s.running, updatedAt: s.updatedAt }))
+    },
+    setSessionErrored(id) {
+      const sessionId = sid(id)
+      const summary = summaryOf(sessionId)
+      if (summary === undefined) throw new Error(`fixture: no session ${id}`)
+      if (!summary.running) {
+        const turn = nextTurn.get(sessionId) ?? 0
+        nextTurn.set(sessionId, turn + 1)
+        append(sessionId, { type: 'turn/start', data: { turn } })
+      }
+      const turn = (nextTurn.get(sessionId) ?? 1) - 1
+      append(sessionId, { type: 'turn/end', data: { turn, reason: { kind: 'error', error: { code: 'fixture-injected', message: 'fixture injected error' } } } })
+      summary.running = false
+      summary.errored = true
+      emitHost({ type: 'host/session-status', sessionId, running: false, errored: true })
     },
     startReasoningChunkStorm(
       id,
