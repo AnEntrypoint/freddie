@@ -147,10 +147,9 @@ export class FreddieStatsLine extends HTMLElement {
 
   #render() {
     const { useSession, useProjection, t } = this.#props
-    const settledNodes = useSession(s => s.chat.legacy.nodes)
-    const usage = useProjection('tokenUsage')
     const projected = useProjection('sessionStats')
-    const stats = projected ?? deriveStats(settledNodes)
+    const usage = useProjection('tokenUsage')
+    const stats = projected ?? deriveStats(useSession(s => s.chat.legacy.nodes))
     const groups = []
     if (stats.steps > 0) {
       groups.push(t('stats.counts', { turns: stats.turns, steps: stats.steps }))

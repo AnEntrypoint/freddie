@@ -17,7 +17,7 @@ import { queueDockEntry } from './queue/QueueDock.js'
 import './skeleton/ConversationRoot.js'
 import './skeleton/ConversationComposer.js'
 import './skeleton/ConversationSession.js'
-import { DetailsPanel } from './skeleton/DetailsPanel.js'
+import { createDetailMaterialSource } from './skeleton/DetailsPanel.js'
 import { en, NS } from './locales.js'
 import { registerConversationNodes } from './conversation-nodes/register.js'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.js'
@@ -43,6 +43,10 @@ const ABSENT_LEXICON = {
   subscribe: () => () => {},
 }
 const ABSENT_MENU_LAUNCHER = {
+  getSnapshot: () => null,
+  subscribe: () => () => {},
+}
+const ABSENT_DETAIL_MATERIAL = {
   getSnapshot: () => null,
   subscribe: () => () => {},
 }
@@ -359,7 +363,7 @@ export async function apply(ctx, config) {
     },
   }, webjsxSlot('freddie-chat-view', { subscriptions: 'reads' }))
 
-  slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line'))
+  slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line', { subscriptions: 'reads' }))
 
   ctx.plugin(todoDockEntry)
 
@@ -372,9 +376,17 @@ export async function apply(ctx, config) {
       'conversation.details.tool': { kind: 'single', scope: 'session' },
     },
     store: chatStore,
-    inject: () => ({
-      closeDetails: () => { layout.closeDetails() },
-    }),
-  }, DetailsPanel)
+    inject: (sessionId) => {
+      const session = sessions.binding(sessionId)?.session
+      return {
+        closeDetails: () => { layout.closeDetails() },
+        hooks: {
+          detail: session === undefined
+            ? ABSENT_DETAIL_MATERIAL
+            : createDetailMaterialSource(session, slots.resolveStore(chatStore, sessionId)),
+        },
+      }
+    },
+  }, webjsxSlot('freddie-details-panel', { subscriptions: 'reads' }))
 
 }
