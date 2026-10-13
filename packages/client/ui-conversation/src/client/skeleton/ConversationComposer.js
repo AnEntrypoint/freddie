@@ -153,7 +153,7 @@ export class FreddieConversationComposer extends HTMLElement {
     const composer = renderSlotChain(
       'conversation.composer',
       { interactions: facts?.pending ?? EMPTY_PENDING, subagent: facts?.subagent, running: facts?.running },
-      { fallback: composerBar, overlay: true },
+      { fallback: composerBar, overlay: true, fallbackSubscriptions: 'reads' },
     )
 
     applyDiff(this, composer)

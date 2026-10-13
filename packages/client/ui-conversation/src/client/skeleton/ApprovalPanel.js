@@ -82,7 +82,7 @@ export function ApprovalPanel(props) {
     const root = rootToolCall(snapshot, approval.callId)
     if (root === undefined) return undefined
     return root.callId === approval.callId && !('kind' in root) ? commandOf(root) : undefined
-  })
+  }, Object.is)
   for (const key of approvalFlowByKey.keys()) {
     if (key !== approval.key) approvalFlowByKey.delete(key)
   }

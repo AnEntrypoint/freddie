@@ -1,15 +1,29 @@
 export function observableHook(source) {
   let hook = hookCache.get(source)
   if (hook === undefined) {
-    hook = (selector, _equal) => {
-      if (readTracker !== null) {
-        readTracker.reads.add(source)
-        if (!readTracker.revisions.has(source)) {
-          readTracker.revisions.set(source, observationOf(source).revision)
-        }
+    hook = (selector, equal) => {
+      const tracker = readTracker
+      if (tracker === null) return selector(source.getSnapshot())
+      tracker.reads.add(source)
+      if (!tracker.revisions.has(source)) {
+        tracker.revisions.set(source, observationOf(source).revision)
       }
-      return selector(source.getSnapshot())
+      if (equal === undefined) {
+        tracker.unguarded.add(source)
+        return selector(source.getSnapshot())
+      }
+      const guard = { selector, equal, value: undefined }
+      let guards = tracker.guards.get(source)
+      if (guards === undefined) {
+        guards = []
+        tracker.guards.set(source, guards)
+      }
+      guards.push(guard)
+      guard.value = selector(source.getSnapshot())
+      return guard.value
     }
+    hook.peek = selector => selector(source.getSnapshot())
+    hook.subscribe = (listener, order) => subscribeObserved(source, listener, order)
     hookCache.set(source, hook)
   }
   return hook
@@ -83,13 +97,20 @@ export function subscribeObserved(source, listener, order) {
 let readTracker = null
 
 export function trackReads(render) {
-  const reads = new Set()
-  const revisions = new Map()
+  const tracker = { reads: new Set(), revisions: new Map(), guards: new Map(), unguarded: new Set() }
   const previous = readTracker
-  readTracker = { reads, revisions }
+  readTracker = tracker
   try {
-    return { result: render(), reads, revisions }
+    return { result: render(), ...tracker }
   } finally {
     readTracker = previous
+  }
+}
+
+export function guardChanged(source, guard) {
+  try {
+    return !guard.equal(guard.selector(source.getSnapshot()), guard.value)
+  } catch {
+    return true
   }
 }

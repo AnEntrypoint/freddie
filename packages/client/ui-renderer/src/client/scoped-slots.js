@@ -1,7 +1,7 @@
 import { createElement as h, Fragment, applyDiff } from '@freddie/webjsx'
 import {
   SlotOwnershipError, StaleAuthorizationError, webjsxSlotTagOf, webjsxSlotSubscriptionsOf,
-  observableHook, subscribeObserved, trackReads,
+  observableHook, subscribeObserved, trackReads, guardChanged,
 } from '@freddie/freddie-client-ui-slots'
 import {
   SlotAssemblyError, currentSessionMaybeProvideInfo, maybeObservableHook, projectionHook,
@@ -468,6 +468,7 @@ export class FreddieSlotOutlet extends HTMLElement {
   #hookUnsubscribes = []
   #boundHookSources = []
   #readRevisions = new Map()
+  #valueGuards = new Map()
   #renderCycle = new OutletRenderCycle()
 
   #renderedOnce = false
@@ -516,10 +517,13 @@ export class FreddieSlotOutlet extends HTMLElement {
     this.#hookUnsubscribes = []
     this.#boundHookSources = []
     this.#readRevisions = new Map()
+    this.#valueGuards = new Map()
   }
 
-  #bindHookSources(sessionInfo, reads, revisions, readsOnly, sessionScoped) {
+  #bindHookSources(sessionInfo, tracked, readsOnly, sessionScoped) {
+    const { reads, revisions, guards, unguarded } = tracked
     this.#readRevisions = revisions
+    this.#valueGuards = new Map([...guards].filter(([source]) => !unguarded.has(source)))
     const sources = [...new Set([
       ...(readsOnly || !sessionScoped ? [] : Object.values(sessionInfo.hooks).filter((s) => s !== undefined)),
       ...reads,
@@ -529,10 +533,17 @@ export class FreddieSlotOutlet extends HTMLElement {
     if (unchanged) return
     this.#unbindHookSources()
     this.#readRevisions = revisions
+    this.#valueGuards = new Map([...guards].filter(([source]) => !unguarded.has(source)))
     this.#boundHookSources = sources
     this.#hookUnsubscribes = sources.map(source => subscribeObserved(source, (revision) => {
-      if (this.#readRevisions.get(source) !== revision) this.#render()
+      if (this.#sourceChanged(source, revision)) this.#render()
     }, () => outletDepth(this)))
+  }
+
+  #sourceChanged(source, revision) {
+    const guards = this.#valueGuards.get(source)
+    if (guards === undefined) return this.#readRevisions.get(source) !== revision
+    return guards.some(guard => guardChanged(source, guard))
   }
 
   #render() {
@@ -545,7 +556,7 @@ export class FreddieSlotOutlet extends HTMLElement {
     resyncOutletDiffCache(this)
     const sessionInfo = currentSessionMaybeProvideInfo(host)
     const participants = new Set()
-    const { reads, revisions } = trackReads(() => {
+    const tracked = trackReads(() => {
       const content = renderOutletContent(host, this.#slotKey, this.#ownerProps, this.#opts, sessionInfo, this.#maybeIncarnation, (next) => {
         this.#maybeIncarnation = next
       }, entry => { participants.add(entry) })
@@ -553,7 +564,7 @@ export class FreddieSlotOutlet extends HTMLElement {
     })
     if (!this.isConnected) return
     const readsOnly = [...participants].every(entry => webjsxSlotSubscriptionsOf(entry?.component) === 'reads')
-    this.#bindHookSources(sessionInfo, reads, revisions, readsOnly, host.specOf(this.#slotKey)?.scope !== 'root')
+    this.#bindHookSources(sessionInfo, tracked, readsOnly, host.specOf(this.#slotKey)?.scope !== 'root')
     pruneStaleOutletChildren(this)
     this.#renderedOnce = true
   }
@@ -665,7 +676,9 @@ function renderOutletContent(
         break
       }
     }
-    if (elected === null || (opts?.overlay && opts.fallback !== undefined)) onParticipant(null)
+    if (opts?.fallbackSubscriptions !== 'reads' && (elected === null || (opts?.overlay && opts.fallback !== undefined))) {
+      onParticipant(null)
+    }
     if (opts?.overlay) {
       const fallbackStyle = `display: ${elected === null ? 'contents' : 'none'}`
       return [

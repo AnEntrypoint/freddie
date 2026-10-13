@@ -88,6 +88,25 @@ function isFolderOpenPath(path) {
   return path === '.'
 }
 
+function sameItems(left, right) {
+  return left === right
+    || (left.length === right.length && left.every((value, index) => Object.is(value, right[index])))
+}
+
+function steeringItems(queue) {
+  return queue.filter(item => item.placement === 'steering')
+}
+
+function firstAnchorSeq(snapshot) {
+  const key = snapshot.chat.order[0]
+  return key === undefined ? null : snapshot.chat.nodes.get(key)?.anchorSeq ?? null
+}
+
+function lastNodeKind(snapshot) {
+  const key = snapshot.chat.order.at(-1)
+  return key === undefined ? undefined : snapshot.chat.nodes.get(key)?.kind
+}
+
 function runningTurnStartTime(timeline) {
   let latest = null
   for (const turn of timeline.turns.values()) {
@@ -211,7 +230,7 @@ export class FreddieChatView extends HTMLElement {
 
   #toBottom(el) {
     this.#anchor = null
-    const order = this.#props?.useSession(s => s.chat.order)
+    const order = this.#props?.useSession(s => s.chat.order, sameItems)
     const windowStart = Math.max(0, (order?.length ?? 0) - INITIAL_WINDOW_SIZE)
     const redraw = this.#windowStart !== windowStart
       || this.#windowEnd !== Number.POSITIVE_INFINITY
@@ -238,17 +257,14 @@ export class FreddieChatView extends HTMLElement {
     this.#bindScroll(el)
     this.#bindResize()
 
-    const order = props.useSession(s => s.chat.order)
-    const nodeStore = props.useSession(s => s.chat.nodes)
-    const running = props.useSession(s => s.running)
-    const openState = props.useSession(s => s.openState)
-    const inbox = props.useSession(s => s.queue)
-    const pendingSteering = inbox.filter(item => item.placement === 'steering')
+    const order = props.useSession(s => s.chat.order, sameItems)
+    const running = props.useSession(s => s.running, Object.is)
+    const openState = props.useSession(s => s.openState, Object.is)
+    const pendingSteering = props.useSession(s => steeringItems(s.queue), sameItems)
+    const firstSeq = props.useSession(firstAnchorSeq, Object.is)
+    const lastKey = props.useSession(s => s.chat.order.at(-1) ?? null, Object.is)
+    const lastKind = props.useSession(lastNodeKind, Object.is)
 
-    const firstKey = order[0]
-    const firstSeq = firstKey === undefined ? null : nodeStore.get(firstKey)?.anchorSeq ?? null
-    const lastKey = order.at(-1) ?? null
-    const lastNode = lastKey === null ? undefined : nodeStore.get(lastKey)
     const lastSteeringId = pendingSteering[pendingSteering.length - 1]?.id ?? null
     const followSig = `${openState}:${firstSeq}:${lastKey}:${order.length}:${running ? 1 : 0}:${lastSteeringId ?? ''}`
 
@@ -297,7 +313,7 @@ export class FreddieChatView extends HTMLElement {
     this.#lastWindowStart = this.#windowStart
 
     this.#firstSeq = firstSeq
-    const appendedUser = lastKey !== this.#lastKey && lastNode?.kind === 'user'
+    const appendedUser = lastKey !== this.#lastKey && lastKind === 'user'
     const appendedSteering = lastSteeringId !== null && lastSteeringId !== this.#lastSteeringId
     const tipMoved = this.#followSig !== followSig
     this.#lastKey = lastKey
@@ -514,15 +530,15 @@ export class FreddieChatView extends HTMLElement {
       fileMentions, t,
     } = props
 
-    const order = useSession(s => s.chat.order)
-    const timeline = useSession(s => s.chat.timeline)
-    const inbox = useSession(s => s.queue)
-    const cwd = useSessions(s => s.byId[sessionId]?.cwd)
-    const running = useSession(s => s.running)
-    const openState = useSession(s => s.openState)
-    const openError = useSession(s => s.openError)
-    const hasMore = useSession(s => s.hasMore)
-    const loadingOlder = useSession(s => s.loadingOlder)
+    const order = useSession(s => s.chat.order, sameItems)
+    const pendingSteering = useSession(s => steeringItems(s.queue), sameItems)
+    const runningTurnStart = useSession(s => runningTurnStartTime(s.chat.timeline), Object.is)
+    const cwd = useSessions(s => s.byId[sessionId]?.cwd, Object.is)
+    const running = useSession(s => s.running, Object.is)
+    const openState = useSession(s => s.openState, Object.is)
+    const openError = useSession(s => s.openError, Object.is)
+    const hasMore = useSession(s => s.hasMore, Object.is)
+    const loadingOlder = useSession(s => s.loadingOlder, Object.is)
     const firstKey = order[0]
     if (!this.#opened && openState === 'open') {
       const saved = props.chatScroll.read()
@@ -546,9 +562,7 @@ export class FreddieChatView extends HTMLElement {
     if (!Number.isFinite(this.#windowEnd) && this.#atBottomRef) {
       this.#windowStart = Math.max(this.#windowStart, order.length - props.mountedRowBudget)
     }
-    const selectedCallId = useStore(s => s.selection?.callId)
-    const pendingSteering = inbox.filter(item => item.placement === 'steering')
-    const runningTurnStart = runningTurnStartTime(timeline)
+    const selectedCallId = useStore(s => s.selection?.callId, Object.is)
 
     const vdom = h(
       'div',

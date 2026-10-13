@@ -39,17 +39,51 @@ function sameSeatProps(left, right) {
 
 const FLOW_DATA_ATTRIBUTES = ['chatAnchorKey', 'chatFlowKey', 'chatFlowKind']
 
+function nodeOf(props) {
+  return props.useSession.peek(snapshot => snapshot.chat.nodes.get(props.nodeKey))
+}
+
+function depthOf(element) {
+  let depth = 0
+  for (let parent = element.parentElement; parent !== null; parent = parent.parentElement) depth++
+  return depth
+}
+
 export class FreddieChatNodeSeat extends HTMLElement {
   #props = null
   #node = undefined
   #rendered = false
+  #unsubscribe = null
 
   setProps(props) {
-    const node = props.useSession(snapshot => snapshot.chat.nodes.get(props.nodeKey))
-    const unchanged = this.#rendered && node === this.#node && sameSeatProps(props, this.#props)
+    const previous = this.#props
+    const node = nodeOf(props)
+    const unchanged = this.#rendered && node === this.#node && sameSeatProps(props, previous)
     this.#props = props
     this.#node = node
+    if (this.isConnected && previous?.useSession !== props.useSession) this.#bind()
     if (unchanged) return
+    this.#render()
+  }
+
+  connectedCallback() {
+    if (this.#props !== null) this.#bind()
+  }
+
+  disconnectedCallback() {
+    this.#unsubscribe?.()
+    this.#unsubscribe = null
+  }
+
+  #bind() {
+    this.#unsubscribe?.()
+    this.#unsubscribe = this.#props.useSession.subscribe(() => { this.#sync() }, () => depthOf(this))
+  }
+
+  #sync() {
+    const node = nodeOf(this.#props)
+    if (node === this.#node) return
+    this.#node = node
     this.#render()
   }
 

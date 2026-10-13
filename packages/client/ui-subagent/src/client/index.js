@@ -1,4 +1,4 @@
-import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
+import { functionSlot, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import {
   SubagentReadOnlyComposer,
 } from './SubagentReadOnlyComposer.js'
@@ -43,6 +43,6 @@ export function apply(ctx) {
       priority: -10,
       locale: NS,
       select: selectReadOnlySubagent,
-    }, SubagentReadOnlyComposer),
+    }, functionSlot(SubagentReadOnlyComposer, { subscriptions: 'reads' })),
   )
 }

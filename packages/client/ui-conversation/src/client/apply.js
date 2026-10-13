@@ -1,5 +1,5 @@
 
-import { resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
+import { functionSlot, resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { resolveWorkspacePath } from '@freddie/freddie-client-runtime/client'
 import { createChatStore } from './stores.js'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.js'
@@ -313,7 +313,7 @@ export async function apply(ctx, config) {
     },
   }, webjsxSlot('freddie-input-bar', { subscriptions: 'reads' }))
 
-  slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, ApprovalPanel)
+  slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, functionSlot(ApprovalPanel, { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.view',
