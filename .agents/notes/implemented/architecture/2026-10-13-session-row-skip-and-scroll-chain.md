@@ -47,7 +47,7 @@ Scroll per step: no row `setProps` happened during scroll (counter 0), so the sc
 
 ### Drag reorder, live
 
-Fixture `?fixture&fixtureSessions=50`, headless Chrome over CDP: press, 12 moves, hover, release, using `Input.dispatchMouseEvent`. Each of these matched both the DOM order and the stored `sessionOrderByAccount` order: a tree drop after a row, a tree drop before a row, and a flat-list drop after a row. A hover sweep across three rows showed a single drop marker that moved with the pointer and was gone after release. Release outside the list commits the last hovered slot; this end-commit behavior predates this change (the `end` closure is unchanged in its diff) and is not addressed here.
+Fixture `?fixture&fixtureSessions=50`, headless Chrome over CDP: press, 12 moves, hover, release, using `Input.dispatchMouseEvent`. Each of these matched both the DOM order and the stored `sessionOrderByAccount` order: a tree drop after a row, a tree drop before a row, and a flat-list drop after a row. A hover sweep across three rows showed a single drop marker that moved with the pointer and was gone after release. Release outside the list committed the last hovered slot; fixed in `2026-10-13-drag-release-outside-cancels.md`.
 
 Scroll, 50 sessions: `freddie-workspaceBrowser__list` (overflow auto) reaches its maximum scrollTop and the last row is in view in both tree and flat views, and returns to top. Streaming: 200 reasoning chunks at 16 ms in the active session completed with distance from bottom 0 throughout.
 

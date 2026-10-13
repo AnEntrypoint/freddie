@@ -229,6 +229,13 @@ function ViewOptionsMenu(props) {
   return el
 }
 
+function releasedInsideList(host, event) {
+  const list = host.querySelector('[role="tree"]')
+  if (list === null) return false
+  const { left, right, top, bottom } = list.getBoundingClientRect()
+  return event.clientX >= left && event.clientX <= right && event.clientY >= top && event.clientY <= bottom
+}
+
 function workspaceGroupHalf(e) {
   const rect = e.currentTarget.getBoundingClientRect()
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
@@ -527,9 +534,9 @@ export class FreddieSessionTree extends HTMLElement {
                       if (this.#drag === null) return
                       this.#commitSessionDrag(this.#drag, { id: node.id, half })
                     },
-                    end: () => {
+                    end: (event) => {
                       const d = this.#drag
-                      if (d?.over !== null && d?.over !== undefined) this.#commitSessionDrag(d, d.over)
+                      if (d?.over !== null && d?.over !== undefined && releasedInsideList(this, event)) this.#commitSessionDrag(d, d.over)
                       else { this.#drag = null; this.#render() }
                       this.#sessionDropCommitted = false
                     },
@@ -723,9 +730,9 @@ export class FreddieFlatList extends HTMLElement {
                 drop: (half) => {
                   if (this.#drag !== null) this.#commitDrag(this.#drag, { id: node.id, half })
                 },
-                end: () => {
+                end: (event) => {
                   const d = this.#drag
-                  if (d?.over !== null && d?.over !== undefined) this.#commitDrag(d, d.over)
+                  if (d?.over !== null && d?.over !== undefined && releasedInsideList(this, event)) this.#commitDrag(d, d.over)
                   else { this.#drag = null; this.#render() }
                   this.#dropCommitted = false
                 },
