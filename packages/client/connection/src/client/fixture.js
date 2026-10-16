@@ -1136,10 +1136,6 @@ export function createFixtureApi(options = {}) {
   return createFixtureWorld(options).api
 }
 
-export function createFixtureFaces(options = {}) {
-  return createFixtureWorld(options)
-}
-
 function createFixtureWorld(options) {
   const sessions = options.empty ? [] : [
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },

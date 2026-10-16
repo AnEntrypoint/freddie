@@ -177,10 +177,6 @@ export function renderWorkspacePickFlow(el, props) {
   return target
 }
 
-export function WorkspacePickFlow(props) {
-  return renderWorkspacePickFlow(null, props)
-}
-
 export class FreddieWorkspacePicker extends HTMLElement {
   #props = null
   #pickFlow = null

@@ -34,12 +34,6 @@ export function currentSessionMaybeProvideInfo(host) {
   return observableHook(host.sessions.provideInfo)(s => s)
 }
 
-export function currentSessionProvideInfo(host) {
-  const info = currentSessionMaybeProvideInfo(host)
-  if (info.sessionId === undefined) throw new SlotAssemblyError('strict session slot rendered without a session')
-  return info
-}
-
 const sessionProviderCache = new WeakMap()
 
 export function sessionProviderFor(host) {

@@ -122,15 +122,9 @@ function highlighter() {
 
 const requested = new Set()
 const listeners = new Set()
-let loadCount = 0
-
 export function subscribeGrammarLoaded(listener) {
   listeners.add(listener)
   return () => { listeners.delete(listener) }
-}
-
-export function grammarLoadCount() {
-  return loadCount
 }
 
 function ensureGrammar(resolved) {
@@ -141,7 +135,6 @@ function ensureGrammar(resolved) {
     requested.add(resolved)
     void load().then((mod) => {
       highlighter().loadLanguageSync(mod.default)
-      loadCount += 1
       for (const listener of listeners) listener()
     })
   }

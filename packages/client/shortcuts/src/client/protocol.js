@@ -184,55 +184,6 @@ export function editShortcutDocument(document, edit, profile) {
   return { schemaVersion: SCHEMA_VERSION, profiles: { ...document.profiles, [profile]: overrides } }
 }
 
-export function parseShortcutEdit(value) {
-  if (!isRecord(value)) throw new Error('Invalid shortcut edit')
-  if (value.type === 'reset-all' && Object.keys(value).length === 1) return { type: 'reset-all' }
-  if (typeof value.id !== 'string' || !commandPattern.test(value.id)) throw new Error('Invalid shortcut command')
-  if (value.type === 'reset' && Object.keys(value).length === 2) return { type: 'reset', id: value.id }
-  if (value.type === 'set' && Object.keys(value).length === 3) {
-    return { type: 'set', id: value.id, binding: parseBinding(value.binding) }
-  }
-  throw new Error('Invalid shortcut edit')
-}
-
-export function parseShortcutDefinitions(value) {
-  if (!Array.isArray(value)) throw new Error('Invalid shortcut catalog')
-  const ids = new Set()
-  for (const entry of value) {
-    if (!isRecord(entry) || typeof entry.id !== 'string' || !commandPattern.test(entry.id) || ids.has(entry.id)
-      || !isRecord(entry.defaults)
-      || Object.keys(entry).some(key => key !== 'id' && key !== 'defaults' && key !== 'fixed')) {
-      throw new Error('Invalid shortcut definition')
-    }
-    ids.add(entry.id)
-    if (Object.hasOwn(entry, 'fixed')) {
-      if (!Array.isArray(entry.fixed) || entry.fixed.length === 0
-        || Object.keys(entry.defaults).length > 0) throw new Error('Invalid fixed shortcut definition')
-      for (const binding of entry.fixed) if (parseBinding(binding) === null) throw new Error('Invalid fixed shortcut binding')
-    }
-    for (const [profile, candidate] of Object.entries(entry.defaults)) {
-      if (!profilePattern.test(profile)) throw new Error('Invalid shortcut profile')
-      if (parseBinding(candidate) === null) throw new Error('Invalid shortcut default')
-    }
-  }
-  const definitions = value
-  for (const profile of ['web:macos', 'web:windows', 'web:linux']) {
-    const platform = profile.slice('web:'.length)
-    const taken = []
-    for (const entry of definitions) {
-      const candidate = resolveShortcutDefault(entry, profile)
-      if (candidate === undefined) continue
-      const binding = normalizeBinding(candidate, platform)
-      if (taken.some(other => overlappingBindings(other, binding))) {
-        throw new Error(`Conflicting shortcut defaults: ${entry.id} (${profile})`)
-      }
-      if (bindingIssue(binding, platform) !== null) throw new Error(`Reserved shortcut default: ${entry.id} (${profile})`)
-      taken.push(binding)
-    }
-  }
-  return definitions
-}
-
 let revisionCounter = 0
 
 export function newRevision() {

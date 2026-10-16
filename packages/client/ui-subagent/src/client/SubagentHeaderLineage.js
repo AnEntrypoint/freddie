@@ -16,6 +16,7 @@ function diagnosticReason(
     case 'corrupt': return t('diagnostic.corrupt')
     case 'unsupported': return t('diagnostic.unsupported')
     case 'unavailable': return t('diagnostic.unavailable')
+    default: throw new Error(`Unknown subagent diagnostic reason: ${entry.reason}`)
   }
 }
 
