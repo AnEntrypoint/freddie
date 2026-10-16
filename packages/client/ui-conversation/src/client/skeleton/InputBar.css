@@ -166,6 +166,11 @@
   cursor: pointer;
 }
 
+.freddie-inputBar__input:focus-visible {
+  outline: 2px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
 .freddie-inputBar__mirror {
   visibility: hidden;
   pointer-events: none;

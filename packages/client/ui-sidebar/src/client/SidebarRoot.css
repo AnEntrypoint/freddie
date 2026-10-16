@@ -176,7 +176,7 @@
   color: var(--freddie-alias-label-primary-inverted);
   background: var(--freddie-alias-label-primary);
   font-family: var(--ds-font-family-code);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   line-height: 16px;
 }

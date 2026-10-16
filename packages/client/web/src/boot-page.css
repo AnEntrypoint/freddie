@@ -164,6 +164,12 @@ body[data-ds-dark-theme] .freddie-bootPage__boot {
   to { transform: rotate(360deg); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .freddie-bootPage__spinner {
+    animation: none;
+  }
+}
+
 .freddie-bootPage__failed {
   max-width: 480px;
   display: flex;

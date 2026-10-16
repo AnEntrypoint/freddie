@@ -80,6 +80,10 @@
   outline: none;
 }
 
+.freddie-popupSelectView__search:focus-visible {
+  border-color: var(--freddie-alias-state-business-primary);
+}
+
 .freddie-popupSelectView__error {
   display: flex;
   align-items: center;

@@ -31,6 +31,12 @@
   90%, 100% { left: 100%; }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .freddie-toolRow__root[data-state='running'] .freddie-toolRow__row::after {
+    animation: none;
+  }
+}
+
 .freddie-toolRow__leading {
   flex-shrink: 0;
 }

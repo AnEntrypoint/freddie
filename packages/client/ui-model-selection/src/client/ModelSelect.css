@@ -28,7 +28,7 @@
 }
 
 .freddie-modelSelect__trigger:focus-visible {
-  box-shadow: 0 0 0 2px var(--freddie-alias-border-l3);
+  box-shadow: 0 0 0 2px var(--freddie-alias-state-business-primary);
 }
 
 .freddie-modelSelect__trigger:disabled {

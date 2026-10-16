@@ -219,12 +219,18 @@
 .freddie-rows__projectRow:hover .freddie-rows__rowActions,
 .freddie-rows__sessionRow:hover .freddie-rows__rowActions,
 .freddie-rows__projectRow.freddie-rows__menuOpen .freddie-rows__rowActions,
-.freddie-rows__sessionRow.freddie-rows__menuOpen .freddie-rows__rowActions {
+.freddie-rows__sessionRow.freddie-rows__menuOpen .freddie-rows__rowActions,
+.freddie-rows__projectRow:focus-visible .freddie-rows__rowActions,
+.freddie-rows__sessionRow:focus-visible .freddie-rows__rowActions,
+.freddie-rows__projectRow:has(:focus-visible) .freddie-rows__rowActions,
+.freddie-rows__sessionRow:has(:focus-visible) .freddie-rows__rowActions {
   display: inline-flex;
 }
 
 .freddie-rows__sessionRow:hover .freddie-rows__time,
-.freddie-rows__sessionRow.freddie-rows__menuOpen .freddie-rows__time {
+.freddie-rows__sessionRow.freddie-rows__menuOpen .freddie-rows__time,
+.freddie-rows__sessionRow:focus-visible .freddie-rows__time,
+.freddie-rows__sessionRow:has(:focus-visible) .freddie-rows__time {
   display: none;
 }
 

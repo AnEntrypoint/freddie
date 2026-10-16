@@ -181,7 +181,7 @@
 }
 
 .freddie-shortcutReference__statusError {
-  color: var(--freddie-alias-label-danger);
+  color: var(--freddie-alias-state-error-primary);
 }
 
 .freddie-shortcutReference__hint {

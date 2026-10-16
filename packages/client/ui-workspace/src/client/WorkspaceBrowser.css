@@ -456,6 +456,10 @@ freddie-search-results {
   color: var(--freddie-alias-label-primary);
 }
 
+.freddie-workspaceBrowser__renameInput:focus-visible {
+  border-color: var(--freddie-alias-state-business-primary);
+}
+
 .freddie-workspaceBrowser__renameInput:disabled {
   color: var(--freddie-alias-label-dimmed);
 }

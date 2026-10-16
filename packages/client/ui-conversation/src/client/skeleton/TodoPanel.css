@@ -127,6 +127,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .freddie-todoPanel__glyphProgress {
+    animation: none;
+  }
+}
+
 .freddie-todoPanel__content {
   min-width: 0;
   overflow: hidden;

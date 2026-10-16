@@ -79,6 +79,12 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .freddie-chatView__turnStatus {
+    animation: none;
+  }
+}
+
 
 .freddie-chatView__hint {
   color: var(--freddie-alias-label-tertiary);
