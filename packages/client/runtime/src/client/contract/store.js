@@ -247,10 +247,11 @@ const PERSIST_DELAY_MS = 1000
 
 function attachPersistence(api, name) {
   if (typeof localStorage === 'undefined') return () => {}
+  const initial = api.getState()
   try {
     const raw = localStorage.getItem(name)
     if (raw !== null) {
-      api.setState(devFreeze(JSON.parse(raw)), true)
+      api.setState(devFreeze({ ...initial, ...JSON.parse(raw) }), true)
     }
   } catch (error) {
     console.error(`snapshot store '${name}' rehydration failed:`, error)
@@ -268,17 +269,21 @@ function attachPersistence(api, name) {
     clearTimeout(timer)
     timer = null
   }
-  api.subscribe(() => {
+  const unsubscribe = api.subscribe(() => {
     if (timer === null) timer = setTimeout(write, PERSIST_DELAY_MS)
   })
-  if (typeof addEventListener === 'function') {
-    addEventListener('pagehide', () => {
-      if (timer === null) return
-      cancel()
-      write()
-    })
+  const flushOnPagehide = () => {
+    if (timer === null) return
+    cancel()
+    write()
   }
-  return cancel
+  const listening = typeof addEventListener === 'function'
+  if (listening) addEventListener('pagehide', flushOnPagehide)
+  return () => {
+    cancel()
+    unsubscribe()
+    if (listening) removeEventListener('pagehide', flushOnPagehide)
+  }
 }
 
 function isProduction() {

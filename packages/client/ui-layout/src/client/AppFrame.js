@@ -126,6 +126,7 @@ export class FreddieAppFrame extends HTMLElement {
   disconnectedCallback() {
     this.#resizeObserver?.disconnect()
     this.#resizeObserver = null
+    this.#frameEl = null
     if (this.#resizeRaf !== null) { cancelAnimationFrame(this.#resizeRaf); this.#resizeRaf = null }
   }
 

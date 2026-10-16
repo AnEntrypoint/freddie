@@ -39,15 +39,17 @@ export function deriveStats(nodes) {
 
 export function formatTokens(n) {
   const scaled = (v) =>
-    v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)
+    v >= 100 ? Math.round(v) : Math.round(v * 10) / 10
   if (n < 1_000) return String(n)
-  if (n < 1_000_000) return `${scaled(n / 1_000)}K`
-  return `${scaled(n / 1_000_000)}M`
+  if (scaled(n / 1_000) < 1_000) return `${scaled(n / 1_000)}K`
+  if (scaled(n / 1_000_000) < 1_000) return `${scaled(n / 1_000_000)}M`
+  return `${scaled(n / 1_000_000_000)}B`
 }
 
 export function formatDuration(ms) {
   const s = ms / 1_000
-  if (s < 60) return `${Math.round(s * 10) / 10}s`
+  const tenths = Math.round(s * 10)
+  if (tenths < 600) return `${tenths / 10}s`
   const whole = Math.round(s)
   return `${Math.floor(whole / 60)}m${whole % 60}s`
 }

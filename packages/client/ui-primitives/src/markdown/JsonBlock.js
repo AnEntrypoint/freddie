@@ -49,8 +49,8 @@ export class FreddieJsonBlock extends HTMLElement {
       { class: css.root ?? '' },
       h(
         'button',
-        { type: 'button', class: css.toggle ?? '', onclick: this.#toggle },
-        this.#open ? '▾' : '▸', ' ', label,
+        { type: 'button', class: css.toggle ?? '', 'aria-expanded': this.#open, onclick: this.#toggle },
+        h('span', { 'aria-hidden': 'true' }, this.#open ? '▾' : '▸'), ' ', label,
       ),
       this.#open && h('pre', { class: css.body ?? '' }, body),
     )
