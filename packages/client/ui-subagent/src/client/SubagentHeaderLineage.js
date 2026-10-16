@@ -27,11 +27,12 @@ function treeItems(root) {
 
 function formatTokens(value) {
   const scaled = (next) => next >= 100
-    ? String(Math.round(next))
-    : String(Math.round(next * 10) / 10)
+    ? Math.round(next)
+    : Math.round(next * 10) / 10
   if (value < 1_000) return String(value)
-  if (value < 1_000_000) return `${scaled(value / 1_000)}K`
-  return `${scaled(value / 1_000_000)}M`
+  if (scaled(value / 1_000) < 1_000) return `${scaled(value / 1_000)}K`
+  if (scaled(value / 1_000_000) < 1_000) return `${scaled(value / 1_000_000)}M`
+  return `${scaled(value / 1_000_000_000)}B`
 }
 
 function tokenTotal(

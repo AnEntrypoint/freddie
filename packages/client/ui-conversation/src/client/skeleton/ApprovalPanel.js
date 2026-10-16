@@ -19,6 +19,7 @@ export class FreddieApprovalFlow extends HTMLElement {
   #command
   #t = null
   #answered = false
+  #answerFailed = false
 
   setProps(pending, command, t) {
     this.#pending = pending
@@ -34,8 +35,9 @@ export class FreddieApprovalFlow extends HTMLElement {
   #answer(outcome) {
     if (this.#pending === null) return
     this.#answered = true
+    this.#answerFailed = false
     this.#render()
-    void this.#pending.answer(outcome).catch(() => { this.#answered = false; this.#render() })
+    void this.#pending.answer(outcome).catch(() => { this.#answered = false; this.#answerFailed = true; this.#render() })
   }
 
   #render() {
@@ -44,6 +46,7 @@ export class FreddieApprovalFlow extends HTMLElement {
     if (pending === null || t === null) return
     const command = this.#command
     const answered = this.#answered
+    const answerFailed = this.#answerFailed
     const vdom = h(
       'div',
       { class: css.root ?? '', 'data-approval-key': pending.key },
@@ -60,6 +63,7 @@ export class FreddieApprovalFlow extends HTMLElement {
         h(
           'div',
           { class: css.actionRow ?? '' },
+          answerFailed && h('div', { role: 'status' }, t('message.turnError')),
           h(Button, { variant: 'outline', class: css.reject, disabled: answered, onclick: () => { this.#answer('rejected') } },
             t('approval.reject')),
           h(Button, { variant: 'primary', disabled: answered, onclick: () => { this.#answer('allowed-once') } },

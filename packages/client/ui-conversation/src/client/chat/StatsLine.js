@@ -110,7 +110,7 @@ export function contextOccupancy(pressure) {
   const usedTokens = pressure?.projectedTokens ?? pressure?.pressureTokens
   if (usedTokens === undefined || pressure?.contextWindow === undefined) return null
   return {
-    percent: Math.min(100, Math.round(usedTokens / pressure.contextWindow * 100)),
+    percent: Math.min(usedTokens < pressure.contextWindow ? 99 : 100, Math.round(usedTokens / pressure.contextWindow * 100)),
     usedTokens,
     contextWindow: pressure.contextWindow,
   }
