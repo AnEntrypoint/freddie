@@ -186,8 +186,8 @@
     opacity 120ms var(--ds-ease-in-out);
 }
 
-.freddie-trajectoryTable__table tbody tr[data-timeline-focus='outside'] {
-  opacity: 0.24;
+.freddie-trajectoryTable__table tbody tr[data-timeline-focus='outside'] td {
+  color: var(--freddie-alias-label-secondary);
 }
 
 .freddie-trajectoryTable__table tbody tr:not([data-collapsed-summary]):not([data-virtual-spacer]):not([data-history-load]):not([data-selected='true']):hover {

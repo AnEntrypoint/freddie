@@ -78,7 +78,7 @@ body {
   --freddie-alias-interactive-bg-hover-danger: rgba(236, 19, 19, 0.05);
   --freddie-alias-interactive-bg-hover-solid: var(--dsw-static-neutral-bluish-75);
   --freddie-alias-interactive-bg-hover: rgba(38, 49, 72, 0.06);
-  --freddie-alias-label-caption: var(--dsw-static-neutral-bluish-400);
+  --freddie-alias-label-caption: var(--dsw-static-neutral-bluish-700);
   --freddie-alias-label-dimmed: var(--dsw-static-neutral-bluish-200);
   --freddie-alias-label-primary-bluish: var(--dsw-static-blue-900);
   --freddie-alias-label-primary-dimmed: var(--dsw-static-neutral-bluish-950);
@@ -144,7 +144,7 @@ body[data-ds-dark-theme] {
   --freddie-alias-interactive-bg-hover-danger: rgba(242, 90, 90, 0.15);
   --freddie-alias-interactive-bg-hover-solid: var(--dsw-static-neutral-bluish-800);
   --freddie-alias-interactive-bg-hover: rgba(255, 255, 255, 0.08);
-  --freddie-alias-label-caption: var(--dsw-static-neutral-bluish-600);
+  --freddie-alias-label-caption: var(--dsw-static-neutral-bluish-500);
   --freddie-alias-label-dimmed: var(--dsw-static-neutral-bluish-750);
   --freddie-alias-label-primary-bluish: var(--dsw-static-neutral-bluish-50);
   --freddie-alias-label-primary-dimmed: var(--dsw-static-neutral-bluish-100);
