@@ -374,10 +374,10 @@
   transform: translateY(-50%);
 }
 
-.freddie-trajectoryTable__event {
-  overflow: visible !important;
-  padding-right: 4px !important;
-  padding-left: 36px !important;
+.freddie-trajectoryTable__table td.freddie-trajectoryTable__event {
+  overflow: visible;
+  padding-right: 4px;
+  padding-left: 36px;
 }
 
 .freddie-trajectoryTable__turnLabel {
@@ -497,9 +497,9 @@
     width: 50px;
   }
 
-  .freddie-trajectoryTable__event {
-    padding-right: 3px !important;
-    padding-left: 28px !important;
+  .freddie-trajectoryTable__table td.freddie-trajectoryTable__event {
+    padding-right: 3px;
+    padding-left: 28px;
   }
 
   .freddie-trajectoryTable__requestBoundaryControl {

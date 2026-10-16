@@ -173,6 +173,10 @@ freddie-search-results {
   color: var(--freddie-alias-label-caption);
 }
 
+.freddie-workspaceBrowser__searchExpanded:focus-within {
+  border-color: var(--freddie-alias-state-business-primary);
+}
+
 .freddie-workspaceBrowser__searchButton {
   flex: none;
   display: inline-flex;
