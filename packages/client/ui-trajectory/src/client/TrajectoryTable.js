@@ -321,7 +321,7 @@ function requestStep(group) {
 }
 
 function requestKey(turn, group) {
-  return `${turn} ${group}`
+  return `${turn}\u0000${group}`
 }
 
 function indexRequestBoundaries(records) {

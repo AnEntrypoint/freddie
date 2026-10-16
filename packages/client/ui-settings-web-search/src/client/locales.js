@@ -7,7 +7,7 @@ export const en = {
   saving: 'Saving…',
   discard: 'Discard',
   unsaved: 'Unsaved',
-  saveFailed: 'The Host refused this change.',
+  saveFailed: 'The change was not saved. Check the endpoint, key and budget, then save again.',
   readOnly: 'This namespace is read-only.',
   overridden: 'Overridden',
   reset: 'Reset to default',

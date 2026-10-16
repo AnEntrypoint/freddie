@@ -288,7 +288,6 @@ export function PendingSteeringBubble({ identity, content, renderMessageImages, 
       cachedMessageIconActions(identity, {
         text,
         clock: 'start',
-        className: css.actions,
         t,
       })
     ),
@@ -310,7 +309,6 @@ export function UserMessageNodeView({
         text,
         time: data.time,
         clock: 'start',
-        className: css.actions,
         t,
       })
     ),

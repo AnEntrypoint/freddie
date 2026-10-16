@@ -193,7 +193,6 @@ export class FreddieChatView extends HTMLElement {
   #fileOpenBusy = false
   #fileOpenRequest = 0
   #atBottom = true
-  #atBottomRef = true
   #observedTop = 0
   #anchor = null
   #firstSeq = null
@@ -243,10 +242,9 @@ export class FreddieChatView extends HTMLElement {
     const windowStart = Math.max(0, (order?.length ?? 0) - INITIAL_WINDOW_SIZE)
     const redraw = this.#windowStart !== windowStart
       || this.#windowEnd !== Number.POSITIVE_INFINITY
-      || !this.#atBottom || !this.#atBottomRef
+      || !this.#atBottom
     this.#windowStart = windowStart
     this.#windowEnd = Number.POSITIVE_INFINITY
-    this.#atBottomRef = true
     this.#atBottom = true
     if (redraw) this.#render()
     el.scrollTop = el.scrollHeight
@@ -290,7 +288,6 @@ export class FreddieChatView extends HTMLElement {
         this.#observedTop = el.scrollTop
         const isAtBottom = this.#windowEnd >= order.length
           && el.scrollHeight - el.scrollTop - el.clientHeight <= FOLLOW_THRESHOLD + 1
-        this.#atBottomRef = isAtBottom
         this.#atBottom = isAtBottom
         const normalized = isAtBottom ? null : scrollPosition(local, el)
         if (isAtBottom) chatScroll.save(null)
@@ -328,7 +325,7 @@ export class FreddieChatView extends HTMLElement {
     this.#lastKey = lastKey
     this.#lastSteeringId = lastSteeringId
     this.#followSig = followSig
-    if (appendedUser || appendedSteering || (tipMoved && this.#atBottomRef)) {
+    if (appendedUser || appendedSteering || (tipMoved && this.#atBottom)) {
       this.#toBottom(el)
     }
   }
@@ -365,7 +362,7 @@ export class FreddieChatView extends HTMLElement {
 
   #follow() {
     const local = this.#listEl
-    if (local !== null && this.#atBottomRef) {
+    if (local !== null && this.#atBottom) {
       const el = scrollerOf(local)
       el.scrollTop = el.scrollHeight
       this.#observedTop = el.scrollTop
@@ -382,12 +379,11 @@ export class FreddieChatView extends HTMLElement {
     const order = this.#props.useSession(s => s.chat.order)
     const isAtBottom = movedByReader
       ? this.#windowEnd >= order.length && floor - el.scrollTop <= FOLLOW_THRESHOLD + 1
-      : this.#atBottomRef
+      : this.#atBottom
     if (!movedByReader && isAtBottom) {
       return
     }
     const bottomChanged = this.#atBottom !== isAtBottom
-    this.#atBottomRef = isAtBottom
     this.#atBottom = isAtBottom
     if (!isAtBottom && !Number.isFinite(this.#windowEnd)) {
       this.#windowEnd = this.#props.useSession(s => s.chat.order).length
@@ -461,7 +457,6 @@ export class FreddieChatView extends HTMLElement {
       this.#windowStart = start
       this.#windowEnd = end
       this.#anchor = null
-      this.#atBottomRef = false
       this.#atBottom = false
       this.#render()
       if (position !== null) {
@@ -568,7 +563,7 @@ export class FreddieChatView extends HTMLElement {
       this.#windowStart = Math.max(0, order.length - INITIAL_WINDOW_SIZE)
       this.#windowEnd = Number.POSITIVE_INFINITY
     }
-    if (!Number.isFinite(this.#windowEnd) && this.#atBottomRef) {
+    if (!Number.isFinite(this.#windowEnd) && this.#atBottom) {
       this.#windowStart = Math.max(this.#windowStart, order.length - props.mountedRowBudget)
     }
     const selectedCallId = useStore(s => s.selection?.callId, Object.is)

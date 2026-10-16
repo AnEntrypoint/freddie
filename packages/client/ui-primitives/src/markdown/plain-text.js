@@ -85,5 +85,7 @@ export function extractMarkdownPlainText(markdown, options = {}) {
       return all.split('\n').find(line => line !== '') ?? ''
     case 'first-paragraph':
       return findFirstParagraph(root) ?? all.split('\n').find(line => line !== '') ?? ''
+    default:
+      throw new Error(`unknown plain-text mode: ${String(mode)}`)
   }
 }
