@@ -700,7 +700,10 @@ export class JsonlSessionPersistence extends SessionPersistence {
   }
 
   ensureRootEncoding() {
-    this.rootEncodingCheck ??= this.checkRootEncoding()
+    this.rootEncodingCheck ??= this.checkRootEncoding().catch(error => {
+      this.rootEncodingCheck = undefined
+      throw error
+    })
     return this.rootEncodingCheck
   }
 
