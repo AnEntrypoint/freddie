@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import z from '@freddie/schemastery'
+import WebSocket, { WebSocketServer } from 'ws'
 import { EVENTS_ENDPOINT } from './events.js'
 import { handleLedgerOf } from './handles.js'
 
@@ -16,7 +17,7 @@ export const Config = z.object({
   pollIntervalMs: z.number().step(1).min(1).default(500),
   scanDebounceMs: z.number().step(1).min(1).default(50),
   heartbeatIntervalMs: z.number().step(1).min(1).default(15_000),
-  maxBufferedSseBytes: z.number().step(1).min(1).default(1_048_576),
+  maxBufferedEventBytes: z.number().step(1).min(1).default(1_048_576),
   distIndex: z.string(),
 })
 
@@ -43,14 +44,21 @@ function workspacePath(url) {
   return relative(workspaceRoot, fileURLToPath(url)).split(sep).join('/')
 }
 
-const SSE_HEADERS = {
-  'content-type': 'text/event-stream',
-  'cache-control': 'no-cache',
-  'connection': 'keep-alive',
-}
-
-function sseData(frame) {
-  return `data: ${JSON.stringify(frame)}\n\n`
+function sameOrigin(request) {
+  if (request.headers['sec-fetch-site'] === 'cross-site') return false
+  const origin = request.headers.origin
+  if (origin === undefined) return true
+  if (typeof origin !== 'string' || typeof request.headers.host !== 'string') return false
+  try {
+    const source = new URL(origin)
+    const target = new URL(`${source.protocol}//${request.headers.host}`)
+    return (source.protocol === 'http:' || source.protocol === 'https:')
+      && source.origin === origin && target.origin === source.origin
+      && target.username === '' && target.password === ''
+      && target.pathname === '/' && target.search === '' && target.hash === ''
+  } catch {
+    return false
+  }
 }
 
 export function apply(ctx, config) {
@@ -332,57 +340,63 @@ export function apply(ctx, config) {
   const connections = new Set()
   let frameSequence = 0
 
-  const write = (res, line) => {
-    if (res.destroyed || res.writableEnded) {
-      connections.delete(res)
+  const drop = (socket) => {
+    connections.delete(socket)
+    socket.terminate()
+  }
+  const write = (socket, line) => {
+    if (socket.readyState !== WebSocket.OPEN) {
+      connections.delete(socket)
       return
     }
-    if (res.writableLength > config.maxBufferedSseBytes) {
-      connections.delete(res)
-      res.destroy()
+    if (socket.bufferedAmount + Buffer.byteLength(line) > config.maxBufferedEventBytes) {
+      drop(socket)
       return
     }
     try {
-      res.write(line)
-      if (res.writableLength > config.maxBufferedSseBytes) {
-        connections.delete(res)
-        res.destroy()
-      }
+      socket.send(line, (error) => {
+        if (!error) return
+        drop(socket)
+        ctx.logger.warn(error)
+      })
+      if (socket.bufferedAmount > config.maxBufferedEventBytes) drop(socket)
     } catch (error) {
-      connections.delete(res)
-      if (error.code !== 'ERR_STREAM_DESTROYED') ctx.logger.warn(error)
+      drop(socket)
+      ctx.logger.warn(error)
     }
   }
 
   const publish = (frame) => {
-    const line = sseData({ ...frame, sequence: ++frameSequence })
-    for (const res of connections) write(res, line)
+    const line = JSON.stringify({ ...frame, sequence: ++frameSequence })
+    for (const socket of connections) write(socket, line)
   }
 
-  const connect = (res) => {
-    res.writeHead(200, SSE_HEADERS)
-    connections.add(res)
-    write(res, sseData({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence, heartbeatIntervalMs: config.heartbeatIntervalMs }))
-    res.on('close', () => { connections.delete(res) })
-    res.on('error', () => { connections.delete(res) })
+  const connect = (socket) => {
+    connections.add(socket)
+    socket.on('close', () => { connections.delete(socket) })
+    socket.on('error', () => { drop(socket) })
+    socket.once('message', () => { drop(socket) })
+    write(socket, JSON.stringify({ type: 'graph', graph: ctx.clientModules.graph(), sequence: frameSequence, heartbeatIntervalMs: config.heartbeatIntervalMs }))
   }
 
   ctx.effect(() => {
+    const server = new WebSocketServer({ noServer: true, perMessageDeflate: false, maxPayload: 1 })
+    const disposeUpgrade = ctx.webServer.registerUpgrade({
+      path: EVENTS_ENDPOINT,
+      handler: (req, socket, head) => {
+        if (!sameOrigin(req)) {
+          socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Length: 0\r\n\r\n')
+          return
+        }
+        server.handleUpgrade(req, socket, head, connect)
+      },
+    })
     const disposeRoute = ctx.webServer.register({
       kind: 'exact',
       path: EVENTS_ENDPOINT,
-      handler: (req, res) => {
-        if (req.method === 'HEAD') {
-          res.writeHead(200, SSE_HEADERS)
-          res.end()
-          return
-        }
-        if (req.method !== 'GET') {
-          res.writeHead(405)
-          res.end()
-          return
-        }
-        connect(res)
+      handler: (_req, res) => {
+        res.writeHead(426, { Upgrade: 'websocket' })
+        res.end()
       },
     })
     const unsubscribe = ctx.clientModules.onRebuilt((id, rev) => {
@@ -422,15 +436,19 @@ export function apply(ctx, config) {
     const heartbeat = startInterval(() => {
       publish({ type: 'heartbeat' })
     }, config.heartbeatIntervalMs)
-    return () => {
+    return async () => {
       unsubscribe()
       offJournal()
       shellRebuiltListeners.delete(shellListener)
       cssRebuiltListeners.delete(cssListener)
       stopInterval(heartbeat)
+      disposeUpgrade()
       disposeRoute()
-      for (const res of connections) res.destroy()
+      for (const socket of server.clients) socket.terminate()
       connections.clear()
+      await new Promise((resolve, reject) => {
+        server.close(error => error === undefined ? resolve() : reject(error))
+      })
     }
   }, 'client-hmr: /plugins/events channel')
 }

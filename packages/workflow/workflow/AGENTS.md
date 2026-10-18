@@ -1,0 +1,3 @@
+# AGENTS.md — workflow
+
+Live runs are holder-owned: result never rejects and holders dispose every path for bounded quiescence. Ordinary child failure returns null; fatal infrastructure, schema, cap, serialization, and cancellation errors escape combinators. Result value is materialized plain JSON (undefined becomes null), meaningful only for completed; other settlements carry error. Events borrow immutable identity/outcome data without live cancellation/disposal handles or result value. Phase metadata annotates progress without scheduling execution. Child sequence numbers follow 1-based call order. [Public API](README.md).

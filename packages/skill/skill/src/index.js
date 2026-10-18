@@ -62,10 +62,8 @@ function renderResourceHint(skill) {
         `Resources for this skill: ${escapeText(base.description)}`,
         'Load referenced resources only as needed.',
       ]
-    /* v8 ignore start -- SkillResourceBase is a closed union; a future kind must fail compilation here. */
     default:
       return assertNever(base, 'SkillResourceBase.kind')
-    /* v8 ignore stop */
   }
 }
 
@@ -312,7 +310,6 @@ export class SkillRegistry extends Service {
   }
 
   invalidateEntry(entry) {
-    /* v8 ignore else -- A definition load can outlive the exact provider registration it selected. */
     if (entry.layer.providers.get(entry.provider.name)?.provider === entry.provider) this.invalidateCache()
   }
 
@@ -364,7 +361,6 @@ function invalidProviderObservation(providerName) {
 
 const RUNTIME_SKILL_PROVIDER = {
   name: RUNTIME_PROVIDER,
-  /* v8 ignore next -- Runtime skills are injected directly by the registry; this provider only owns `get()`. */
   list() {
     return Promise.resolve([])
   },

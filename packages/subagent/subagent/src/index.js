@@ -48,7 +48,6 @@ export class SubagentRuntime extends Service {
       }, this.setupRegistry)
       this.continuations = manager
       childCtx.effect(() => () => {
-        /* v8 ignore else -- one injected binding owns the slot until its fiber disposes. */
         if (this.continuations === manager) this.continuations = undefined
       }, 'subagents.continuationBinding()')
     })
@@ -75,7 +74,6 @@ export class SubagentRuntime extends Service {
   }
 
   registerContinuableSetup(contribution) {
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return this.ctx.effect(
       () => this.setupRegistry.register(contribution),
       'subagents.registerContinuableSetup()',
@@ -104,7 +102,6 @@ export class SubagentRuntime extends Service {
 
   registerProvider(provider) {
     const name = provider.name
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous cleanup; direct return preserves disposer identity
     return this.ctx.effect(function* () {
       if (this.providers.has(name)) {
         throw new SubagentError(`a subagent provider named "${name}" is already registered`, 'DUPLICATE_PROVIDER')

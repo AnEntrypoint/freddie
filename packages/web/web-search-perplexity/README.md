@@ -16,5 +16,5 @@ None; this is a separate, auxiliary model call to Perplexity's own endpoint, not
 
 ## Known Limitations and Deferred Work
 
-- **Config is resolved once at plugin load**, matching `@freddie/freddie-web-search-exa`'s existing precedent (no live-settings-reload mechanism exists for a search provider in this codebase yet).
+- **Config is resolved once at plugin load**; this provider has no live-settings namespace.
 - **Redirects fail closed** (`redirect: 'error'`) rather than following them, matching the seam's other providers.

@@ -5,7 +5,6 @@ const PACKAGE_NAME = '@freddie/freddie-sandbox-policy'
 export const name = 'sandbox-policy-invariant'
 export const inject = ['invariants']
 
-/* jscpd:ignore-start */
 function validateEvent(event, fail) {
   if (event.type === 'sandbox/mode' && !SANDBOX_MODES.includes(event.data.mode)) {
     fail(`sandbox/mode carries unknown mode ${JSON.stringify(event.data.mode)}`)
@@ -22,7 +21,6 @@ const install = Object.assign((ctx, fail) => {
     validateEvent(event, fail)
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = (ctx) =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

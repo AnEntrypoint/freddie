@@ -72,17 +72,6 @@ function installInitialModelSelection(agentCtx, selection) {
   })
 }
 
-/**
- * Create, attach, title, configure, and prompt one ordinary root Session.
- * Successful prompt admission ends webhook ownership of the operation; the
- * Agent remains lifecycle-owned by `ctx` and follows normal Session behavior.
- *
- * @param {import('@freddie/cordis').Context} ctx - untraced runtime context that owns the resulting Agent.
- * @param {import('./index.js').VerifiedWebhookDelivery<string>} delivery - exact verified provider delivery recorded in the message source.
- * @param {import('./brand.js').WebhookRuleId} ruleId - rule that returned the request.
- * @param {import('./index.js').WebhookSessionRequest} request - same-process rule result.
- * @param {AbortSignal} signal - registration lifetime cancellation through publication.
- */
 export async function createWebhookSession(ctx, delivery, ruleId, request, signal) {
   const resolved = resolveRequest(ctx, request)
   ctx.permissionPresets.resolve(resolved.permissionPreset)

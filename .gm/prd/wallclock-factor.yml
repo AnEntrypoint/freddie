@@ -1,0 +1,7 @@
+id: wallclock-factor
+title: Find a measured wall-clock factor without degrading output
+subject: 'Pre: prior token-delivery rows already rejected schema cuts and unused output reservation. Invariant: a speedup ships only with a live before/after witness and no drop in model-visible content. Post: either a measured factor is implemented, or the largest remaining lever is named with a witness that it is not yet safe.'
+acceptance: A live timing of the dominant serial path before and after a change, or a witnessed refusal of every candidate that would drop output.
+route_family: execution
+status: pending
+session_id: freddie-107108-1791049571843

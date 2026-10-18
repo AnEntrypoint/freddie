@@ -17,6 +17,6 @@ export function apply(ctx) {
 
   ctx.slots.inject('conversation.composer', () => ctx.slots.register(
     { name: 'conversation.composer', select: selectQuestion, locale: NS },
-    webjsxSlot('freddie-question-composer'),
+    webjsxSlot('freddie-question-composer', { subscriptions: 'reads' }),
   ))
 }

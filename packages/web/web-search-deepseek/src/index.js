@@ -49,13 +49,6 @@ export const Config = z.object({
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES),
 })
 
-/**
- * Project a composition entry onto the section this provider serves. Keys the
- * entry leaves unset stay unset rather than resolving to `undefined`, so the
- * schema's own defaults and the environment remain what supply them.
- * @param {object} config - the resolved plugin configuration.
- * @returns {object} the section-shaped base layer.
- */
 function sectionOf(config) {
   return {
     apiKeyEnv: config.apiKeyEnv ?? DEFAULT_API_KEY_ENV,
@@ -68,15 +61,6 @@ function definedOf(section) {
   return Object.fromEntries(Object.entries(section ?? {}).filter(([, value]) => value !== undefined))
 }
 
-/**
- * Project the plugin's resolved config into the options the provider serves its next search
- * with. Re-resolved whenever the `web-search-deepseek` section changes, so an
- * edit made from the settings surface reaches the next search instead of the
- * next composition reload.
- * @param {import('@freddie/cordis').Context} ctx - plugin context supplying the credential and environment planes.
- * @param {object} config - the resolved plugin configuration.
- * @returns {import('./provider.js').DeepSeekSearchProviderOptions} options for one search.
- */
 function resolveOptions(ctx, config) {
   const apiKeyEnv = credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
   const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0 ? config.apiKey : undefined
@@ -105,16 +89,6 @@ function resolveOptions(ctx, config) {
   }
 }
 
-/**
- * Register the DeepSeek search provider with `ctx.web`.
- *
- * The options the provider serves come from a thunk it calls per search, so
- * re-resolving them on a settings commit is what makes an edit to this
- * namespace take effect without recomposing: the section is the source, and the
- * composition entry is only what it resolves over.
- * @param {import('@freddie/cordis').Context} ctx
- * @param {object} config
- */
 export function apply(ctx, config) {
   let source = () => sectionOf(config)
   let options = resolveOptions(ctx, { ...config, ...definedOf(source()) })

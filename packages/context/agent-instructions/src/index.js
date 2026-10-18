@@ -90,7 +90,6 @@ export function apply(ctx, config) {
     const changes = []
     let desiredBaseline = false
     const authorityMessages = [...claimed]
-    /* v8 ignore next -- normal agents carry an absolute session cwd. */
     const cwd = agent.session.header.cwd ?? process.cwd()
     const projectRoot = await findProjectRoot(cwd, resolved.projectRootMarkers, fileSystem, signal)
     const identity = workspaceBaselineIdentity(resolved, cwd, projectRoot)
@@ -171,7 +170,6 @@ export function apply(ctx, config) {
     )
     if (update !== undefined) {
       content.push(...update.context.content)
-      /* v8 ignore next -- reconciliation constructs only agent-instructions contexts. */
       if (update.context.source.kind === 'agent-instructions') {
         changes.push(...update.context.source.changes)
       }

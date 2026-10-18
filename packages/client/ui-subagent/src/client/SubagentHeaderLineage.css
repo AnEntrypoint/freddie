@@ -68,6 +68,11 @@
   height: 10px;
 }
 
+.freddie-subagentHeaderLineage__count {
+  flex: none;
+  white-space: nowrap;
+}
+
 .freddie-subagentHeaderLineage__trigger:hover,
 .freddie-subagentHeaderLineage__trigger:focus-visible {
   color: var(--freddie-alias-label-secondary);

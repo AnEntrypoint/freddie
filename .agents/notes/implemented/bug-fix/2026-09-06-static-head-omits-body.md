@@ -8,7 +8,7 @@ The webserver fallback and the `/plugins/`, `/workspace/`, `/vendor/`, and `/sty
 
 ## Decision
 
-A 200 from those file servers ends with no body when `req.method === 'HEAD'` and still writes the GET headers (`content-type`, and `cache-control` / `last-modified` where the GET path already sets them). 304, 403, 404, and 405 already call `res.end()` with no payload. SSE `/plugins/events` is unchanged: HEAD there still opens the event stream.
+A 200 from those file servers ends with no body when `req.method === 'HEAD'` and still writes the GET headers (`content-type`, and `cache-control` / `last-modified` where the GET path already sets them). 304, 403, 404, and 405 already call `res.end()` with no payload. The separate WebSocket `/plugins/events` endpoint answers ordinary HTTP requests with 426 ([transport decision](../architecture/2026-10-06-hmr-websocket-connection-budget.md)).
 
 ## Alternatives considered
 

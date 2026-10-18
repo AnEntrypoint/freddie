@@ -1,5 +1,5 @@
-import { createElement as h } from '@freddie/webjsx'
-import { renderCodeBlock } from '@freddie/freddie-client-ui-primitives'
+import { applyDiff, createElement as h } from '@freddie/webjsx'
+import { renderCodeBlock, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { shallowEqual } from '@freddie/freddie-client-runtime/client'
 import { findToolCall } from '../chat/tool-node-reader.js'
 import css from './DetailsPanel.css.js'
@@ -27,6 +27,41 @@ function materialFor(s, callId) {
   return 'kind' in found ? settledMaterial(found, callId) : runningMaterial(found)
 }
 
+function materialNow(session, store) {
+  const callId = store.getSnapshot().selection?.callId
+  return callId === undefined ? null : materialFor(session.getSnapshot(), callId)
+}
+
+function sameMaterial(previous, next) {
+  return previous === next
+    || (previous !== null && next !== null && shallowEqual(previous, next))
+}
+
+export function createDetailMaterialSource(session, store) {
+  let value = materialNow(session, store)
+  const refresh = () => {
+    const next = materialNow(session, store)
+    if (sameMaterial(value, next)) return false
+    value = next
+    return true
+  }
+  return {
+    getSnapshot() {
+      refresh()
+      return value
+    },
+    subscribe(listener) {
+      const notify = () => { if (refresh()) listener() }
+      const unsubscribeSession = session.subscribe(notify)
+      const unsubscribeStore = store.subscribe(notify)
+      return () => {
+        unsubscribeSession()
+        unsubscribeStore()
+      }
+    },
+  }
+}
+
 function pretty(raw) {
   try {
     return JSON.stringify(JSON.parse(raw), null, 2)
@@ -43,14 +78,12 @@ function rawResultText(block) {
 }
 
 export function DetailsPanel(
-  { useSession, useSessions, sessionId, useStore, renderSlot, closeDetails, t },
+  { useDetail, useSessions, sessionId, useStore, renderSlot, closeDetails, t },
 ) {
   const selection = useStore(s => s.selection)
   const sessionCwd = useSessions(list => list.byId[sessionId]?.cwd)
   const callId = selection?.callId
-  const material = useSession(
-    s => (callId === undefined ? null : materialFor(s, callId)),
-    (a, b) => shallowEqual(a, b))
+  const material = useDetail(m => m)
 
   return h(
     'div',
@@ -100,3 +133,10 @@ export function DetailsPanel(
     ),
   )
 }
+
+export class FreddieDetailsPanel extends HTMLElement {
+  setProps(props) {
+    applyDiff(this, DetailsPanel(props))
+  }
+}
+defineElement('freddie-details-panel', FreddieDetailsPanel)

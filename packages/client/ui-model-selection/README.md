@@ -12,6 +12,12 @@ Every resident directory refetches directly on forwarded `llm/adapters-updated` 
 
 The `/client` exports are the plugin body (`apply`/`inject`), `ModelDirectoryResolver`, `ModelDirectory` with its state fields, and the seat's injected face type.
 
+## Composer menu geometry and focus
+
+Within the composer's inline-size query container, the menu uses border-box widths capped at that container's content width. Its static root leaves absolute positioning to the positioned composer card, placing the upward menu above the card and aligning its right edge. This relationship applies at every composer width; outside a query container, the root retains its relative positioning and viewport-based menu bounds. Trigger text may ellipsize while its title and accessible name retain the complete current label; provider groups and adapter effort names remain available in the menu.
+
+Opening the menu or changing panes focuses the first enabled item after the actual DOM update, falling back to the trigger when no item is enabled. Arrow keys enter at the first or last enabled item and wrap through enabled items. Escape returns from a child pane to the root pane, then closes the root menu and restores the trigger. Focus navigation does not select a model or effort.
+
 ## Model Experience
 
 Indirectly, through the `session.selectModel` RPC available to ordinary sessions, both entries submit the complete `ModelSelection` that the Host snapshots at the next prompt-assembly boundary, so the following request uses the selected provider, model, and effort while a running step keeps its assembled selection; the selection becomes durable only when the existing request header records a request that consumes it, and menu interaction adds no prompt content.

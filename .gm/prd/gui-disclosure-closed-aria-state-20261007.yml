@@ -1,0 +1,4 @@
+id: gui-disclosure-closed-aria-state-20261007
+subject: Actual ToolRow disclosure closed state omits aria-expanded while open exposes true. Preserve explicit false through renderer/consumer and verify native closed/open/close on real historical row.
+session_id: gui-dada-root-20261007
+status: pending

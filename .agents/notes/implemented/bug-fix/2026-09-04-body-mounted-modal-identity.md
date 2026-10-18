@@ -24,6 +24,8 @@ ChatView stores `#turnStatus` and reuses that `dsh-turn-status` while the turn i
 
 `Modal(props)` remains the one-shot helper.
 
+Body-mounted dialogs also require [connection-scoped owner lifetime](2026-10-06-connected-session-export-modal-owner.md): retaining a modal within a detached factory owner does not cover owners that the diff discards before connection.
+
 ## Alternatives considered
 
 **Keep `h(Modal)` and teach applyDiff to reuse body-mounted nodes.** Rejected: `renderModal` appends to `document.body`; the returned node is not in the owner's child list, so the parent diff cannot own it.

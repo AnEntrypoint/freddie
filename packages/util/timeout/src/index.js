@@ -28,19 +28,7 @@ export function clampTimeout(
   return Math.min(requested ?? def, max)
 }
 
-/**
- * A deadline signal plus the cleanup that clears its timer (dispose-once).
- * @typedef {Disposable & { signal: AbortSignal }} Deadline
- */
 
-/**
- * Rearmable timeout around one outstanding async-iterator demand.
- * @typedef {Disposable & {
- *   signal: AbortSignal,
- *   next: function(AsyncIterator<unknown>): Promise<IteratorResult<unknown>>,
- *   pulse: function(): void
- * }} IdleWatchdog
- */
 
 export function deadline(
   upstream,

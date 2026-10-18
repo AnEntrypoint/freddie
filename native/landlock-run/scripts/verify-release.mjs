@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * Release verification. Always: every published package carries one shared
- * version, and — when running from a tag or publishing — the
- * `landlock-run-vX.Y.Z` tag matches it. With `--prebuilds`: every platform package's declared
- * binaries exist with the right ELF architecture (run after
- * `assemble-prebuilds.mjs` or a local `build:native`).
- */
 
 import path from 'node:path';
 import { packageDirs, platformDirs, readJson, root, verifyPlatformBinaries } from './repo.mjs';

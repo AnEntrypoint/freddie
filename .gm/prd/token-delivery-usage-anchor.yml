@@ -1,0 +1,8 @@
+id: token-delivery-usage-anchor
+title: Record provider usage on assistant messages
+subject: 'Pre: assistant/message events in the live session carry no usage field (usageCount 0 over 26 messages). Invariant: a usage report that the provider sent is durable. Post: the next live step''s assistant/message stores input, output, and cache tokens so pressure is measured, not estimated.'
+acceptance: one new assistant/message in this session's log has a usage object with inputTokens and outputTokens.
+route_family: observability
+status: completed
+session_id: freddie-27264-1790927965849
+witness: 'The missing field was upstream: 0 usage chunks in 25 finish events. acptoapi now requests include_usage and emits the usage chunk before [DONE]. Live witness exec_js 1791106377744: prompt_tokens 1250, completion_tokens 1, cached_tokens 1152. agent.js:343 already stores assembler.usage; translate.js:17 maps cached_tokens into cacheReadTokens. The next model step after this gateway restart is the first that can persist it.'

@@ -92,7 +92,6 @@ function runSchemaCompiler(initial) {
       const entries = Object.entries(task.input)
       for (let index = entries.length - 1; index >= 0; index--) {
         const entry = entries[index]
-        /* v8 ignore next -- the loop is bounded by the captured entry count. */
         if (entry === undefined) continue
         tasks.push({
           kind: 'property',
@@ -194,14 +193,12 @@ function runSchemaCompiler(initial) {
 function compilePropertyMap(input, path) {
   const holder = {}
   runSchemaCompiler({ kind: 'property-map', input, path, destination: { kind: 'root', holder } })
-  /* v8 ignore next -- the root task assigns before scheduling any descendants. */
   return holder.value ?? authorError(`${path} did not compile`)
 }
 
 function compileValueSchema(input, path) {
   const holder = {}
   runSchemaCompiler({ kind: 'value', input, path, allowRequired: false, destination: { kind: 'root', holder } })
-  /* v8 ignore next -- the root task assigns before scheduling any descendants. */
   return holder.value ?? authorError(`${path} did not compile`)
 }
 

@@ -1,0 +1,9 @@
+id: browserskill-web-observability
+title: Integrate BrowserSkill state into Freddie Web
+subject: 'Pre: BrowserSkill provider produces tool calls and screenshot paths but Freddie Web has no first-class BrowserSkill session pane or screenshot attachment integration. Invariant: visual browser-task observation is derived from durable tool/session facts and does not leak foreign session or browser-profile data. Post: the Web UI shows owned BrowserSkill activity with correctly bounded, model-visible state.'
+acceptance: Design and implement any client/host projection required for a BrowserSkill activity panel or tool presentation, verify it in the actual Web GUI, and retain session ownership boundaries.
+status: pending
+route_family: observability
+depends_on:
+- browserskill-capability-seam
+session_id: freddie-2723231-1791306788857

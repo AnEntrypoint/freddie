@@ -56,7 +56,6 @@ const Schema = function (options) {
   Object.assign(schema, options)
   if (typeof schema.callback === 'string') {
     try {
-      // eslint-disable-next-line no-new-func
       schema.callback = new Function('return ' + schema.callback)()
     } catch {}
   }

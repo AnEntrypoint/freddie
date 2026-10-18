@@ -8,8 +8,6 @@ function styleValue(css) {
 
 function domToVNode(node, key) {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? ''
-  /* v8 ignore next 2 -- KaTeX output holds only elements and text; other
-     node kinds cannot appear in its serialized vocabulary. */
   if (node.nodeType !== Node.ELEMENT_NODE) return ''
   const element = node
   const props = { key }
@@ -33,7 +31,6 @@ export function renderTexToVNodes(value, displayMode) {
     try {
       html = katex.renderToString(value, { displayMode, strict: 'ignore', throwOnError: false })
     } catch {
-      /* v8 ignore next 8 */
       return [
         h(
           'span',

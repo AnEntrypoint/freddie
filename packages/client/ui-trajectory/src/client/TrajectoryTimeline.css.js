@@ -1,5 +1,7 @@
 const css = {
   root: 'freddie-trajectoryTimeline__root',
+  caption: 'freddie-trajectoryTimeline__caption',
+  scale: 'freddie-trajectoryTimeline__scale',
   plot: 'freddie-trajectoryTimeline__plot',
   labels: 'freddie-trajectoryTimeline__labels',
   track: 'freddie-trajectoryTimeline__track',

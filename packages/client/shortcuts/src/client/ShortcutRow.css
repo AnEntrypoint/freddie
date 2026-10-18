@@ -28,3 +28,19 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+@container freddie-settings-content (max-width: 420px) {
+  .freddie-shortcutRow__setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .freddie-shortcutRow__button {
+    align-self: flex-start;
+    max-width: 100%;
+    min-height: 28px;
+    height: auto;
+    padding-block: 4px;
+  }
+}

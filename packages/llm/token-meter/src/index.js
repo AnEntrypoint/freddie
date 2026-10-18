@@ -97,7 +97,6 @@ export class TokenMeter extends Service {
     }
 
     while (state.consumedEvents < session.events.length) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion
       const event = session.events[state.consumedEvents]
       this._foldEvent(session, state, event)
       state.consumedEvents += 1
@@ -146,7 +145,6 @@ export class TokenMeter extends Service {
         throw new Error(`token meter: assistant/message at seq ${event.seq} has no matching step/start event`)
       }
 
-      // oxlint-disable-next-line typescript/no-non-null-assertion
       const eventTokens = surface.tokens
       if (event.data.usage !== undefined && nextHeader !== undefined) {
         const providerAssistantTokens = this._estimateProviderAssistant(
@@ -201,7 +199,6 @@ export class TokenMeter extends Service {
       }
       seen.add(seq)
       const source = session.events[seq]
-      // oxlint-disable-next-line typescript/no-non-null-assertion
       const sourceEvent = source
       if (sourceEvent.type !== 'assistant/chunk') {
         throw new Error(`token meter: assistant/message at seq ${event.seq} source seq ${seq} is not assistant/chunk`)

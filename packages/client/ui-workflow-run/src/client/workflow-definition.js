@@ -7,7 +7,6 @@ function statusFromStopReason(stopReason) {
     case 'completed': return 'completed'
     case 'cancelled': return 'cancelled'
     case 'error': return 'failed'
-    /* v8 ignore next */
     default: return stopReason
   }
 }
@@ -17,7 +16,6 @@ function statusFromOutcome(outcome) {
     case 'completed': return 'completed'
     case 'cancelled': return 'cancelled'
     case 'failed': return 'failed'
-    /* v8 ignore next */
     default: return outcome
   }
 }

@@ -69,9 +69,7 @@ export class ConnectionController {
       const ac = new AbortController()
       this.current = ac
 
-      /* v8 ignore next */
       let muxOpened = () => {}
-      /* v8 ignore next */
       let hostOpened = () => {}
       const streamsOpen = Promise.all([
         new Promise((resolve) => { muxOpened = resolve }),

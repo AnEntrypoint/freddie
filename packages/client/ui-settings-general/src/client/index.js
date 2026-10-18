@@ -43,7 +43,6 @@ export function apply(ctx) {
             rowsRevision = revision
             rows = ctx.slots.entries('settings.section')
               .map(e => ({
-                /* v8 ignore next */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
                 label: resolveSlotLabel(e.options.label) ?? '',
@@ -68,7 +67,6 @@ export function apply(ctx) {
             onboardingVersion = version
             onboardingSteps = ctx.slots.entries('settings.onboarding')
               .map(e => ({
-                /* v8 ignore next */
                 id: e.options.id ?? '',
                 order: e.options.order ?? 0,
               }))

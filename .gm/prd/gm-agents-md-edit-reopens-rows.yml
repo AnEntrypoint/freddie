@@ -1,0 +1,4 @@
+id: gm-agents-md-edit-reopens-rows
+subject: 'Editing AGENTS.md reopens unrelated witnessed PRD rows (publish of commit 8f254509 reopened token-delivery-history and empty-verb-dir-skip as not rerunnable: ''module AGENTS.md changed after this row was witnessed''). Doc compaction is therefore expensive and blocks unrelated work. Bind a witness to the rule-relevant content, not to the whole AGENTS.md file, so a documentation edit that leaves the witnessed rule intact does not reopen rows. Witness: edit an unrelated AGENTS.md line and confirm no row reopens; edit the witnessed rule and confirm the row reopens.'
+status: pending
+session_id: gm-freddie-eff-20261012

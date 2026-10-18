@@ -9,7 +9,6 @@ function privateZstdStream(stream) {
   const errorKey = Reflect.ownKeys(stream).find(key => (
     typeof key === 'symbol' && key.description === 'kError'
   ))
-  /* v8 ignore next */
   if (
     typeof handle !== 'object' || handle === null
     || typeof handle.writeSync !== 'function'
@@ -39,13 +38,10 @@ export class NodePrivateZstdFrameDecoder {
   static create() {
     const stream = createZstdDecompress({ chunkSize: DECODE_CHUNK_SIZE })
     const privateAccess = privateZstdStream(stream)
-    /* v8 ignore next */
     if (privateAccess !== undefined) {
       return new NodePrivateZstdFrameDecoder(privateAccess.stream, privateAccess.errorKey)
     }
-    /* v8 ignore next */
     stream.close()
-    /* v8 ignore next */
     return undefined
   }
 
@@ -70,7 +66,6 @@ export class NodePrivateZstdFrameDecoder {
 
   decodeFrame(input) {
     const handle = this.stream._handle
-    /* v8 ignore next */
     if (this.closed || handle === null) throw new Error('cannot decode with a closed Zstandard frame decoder')
 
     let inputOffset = 0
@@ -100,14 +95,12 @@ export class NodePrivateZstdFrameDecoder {
       const produced = this.output.length - outputAfter
       if (produced > 0) {
         outputBytes += produced
-        /* v8 ignore next */
         if (outputBytes > bufferConstants.MAX_LENGTH) {
           throw new Error(`Zstandard frame output exceeds ${bufferConstants.MAX_LENGTH} bytes`)
         }
       }
 
       if (outputAfter !== 0) {
-        /* v8 ignore next */
         if (inputAfter !== 0) throw new Error('Zstandard frame decoder left trailing input')
         const finalChunk = this.output.subarray(0, produced)
         if (fullChunks.length === 0) return finalChunk

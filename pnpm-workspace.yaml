@@ -31,7 +31,7 @@ allowBuilds:
   protobufjs: false
   node-addon-require-builtin: false
   koffi: true
-  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/61057a4cf02cd9e6d1e6694c250d0f3d0099ac24: true
+  libsql-plugkit-client@https://codeload.github.com/AnEntrypoint/libsql-plugkit-client/tar.gz/b021e1d715630a6c22705eab9095aea63d02690d: false
   '@google/genai': false
 
 minimumReleaseAgeExclude:

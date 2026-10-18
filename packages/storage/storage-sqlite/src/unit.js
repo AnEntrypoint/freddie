@@ -1,6 +1,5 @@
 import { StorageError } from '@freddie/freddie-storage'
 
-// eslint-disable-next-line require-await -- keeps open() async-shaped like the JSON backend's unit.open
 export async function openSqliteUnit(descriptor, client, onClose) {
   return new SqliteKvUnit(descriptor, client, onClose)
 }

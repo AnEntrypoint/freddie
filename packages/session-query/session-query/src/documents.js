@@ -37,7 +37,6 @@ function classifySurface(events) {
     folded = foldSurface(events)
   } catch (error) {
     throw new SessionQueryError(
-      /* v8 ignore next */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },

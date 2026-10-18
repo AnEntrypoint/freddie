@@ -9,7 +9,6 @@ export function currentSurfaceEvents(sessionId, events) {
   const analysis = analyzeEventLog(sessionId, events)
   return analysis.currentSeqs.map((seq) => {
     const event = events[seq]
-    /* v8 ignore next 6 */
     if (event === undefined || event.seq !== seq || !isSurfaceEvent(event)) {
       throw new SessionQueryError(
         `invalid session surface: current node ${seq} is not a surface event`,
@@ -44,7 +43,6 @@ export function traceEvent(sessionId, events, seq) {
     if (eventSources(event).includes(seq)) derivedEventSeqs.push(event.seq)
   }
 
-  // oxlint-disable-next-line typescript/no-non-null-assertion
   const targetRecord = analysis.records[seq]
   const replacedBy = analysis.replacedBy.get(seq)
   return {
@@ -122,7 +120,6 @@ function analyzeEventLog(sessionId, events) {
     folded = foldSurface(events)
   } catch (error) {
     throw new SessionQueryError(
-      /* v8 ignore next */
       `invalid session surface: ${error instanceof Error ? error.message : 'unknown error'}`,
       'SESSION_QUERY_INVALID_SURFACE',
       { cause: error },
@@ -162,7 +159,6 @@ function buildDescendants(childrenByParent, sessionId) {
   const descendants = []
   const stack = [{ sessionId, descendants }]
   while (stack.length > 0) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const frame = stack.pop()
     const nodes = []
     for (const child of childrenByParent.get(frame.sessionId) ?? []) {
@@ -171,7 +167,6 @@ function buildDescendants(childrenByParent, sessionId) {
       frame.descendants.push(node)
     }
     for (let index = nodes.length - 1; index >= 0; index -= 1) {
-      // oxlint-disable-next-line typescript/no-non-null-assertion
       const node = nodes[index]
       stack.push({ sessionId: node.session.header.id, descendants: node.descendants })
     }

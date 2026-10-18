@@ -46,7 +46,6 @@ export class ConsoleExporter {
   }
 
   export(message) {
-    // eslint-disable-next-line no-console
     console.log(this.render(message))
   }
 

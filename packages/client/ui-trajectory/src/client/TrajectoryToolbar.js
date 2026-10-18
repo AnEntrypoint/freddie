@@ -23,8 +23,7 @@ export function TrajectoryToolbar({
           h('button', {
             type: 'button',
             class: css.toggle ?? '',
-            'aria-label': t('toolbar.useActualDuration'),
-            'aria-pressed': actualDuration,
+            'aria-label': actualDuration ? t('toolbar.useEqualWidth') : t('toolbar.useActualDuration'),
             title: actualDuration ? t('toolbar.useEqualWidth') : t('toolbar.useActualDuration'),
             onclick: () => { onActualDurationChange(!actualDuration) },
           },

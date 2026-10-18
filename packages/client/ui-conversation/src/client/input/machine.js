@@ -1,5 +1,3 @@
-export const PLACEHOLDER = '￼'
-
 const REFERENCE_PLACEHOLDER_RE = /[-￼]/gu
 
 export function referenceDraftText(reference) {

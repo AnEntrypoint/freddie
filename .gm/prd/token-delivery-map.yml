@@ -1,0 +1,8 @@
+id: token-delivery-map
+title: Map every model-token delivery path
+subject: 'Pre: request assembly lives in packages/core/agent-loop and packages/llm. Invariant: every byte that reaches a model request is reconstructable from the session log. Post: a witnessed inventory of system prompt, tools, history, images, compaction, and output-cap paths with file:line.'
+acceptance: codesearch plus read of agent.js request/header, system-prompt, token-meter, compaction-basic, and both adapters names each delivery path.
+route_family: grounding
+status: completed
+session_id: freddie-27264-1790927965849
+witness: 'agent.js:173-191 preStep and :359-443 buildRequest; system-prompt/src/index.js:46 renderPrompt; tools/src/index.js:311 wireSchemas; llm-deepseek serialize.js:213-236 requestWithMessages; compaction-basic config.js resolveCompactSpec. Live header seq 35: systemBytes 19755, toolBytes 74243, toolCount 98.'

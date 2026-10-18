@@ -108,8 +108,6 @@ function renderType(schema, className, state) {
     assertSupportedJsonSchema(schema)
     const frames = [newFrame(schema, className, 0)]
     let result
-    /* jscpd:ignore-start -- the explicit-stack walk skeleton deliberately parallels
-       ts-types.js's renderSupportedSchema; the two sibling renderers keep symmetric shapes. */
     const finish = (type) => {
       frames.pop()
       const parent = frames.at(-1)
@@ -119,13 +117,11 @@ function renderType(schema, className, state) {
 
     while (frames.length > 0) {
       const frame = frames.at(-1)
-      /* v8 ignore next -- the loop condition guarantees a current frame. */
       if (frame === undefined) break
 
       if (frame.phase === 'children') {
         if (frame.childIndex < frame.children.length) {
           const child = frame.children[frame.childIndex]
-          /* v8 ignore next -- childIndex is bounded by children.length. */
           if (child === undefined) throw new Error('missing python render child')
           frame.childIndex++
           frames.push(newFrame(child.schema, child.className, child.listDepth))
@@ -139,22 +135,18 @@ function renderType(schema, className, state) {
           finish(union)
           continue
         }
-        /* jscpd:ignore-end */
         if (frame.kind === 'array') {
-          /* v8 ignore next -- the ?? arm needs a childless array frame, which start never builds. */
           finish(`list[${frame.childTypes[0] ?? 'Any'}]`)
           continue
         }
         const node = frame.node
         const name = frame.allocated
-        /* v8 ignore next -- typeddict frames always set node and allocated at start. */
         if (node === undefined || name === undefined) throw new Error('missing typeddict frame state')
         const required = new Set(node.required)
         const lines = [`class ${name}(TypedDict):`]
         for (let index = 0; index < frame.entries.length; index++) {
           const entry = frame.entries[index]
           const fieldType = frame.childTypes[index]
-          /* v8 ignore next -- entries and childTypes correspond one-to-one. */
           if (entry === undefined || fieldType === undefined) throw new Error('missing typeddict field type')
           const [field, fieldSchema] = entry
           const description = describe(fieldSchema)
@@ -225,18 +217,15 @@ function renderType(schema, className, state) {
           frame.allocated = allocateClassName(frame.className, state)
           state.typing.add('TypedDict')
           frame.entries = entries
-          /* v8 ignore next -- allocated is always set before children are built. */
           frame.children = entries.map(([field, child]) => ({ schema: child, className: childClassName(frame.allocated ?? '', camelCase(field)), listDepth: 1 }))
           break
         }
-        /* v8 ignore next 4 -- assertSupportedJsonSchema narrowed this closed type union. */
         default: {
           state.typing.add('Any')
           finish('Any')
         }
       }
     }
-    /* v8 ignore next -- every root frame produces one expression. */
     return result ?? 'Any'
   } catch {
     state.typing.add('Any')

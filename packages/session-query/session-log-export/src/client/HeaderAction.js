@@ -28,7 +28,9 @@ export class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
     const entry = useSessionLogDownload(state => state.bySession[String(sessionId)])
     const busy = entry?.status === 'downloading'
 
-    this.#modal = renderModal(this.#modal, dialogProps(props))
+    if (this.isConnected) {
+      this.#modal = renderModal(this.#modal, dialogProps(props))
+    }
 
     applyDiff(this, (
       h('button', {

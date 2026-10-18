@@ -11,7 +11,6 @@ function foldChecked(events, fail) {
   try {
     return foldGoal(events)
   } catch (error) {
-    /* v8 ignore next -- the strict goal decoder throws Error instances */
     const message = error instanceof Error ? error.message : String(error)
     return fail(`cannot reconstruct the goal before a continuation message: ${message}`)
   }
@@ -51,7 +50,6 @@ const install = Object.assign((ctx, fail) => {
       prior.push(event)
     }
   }
-  /* jscpd:ignore-start -- package companions share dispatch and registration plumbing */
   ctx.on('internal/dispatch', (_mode, eventName, args) => {
     if (eventName !== 'session/event') return
     const [session, event] = args
@@ -61,4 +59,3 @@ const install = Object.assign((ctx, fail) => {
 
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
-/* jscpd:ignore-end */

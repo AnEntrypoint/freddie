@@ -5,7 +5,6 @@ export { redactSecrets } from './redact.js'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 
-/** @typedef {string} SettingsNamespace */
 
 export function settingsNamespace(value) {
   if (!NAMESPACE_PATTERN.test(value)) {
@@ -124,7 +123,6 @@ function deepFreeze(value) {
 }
 
 export class SettingsProvider extends Service {
-  /** @type {Map<string, object>} */
   registrations = new Map()
   document = {}
   writeQueues = new Map()

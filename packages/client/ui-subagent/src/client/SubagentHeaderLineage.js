@@ -16,6 +16,7 @@ function diagnosticReason(
     case 'corrupt': return t('diagnostic.corrupt')
     case 'unsupported': return t('diagnostic.unsupported')
     case 'unavailable': return t('diagnostic.unavailable')
+    default: throw new Error(`Unknown subagent diagnostic reason: ${entry.reason}`)
   }
 }
 
@@ -27,11 +28,12 @@ function treeItems(root) {
 
 function formatTokens(value) {
   const scaled = (next) => next >= 100
-    ? String(Math.round(next))
-    : String(Math.round(next * 10) / 10)
+    ? Math.round(next)
+    : Math.round(next * 10) / 10
   if (value < 1_000) return String(value)
-  if (value < 1_000_000) return `${scaled(value / 1_000)}K`
-  return `${scaled(value / 1_000_000)}M`
+  if (scaled(value / 1_000) < 1_000) return `${scaled(value / 1_000)}K`
+  if (scaled(value / 1_000_000) < 1_000) return `${scaled(value / 1_000_000)}M`
+  return `${scaled(value / 1_000_000_000)}B`
 }
 
 function tokenTotal(
@@ -464,7 +466,6 @@ export class FreddieCatalogDropdown extends HTMLElement {
     if (props === null) return
     if (next) {
       const trigger = this.#triggerEl
-      /* v8 ignore next */
       if (trigger === null) return
       this.#open = true
       this.#menuPosition = catalogMenuPosition(trigger)
@@ -556,7 +557,6 @@ export class FreddieCatalogDropdown extends HTMLElement {
     this.#unbindPlacement()
     const placeMenu = () => {
       const trigger = this.#triggerEl
-      /* v8 ignore next */
       if (trigger === null) return
       this.#menuPosition = catalogMenuPosition(trigger)
       this.#render()
@@ -585,7 +585,14 @@ export class FreddieCatalogDropdown extends HTMLElement {
     const summaries = props.useSessions(state => state.byId)
     const descendants = indexSubagentDescendants(summaries).get(props.rootSessionId) ?? NO_DESCENDANTS
     if (descendants.runningCount === 0) return
-    this.#runningTimer = setInterval(() => { this.#now = Date.now(); this.#render() }, 1_000)
+    this.#runningTimer = setInterval(() => { if (this.#hasChildEntries()) this.#render() }, 1_000)
+  }
+
+  #hasChildEntries() {
+    const props = this.#props
+    if (props === null) return false
+    const catalog = props.useSessions(state => state.subagentsByParent)[props.rootSessionId]
+    return catalog?.entries.some(entry => entry.kind === 'child') === true
   }
 
   #unbindRunningTimer() {
@@ -624,6 +631,7 @@ export class FreddieCatalogDropdown extends HTMLElement {
   #render() {
     const props = this.#props
     if (props === null) { applyDiff(this, []); return }
+    this.#now = Date.now()
     const {
       rootSessionId, currentSessionId, displayTitle, openTitle, variant, separator = false,
       useSessions, openChild, refresh, t,

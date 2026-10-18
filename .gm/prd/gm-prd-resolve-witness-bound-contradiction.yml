@@ -1,0 +1,6 @@
+id: gm-prd-resolve-witness-bound-contradiction
+subject: prd-resolve reports witness_dispatch_id_verified true (via ledger) and resolved the row, yet also reports witness_bound false in the same reply. The two flags contradict each other, so an agent cannot tell whether the witness binds. Fix the prd-resolve reply in C:/dev/gm/rs-plugkit so witness_bound reflects the verified binding, and witness with a live prd-resolve on a row bound by witness_dispatch_id.
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: 'Live prd-resolve at dispatch 1791820681430 on the throwaway row gm-witness-bound-probe-b, bound to witness_dispatch_id 1791820582501-500-e0b95435f9b80e47: witness_bound true and witness_dispatch_id_verified true (via ledger). Runner 0.1.317 served it after the self-update (earlier 0.1.316 returned witness_bound false).'
+resolution: 'Root cause: witness_bound was witness_binding.is_some(), true only for the flat exit-code/sha/path/ts binding. A binding by witness_dispatch_id never set it. Fix: witness_bound = witness_binding.is_some() || dispatch_verified, in rs-plugkit crates/plugkit-core/src/orchestrator/prd.rs. Published as AnEntrypoint/rs-plugkit commit 713165e57047f2dcae0a5554ba7b0ce4d39f0c06, CI green on all four jobs; the local C:/dev/gm/rs-plugkit checkout is diverged and was not reset.'

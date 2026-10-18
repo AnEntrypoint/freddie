@@ -20,3 +20,10 @@ separately when working in this repository.
 ```js
 import { createElement as h } from '@freddie/webjsx'
 ```
+
+## DOM attributes
+
+ARIA values serialize as attributes in HTML and SVG. Explicit `false` becomes
+`"false"`; `null`, `undefined`, and omitted keys remove the attribute. Other
+HTML DOM properties use native assignment; unknown HTML and SVG attributes
+omit `false`, `null`, and `undefined`.

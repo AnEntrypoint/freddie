@@ -9,7 +9,6 @@ import { homePatchPath, prepareProfile, PROFILE_ROOT_FILENAME } from './profile-
 
 const NAME = 'freddie'
 
-/* v8 ignore start -- built-bin acceptance drives this boot-free dispatch */
 export function runDumpConfig(profile, defaultOnly, patches) {
   const loaded = prepareProfile(profile, !defaultOnly)
   const layers = loaded.layers.map(layer => ({
@@ -32,4 +31,3 @@ export function runDumpConfig(profile, defaultOnly, patches) {
   }
   process.stdout.write(renderConfigDump(NAME, join(loaded.dir, PROFILE_ROOT_FILENAME), layers))
 }
-/* v8 ignore stop */

@@ -262,7 +262,6 @@ export class SqliteStore {
     try {
       await this.db.execute(sql('rollback'))
     } catch (rollbackError) {
-      /* v8 ignore next */
       throw new AggregateError([error, rollbackError], `${this.name} ${operation} failed and rollback also failed`)
     }
     throw error
@@ -270,7 +269,6 @@ export class SqliteStore {
 
   async incrementRevision(id) {
     const result = await this.db.execute({ sql: sql('update-session-revision'), args: [id] })
-    /* v8 ignore next */
     if (Number(result.rowsAffected) !== 1) throw new Error(`session ${id} metadata row is missing`)
   }
 
@@ -396,11 +394,9 @@ async function validateParentDirectory(path) {
     throw new Error(`session database parent "${path}" must be a real directory`)
   }
   const uid = process.getuid?.()
-  /* v8 ignore start */
   if (uid !== undefined && (parent.uid !== uid || (parent.mode & 0o022) !== 0)) {
     throw new Error(`session database parent "${path}" must be owned by the current user and not group/world-writable`)
   }
-  /* v8 ignore stop */
 }
 
 async function validateDatabaseFile(path) {
@@ -409,11 +405,9 @@ async function validateDatabaseFile(path) {
     throw new Error(`session database "${path}" must be a regular file, not a symbolic link`)
   }
   const uid = process.getuid?.()
-  /* v8 ignore start */
   if (uid !== undefined && (file.uid !== uid || (file.mode & 0o077) !== 0)) {
     throw new Error(`session database "${path}" must be owned by the current user and accessible only by that user`)
   }
-  /* v8 ignore stop */
 }
 
 async function validateDatabaseFileIfPresent(path) {

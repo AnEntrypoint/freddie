@@ -52,7 +52,6 @@ function copySessionTitleSource(source) {
       ...(source.model === undefined ? {} : { model: { ...source.model } }),
     }
     case 'user': return { kind: 'user' }
-    /* v8 ignore next */
     default: return assertNever(source, 'SessionTitleSource')
   }
 }
@@ -161,7 +160,6 @@ export class SessionTitleService extends Service {
       source: { kind: 'user' },
     })
     const snapshot = this.get(session)
-    /* v8 ignore next */
     if (snapshot === undefined) throw new Error('renamed title failed to fold')
     return snapshot
   }
@@ -379,7 +377,6 @@ export class SessionTitleService extends Service {
     this.assertServiceActive()
     work.signal.throwIfAborted()
     const state = this.work.get(session)
-    /* v8 ignore next */
     if (this.registration !== work.registration
       || state?.active !== work
       || state.revision !== work.revision

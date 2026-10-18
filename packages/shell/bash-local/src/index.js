@@ -119,11 +119,9 @@ export class LocalBashExecutor extends ShellExecutor {
 
   static collected(handle) {
     const { stdout, stderr } = handle.collected
-    /* v8 ignore start -- collect dispositions expose both readers by the seam contract; defensive. */
     if (stdout === undefined || stderr === undefined) {
       throw new Error('bash-local: subprocess implementation dropped a requested collect stream')
     }
-    /* v8 ignore stop */
     return { stdout, stderr }
   }
 

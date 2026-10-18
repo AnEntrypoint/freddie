@@ -69,16 +69,13 @@ export async function prepareImageFile(input, limits, policy) {
 }
 
 async function syncDirectory(path) {
-  /* v8 ignore next -- Windows cannot open directory handles; NTFS metadata journaling owns entry durability there. */
   if (process.platform === 'win32') return
-  /* v8 ignore start -- Windows cannot exercise directory fsync; POSIX behavior tests enforce this peer. */
   const handle = await open(path, constants.O_RDONLY)
   try {
     await handle.sync()
   } finally {
     await handle.close()
   }
-  /* v8 ignore stop */
 }
 
 async function ensureDurableDirectory(path, boundary) {
@@ -90,7 +87,6 @@ async function ensureDurableDirectory(path, boundary) {
   while (level !== stop) {
     const parent = dirname(level)
     await syncDirectory(parent)
-    /* v8 ignore next -- filesystem-root guard: callers pass a boundary that is an ancestor of path, so the walk reaches it first. */
     if (parent === level) return
     level = parent
   }
@@ -128,7 +124,6 @@ export async function commitPreparedImageFile(root, prepared) {
     try {
       await link(temporary, target)
     } catch (error) {
-      /* v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
       if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error
       const existing = new Uint8Array(await readFile(target))
       if (digest(existing) !== sha256) throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
@@ -137,15 +132,11 @@ export async function commitPreparedImageFile(root, prepared) {
     await syncDirectory(join(root, 'objects'))
     await unlink(temporary)
   } catch (error) {
-    /* v8 ignore next -- A descriptor can remain open only when the underlying write/sync/close operation fails. */
     if (handle !== undefined) await handle.close().catch(
-      /* v8 ignore next -- Close failure is superseded by the storage operation that entered cleanup. */
       () => {},
     )
     await unlink(temporary).catch(
-      /* v8 ignore next -- The callback requires a second independent staging-unlink failure. */
       (cleanupError) => {
-        /* v8 ignore next -- Cleanup is best-effort only for a staging file already removed by a failed operation. */
         if (!(cleanupError instanceof Error && 'code' in cleanupError && cleanupError.code === 'ENOENT')) throw cleanupError
       },
     )

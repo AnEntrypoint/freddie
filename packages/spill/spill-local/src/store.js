@@ -11,7 +11,6 @@ export function privateRoot() {
   return defaultRoot
 }
 
-/* jscpd:ignore-start */
 export function encodeSegment(raw) {
   if (raw.length === 0) return '~'
   if (raw === '.') return '~002E'
@@ -28,7 +27,6 @@ export function encodeSegment(raw) {
   }
   return out
 }
-/* jscpd:ignore-end */
 
 export function sessionDir(root, sessionId) {
   const hash = createHash('sha256').update(sessionId).digest('hex').slice(0, 12)

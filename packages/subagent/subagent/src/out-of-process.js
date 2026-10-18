@@ -1,33 +1,7 @@
 import { accessSync, constants, statSync } from 'node:fs'
 import { isAbsolute, resolve } from 'node:path'
 
-/**
- * A subagent run's terminal outcome. Never rejects after {@link SubagentRun}
- * publication; a `stopReason` other than `'completed'` marks a non-fatal
- * ending the seam can represent.
- * @typedef {object} SubagentResult
- * @property {Array<object>} output - the child's final model-facing content.
- * @property {unknown} [structured] - present when the request declared an
- * `outputSchema` and the child produced a matching value.
- * @property {string} [diagnostic] - safe, size-limited provider-added detail
- * for a non-completed result; never tool inputs, file contents, environment
- * values, credentials, or raw protocol payloads.
- * @property {'completed' | 'aborted' | 'max-tokens' | 'refusal' | 'error'} stopReason
- */
 
-/**
- * The holder-owned run handle a provider's `start()` fulfills with, published
- * only once the real child (in-process Agent or out-of-process handle)
- * exists. The caller owns it afterwards and must call `dispose()` on every
- * path.
- * @typedef {object} SubagentRun
- * @property {string} id - the shared session id (local) or a parent-scoped
- * lifecycle id (remote).
- * @property {object} [localAgent] - the exact child Agent for a local run;
- * `undefined` for an out-of-process run.
- * @property {Promise<SubagentResult>} result - never rejects after publication.
- * @property {function(): Promise<void>} dispose - idempotent teardown.
- */
 
 const MAX_SUBAGENT_DIAGNOSTIC_BYTES = 4_096
 
@@ -98,22 +72,9 @@ export function resolveChildCwd(prefix, configured, parentCwd) {
 }
 
 function toError(value) {
-  /* v8 ignore next */
   return value instanceof Error ? value : new Error(String(value))
 }
 
-/**
- * Inputs to {@link settleRunResult}.
- * @typedef {object} SettleRunResultParts
- * @property {function(): Promise<SubagentResult>} attempt - the provider's own attempt.
- * @property {function(): boolean} cancelled - whether cancellation already settled locally.
- * @property {function(): Array<object>} collectOutput - the best-effort output snapshot.
- * @property {function(Error, string): void} [onError] - reports an uncaught failure.
- * @property {function(): (string|undefined)} [collectDiagnostic] - unsafe raw
- * diagnostic text, limited before it reaches the result.
- * @property {AbortSignal} signal
- * @property {function} onAbort - the listener removed on every settlement path.
- */
 
 export async function settleRunResult(parts) {
   try {
@@ -141,16 +102,6 @@ export async function settleRunResult(parts) {
   }
 }
 
-/**
- * Inputs to {@link subprocessRunHandle}.
- * @typedef {object} SubprocessRunHandleParts
- * @property {string} id
- * @property {Promise<SubagentResult>} result
- * @property {AbortSignal} signal
- * @property {function} onAbort
- * @property {function(): void} requestCancel - request local cancellation.
- * @property {function(): Promise<void>} teardown - await the backend to actual exit.
- */
 
 export function subprocessRunHandle(parts) {
   let disposal

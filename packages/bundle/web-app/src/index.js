@@ -105,7 +105,6 @@ function resolveDistIndex() {
   try {
     return require.resolve('@freddie/freddie-web-frontend/index.html')
   } catch {
-    /* v8 ignore next 2 -- reachable only on a checkout missing apps/web entirely */
     throw new Error('web-app: apps/web/index.html not found; check out the repository root first')
   }
 }

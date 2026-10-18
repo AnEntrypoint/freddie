@@ -34,19 +34,22 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "@freddie/cordis": "*",
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*",
-    "@freddie/cordis": "*"
+    "@freddie/freddie-invariants": "*"
   },
   "files": [
     "src/*.js",
     "src/client/*.js"
   ],
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*",
     "@freddie/cordis-plugin-loader": "*",
-    "@freddie/freddie-host-webserver": "*"
+    "@freddie/freddie-host-webserver": "*",
+    "@freddie/freddie-invariants": "*"
+  },
+  "dependencies": {
+    "es-module-lexer": "^3.0.3"
   }
 }

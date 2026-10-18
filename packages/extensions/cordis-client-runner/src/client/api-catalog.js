@@ -1,4 +1,3 @@
-/* jscpd:ignore-start */
 export const SERVICE_API = [
   {
     key: 'layout',
@@ -859,4 +858,3 @@ export function queryEventApi(name, events = EVENT_API) {
     referencedTypes: referencedTypeClosure([event.signature]),
   }
 }
-/* jscpd:ignore-end */

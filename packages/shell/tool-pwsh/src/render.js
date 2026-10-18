@@ -1,6 +1,5 @@
 import { escalationHintMarker, sandboxDenialMarker } from '@freddie/freddie-sandbox'
 
-/* jscpd:ignore-start -- deliberate twin of freddie-tool-bash/render.ts (Agent Note). */
 
 function streamText(output) {
   if (!output.truncated) return output.text
@@ -61,4 +60,3 @@ export function renderPwshProcessRead(
   if (notices.length === 0) return read.delta
   return `${read.delta}${read.delta.length > 0 && !read.delta.endsWith('\n') ? '\n' : ''}${notices.join('\n')}`
 }
-/* jscpd:ignore-end */

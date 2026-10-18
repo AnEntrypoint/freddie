@@ -1,0 +1,7 @@
+id: freddie-cli-boot-latency
+subject: 'Warm ''node apps/cli/src/bin.js --help'' takes ~520-600ms (cold 1293ms) in C:/dev/freddie. Profile the import and plugin-load graph, then defer or lazy-load modules that --help and other non-runtime paths never touch. Witness: five timed runs before and after on the same machine, with the same command.'
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: '.gm/witness/boot-help-after.txt: ten live runs of node apps/cli/src/bin.js --help at HEAD a65d4594, median 188 ms, help_sha256 14208329c89c62da2787e09c0c75c85cc43fed9613182d63eed7781767f6e19b. Baseline from the sub2 A/B: median 332 ms before the change, 245 ms after in that run, so the change is about 26 percent faster on the measured median. The 1293 ms cold figure was not reproduced.'
+resolution: bin.js statically imported @freddie/freddie-app-boot, pulling js-yaml and the Cordis core into every invocation. The import is now dynamic inside the profile case only. --help, --version and --profile web --dump-default-config are byte-identical to baseline. CI publint success on run 38269098782.
+commit_sha: a65d4594ffaa95f9c2025c2ee202745e4185a547

@@ -46,6 +46,7 @@ function rowKey(row) {
     case 'match': return `match:${row.key}`
     case 'file': return `file:${row.index}`
     case 'path': return `path:${row.path}`
+    default: throw new Error(`unknown search row type: ${row.type}`)
   }
 }
 

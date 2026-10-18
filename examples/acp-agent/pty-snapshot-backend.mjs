@@ -1,4 +1,3 @@
-/** Deterministic in-memory PTY backend for transcript snapshots. */
 
 class SnapshotSession {
   motd = 'dsh> '
@@ -50,12 +49,9 @@ class SnapshotSession {
   }
 }
 
-/** Cordis plugin name. */
 export const name = 'pty-snapshot-backend'
-/** Required PTY service. */
 export const inject = ['terminals']
 
-/** Register the deterministic snapshot backend. */
 export function apply(ctx) {
   ctx.terminals.registerBackend({
     type: 'shell',

@@ -21,7 +21,6 @@ function validateTodos(value, fail) {
   }
 }
 
-/* jscpd:ignore-start -- package companions share replay and dispatch plumbing */
 function validateEvent(event, fail) {
   if (event.type === 'todo/write') validateTodos(event.data.todos, fail)
 }
@@ -36,7 +35,6 @@ const install = Object.assign((ctx, fail) => {
     validateEvent(event, fail)
   }, { global: true })
 }, { inject: ['sessions'] })
-/* jscpd:ignore-end */
 
 export const apply = ctx =>
   Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

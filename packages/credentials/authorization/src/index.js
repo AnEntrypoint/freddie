@@ -129,7 +129,6 @@ export class AuthorizationService extends Service {
     }
   }
 
-  /* jscpd:ignore-start */
   settle(key, settlement) {
     let invariantFailure
     const args = ['authorization/settled', key, settlement]
@@ -151,7 +150,6 @@ export class AuthorizationService extends Service {
     }
     if (invariantFailure !== undefined) throw invariantFailure
   }
-  /* jscpd:ignore-end */
 
   warnSettledListenerFailure(key, error) {
     this.ctx.logger.warn('authorization: an authorization/settled listener for "%s" failed', key)

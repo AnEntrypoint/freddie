@@ -28,11 +28,9 @@ export class LspConnection {
       graceMs: spec.killGraceMs,
       env: spec.env,
     })
-    /* v8 ignore start */
     if (this.handle.stdin === undefined || this.handle.stdout === undefined) {
       throw new Error('lsp-stdio: subprocess implementation dropped a piped protocol stream')
     }
-    /* v8 ignore stop */
     this.stdin = this.handle.stdin
     this.closed = new Promise((resolve) => {
       const close = () => {
@@ -55,7 +53,6 @@ export class LspConnection {
   }
 
   get stderrTail() {
-    /* v8 ignore next */
     return this.handle.collected.stderr?.readFrom(0).text ?? ''
   }
 
@@ -119,7 +116,6 @@ export class LspConnection {
     const id = frame.id
     const method = frame.method
     if (typeof method === 'string' && (typeof id === 'number' || typeof id === 'string')) {
-      /* v8 ignore next */
       void this.handleServerRequest(id, method, frame.params).catch(() => {})
       return
     }
@@ -164,13 +160,11 @@ export class LspConnection {
       }
       try {
         this.writer(this.stdin, message, done)
-      /* v8 ignore start */
       } catch (error) {
         const failure = asError(error)
         this.fail(failure)
         reject(failure)
       }
-      /* v8 ignore stop */
     })
   }
 
@@ -180,7 +174,6 @@ export class LspConnection {
   }
 
   fail(error) {
-    /* v8 ignore next */
     if (this.closeReason === undefined) this.closeReason = error
     this.failAll(error)
   }
@@ -193,6 +186,5 @@ export class LspConnection {
 }
 
 function asError(value) {
-  /* v8 ignore next */
   return value instanceof Error ? value : new Error(String(value))
 }

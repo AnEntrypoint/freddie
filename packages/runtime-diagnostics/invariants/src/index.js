@@ -112,7 +112,6 @@ export class InvariantRegistry extends Service {
       registrations.delete(packageName)
       throw error
     }
-    // oxlint-disable-next-line typescript/no-misused-promises
     return registration
   }
 }

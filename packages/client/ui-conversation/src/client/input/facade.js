@@ -14,6 +14,12 @@ const EMPTY_QUEUE = []
 
 const EMPTY_LEXICON = new Map()
 
+function sameFields(previous, next) {
+  const keys = Object.keys(next)
+  return keys.length === Object.keys(previous).length
+    && keys.every(key => Object.is(previous[key], next[key]))
+}
+
 export class SessionInputShell {
   constructor(deps) {
     this.deps = deps
@@ -42,7 +48,7 @@ export class SessionInputShell {
     this.history = deps.promptHistory === undefined ? undefined : new PromptHistoryNavigator(deps.promptHistory)
     this.mirrorFn = undefined
 
-    deps.queue?.subscribe(() => { this.publish() })
+    this.unsubscribeQueue = deps.queue?.subscribe(() => { this.publish() })
   }
 
   setDraft(text, editRange) {
@@ -216,6 +222,8 @@ export class SessionInputShell {
 
   dispose() {
     this.disposed = true
+    this.unsubscribeQueue?.()
+    this.unsubscribeQueue = undefined
     this.run(this.core.dispatch({ type: 'release' }))
   }
 
@@ -382,7 +390,8 @@ export class SessionInputShell {
 
   publish() {
     const next = this.compose()
-    this.state.set(next)
+    const previous = this.state.getSnapshot()
+    if (!sameFields(previous, next)) this.state.set(next)
     const mirroredDraft = projectClipboard(next)
     if (mirroredDraft !== this.lastMirroredDraft) {
       this.lastMirroredDraft = mirroredDraft

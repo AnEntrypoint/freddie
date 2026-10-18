@@ -7,10 +7,6 @@ export function TerminalSessionId(value) {
   return value
 }
 
-/**
- * Machine-routable PTY service failures.
- * @typedef {'DUPLICATE_BACKEND' | 'DUPLICATE_NAME' | 'FOREIGN_SESSION' | 'NO_BACKEND' | 'NO_SESSION' | 'OWNER_NOT_LIVE' | 'SEND_ACTIVE' | 'SERVICE_DISPOSING'} TerminalErrorCode
- */
 
 export class TerminalError extends Error {
   constructor(message, code) {

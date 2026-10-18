@@ -148,7 +148,6 @@ const install = Object.assign((ctx, fail) => {
   ctx.on('session/event', (session, event) => {
     if (!isWorkflowRecordEvent(event)) return
     const candidate = staged.get(event)
-    /* v8 ignore next 2 -- internal/dispatch stages the exact session/event callback arguments. */
     if (candidate === undefined || candidate.session !== session) {
       return fail('session/event reached publication without matching workflow-record validation')
     }

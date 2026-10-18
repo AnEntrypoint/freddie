@@ -143,7 +143,6 @@ export class Fiber {
         getOuterStack,
         execute: function () {
           if (isConstructor(runtime.callback)) {
-            // eslint-disable-next-line new-cap
             const instance = new runtime.callback(this.ctx, this.config)
             for (const hook of instance?.[symbols.initHooks] ?? []) {
               hook()

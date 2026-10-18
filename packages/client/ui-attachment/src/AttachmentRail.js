@@ -14,7 +14,6 @@ const PAGE_CARD_OVERLAP_PX = 64
 const PAGE_MIN_DISTANCE_PX = 200
 
 function pageBehavior() {
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 

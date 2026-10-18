@@ -69,7 +69,6 @@ function parseCurrentTeamEvent(event) {
           targetId: SessionId(event.data.targetId),
         },
       }
-    /* v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
     default:
       return event
   }
@@ -142,7 +141,6 @@ export function applyTeamEvent(state, event) {
       state.delivered.add(decoded.data.messageId)
       break
     }
-    /* v8 ignore next 2 -- TeamEventType is closed and every member is handled above. */
     default:
       return
   }

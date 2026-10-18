@@ -1,6 +1,6 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import clsx from 'clsx'
-import { writeClipboard } from '../clipboard.js'
+import { createCopyFeedback } from '../use-copy-feedback.js'
 import css from './CodeBlock.css.js'
 import { defineElement } from '../define-element.js'
 
@@ -12,13 +12,15 @@ function ensureHighlightModule() {
   highlightModulePromise ??= import('./highlight.js').then((mod) => {
     highlightModule = mod
     for (const listener of [...highlightModuleListeners]) listener()
+  }, () => {
+    highlightModulePromise = undefined
   })
   return undefined
 }
 
 export class FreddieCodeBlock extends HTMLElement {
   #props = { code: '' }
-  #copied = false
+  #copyFeedback = null
   #unsubscribe = null
   #onHighlightModuleReady = null
   #highlightedCode
@@ -31,6 +33,10 @@ export class FreddieCodeBlock extends HTMLElement {
   }
 
   connectedCallback() {
+    this.#copyFeedback = createCopyFeedback(
+      () => this.querySelector('pre')?.textContent ?? this.#trimmed(),
+      () => { this.#render() },
+    )
     const onHighlightModuleReady = () => {
       this.#unsubscribe = highlightModule.subscribeGrammarLoaded(() => { this.#render() })
       this.#render()
@@ -45,29 +51,14 @@ export class FreddieCodeBlock extends HTMLElement {
   }
 
   disconnectedCallback() {
+    this.#copyFeedback?.stop()
+    this.#copyFeedback = null
     this.#unsubscribe?.()
     this.#unsubscribe = null
     if (this.#onHighlightModuleReady !== null) {
       highlightModuleListeners.delete(this.#onHighlightModuleReady)
       this.#onHighlightModuleReady = null
     }
-  }
-
-  #onCopy = () => {
-    if (this.#copied) return
-    const trimmed = this.#trimmed()
-    /* v8 ignore next -- both arms always mount a <pre>; trimmed is the
-       typed fallback if the DOM shape ever diverges. */
-    const text = this.querySelector('pre')?.textContent ?? trimmed
-    void writeClipboard(text).then((ok) => {
-      if (!ok) return
-      this.#copied = true
-      this.#render()
-      window.setTimeout(() => {
-        this.#copied = false
-        this.#render()
-      }, 1000)
-    })
   }
 
   #trimmed() {
@@ -78,6 +69,7 @@ export class FreddieCodeBlock extends HTMLElement {
   #render() {
     const { lang, class: extraClass, copyLabel = 'Copy', copiedLabel = 'Copied' } = this.#props
     const trimmed = this.#trimmed()
+    const copied = this.#copyFeedback?.copied ?? false
     let html
     if (this.#highlightedHtml !== undefined && this.#highlightedCode === trimmed && this.#highlightedLang === lang) {
       html = this.#highlightedHtml
@@ -110,8 +102,8 @@ export class FreddieCodeBlock extends HTMLElement {
             { class: css.action ?? '' },
             h(
               'button',
-              { type: 'button', class: css.copyButton ?? '', onclick: this.#onCopy },
-              this.#copied ? copiedLabel : copyLabel,
+              { type: 'button', class: css.copyButton ?? '', onclick: () => this.#copyFeedback?.onCopy() },
+              copied ? copiedLabel : copyLabel,
             ),
           ),
         ),

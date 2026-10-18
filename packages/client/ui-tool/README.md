@@ -6,11 +6,19 @@ Business UI packages register only their wire Tool names and atomic views. They 
 
 ## Rendering contract
 
+The `ToolCallTree` registration explicitly uses tracked-read subscriptions: host-description reads remain live, and the conversation supplies every current node, selection and callback update. Atomic toolviews and raw generic fallbacks retain default provided-hook delivery ([decision](../../../.agents/notes/implemented/architecture/2026-10-06-read-tracked-chat-node-renderers.md)).
+
 `ToolCallTree` receives one root `ToolCallBlock` that already contains recursive `subCalls`, selection state, the session `cwd`, and Host callbacks for opening files and inspecting calls. It recursively walks the standard call blocks and sends the root and children at every depth through the same atomic dispatch path, without subscribing to a separate parent-to-children map.
 
 Each root and child wrapper preserves the `data-chat-anchor-key="call:<id>"` and `data-chat-call-id` DOM contract used for paging and selection.
 
 The package also fills `conversation.details.tool` with `ToolDetails`. The row and details renderers share the same pure card models for `terminal`, `read`, `diff`, `search`, and `web` render intents. Unknown intent tags and malformed wire card data fall back to flattened Tool result text.
+
+Completed generic rows with a nonempty owner-supplied result title display that title as a
+wrapping heading, with the tool name beneath it. Rows without that title retain their argument
+summary. The title changes neither execution state nor specialized card presentation. Expanded
+output retains the durable result text; narrow rows stack IN/OUT labels above their data using
+the row's actual width.
 
 Generic rows classify known Tool names into search, read, shell, write, edit, code, or generic variants. Running, successful, failed, and interrupted lifecycle states come only from the frozen call/result slice. File paths resolve against the session `cwd` only when the user invokes the Host open-file callback; presentation code does not read Session services.
 

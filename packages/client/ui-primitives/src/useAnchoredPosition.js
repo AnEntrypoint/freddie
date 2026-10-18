@@ -10,9 +10,6 @@ export function createAnchoredPosition(options) {
   }
 
   const place = () => {
-    /* v8 ignore start -- geometry read from real layout: jsdom reports zero
-       offset sizes, so the positive-size clamp arms are exercised by browser
-       scenarios rather than unit tests. */
     const rect = options.anchor?.getBoundingClientRect()
     if (rect === undefined) return
     const panel = options.panel
@@ -22,7 +19,6 @@ export function createAnchoredPosition(options) {
     let top = rect.bottom + options.gap
     if (width > 0) left = Math.min(Math.max(left, options.margin), window.innerWidth - width - options.margin)
     if (height > 0) top = Math.min(Math.max(top, options.margin), window.innerHeight - height - options.margin)
-    /* v8 ignore stop */
     setPosition({ left, top })
   }
 

@@ -66,11 +66,9 @@ function recordSources(
 
 export class TrajectorySearchIndex {
   entries = new Map()
-  layouts
 
   update(layouts) {
-    if (this.layouts === layouts) return false
-    this.layouts = layouts
+    let changed = false
     const seen = new Set()
     for (const turns of layouts) {
       for (const turn of turns) {
@@ -90,6 +88,7 @@ export class TrajectorySearchIndex {
                   resultPreview(cell),
                 ].join('\n').toLocaleLowerCase(),
               }
+            if (entry !== previous) changed = true
             this.entries.set(id, entry)
             seen.add(id)
           }
@@ -97,9 +96,12 @@ export class TrajectorySearchIndex {
       }
     }
     for (const id of this.entries.keys()) {
-      if (!seen.has(id)) this.entries.delete(id)
+      if (!seen.has(id)) {
+        this.entries.delete(id)
+        changed = true
+      }
     }
-    return true
+    return changed
   }
 
   search(query) {

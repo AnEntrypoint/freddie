@@ -24,7 +24,6 @@ export class SessionPreparations {
     await (signal === undefined ? entry.result : observeQueuedAbort(entry.result, signal))
     while (this.entries.get(id) === entry && entry.phase !== 'ready') {
       const settled = entry.reservationSettled
-      /* v8 ignore next */
       if (settled === undefined) throw new Error(`session "${id}" preparation lost its reservation waiter`)
       if (signal === undefined) await settled
       else await observeQueuedAbort(settled, signal)
@@ -213,7 +212,6 @@ export function observeQueuedAbort(operation, signal, started = () => false) {
           rejectObservation(reject, reason)
           return
         }
-        /* v8 ignore next */
         reject(new Error('queued observation abort event lacked an aborted signal'))
       })
     }

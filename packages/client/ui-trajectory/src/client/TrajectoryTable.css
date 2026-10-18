@@ -158,11 +158,6 @@
   white-space: nowrap;
 }
 
-.freddie-trajectoryTable__eventHeader {
-  padding-right: 4px !important;
-  text-align: right !important;
-}
-
 .freddie-trajectoryTable__table td {
   box-sizing: border-box;
   height: 30px;
@@ -191,8 +186,8 @@
     opacity 120ms var(--ds-ease-in-out);
 }
 
-.freddie-trajectoryTable__table tbody tr[data-timeline-focus='outside'] {
-  opacity: 0.24;
+.freddie-trajectoryTable__table tbody tr[data-timeline-focus='outside'] td {
+  color: var(--freddie-alias-label-secondary);
 }
 
 .freddie-trajectoryTable__table tbody tr:not([data-collapsed-summary]):not([data-virtual-spacer]):not([data-history-load]):not([data-selected='true']):hover {
@@ -379,10 +374,10 @@
   transform: translateY(-50%);
 }
 
-.freddie-trajectoryTable__event {
-  overflow: visible !important;
-  padding-right: 4px !important;
-  padding-left: 36px !important;
+.freddie-trajectoryTable__table td.freddie-trajectoryTable__event {
+  overflow: visible;
+  padding-right: 4px;
+  padding-left: 36px;
 }
 
 .freddie-trajectoryTable__turnLabel {
@@ -502,9 +497,9 @@
     width: 50px;
   }
 
-  .freddie-trajectoryTable__event {
-    padding-right: 3px !important;
-    padding-left: 28px !important;
+  .freddie-trajectoryTable__table td.freddie-trajectoryTable__event {
+    padding-right: 3px;
+    padding-left: 28px;
   }
 
   .freddie-trajectoryTable__requestBoundaryControl {
@@ -585,11 +580,6 @@
   .freddie-trajectoryTable__turnLabelCompact {
     transition-property: max-width, opacity;
   }
-}
-
-.freddie-trajectoryTable__user {
-  color: var(--freddie-alias-state-business-primary);
-  background: var(--freddie-alias-state-business-tertiary);
 }
 
 .freddie-trajectoryTable__systemNeutral {

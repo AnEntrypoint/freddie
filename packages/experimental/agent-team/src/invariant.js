@@ -14,7 +14,6 @@ const install = Object.assign((ctx, fail) => {
       const state = foldTeam(session.id, session.events)
       applyTeamEvent(state, event)
     } catch (error) {
-      /* v8 ignore next -- the strict Team fold throws Error instances. */
       const message = error instanceof Error ? error.message : String(error)
       fail(`session event ${event.seq} violates the Agent Teams stream: ${message}`)
     }

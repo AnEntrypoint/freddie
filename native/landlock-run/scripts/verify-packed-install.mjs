@@ -1,25 +1,4 @@
 #!/usr/bin/env node
-/**
- * Publish-path rehearsal without publishing: verify the packed tarballs are
- * exactly what a consumer install needs. `pnpm pack` already produced the
- * bytes `pnpm publish` would upload; this script checks the payload
- * (coverage, concrete dependency versions, NO lifecycle install scripts —
- * this family has no install fallback on purpose), unpacks the entry plus
- * THIS host's platform tarball into a throwaway consumer OUTSIDE the repo,
- * byte-pins the installed binary against the workspace build it was packed
- * from, and drives the INSTALLED entry under plain `node` — resolution,
- * probe, and a real confinement world-proof through the installed launcher.
- *
- * On non-Linux hosts (no platform package exists) it instead proves the
- * documented degradation: resolution falls back to a nonexistent path and
- * the probe reports `unusable`.
- *
- * Usage: `node scripts/verify-packed-install.mjs [tarball-dir] [--current-platform-only]`.
- * The flag skips the all-platforms tarball-presence check for
- * per-architecture CI legs. `NALR_REQUIRE_LANDLOCK=1` makes an unenforcing
- * kernel a failure instead of a skipped world-proof (set on CI, where the
- * kernel is known).
- */
 
 import crypto from 'node:crypto';
 import fs from 'node:fs';

@@ -1,13 +1,5 @@
 import { foldSubagentDescriptor } from './descriptor.js'
 
-/**
- * Fold state for a subagent's latest timing snapshot.
- * @typedef {object} SubagentTimingFoldState
- * @property {boolean} descriptorSeen
- * @property {number} settledMs
- * @property {number} [pendingTurnStart] - a turn-start time observed before the descriptor.
- * @property {{ since: number, through: number }} [active] - the in-progress active span, if any.
- */
 
 export const subagentTimingProjectionDefinition = {
   key: 'subagentTiming',
@@ -53,10 +45,6 @@ export const subagentTimingProjectionDefinition = {
   stateVersion: 2,
 }
 
-/**
- * Identity from the last valid descriptor; absent before one, and after an invalid one.
- * @typedef {{ mode: 'one-shot', label?: string, seq: number } | { mode: 'continuable', label: string, seq: number }} SubagentDescriptorIdentity
- */
 
 function descriptorIdentity(event) {
   let descriptor

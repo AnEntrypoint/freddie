@@ -105,12 +105,6 @@
   color: var(--freddie-alias-state-warn-label);
 }
 
-.freddie-inputBar__hlSegment {
-  border-radius: 4px;
-  background-color: transparent;
-  color: transparent;
-}
-
 .freddie-inputBar__hint {
   color: var(--freddie-alias-label-caption);
 }
@@ -170,6 +164,11 @@
 
 .freddie-inputBar__input[aria-haspopup='menu'] {
   cursor: pointer;
+}
+
+.freddie-inputBar__input:focus-visible {
+  outline: 2px solid var(--freddie-alias-state-business-primary);
+  outline-offset: -2px;
 }
 
 .freddie-inputBar__mirror {
@@ -353,4 +352,10 @@
   text-decoration: line-through;
   opacity: 0.7;
   color: var(--freddie-alias-state-error-primary);
+}
+
+.freddie-inputBar__root > [data-ce='freddie-slot-outlet'] {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--freddie-composer-card-max-width);
 }

@@ -1,14 +1,5 @@
-/**
- * Deterministic loopback HTTP fixture for the web-fetch snapshot scenario: a
- * small HTML page (headings, named entities, a GFM table, nested formatting)
- * on a fixed port, so recording and keyless replay drive the REAL
- * `freddie-web-fetch-http` transport and `freddie-tool-web` markdown rendering
- * without external network. The port is fixed because the fetched URL is part
- * of the recorded model transcript.
- */
 import { createServer } from 'node:http'
 
-/** Fixed loopback port the scenario prompt points `web_fetch` at. */
 const PORT = 43117
 
 const PAGE = `<!doctype html>
@@ -22,13 +13,8 @@ const PAGE = `<!doctype html>
 </body></html>
 `
 
-/** Cordis plugin name. */
 export const name = 'web-fetch-fixture-server'
 
-/**
- * Start the fixture server on 127.0.0.1 and register its shutdown.
- * @param ctx - Cordis context; the effect disposes the server with the fiber.
- */
 export async function apply(ctx) {
   const server = createServer((req, res) => {
     if (req.url === '/menu.html') {

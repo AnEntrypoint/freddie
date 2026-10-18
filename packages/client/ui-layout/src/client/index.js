@@ -25,7 +25,6 @@ export function apply(ctx) {
         layout.attachPanels(actions)
         return { hooks: { connectionState: ctx.connection.state } }
       },
-      // oxlint-disable-next-line typescript/no-explicit-any -- webjsxSlot() is a bare (props) => null stub that cannot prove the RendersCheck shape; dispatch happens inside the registered element
     }, webjsxSlot('freddie-app-frame'))
     return () => {
       disposeRegistration()

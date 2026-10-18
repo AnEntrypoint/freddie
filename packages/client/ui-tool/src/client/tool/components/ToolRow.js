@@ -58,7 +58,7 @@ export class FreddieToolRow extends HTMLElement {
     if (props === null) return
     const {
       t, variant, toolName, icon, title, summary, summarySuffix, body, output, errorSummary,
-      terminal, diff, read, search, web, state, filePath, onOpenFile, inspect,
+      terminal, diff, read, search, web, state, resultSummary, filePath, onOpenFile, inspect,
     } = props
     const terminalBody = terminal ?? null
     const diffBody = diff ?? null
@@ -85,7 +85,7 @@ export class FreddieToolRow extends HTMLElement {
     }
     const cardBody = variant === 'code' ? null : body
     const vdom = (
-      h('div', {class: css.root ?? '', 'data-variant': variant, 'data-tool': toolName, 'data-state': state},
+      h('div', {class: css.root ?? '', 'data-variant': variant, 'data-tool': toolName, 'data-state': state, 'data-result-summary': resultSummary || undefined},
         status !== null && h('span', {class: css.visuallyHidden ?? ''}, status),
         h(DisclosureRow,
           {

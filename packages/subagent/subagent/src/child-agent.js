@@ -46,12 +46,6 @@ export function childSessionMeta(parent, childDepth, lineageSeedLength) {
   }
 }
 
-/**
- * The scoped composition a child agent's creation window applies.
- * @typedef {object} SubagentChildComposition
- * @property {string} [persona] - shadowing persona section text, if any.
- * @property {unknown} [toolFilter] - tool restriction passed to `ctx.tools.restrict()`, if any.
- */
 
 export const SUBAGENT_DELEGATION_CONTEXT
   = 'You are a delegated subagent: your permission scope was fixed when you were started and cannot be '
@@ -68,12 +62,6 @@ export function applyChildComposition(childCtx, parent, composition) {
   if (composition.toolFilter !== undefined) childCtx.tools.restrict(composition.toolFilter)
 }
 
-/**
- * Policy seeded onto a child session's log at the delegation boundary.
- * @typedef {object} SubagentDelegatedPolicyOverrides
- * @property {string} [sandboxMode] - the parent session's explicit sandbox override, if any.
- * @property {'never'} [approvalPolicy] - present and pinned to `'never'` when the parent has an approval policy configured.
- */
 
 export function captureDelegatedPolicyOverrides(parent) {
   return {

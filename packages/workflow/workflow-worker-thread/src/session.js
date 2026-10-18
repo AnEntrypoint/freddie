@@ -3,14 +3,6 @@ import { HostToWorkerType, WorkerToHostType } from './protocol.js'
 import { renderThrown } from './realm.js'
 import { WorkflowExecution } from './runtime.js'
 
-/**
- * The worker-side handle for one started child agent, as returned by
- * {@link ChildPort#startAgent}.
- * @typedef {object} ChildHandle
- * @property {string} id - the started child's session id.
- * @property {Promise<object>} result - the child's settled `SubagentResult`-shaped outcome.
- * @property {function(): Promise<void>} dispose
- */
 
 class RpcChildHandle {
   result
@@ -29,12 +21,6 @@ class RpcChildHandle {
   }
 }
 
-/**
- * The worker-side child-RPC bridge {@link WorkflowExecution} drives to start
- * and own children, without importing `@freddie/freddie-agent` into the worker realm.
- * @typedef {object} ChildPort
- * @property {function(object): Promise<ChildHandle>} startAgent
- */
 
 class ChildRpcBridge {
   nextCallId = 0
@@ -135,7 +121,6 @@ export async function runWorkerSession(port, init) {
       case HostToWorkerType.ChildDisposed:
         children.onChildDisposed(message.callId)
         break
-      /* v8 ignore next 2 -- closed engine-owned union; the arm only makes adding a message type a compile error */
       default:
         assertNever(message, 'host-to-worker message')
     }

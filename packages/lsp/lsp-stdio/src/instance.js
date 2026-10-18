@@ -63,7 +63,6 @@ export class LspInstance {
 
   async runQuery(request, source, signal) {
     if (this.disposed) throw new LspError('LSP instance was disposed', 'LSP_DISPOSED')
-    /* v8 ignore next */
     if (signal?.aborted) throw abortError(signal)
     try {
       await abortable(this.ready, signal)
@@ -74,7 +73,6 @@ export class LspInstance {
       throw error
     }
     const capabilities = this.capabilities
-    /* v8 ignore next */
     if (capabilities === undefined) throw new Error('LSP instance is not initialized')
     if (!supportsOperation(capabilities, request.operation)) {
       throw new LspError(`server does not support ${request.operation}`, 'LSP_UNSUPPORTED_OPERATION')
@@ -86,7 +84,6 @@ export class LspInstance {
     const uri = source.fileUrl
     let opened = false
     try {
-      /* v8 ignore next */
       if (signal?.aborted) throw abortError(signal)
       try {
         await abortable(this.connection.notify('textDocument/didOpen', {
@@ -107,7 +104,6 @@ export class LspInstance {
           try {
             await this.startTeardown()
           } catch {
-            /* v8 ignore next */
           }
         }
       }
@@ -137,7 +133,6 @@ export class LspInstance {
         const settled = await Promise.race([
           send.then(markSettled, markSettled),
           new Promise((resolve) => {
-            /* v8 ignore next */
             if (grace.signal.aborted) { resolve(false); return }
             grace.signal.addEventListener('abort', () => { resolve(false) }, { once: true })
           }),
@@ -160,7 +155,6 @@ export class LspInstance {
   answerServerRequest(method, params) {
     if (method === 'workspace/configuration') {
       const record = params
-      /* v8 ignore next */
       const items = Array.isArray(record?.items) ? record.items : []
       return Promise.resolve(items.map(() => this.spec.configuration))
     }

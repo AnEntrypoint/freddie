@@ -37,6 +37,7 @@
       ],
       "platform": "web",
       "external": [
+        "@freddie/schemastery",
         "@freddie/freddie-crypto"
       ]
     }

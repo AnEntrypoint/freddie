@@ -1,36 +1,36 @@
 # AGENTS.md — Harness Packages
 
-These package-specific rules supplement the repo-wide [conventions](../AGENTS.md#conventions).
+Supplements the repo-wide [conventions](../AGENTS.md#conventions).
 
-- **Plugin exports:** service packages default-export their service class; function plugins named-export `name` / `inject` / `Config` / `apply` and have no default export. Mixing the forms makes the Loader discard the function plugin's namespace ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
-- **Optional services use `ctx.get(name)`.** Reserve `ctx.<name>` for declared injections; the property proxy is topology-sensitive, while strict `ctx.get` reads the global service store ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
-- **Product-visible plugins are verified live, not through a hand-built `ctx.plugin(...)` unit check.** Boot the real `cordis.yml` through the Loader and app/process and drive the actual behavior; keep opt-ins out of shipped defaults.
-- **Initiator-owned private chains derive, then capture.** Under `ctx.agents.withInitiator()`, recover the Agent at each orchestration entry, derive `agent.session`, and let operation-local helpers close over it. Keep `Agent` and `Session` explicit at lifecycle, session-log, service, authority, worker/process, persistence, and wire interfaces; do not widen a leaf helper from `Session` to `Context` merely to hide a parameter ([rationale](../.agents/notes/implemented/architecture/2026-07-15-agent-initiator-scope.md)).
-- **Represent one asynchronous operation with one lifecycle controller or transaction.** Separate readiness, cancellation, disposal, reservation, or sentinel state requires an independent owner or settlement point; otherwise fold it while preserving rollback, callback containment, and quiescence.
-- **Design Service Definitions for all current Consumers.** Keep tool-schema, Loader, UI, transport, and provider-specific behavior in the Consumer or provider; do not let one Consumer dictate the service contract ([capability-seam rationale](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)). Inverse smell: a public service method with one internal caller — pass a private capability closure instead (`RunCodeBridgeOptions`).
-- **Require a current owner and need.** Tie each abstraction, state machine, option, defensive copy, and compatibility path to a current contract or production consumer, and keep behavior in its owning plugin or service.
-- **Require evidence for public choices.** Configurability does not justify an unsupported default, public operation set, format, or imported external concept. Use current-consumer evidence or relevant prior art; otherwise require an explicit value or defer the choice.
-- **Write model-facing contracts from the model's perspective.** Prompts, tool schemas, results, and diagnostics contain only task-relevant concepts, not UI, transport, or implementation vocabulary. Pin stable model-visible text verbatim and dynamic behavior through snapshots or end-to-end coverage.
-- **Enforce a decision in the operation that makes it.** Schema omission, prompt filtering, facades, wrappers, and listener order are not enforcement when direct or alternate callers can bypass them; exercise denial through the executor.
-- **Publish state only at its commit point.** Emit each notification and update derived state only after the operation succeeds; derive caches, prompts, UI echoes, replay, and query views from one authoritative source.
-- **Apply bounds to the complete result.** Enforce byte, token, item, and time limits where the complete emitted or retained value, including wrappers and metadata, is known; exercise tiny and exact limits, oversized single chunks, and multibyte byte limits.
-- **Registry contributions prove disposal live**: dispose the fiber and observe removal.
-- **Every package owns `./invariant`.** Register the manifest name; check an event/data relation or give empty installers package-specific `No runtime invariant:` reasons. Generated companions, unexplained empties, and ignored reporters are defects; no script gates them, so review each companion against these rules ([contract](../.agents/notes/implemented/architecture/2026-07-19-package-invariant-runtime-contracts.md)).
+- **Plugin exports:** service packages default-export their class; function plugins named-export `name`, `inject`, `Config`, `apply`, never default-export. Mixing forms makes the Loader discard function plugins' namespace ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
+- **Optional services use `ctx.get(name)`.** Reserve `ctx.<name>` for declared injections: the property proxy is topology-sensitive; strict `ctx.get` reads the global service store ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
+- **Product-visible plugins are verified live**, never by a hand-built `ctx.plugin(...)` unit check: boot the real `cordis.yml` through the Loader and drive the behavior. Keep opt-ins out of shipped defaults.
+- **Initiator-owned private chains derive, then capture.** Under `ctx.agents.withInitiator()`, recover the Agent at each orchestration entry, derive `agent.session`, and close operation-local helpers over it. Keep `Agent` and `Session` explicit at lifecycle, session-log, service, authority, worker/process, persistence and wire interfaces; never widen a leaf helper from `Session` to `Context` to hide a parameter ([rationale](../.agents/notes/implemented/architecture/2026-07-15-agent-initiator-scope.md)).
+- **One asynchronous operation has one lifecycle controller or transaction.** Separate readiness, cancellation, disposal, reservation or sentinel state only with an independent owner or settlement point; otherwise fold it, keeping rollback, callback containment and quiescence.
+- **Design Service Definitions for all current Consumers.** Keep tool-schema, Loader, UI, transport and provider behavior in the Consumer or provider; no single Consumer dictates the contract ([rationale](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md)). Smell: a public service method with one internal caller; pass a private capability closure (`RunCodeBridgeOptions`).
+- **Require a current owner and need.** Tie each abstraction, state machine, option, defensive copy and compatibility path to a current contract or production consumer; keep behavior in its owning plugin or service.
+- **Require evidence for public choices.** Configurability alone never justifies an unsupported default, public operation set, format or imported external concept; use current-consumer evidence or relevant prior art, else require an explicit value or defer.
+- **Write model-facing contracts from the model's perspective:** prompts, tool schemas, results and diagnostics carry only task-relevant concepts, never UI, transport or implementation vocabulary. Pin stable text verbatim; pin dynamic behavior through snapshots or end-to-end coverage.
+- **Enforce a decision in the operation making it.** Schema omission, prompt filtering, facades, wrappers and listener order enforce nothing a direct or alternate caller can bypass; exercise denial through the executor.
+- **Publish state only at its commit point:** emit notifications and update derived state after success; derive caches, prompts, UI echoes, replay and query views from one authoritative source.
+- **Apply bounds to the complete result** (byte, token, item, time), including wrappers and metadata. Exercise tiny, exact, oversized-single-chunk and multibyte-byte limits.
+- **Registry contributions prove disposal live:** dispose the fiber, observe removal.
+- **Every package owns `./invariant`.** Register the manifest name; check an event/data relation, or give empty installers package-specific `No runtime invariant:` reasons. Generated companions, unexplained empties and ignored reporters are defects; no script gates them; review each against these rules ([contract](../.agents/notes/implemented/architecture/2026-07-19-package-invariant-runtime-contracts.md)).
 
 [Naming rules](../docs/cookbook/adding-a-package.md#name-the-role-that-exists):
 
-- **Package source is buildless plain JavaScript** (`src/*.js`, ESM), runnable directly under plain `node` with no transformation step and no `lib/` output. `framework/*` is buildless plain JavaScript too ([its own AGENTS.md](../framework/AGENTS.md)).
-- A package's README is part of the change: altered behavior (config keys, defaults, error codes, wire fields) updates them in the same commit; apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) for complete, concise prose and verify accuracy against code.
-- Package READMEs document model, token, and KV-cache effects using the [canonical Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
-- Package READMEs put durable consumer gaps and non-obvious maintainer constraints under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.
+- **Package source is buildless plain JavaScript** (`src/*.js`, ESM) runnable under plain `node`: no transformation step, no `lib/` output. `framework/*` is buildless too ([its AGENTS.md](../framework/AGENTS.md)).
+- A package README changes in the same commit as its behavior (config keys, defaults, error codes, wire fields). Apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) and verify against code.
+- Package READMEs document model, token and KV-cache effects per the [Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
+- Durable consumer gaps and non-obvious maintainer constraints go under `## Known Limitations and Deferred Work`; ordinary cleanup stays in its TODO or Agent Note.
 
-## Comment sweep (settings, shell, skill, spill, storage, subagent, subprocess, terminal, todo, typert, util, web, webhook, workflow, workspace)
-- Nothing compiles, typechecks, or emits declarations from JSDoc here (no tsconfig, no d.ts), so all JSDoc and prose comments were removed; contracts live in package READMEs, AGENTS.md and names.
-- Functional directives stay: `v8 ignore`, `oxlint-disable`, `jscpd:ignore`, shebangs. Files that held only a module header are `export {}`.
+## Source contracts
+
+- Source has no comments: use self-explanatory code; public contracts go in package READMEs, non-obvious maintainer facts in the nearest AGENTS.md. Preserve executable shebangs, legal notices, upstream dependency source and frozen archives.
 
 ## core/ package invariants
+
 - `core/session/src/surface.js` is browser-safe (web bundle): no `node:` imports.
-- `core/session/src/chunk-rows.js` storage rows (`text-chunks`, `reasoning-chunks`, `tool-call-chunks`) are durable encoding only: never in `Session.events`, no `SessionEventMap` entry, slash-less tags; they losslessly pack same-block `assistant/chunk` delta runs.
-- `core/agent/src/consumed-work.js`: turn/step events alone cannot tell cut-short work from no-op turns; the inbox log (`removedCount`, `outcome: canceled`) is the disambiguator.
-- `core/agent-loop/src/tool-calls.js`: exclusive calls are barriers, parallel calls use a bounded rolling pool; policy/results stay model-ordered; abort records synthetic error results for skipped calls, a scheduler failure never fabricates results.
-- Generated files keep their do-not-edit headers: `core/scope/src/scoped-events.generated.js` (`pnpm run gen-scoped-events`), `core/session/src/known-event-types.js` (`pnpm run gen-persistence-catalog`). Lint/coverage/jscpd directives (`oxlint-disable`, `v8 ignore`, `jscpd:ignore`) remain as functional comments.
+- `core/session/src/chunk-rows.js` storage rows (`text-chunks`, `reasoning-chunks`, `tool-call-chunks`) are durable encoding only: never in `Session.events` or `SessionEventMap`, slash-less tags; they losslessly pack same-block `assistant/chunk` delta runs.
+- `core/agent/src/consumed-work.js`: turn/step events alone cannot tell cut-short work from no-op turns; the inbox log (`removedCount`, `outcome: canceled`) disambiguates.
+- `core/agent-loop/src/tool-calls.js`: exclusive calls are barriers; parallel calls use a bounded rolling pool; policy and results stay model-ordered; abort records synthetic error results for skipped calls; a scheduler failure never fabricates results.

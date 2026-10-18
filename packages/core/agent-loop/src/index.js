@@ -109,7 +109,6 @@ async function raceAbortCall(
   try {
     return await raceAbort(pending, signal, id)
   } catch (error) {
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the signal can abort while the operation is awaited.
     if (signal.aborted && releaseAbandoned !== undefined) {
       void pending.then(releaseAbandoned, () => undefined)
     }
@@ -343,7 +342,6 @@ export class AgentLoop extends Service {
   prepare(ownerCtx, id, options, session, callerSignal) {
     assertAgentOptions(options)
     ownerCtx.fiber.assertActive()
-    /* v8 ignore next -- unreachable backstop, see above */
     if (!this.ownership.isActive()) throw new Error('agent loop is not active')
     if (callerSignal?.aborted) {
       throw callerSignal.reason instanceof Error
@@ -399,18 +397,15 @@ export class AgentLoop extends Service {
         abort.abort(new Error(`agent "${id}" setup aborted: owner disposed during setup`))
         return dispose(true)
       }, `agentLoop.lifecycle(${id})`)
-      /* v8 ignore start -- ctx.effect throws only on an inactive fiber, which assertActive() above already rejected */
     } catch (error) {
       untrack()
       callerSignal?.removeEventListener('abort', onCallerAbort)
       this.ownership.signal.removeEventListener('abort', onFactoryTeardown)
       throw error
     }
-    /* v8 ignore stop */
 
     const assertLive = () => {
       if (!abort.signal.aborted) return
-      /* v8 ignore next -- unreachable String() arm, see above */
       throw abort.signal.reason instanceof Error ? abort.signal.reason : new Error(String(abort.signal.reason))
     }
     try {

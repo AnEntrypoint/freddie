@@ -35,7 +35,6 @@ class ClientRemoteService extends Service {
       listeners.push(subscription)
       return () => {
         const at = listeners.indexOf(subscription)
-        /* v8 ignore next */
         if (at >= 0) listeners.splice(at, 1)
       }
     }, `api-gateway.client.$on(${JSON.stringify(event)})`)
@@ -149,7 +148,6 @@ class ClientRemoteService extends Service {
     const handle = namespace
     return async () => {
       for (const method of [...installed].reverse()) {
-        /* v8 ignore next */
         if (!method.token.active) continue
         method.token.active = false
         method.token.abort.abort()
@@ -180,7 +178,6 @@ class ClientRemoteService extends Service {
       await fiber.dispose()
       throw error
     }
-    /* v8 ignore next 3 */
     if (service === undefined || installed === undefined) {
       throw new Error(`client api: namespace ${JSON.stringify(name)} did not start`)
     }
@@ -339,7 +336,6 @@ class RemoteNamespaceService extends Service {
   remove(kind, method, token) {
     const record = this.methods.get(method)
     const current = record?.[kind]
-    /* v8 ignore next */
     if (record === undefined || current?.token !== token) return
     if (kind === 'direct') delete record.direct
     else delete record.scoped

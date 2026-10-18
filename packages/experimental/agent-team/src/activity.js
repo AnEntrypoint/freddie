@@ -18,7 +18,6 @@ export class TeamActivity {
       }
       let settled = false
       const finish = (settle) => {
-        /* v8 ignore next -- timeout, abort, and notification may race after one winner removes the others. */
         if (settled) return
         settled = true
         clearTimeout(timer)
@@ -43,7 +42,6 @@ export class TeamActivity {
       waiters.add(waiter)
       const timer = setTimeout(() => { finish(() => { resolve(false) }) }, timeoutMs)
       signal.addEventListener('abort', onAbort, { once: true })
-      /* v8 ignore next -- requires an abort in the synchronous gap between the pre-check and listener registration. */
       if (signal.aborted) onAbort()
     })
     return { timedOut: !changed }

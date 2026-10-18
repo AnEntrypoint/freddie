@@ -12,7 +12,7 @@ Both popups the workspace browser rows raise floated out of reach of the pointer
 
 `HoverCard` arms the grace on leave instead of closing, and its card no longer sets `pointer-events: none`, so resting on the card holds it open. Re-entering while already open cancels the pending close without restarting the dwell, which keeps the card from blinking when the pointer crosses the gap. A press on the card starts a selection instead of dismissing it; only anchor-region presses and an owner flipping `disabled` dismiss immediately, ahead of the grace.
 
-`Menu` moves pointer-leave dismissal from the portaled list to the wrapper span. React's enter/leave traversal runs over the React tree, so the trigger and the portaled list are one region there: crossing the 4px gap between them, or aiming back at the trigger, no longer counts as leaving. Leaving is only armed while the list is open, and an owner-driven close (selection, Escape, outside click) disarms a pending grace close in an effect keyed on `open` alone — folding that into the outside-click effect would cancel the grace on every re-render, since owners pass a fresh `onClose` closure each time.
+`Menu` arms pointer-leave dismissal on the wrapper and on the portaled list. webjsx appends that list to `document.body`, so it is not a descendant of the wrapper and a wrapper-only handler treats the gap as a leave. Entering either surface cancels the pending close; leaving either arms it. Leaving is only armed while the list is open, and an owner-driven close (selection, Escape, outside click) disarms a pending grace close when `open` flips off. `HoverCard` binds the same pair on its portaled card, which sits 8px off the anchor.
 
 ## Alternatives considered
 

@@ -44,7 +44,6 @@ async function compositionProblem(path) {
   try {
     rows = load(content, { schema: entryListSchema })
   } catch (error) {
-    /* v8 ignore next */
     const full = error instanceof Error ? error.message : String(error)
     return `the composition is not valid YAML: ${full.replace(/\n[\s\S]*$/, '')}`
   }

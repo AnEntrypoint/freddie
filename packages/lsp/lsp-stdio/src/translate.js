@@ -7,7 +7,6 @@ export function requestMethod(operation) {
     case 'findReferences': return 'textDocument/references'
     case 'goToImplementation': return 'textDocument/implementation'
     case 'hover': return 'textDocument/hover'
-    /* v8 ignore next */
     default: return assertNever(operation, 'requestMethod')
   }
 }
@@ -18,7 +17,6 @@ function capabilityValue(capabilities, operation) {
     case 'findReferences': return capabilities.referencesProvider
     case 'goToImplementation': return capabilities.implementationProvider
     case 'hover': return capabilities.hoverProvider
-    /* v8 ignore next */
     default: return assertNever(operation, 'capabilityValue')
   }
 }

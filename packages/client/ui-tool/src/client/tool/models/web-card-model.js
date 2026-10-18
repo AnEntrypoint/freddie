@@ -16,7 +16,6 @@ export function webCardModel(block) {
       truncated: result.truncated,
     }
   }
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (result.kind === 'fetch') {
     return {
       kind: 'fetch',

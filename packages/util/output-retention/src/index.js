@@ -1,27 +1,5 @@
-/**
- * Why some content was left out of a retained result, or that nothing was.
- * @typedef {{ kind: 'none' } | { kind: 'exact', count: number } | { kind: 'unknown' }} RetentionOmitted
- */
 
-/**
- * The result of {@link ItemRetainer.finish}: which logical units were kept
- * and the exact omission count.
- * @typedef {object} RetainedItems
- * @property {Array<unknown>} items - the retained logical units, in push order.
- * @property {boolean} truncated - whether the retainer omitted otherwise-available content because of a budget.
- * @property {number} seen - every unit pushed, kept or not.
- * @property {number} kept - `items.length`.
- * @property {RetentionOmitted} omitted
- */
 
-/**
- * The result of {@link TextRetainer.finish}: the retained prefix/suffix text
- * and the exact omitted byte count.
- * @typedef {object} RetainedText
- * @property {string} text - the retained text, UTF-8 boundary safe.
- * @property {boolean} truncated - whether the retainer omitted otherwise-available content because of a budget.
- * @property {RetentionOmitted} omittedBytes
- */
 
 function assertBudget(value, name) {
   if (!Number.isInteger(value) || value < 0) {

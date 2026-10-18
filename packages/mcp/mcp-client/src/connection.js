@@ -23,7 +23,6 @@ export function resolveReconnectPolicy(config, path) {
   const initialDelayMs = config?.initialDelayMs ?? RECONNECT_DEFAULTS.initialDelayMs
   const maxDelayMs = config?.maxDelayMs ?? RECONNECT_DEFAULTS.maxDelayMs
   const maxAttempts = config?.maxAttempts ?? RECONNECT_DEFAULTS.maxAttempts
-  /* jscpd:ignore-start */
   if (!Number.isFinite(initialDelayMs) || initialDelayMs <= 0 || initialDelayMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`${path}.initialDelayMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
@@ -36,7 +35,6 @@ export function resolveReconnectPolicy(config, path) {
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
     throw new Error(`${path}.maxAttempts must be a positive integer`)
   }
-  /* jscpd:ignore-end */
   return Object.freeze({ enabled, initialDelayMs, maxDelayMs, maxAttempts })
 }
 
@@ -190,7 +188,6 @@ export function startConnection(ctx, config, policy) {
 
   const ready = settling.then(() => {
     if (client !== undefined) return {}
-    /* v8 ignore next */
     return { error: firstAttemptError ?? new Error(`${label}: initial connection failed`) }
   })
 

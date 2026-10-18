@@ -4,7 +4,6 @@ import {
 } from '@freddie/freddie-client-runtime/client'
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start */
 function initialState(
   turn,
   step,
@@ -347,7 +346,6 @@ const trajectoryTurnEndDefinition = {
       ...(context.state.error === undefined ? {} : { error: context.state.error }),
     }),
 }
-/* jscpd:ignore-end */
 
 export function registerTrajectoryAssistantDefinition(ctx) {
   ctx.conversationEvents.register(trajectoryAssistantDefinition)

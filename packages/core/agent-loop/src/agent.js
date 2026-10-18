@@ -161,7 +161,6 @@ export class ReactLoopAgent {
     } catch (error) {
       containAtDriverBoundary(error)
     } finally {
-      /* v8 ignore next -- kick owns a running phase until this driver boundary */
       if (this.phase.kind === 'running') {
         const { turn, wakeRequested } = this.phase
         this.setPhase({ kind: 'idle', lastTurn: turn })
@@ -171,7 +170,6 @@ export class ReactLoopAgent {
   }
 
   async preStep(target, position) {
-    /* v8 ignore next -- private callers establish the running phase before proposing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": pre-step outside running phase`)
     const signal = this.phase.abort.signal
     const claimed = this.inbox.claim(target, position.turn)
@@ -267,7 +265,6 @@ export class ReactLoopAgent {
   }
 
   async step(assembly) {
-    /* v8 ignore next -- private callers establish the running phase before executing a step */
     if (this.phase.kind !== 'running') throw new Error(`agent "${this.id}": step outside running phase`)
     const { turn, step, abort: { signal } } = this.phase
     signal.throwIfAborted()

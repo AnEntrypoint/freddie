@@ -9,3 +9,14 @@
   overflow: hidden;
   white-space: nowrap;
 }
+
+.freddie-chrome__triggerLabel[data-collapsed] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

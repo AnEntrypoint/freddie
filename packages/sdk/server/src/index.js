@@ -15,11 +15,8 @@ export const Config = Schema.object({
 export function apply(ctx, config) {
   const resolvedConfig = config
   const rootFiber = ctx.root.fiber
-  /* v8 ignore next */
   const input = config.input ?? process.stdin
-  /* v8 ignore next */
   const output = config.output ?? process.stdout
-  /* v8 ignore next */
   const exit = config.exit ?? ((code) => { process.exit(code) })
 
   const transport = new JsonRpcLineTransport(input, output)

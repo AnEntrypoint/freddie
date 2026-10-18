@@ -11,7 +11,6 @@ const css = {
   backdrop: 'freddie-inputBar__backdrop',
   backdropDisabled: 'freddie-inputBar__backdropDisabled',
   hlToken: 'freddie-inputBar__hlToken',
-  hlSegment: 'freddie-inputBar__hlSegment',
   hint: 'freddie-inputBar__hint',
   pending: 'freddie-inputBar__pending',
   input: 'freddie-inputBar__input',

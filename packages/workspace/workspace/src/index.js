@@ -11,10 +11,6 @@ import { workspaceDomainSpec } from './spec.js'
 export { workspaceDomainState, workspaceRecord, workspaceDomainSpec } from './spec.js'
 export { realpathNormalize } from './paths.js'
 
-/**
- * Identifies one durable workspace record.
- * @typedef {string} WorkspaceId
- */
 
 export function WorkspaceId(id) {
   return id

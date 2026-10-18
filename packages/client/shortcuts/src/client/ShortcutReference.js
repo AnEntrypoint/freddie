@@ -136,11 +136,20 @@ export class FreddieShortcutReference extends HTMLElement {
       )
     }
     const editing = this.#editing === row.id
+    const startEditing = () => { if (writable && !editing) this.#startEditing(row.id) }
+    const operable = writable && !editing ? { role: 'button', tabindex: 0, 'aria-label': row.label } : {}
     return h(
       'li',
       {
         class: css.row,
-        onclick: () => { if (writable && !editing) this.#startEditing(row.id) },
+        ...operable,
+        onclick: startEditing,
+        onkeydown: event => {
+          const activates = event.key === 'Enter' || event.key === ' '
+          if (event.target !== event.currentTarget || !activates) return
+          event.preventDefault()
+          startEditing()
+        },
       },
       h('span', { class: css.label }, row.label),
       editing

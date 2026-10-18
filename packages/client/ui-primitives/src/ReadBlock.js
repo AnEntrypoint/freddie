@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './ReadBlock.css.js'
 import { defineElement } from './define-element.js'
+import { headTailCap } from './head-tail-cap.js'
 
 let highlightModule
 let highlightModulePromise
@@ -97,10 +98,7 @@ export class FreddieReadBlock extends HTMLElement {
     }
     const copied = this.#copyFeedback?.copied ?? false
 
-    const hidden = lines.length - maxLines
-    const capped = hidden > 0 && !this.#expanded
-    const headLines = Math.ceil(maxLines / 2)
-    const tailLines = maxLines - headLines
+    const { hidden, capped, headLines, tailLines } = headTailCap(lines.length, maxLines, this.#expanded)
     const windowed = lines.length < totalLines
     const hasContentToCopy = lines.length > 0
 

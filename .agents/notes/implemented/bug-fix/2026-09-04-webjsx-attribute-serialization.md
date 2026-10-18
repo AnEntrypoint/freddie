@@ -8,7 +8,8 @@ WebJSX assigned non-string values for unknown HTML keys as JavaScript expandos. 
 
 ## Decision
 
-`framework/webjsx/src/attributes.js` writes unknown HTML values with `setAttribute(String(value))` and removes attributes for false, null, and undefined. DOM properties retain property assignment and SVG remains attribute-only. The browser vendor copy mirrors the framework source, while the vendor route treats WebJSX as a live workspace package. Trajectory custom elements declare bounded flex layout, defer Virtualizer callbacks beyond the active render, and mark live records ready once table rows exist.
+`framework/webjsx/src/attributes.js` writes unknown HTML values with `setAttribute(String(value))` and removes non-ARIA attributes for false, null, and undefined. ARIA preserves explicit false
+([boolean state](2026-10-07-explicit-aria-boolean-state.md)). DOM properties retain property assignment and SVG remains attribute-only. The browser vendor copy mirrors the framework source, while the vendor route treats WebJSX as a live workspace package. Trajectory custom elements declare bounded flex layout, defer Virtualizer callbacks beyond the active render, and mark live records ready once table rows exist.
 
 ## Alternatives considered
 

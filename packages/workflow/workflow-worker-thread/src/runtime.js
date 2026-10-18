@@ -102,7 +102,6 @@ export class WorkflowExecution {
   }
 
   cancelledError() {
-    /* v8 ignore next */
     return this.cancelError ?? new WorkflowError('workflow run cancelled', 'CANCELLED')
   }
 
@@ -110,7 +109,6 @@ export class WorkflowExecution {
     try {
       return materializeFromRealm(raw, 'workflow result')
     } catch (error) {
-      /* v8 ignore next -- defensive rethrow arm: materializeFromRealm only throws MaterializeError */
       if (!(error instanceof MaterializeError)) throw error
       throw new WorkflowError(
         `the workflow's return value is not plain JSON data — ${error.message}. Return only JSON-serializable objects/arrays/scalars.`,
@@ -224,7 +222,6 @@ export class WorkflowExecution {
     try {
       opts = materializeFromRealm(rawOpts, 'agent() options')
     } catch (error) {
-      /* v8 ignore next -- defensive rethrow arm: materializeFromRealm only throws MaterializeError */
       if (!(error instanceof MaterializeError)) throw error
       throw new WorkflowError(`agent() options must be plain JSON data — ${error.message}`, 'INVALID_ARGUMENT', { cause: error })
     }
@@ -250,7 +247,6 @@ export class WorkflowExecution {
         assertObjectJsonSchema(record.schema)
         schema = record.schema
       } catch (error) {
-        /* v8 ignore next -- defensive rethrow arm: assertObjectJsonSchema only throws JsonSchemaError */
         if (!(error instanceof JsonSchemaError)) throw error
         throw new WorkflowError(`agent() schema is outside the supported subset — ${error.message}`, 'UNSUPPORTED_SCHEMA', { cause: error })
       }

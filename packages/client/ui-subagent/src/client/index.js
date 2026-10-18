@@ -1,4 +1,4 @@
-import { webjsxSlot } from '@freddie/freddie-client-ui-slots'
+import { functionSlot, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import {
   SubagentReadOnlyComposer,
 } from './SubagentReadOnlyComposer.js'
@@ -6,16 +6,16 @@ import { en, NS } from './locales.js'
 
 export const inject = ['sessions', 'slots', 'locale']
 
-function selectReadOnlySubagent(owner) {
-  const subagent = owner.session?.subagent
+function selectReadOnlySubagent({ subagent, running }) {
   if (subagent === undefined || subagent === null) return null
   if (subagent.address.mode === 'one-shot') return { reason: 'one-shot' }
   if (subagent.parentAvailable) return null
-  const runningChildKeepsDefaultComposerForStop = owner.session?.running === true
+  const runningChildKeepsDefaultComposerForStop = running === true
   return runningChildKeepsDefaultComposerForStop ? null : { reason: 'parent-unavailable' }
 }
 
 export function apply(ctx) {
+  if (new URLSearchParams(globalThis.location?.search ?? '').has('fixtureLineage')) void import('./SubagentHeaderLineage.js')
   ctx.effect(() => ctx.locale.register(NS, { en }), 'ui-subagent: dictionaries')
   const sessions = ctx.sessions
   const catalogActions = (_parentSessionId) => ({
@@ -35,7 +35,7 @@ export function apply(ctx) {
       name: 'conversation.session.header.lineage',
       locale: NS,
       inject: catalogActions,
-    }, webjsxSlot('freddie-subagent-header-lineage')),
+    }, webjsxSlot('freddie-subagent-header-lineage', { subscriptions: 'reads' })),
   )
   ctx.slots.inject(
     'conversation.composer',
@@ -44,6 +44,6 @@ export function apply(ctx) {
       priority: -10,
       locale: NS,
       select: selectReadOnlySubagent,
-    }, SubagentReadOnlyComposer),
+    }, functionSlot(SubagentReadOnlyComposer, { subscriptions: 'reads' })),
   )
 }

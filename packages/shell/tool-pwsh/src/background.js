@@ -1,4 +1,3 @@
-/* jscpd:ignore-start -- deliberate twin of freddie-tool-bash/background.ts (Agent Note). */
 
 export function processOutcome(proc) {
   if (proc.status === 'killed') {
@@ -6,4 +5,3 @@ export function processOutcome(proc) {
   }
   return { status: 'completed', detail: `exit code: ${proc.exitCode ?? 0}` }
 }
-/* jscpd:ignore-end */

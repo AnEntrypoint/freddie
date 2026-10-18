@@ -173,7 +173,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     this.#scanController = controller
     this.#restartSlowScanWindow()
     const listDirectory = this.#props?.listDirectory
-    /* v8 ignore next */
     if (listDirectory === undefined) return { seq, scan: Promise.reject(new Error('directory browser: not initialized')) }
     return { seq, scan: listDirectory(path, controller.signal) }
   }
@@ -183,7 +182,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
     this.#scanController = controller
     this.#restartSlowScanWindow()
     const listDirectory = this.#props?.listDirectory
-    /* v8 ignore next */
     if (listDirectory === undefined) return Promise.reject(new Error('directory browser: not initialized'))
     return listDirectory(path, controller.signal)
   }
@@ -217,7 +215,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       }
       if (displayCrumbs(target, '').length < 2) { landSingle(); return }
       const parentCrumb = target.crumbs.at(-2)
-      /* v8 ignore next */
       if (parentCrumb === undefined) { landSingle(); return }
       this.#continueScan(parentCrumb.path).then((parentLevel) => {
         if (seq !== this.#requestSeq) return
@@ -286,20 +283,17 @@ export class FreddieDirectoryBrowser extends HTMLElement {
   }
 
   #advance(entry) {
-    /* v8 ignore next */
     if (this.#child === null) return
     this.#parent = this.#child
     this.#select(entry)
   }
 
   #confirmCreate() {
-    /* v8 ignore next */
     const targetPath = this.#selected?.path ?? this.#parent?.path ?? null
     if (targetPath === null || this.#folderDraft === null || this.#creatingFolder) return
     const name = this.#folderDraft
     if (name.trim() === '') return
     const createDirectory = this.#props?.createDirectory
-    /* v8 ignore next */
     if (createDirectory === undefined) return
     this.#creatingFolder = true
     this.#createError = null
@@ -314,13 +308,11 @@ export class FreddieDirectoryBrowser extends HTMLElement {
       this.#error = null
       this.#render()
       scan.then((level) => {
-        /* v8 ignore next */
         if (seq !== this.#requestSeq) return
         this.#parent = level
         this.#loading = false
         this.#select({ name, path: createdPath, hidden: false })
       }, (reason) => {
-        /* v8 ignore next */
         if (seq !== this.#requestSeq) return
         this.#loading = false
         this.#error = failureText(reason)
@@ -427,7 +419,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
           if (!document.hasFocus()) return
           const target = event.currentTarget
           const card = target.closest('[role="dialog"]')
-          /* v8 ignore next */
           if (card === null) return
           const related = event.relatedTarget
           if (related instanceof Node && card.contains(related)) return
@@ -574,7 +565,6 @@ export class FreddieDirectoryBrowser extends HTMLElement {
             variant: 'primary',
             class: clsx(css.footerAction),
             disabled: targetPath === null || loading || parentInert || draftPending,
-            /* v8 ignore next */
             onclick: () => { if (targetPath !== null) props.onOpen(targetPath) },
           },
             t('browser.open'),
@@ -655,10 +645,8 @@ export class FreddieDirectoryBrowser extends HTMLElement {
         this.#refocusPick = false
         this.#refocusEditZone = false
         const rowHost = outerModal.querySelector('[data-miller-row]')
-        /* v8 ignore next */
         if (rowHost !== null) {
           const row = rowHost.querySelector('button[aria-current="true"]')
-          /* v8 ignore next */
           row?.focus()
         }
       } else if (this.#refocusEditZone) {

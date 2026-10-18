@@ -175,7 +175,7 @@ export class Include extends EntryTree {
       } else if (this.type === 'application/json') {
         data = JSON.parse(content)
       } else {
-        const module = await import(/* @vite-ignore */ this.filename)
+        const module = await import(  this.filename)
         data = module.default || module
       }
     } catch (error) {

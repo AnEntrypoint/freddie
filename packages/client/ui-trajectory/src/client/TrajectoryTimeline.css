@@ -11,6 +11,25 @@
   font: var(--dsw-font-xxxs-11);
 }
 
+.freddie-trajectoryTimeline__caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding: 6px 8px;
+  color: var(--freddie-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.freddie-trajectoryTimeline__scale {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px 3px 44px;
+  color: var(--freddie-alias-label-caption);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
 .freddie-trajectoryTimeline__plot {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);

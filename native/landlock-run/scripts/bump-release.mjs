@@ -1,8 +1,4 @@
 #!/usr/bin/env node
-/**
- * Bump the launcher workspace root and packages/* to one version, refresh the
- * repository lockfile, and verify. Usage: `pnpm release:bump <major|minor|patch|x.y.z>`.
- */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -41,7 +37,6 @@ function parseVersion(version) {
   return match.slice(1).map((part) => Number(part));
 }
 
-/** Explicit target versions accept full semver, prereleases included (test publishes). */
 const EXPLICIT_VERSION = /^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$/;
 
 function nextVersion(current, release) {

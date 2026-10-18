@@ -817,8 +817,9 @@ export class SessionManager {
       this.entryCache.set(entry.sessionId, entry)
       return entry
     })
+    const liveIds = new Set(items.map(e => e.sessionId))
     for (const id of this.entryCache.keys()) {
-      if (!items.some(e => e.sessionId === id)) this.entryCache.delete(id)
+      if (!liveIds.has(id)) this.entryCache.delete(id)
     }
     const sameOrder = items.length === this.itemsCache.length && items.every((e, i) => e === this.itemsCache[i])
     if (!sameOrder) this.itemsCache = items
@@ -871,6 +872,7 @@ function applyMutation(summaries, mutation) {
           ...summary,
           running: mutation.running,
           blank: summary.blank && !mutation.running,
+          ...mutation.running ? { errored: false } : {},
           ...mutation.errored === undefined ? {} : { errored: mutation.errored },
         }
         : summary)

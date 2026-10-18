@@ -203,7 +203,6 @@ export class FreddieAgentPresetSection extends HTMLElement {
       return
     }
     if (state.status === 'error') {
-      /* v8 ignore next */
       const detail = state.error ?? ''
       const vdom = (
         h('div', {class: css.section ?? ''},

@@ -1,25 +1,3 @@
-/**
- * A file resource address, in one of two scopes.
- *
- * Every resource address is `freddie-resource://<type>/…`, the URI host naming
- * the resource protocol; for `file` the path opens with the scope:
- *
- * - `freddie-resource://file/session/<sessionId>/<path>` names a file by its
- *   path, relative to that Session's workspace root or absolute; the Host
- *   resolves it against the root it holds for the Session.
- * - `freddie-resource://file/absolute/<path>` names a file by its absolute path
- *   with the leading `/` dropped (`freddie-resource://file/absolute/home/ys/notes.txt`;
- *   Windows `freddie-resource://file/absolute/C:/x/y.txt`; a UNC path keeps an
- *   empty first segment, `freddie-resource://file/absolute//server/share/x.txt`).
- *   It carries no Session.
- *
- * Every id and path segment is component-encoded, so a name carrying `#`, `?`,
- * or a space survives the round trip; `:` stays literal so a drive letter reads
- * as written.
- *
- * @typedef {{ readonly scope: 'session', readonly sessionId: string, readonly path: string }
- *   | { readonly scope: 'absolute', readonly path: string }} FileAddress
- */
 
 const FILE_ADDRESS_PREFIX = 'freddie-resource://file/'
 

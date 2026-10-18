@@ -1,18 +1,33 @@
 export * from './store.js'
 export * from './renderer.js'
+export * from './observable.js'
 
 export const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
+export const WEBJSX_SLOT_SUBSCRIPTIONS = Symbol('webjsxSlotSubscriptions')
 
-export function webjsxSlot(tag) {
+export function webjsxSlot(tag, { subscriptions = 'all' } = {}) {
   const component = (() => null)
   Object.defineProperty(component, WEBJSX_SLOT_TAG, { value: tag, enumerable: true })
+  Object.defineProperty(component, WEBJSX_SLOT_SUBSCRIPTIONS, { value: subscriptions, enumerable: true })
   return component
+}
+
+export function functionSlot(component, { subscriptions = 'all' } = {}) {
+  const render = props => component(props)
+  Object.defineProperty(render, WEBJSX_SLOT_SUBSCRIPTIONS, { value: subscriptions, enumerable: true })
+  return render
 }
 
 export function webjsxSlotTagOf(component) {
   if (typeof component !== 'function') return undefined
   const tag = component[WEBJSX_SLOT_TAG]
   return typeof tag === 'string' ? tag : undefined
+}
+
+export function webjsxSlotSubscriptionsOf(component) {
+  return typeof component === 'function' && component[WEBJSX_SLOT_SUBSCRIPTIONS] === 'reads'
+    ? 'reads'
+    : 'all'
 }
 
 export function resolveSlotLabel(label) {
@@ -37,8 +52,6 @@ export class SlotCore {
     root.declarationEpoch = 1
   }
 
-  /* jscpd:ignore-start */
-  /* jscpd:ignore-end */
   register(options, component) {
     const rec = this.records.get(options.name)
     if (!rec?.spec) {
@@ -265,7 +278,6 @@ export class SlotCore {
     if (!entry.children) return
     for (const childKey of Object.keys(entry.children)) {
       const childRec = this.records.get(childKey)
-      /* v8 ignore next */
       if (!childRec) continue
       const doomed = childRec.entries
       childRec.spec = undefined

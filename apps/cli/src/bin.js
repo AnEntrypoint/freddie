@@ -1,10 +1,7 @@
 #!/usr/bin/env node
 
-/* v8 ignore file */
-
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { loadLayeredEnv } from '@freddie/freddie-app-boot'
 import { parseDshArgs } from './args.js'
 import { reexecWithExposeInternals } from './expose-internals.js'
 
@@ -25,6 +22,7 @@ switch (invocation.mode) {
   case 'profile': {
     const { runProfile } = await import('./profile-boot.js')
     const { installProxyFromEnvironment } = await import('@freddie/freddie-http-proxy')
+    const { loadLayeredEnv } = await import('@freddie/freddie-app-boot')
     const environment = loadLayeredEnv('freddie')
     await installProxyFromEnvironment(environment, message => void process.stderr.write(`freddie: ${message}\n`))
     await runProfile({

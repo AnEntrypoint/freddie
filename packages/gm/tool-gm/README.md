@@ -6,7 +6,7 @@ Session id is not a per-call argument. Every tool closes over the mounted `ctx.g
 
 ## Durable progress event
 
-The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries lifecycle fields plus `nodes`, `edges`, and `walking` from [`foldGmGraph`](./src/graph.js). Running reports include the request `body` so walking can attach to a PRD or mutable id. Running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
+The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start and settlement. Its complete payload carries lifecycle fields plus `nodes`, `edges`, and `walking` from [`foldGmGraph`](./src/graph.js). PRD and mutable add requests may author `depends_on` ids; the fold emits those durable dependency edges when the daemon returns them. Running reports include the request `body` so walking can attach to a PRD or mutable id. Running events retain the preceding semantic checkpoint, including one restored from the session projection after plugin reload, while failed settlement records its bounded error text. Progress-recording failures are contained and never alter the GM tool result. These records never enter model history or change tool schemas/results.
 
 ## Tools
 
@@ -16,17 +16,17 @@ The tool writes a log-only, `ignorable` `gm/progress` event at dispatch start an
 | `gm_phase_status` | `phase-status` | none | Phase, transition history, pending PRD/mutable counts without instruction prose. |
 | `gm_codesearch` | `codesearch` | `query`, `k?`, `mode?` (default `literal`), `root?`, `path?`, `glob?` | File:line hits. Omitted `mode` is `literal` (~1s tree walk). Pass `dual` only for ranked BM25+vector. `path`/`glob` bound the walk. |
 | `gm_recall` | `recall` | `query` | Semantic hits from gm's memory store (keys, not file:line). |
-| `gm_prd_add` | `prd-add` | `id`, optional fields | Add or rescope one PRD row. |
+| `gm_prd_add` | `prd-add` | `id`, optional fields including `depends_on?` | Add or rescope one PRD row. |
 | `gm_prd_resolve` | `prd-resolve` | `id`, `witness_evidence`, `commit_comment?` | Mark one PRD row resolved. Empty `witness_evidence` is rejected. |
-| `gm_mutable_add` | `mutable-add` | `id`, optional fields | Record one typed proof obligation. |
+| `gm_mutable_add` | `mutable-add` | `id`, optional fields including `depends_on?` | Record one typed proof obligation. |
 | `gm_mutable_resolve` | `mutable-resolve` | `id`, `witness_text` | Discharge one previously recorded mutable. `witness_text` is mapped to the daemon's `witness_evidence` field. |
 | `gm_transition` | `transition` | `to` | Advance phase when gates pass. |
 | `gm_exec_js` | `exec_js` | `code`, `timeoutMs?` | Plain-text-body sandbox execution. |
 | `gm_git_finalize` | `git_finalize` | `message`, `files?` | Add, commit, porcelain-gate, push, CI-watch. |
 | `gm_git_status` | `git_status` | none | Working-tree porcelain status. |
-| `gm_git_log` | `git_log` | `max_count?` | Recent commit history. |
+| `gm_git_log` | `git_log` | `limit?` | Recent commit history. |
 | `gm_git_diff` | `git_diff` | `path?` | Unstaged/staged diff. |
-| `gm_git_show` | `git_show` | `object?` | Show one commit or object. |
+| `gm_git_show` | `git_show` | `rev?` | Show one commit or object. |
 | `gm_git_push` | `git_push` | none | Push the current branch. |
 | `gm_git_pull` | `git_pull` | none | Pull the current branch. |
 | `gm_git_stash` | `git_stash` | `message?` | Stash working-tree changes. |
@@ -43,6 +43,8 @@ Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_co
 
 `gm_codesearch` presents a search card from `bm25_hits.symbol.path`/`line_start`, `vector_hits.path`, filename `hits.path`, or commit-vector `commits`. Truncation follows the verb body's `truncated` field. `gm_recall` presents a generic summary of hit keys. `gm_instruction` and `gm_transition` present a compact title (verb, phase, PRD-pending count when those fields exist).
 
+Every GM tool presents a concise diagnostic for its own top-level reply with `ok: false`: `GM refused` for `gate_denied: true`, otherwise `GM failed`, followed by the first line of `reason` or `error` when available. Historical JSON text replies use the same presenter during replay. Nested result values do not determine this summary. Tool execution `isError`, durable content, and raw inspection stay authoritative and unchanged.
+
 ```yaml
 - id: tool-gm
   name: '@freddie/freddie-tool-gm'
@@ -54,7 +56,7 @@ Each tool declares `timeoutMs` equal to the spool default (120000) except `gm_co
 
 #### What the model sees
 
-Twenty-six tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text.
+Twenty-six tool schemas with per-verb JSON fields. Results are the parsed spool JSON as pretty-printed text. Read-only verbs (`gm_instruction`, `gm_phase_status`, `gm_codesearch`, `gm_recall`, `gm_exec_js`, `gm_git_status`, `gm_git_log`, `gm_git_diff`, `gm_git_show`) declare `isConcurrencySafe`, so a parallel tool group overlaps them. Mutating verbs stay exclusive.
 
 #### Token effect
 

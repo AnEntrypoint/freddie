@@ -20,6 +20,7 @@ export class FreddieArtifactsView extends HTMLElement {
   #loadedSessionId = null
   #error = null
   #busy = false
+  #pendingDelete = null
   #projectionSignature = ''
 
   setProps(props) {
@@ -30,6 +31,8 @@ export class FreddieArtifactsView extends HTMLElement {
       this.#loadedRevision = 0
       this.#loadedSessionId = null
       this.#selected = null
+      this.#pendingDelete = null
+      this.#error = null
       this.#projectionSignature = ''
     }
     this.#load()
@@ -45,14 +48,20 @@ export class FreddieArtifactsView extends HTMLElement {
     this.#loadedSessionId = sessionId
     try {
       const result = await list()
+      if (this.#props?.sessionId !== sessionId) return
       if (result?.ok === true) {
         this.#loadedItems = result.value.items
         this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
         this.#loadedAudit = Array.isArray(result.value.audit) ? result.value.audit : this.#loadedAudit
-        this.#render()
+        this.#error = null
+      } else {
+        this.#error = message(result)
       }
-    } catch {
-      this.#loadedSessionId = null
+      this.#render()
+    } catch (error) {
+      if (this.#props?.sessionId !== sessionId) return
+      this.#error = error instanceof Error ? error.message : String(error)
+      this.#render()
     }
   }
 
@@ -84,10 +93,12 @@ export class FreddieArtifactsView extends HTMLElement {
     this.#selected = item.id
     this.#draft = { name: item.name, kind: item.kind, content: item.content ?? '', shareTarget: '' }
     this.#error = null
+    this.#pendingDelete = null
     if (item.content === undefined && typeof this.#props?.list === 'function') {
+      const sessionId = this.#props.sessionId
       try {
         const result = await this.#props.list()
-        if (result?.ok === true) {
+        if (result?.ok === true && this.#props.sessionId === sessionId) {
           this.#loadedItems = result.value.items
           this.#loadedRevision = typeof result.value.revision === 'number' ? result.value.revision : 0
         this.#loadedAudit = Array.isArray(result.value.audit) ? result.value.audit : this.#loadedAudit
@@ -108,8 +119,10 @@ export class FreddieArtifactsView extends HTMLElement {
     this.#busy = true
     this.#error = null
     this.#render()
+    const sessionId = this.#props?.sessionId
     try {
       const result = await work()
+      if (this.#props?.sessionId !== sessionId) return
       if (result?.ok === false) this.#error = message(result)
       else {
         this.#loadedItems = result.value.items
@@ -155,7 +168,16 @@ export class FreddieArtifactsView extends HTMLElement {
           content: this.#draft.content || draft.content,
           ifRevision: this.#revision(),
         })) }, selected === undefined ? 'Save artifact' : 'Save revision'),
-        selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => void this.#run(() => this.#props.remove({ id: selected.id, ifRevision: this.#revision() })) }, 'Delete'),
+        selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => {
+          if (this.#pendingDelete === selected.id) {
+            this.#pendingDelete = null
+            void this.#run(() => this.#props.remove({ id: selected.id, ifRevision: this.#revision() }))
+          } else {
+            this.#pendingDelete = selected.id
+            this.#render()
+          }
+        } }, this.#pendingDelete === selected.id ? 'Confirm delete' : 'Delete'),
+        selected === undefined || this.#pendingDelete !== selected.id ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => { this.#pendingDelete = null; this.#render() } }, 'Cancel delete'),
         selected === undefined || selected.kind !== 'memory' ? null : h('button', { type: 'button', disabled: this.#busy, onclick: () => void this.#run(() => this.#props.put({ id: selected.id, name: selected.name, kind: selected.kind, content: selected.content, status: selected.status === 'forgotten' ? 'active' : 'forgotten', ifRevision: this.#revision() })) }, selected.status === 'forgotten' ? 'Restore memory' : 'Forget memory'),
         selected === undefined ? null : h('input', { placeholder: 'Session ID to share with', value: draft.shareTarget, oninput: event => this.#patch({ shareTarget: event.target.value }) }),
         selected === undefined ? null : h('button', { type: 'button', disabled: this.#busy || draft.shareTarget.trim() === '', onclick: () => void this.#run(() => this.#props.share({ id: selected.id, targetSessionId: draft.shareTarget.trim(), grant: true, ifRevision: this.#revision() })) }, 'Share'),

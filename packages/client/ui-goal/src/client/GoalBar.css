@@ -16,7 +16,7 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   max-width: calc(var(--freddie-composer-card-max-width) - 4 * var(--freddie-composer-dock-inset));
   height: 36px;
@@ -34,11 +34,15 @@
 }
 
 .freddie-goalBar__label {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   font-size: 13px;
   line-height: 24px;
   font-weight: 500;
   color: var(--freddie-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .freddie-goalBar__objective {
@@ -88,7 +92,7 @@
 .freddie-goalBar__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   flex: none;
 }
 

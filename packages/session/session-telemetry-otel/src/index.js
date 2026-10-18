@@ -52,7 +52,6 @@ function sharingStatusFor(mode) {
     case SessionTelemetryMode.FULL: return 'full'
     case SessionTelemetryMode.FEEDBACK_ONLY: return 'feedback-only'
     case SessionTelemetryMode.DISABLED: return 'disabled'
-    /* v8 ignore next 2 */
     default: return assertNever(mode)
   }
 }
@@ -187,7 +186,6 @@ export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
     try {
       await Promise.race([providerShutdown, deadline])
     } finally {
-      /* v8 ignore else */
       if (timer !== undefined) clearTimeout(timer)
     }
   }

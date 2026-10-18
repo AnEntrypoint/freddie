@@ -138,6 +138,8 @@ export class FreddieHoverCard extends HTMLElement {
         {
           class: `${css.card}${copyable ? ` ${css.copyable}` : ''}${this.#copied ? ` ${css.feedback}` : ''}`,
           style: `left: ${pos.left}px; top: ${pos.top}px;${this.#copied && this.#copyHeight !== null ? ` min-height: ${this.#copyHeight}px;` : ''}`,
+          onpointerenter: () => { this.#cancelClose() },
+          onpointerleave: () => { if (this.#open) this.#armClose() },
           role: copyable ? 'button' : null,
           tabindex: copyable ? 0 : undefined,
           'aria-label': copyable ? `${copyLabel}: ${copyText}` : undefined,

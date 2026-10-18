@@ -19,7 +19,6 @@ export function abortable(work, signal) {
   const onAbort = () => { canceled.reject(abortError(signal)) }
   signal.addEventListener('abort', onAbort, { once: true })
   const normalized = work.catch((error) => {
-    /* v8 ignore next */
     throw error instanceof Error ? error : new Error(String(error))
   })
   return Promise.race([normalized, canceled.promise])

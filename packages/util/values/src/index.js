@@ -1,14 +1,4 @@
-/**
- * Duplicate-install-safe JSON and immutable-value helpers.
- * @typedef {null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }} JsonValue
- */
 
-/**
- * Mark an unreachable closed-union branch.
- * @param {never} value - impossible value; an unhandled typed variant fails at the call site.
- * @param {string} [context] - optional switch-site label included in the failure message.
- * @returns {never}
- */
 export function assertNever(value, context) {
   const rendered = (() => {
     try {
@@ -20,11 +10,6 @@ export function assertNever(value, context) {
   throw new Error(`unreachable variant${context ? ` in ${context}` : ''}: ${rendered}`)
 }
 
-/**
- * Whether a realm-owned intrinsic prototype is backed by its native constructor.
- * @param {object} prototype
- * @param {'Array' | 'Object'} name
- */
 function hasIntrinsicConstructor(prototype, name) {
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
   const constructor = descriptor?.value
@@ -38,18 +23,10 @@ function hasIntrinsicConstructor(prototype, name) {
   }
 }
 
-/**
- * Whether a candidate is one realm's intrinsic `Object.prototype`.
- * @param {object} value
- */
 function isIntrinsicObjectPrototype(value) {
   return Object.getPrototypeOf(value) === null && hasIntrinsicConstructor(value, 'Object')
 }
 
-/**
- * Whether an array uses one realm's intrinsic `Array.prototype`, not a subclass or forged prototype.
- * @param {unknown[]} value
- */
 function hasPlainArrayPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
@@ -59,33 +36,18 @@ function hasPlainArrayPrototype(value) {
     && isIntrinsicObjectPrototype(objectPrototype)
 }
 
-/**
- * Whether an object is a plain or null-prototype record from any JavaScript realm.
- * @param {object} value
- */
 function hasPlainObjectPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   return prototype === null
     || typeof prototype === 'object' && isIntrinsicObjectPrototype(prototype)
 }
 
-/**
- * Return every JSON-visible object key, or reject own data JSON would discard.
- * @param {object} value
- * @returns {string[] | undefined}
- */
 function enumerableStringKeys(value) {
   const keys = Reflect.ownKeys(value)
   if (keys.some(key => typeof key !== 'string' || !Object.prototype.propertyIsEnumerable.call(value, key))) return undefined
-  return /** @type {string[]} */ (keys)
+  return   (keys)
 }
 
-/**
- * Validate lossless JSON iteratively, optionally materializing a detached snapshot.
- * @param {unknown} value
- * @param {boolean} detach
- * @returns {JsonValue | true | undefined}
- */
 function walkJsonValue(value, detach) {
   const ancestors = new Set()
   let root
@@ -180,31 +142,14 @@ function walkJsonValue(value, detach) {
   return detach ? root : true
 }
 
-/**
- * Validate and detach lossless JSON in one read per property.
- * @template T
- * @param {T} value - candidate value to validate and detach.
- * @returns {T | undefined} the detached snapshot, or `undefined` when the value is not losslessly JSON-serializable.
- */
 export function snapshotJsonValue(value) {
-  return /** @type {T | undefined} */ (walkJsonValue(value, true))
+  return   (walkJsonValue(value, true))
 }
 
-/**
- * Test the same lossless JSON rules as {@link snapshotJsonValue} without detaching the value.
- * @param {unknown} value - candidate value to test.
- * @returns {boolean} whether the value survives a JSON round trip without loss.
- */
 export function isJsonValue(value) {
   return walkJsonValue(value, false) === true
 }
 
-/**
- * Compare JSON-compatible values structurally.
- * @param {unknown} a - one JSON-compatible value.
- * @param {unknown} b - the other JSON-compatible value.
- * @returns {boolean} whether both values contain the same JSON data.
- */
 export function deepEqualJson(a, b) {
   if (a === b) return true
   if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
@@ -219,12 +164,6 @@ export function deepEqualJson(a, b) {
   return keys.every(key => key in right && deepEqualJson(left[key], right[key]))
 }
 
-/**
- * Deep-freeze an object graph in place while leaving live AbortSignal objects mutable.
- * @template T
- * @param {T} value - value to freeze.
- * @returns {T} the same value after every reachable enumerable child is frozen.
- */
 export function deepFreeze(value) {
   const seen = new WeakSet()
   const pending = [{ kind: 'visit', node: value }]
@@ -251,50 +190,24 @@ export function deepFreeze(value) {
   return value
 }
 
-/**
- * Weak-key lookup with a strongly retained iterable set of associated values.
- *
- * Each value must belong to only one key. The container performs no automatic
- * cleanup; owners delete associations or clear the container at lifecycle end.
- * @template {object} Key
- * @template Value
- */
 export class WeakMapWithValues {
   constructor() {
-    /** @type {WeakMap<Key, Value>} */
     this.keys = new WeakMap()
-    /** @type {Set<Value>} */
     this.valueSet = new Set()
     this.values = this.valueSet
   }
 
-  /**
-   * Read the value associated with a key.
-   * @param {Key} key - weakly held lookup key.
-   * @returns {Value | undefined} the associated value, or absence.
-   */
   get(key) {
     return this.keys.get(key)
   }
 
-  /**
-   * Test whether a key has an association.
-   * @param {Key} key - weakly held lookup key.
-   * @returns {boolean} whether the key is present.
-   */
   has(key) {
     return this.keys.has(key)
   }
 
-  /**
-   * Associate one key with one caller-unique value.
-   * @param {Key} key - weakly held lookup key.
-   * @param {Value} value - strongly retained value that belongs to no other key.
-   * @returns {this} this container.
-   */
   set(key, value) {
     if (this.keys.has(key)) {
-      const previous = /** @type {Value} */ (this.keys.get(key))
+      const previous =   (this.keys.get(key))
       if (previous === value) return this
       this.valueSet.delete(previous)
     }
@@ -303,14 +216,9 @@ export class WeakMapWithValues {
     return this
   }
 
-  /**
-   * Remove one association and its strongly retained value.
-   * @param {Key} key - weakly held lookup key.
-   * @returns {boolean} whether an association was removed.
-   */
   delete(key) {
     if (!this.keys.has(key)) return false
-    const value = /** @type {Value} */ (this.keys.get(key))
+    const value =   (this.keys.get(key))
     const deleted = this.keys.delete(key)
     this.valueSet.delete(value)
     return deleted

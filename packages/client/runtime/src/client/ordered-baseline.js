@@ -9,12 +9,10 @@ export function mergeOrderedBaseline(current, baseline, keyOf) {
 
   for (let index = 0; index < baseline.length; index++) {
     const value = baseline[index]
-    /* v8 ignore next */
     if (value === undefined || mergedKeys.has(keyOf(value))) continue
     let insertion = merged.length
     for (let following = index + 1; following < baseline.length; following++) {
       const candidate = baseline[following]
-      /* v8 ignore next */
       if (candidate === undefined) continue
       const known = merged.findIndex(item => keyOf(item) === keyOf(candidate))
       if (known !== -1) {

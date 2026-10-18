@@ -68,7 +68,6 @@ async function tightenModes(dir) {
     if (entry.isDirectory()) {
       await tightenModes(target)
     } else {
-      /* v8 ignore next */
       await chmod(target, ((await stat(target)).mode & 0o100) === 0 ? 0o600 : 0o700)
     }
   }

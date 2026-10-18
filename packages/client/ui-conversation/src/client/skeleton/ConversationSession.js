@@ -58,13 +58,12 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 
   #render() {
     if (this.#props === null) return
-    const { sessionId, useSession, useSessions, useStore, actions, renderSlot, views, open, t } = this.#props
+    const { sessionId, useSessionHeader, useSessions, useStore, actions, renderSlot, views, open, t } = this.#props
     const tabs = views.list()
     const selectedId = useStore(s => s.view)
     const active = resolveActiveView(tabs, selectedId)
     const ancestry = useSessions(s => deriveAncestry(s, sessionId))
-    const composerPhase = useSession(s => s.composerPhase)
-    const blank = useSession(s => s.blank)
+    const { composerPhase, blank } = useSessionHeader(s => s)
     const hideChrome = blank && composerPhase === 'blank'
 
     const vdom = h(
@@ -95,6 +94,7 @@ export class FreddieConversationSessionHeader extends HTMLElement {
                       last && css.crumbCurrent,
                     ),
                     disabled: last,
+                    title: summary.displayTitle,
                     onclick: () => { open(summary.id) },
                   },
                   summary.displayTitle,
@@ -152,6 +152,7 @@ export class FreddieConversationSessionHeader extends HTMLElement {
                 type: 'button',
                 role: 'tab',
                 'aria-selected': viewTab.id === active?.id,
+                onfocus: event => { event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' }) },
                 class: clsx(css.tab, viewTab.id === active?.id && css.tabActive),
                 onclick: () => { actions.setView(viewTab.id) },
               },
@@ -166,12 +167,6 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 }
 
 defineElement('freddie-conversation-session-header', FreddieConversationSessionHeader)
-
-export function ConversationSessionHeader(props) {
-  const el = document.createElement('freddie-conversation-session-header')
-  el.setProps(props)
-  return el
-}
 
 export class FreddieConversationSession extends HTMLElement {
   #props = null
@@ -202,29 +197,26 @@ export class FreddieConversationSession extends HTMLElement {
     this.#unsubscribeStore = null
     this.#unmirror?.()
     this.#unmirror = null
+    this.#mirrorBoundActions = null
     if (this.#props !== null) this.#props.releaseSessionImages(this.#props.sessionId)
   }
 
   #syncMirror() {
-    if (this.#props === null) return
-    if (this.#props.actions !== this.#mirrorBoundActions) {
-      const inputState = this.#props.useInput(s => s)
-      const storedDraft = this.#props.useStore(s => s.draft)
+    if (this.#props === null || !this.isConnected) return
+    if (this.#props.actions !== this.#mirrorBoundActions || this.#unmirror === null) {
       this.#unmirror?.()
-      if (inputState.draft === '' && storedDraft !== '') this.#props.inputActions.setDraft(storedDraft)
-      this.#unmirror = this.#props.bindDraftMirror(this.#props.actions.setDraft)
+      this.#unmirror = this.#props.bindDraftMirror()
       this.#mirrorBoundActions = this.#props.actions
     }
   }
 
   #render() {
     if (this.#props === null) return
-    const { sessionId, useSession, useStore, actions, renderSlot, views } = this.#props
+    const { sessionId, useSessionHeader, useStore, actions, renderSlot, views } = this.#props
     const tabs = views.list()
     const selectedId = useStore(s => s.view)
     const active = resolveActiveView(tabs, selectedId)
-    const composerPhase = useSession(s => s.composerPhase)
-    const blank = useSession(s => s.blank)
+    const { composerPhase, blank } = useSessionHeader(s => s)
     const inspect = useStore(s => s.inspect ?? null)
     void sessionId
 

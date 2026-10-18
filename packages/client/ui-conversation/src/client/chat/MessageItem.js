@@ -25,7 +25,17 @@ function cachedJsonBlockAt(identity, index, props) {
   return el
 }
 
+const contentPartsByContent = new WeakMap()
 function contentParts(content) {
+  let parts = contentPartsByContent.get(content)
+  if (parts === undefined) {
+    parts = computeContentParts(content)
+    contentPartsByContent.set(content, parts)
+  }
+  return parts
+}
+
+function computeContentParts(content) {
   const texts = []
   const images = []
   const rest = []
@@ -278,7 +288,6 @@ export function PendingSteeringBubble({ identity, content, renderMessageImages, 
       cachedMessageIconActions(identity, {
         text,
         clock: 'start',
-        className: css.actions,
         t,
       })
     ),
@@ -300,7 +309,6 @@ export function UserMessageNodeView({
         text,
         time: data.time,
         clock: 'start',
-        className: css.actions,
         t,
       })
     ),

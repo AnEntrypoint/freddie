@@ -4,7 +4,7 @@ Rules for `packages/client/*`, the browser half of the web GUI (shell entry `app
 
 ## Stack
 
-Buildless plain ESM `.js` with JSDoc, served as authored. No TypeScript, React, Vite, tsdown, `tsconfig`, `.ts`/`.tsx` source or test file exists under `packages/client` or `apps/web` ([why](../../.agents/notes/implemented/architecture/2026-09-02-buildless-workspace-no-transformation-at-launch.md)). Boot: `apps/web/src/main.js` → `AppWebEntry` (`web/src/boot.js`) reads `window.__FREDDIE_BOOT__` (the graph `modules` composes), boots the Cordis Loader over its rows, then `ui-renderer` mounts `root`. DOM is webjsx custom elements.
+Buildless plain ESM `.js`, served as authored. No TypeScript, React, Vite, tsdown, `tsconfig`, `.ts`/`.tsx` source or test file exists under `packages/client` or `apps/web` ([why](../../.agents/notes/implemented/architecture/2026-09-02-buildless-workspace-no-transformation-at-launch.md)). Boot: `apps/web/src/main.js` → `AppWebEntry` (`web/src/boot.js`) reads `window.__FREDDIE_BOOT__` (the graph `modules` composes), boots the Cordis Loader over its rows, then `ui-renderer` mounts `root`. DOM is webjsx custom elements.
 
 ## Package shape and manifest
 
@@ -77,7 +77,7 @@ English only; other languages are banned everywhere. `src/client/locales.js` exp
 
 ## Dev loop, HMR, boot failures
 
-`client-hmr` watches each graph row's `src/` tree (`fs.watch`, or polling where `usePolling` is set, as in the web-app profile) and `/plugins/events` (SSE) carries `rebuilt`, `css-rebuilt`, `shell-rebuilt`, `graph`, `host-reloaded` frames. A rebuilt plugin re-imports at its new `/~<rev>/` URL and its fiber swaps in place; a stylesheet edit swaps the `app.css` link; the shell roots (`apps/web`, `web`) remount in-document; other shell-seeded roots (`ui-slots`, `ui-primitives`) need a reload. Read `window.__FREDDIE_HMR__` (journal) and the `freddie:hmr` event. After each rebuild `AppWebEntry.health()` decides: unhealthy, one in-document remount, then a boot-page report and one automatic reload (`AUTO_RELOAD_KEY`, refunded when health passes). The boot page (`web/src/boot-page.js`) is the failure surface after boot too; `apps/web/index.html` writes a static message after 10 s if no script ran.
+`client-hmr` watches each graph row's `src/` tree (native `fs.watch`, with polling only for roots without complete native watchers) and `/plugins/events` (WebSocket) carries `rebuilt`, `css-rebuilt`, `shell-rebuilt`, `graph`, `host-reloaded` frames. A rebuilt plugin re-imports at its new `/~<rev>/` URL and its fiber swaps in place; a stylesheet edit swaps the `app.css` link; the shell roots (`apps/web`, `web`) remount in-document; other shell-seeded roots (`ui-slots`, `ui-primitives`) need a reload. Read `window.__FREDDIE_HMR__` (journal) and the `freddie:hmr` event. After each rebuild `AppWebEntry.health()` decides: unhealthy, one in-document remount, then a boot-page report and one automatic reload (`AUTO_RELOAD_KEY`, refunded when health passes). The boot page (`web/src/boot-page.js`) is the failure surface after boot too; `apps/web/index.html` writes a static message after 10 s if no script ran.
 
 ## Verification
 
@@ -90,4 +90,3 @@ No comments in source: make the code self-explanatory; a fact a name cannot carr
 ## Known gaps
 
 - `ui-settings-general/package.json` `files` lists `lib/client.js`, which no build produces.
-- Block comments and JSDoc from before the comment sweep remain (e.g. `hmr/src/client/index.js`, `ui-renderer/src/client/scoped-slots.js`).

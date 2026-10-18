@@ -55,7 +55,6 @@ function assertPositiveInteger(name, value) {
   }
 }
 
-// oxlint-disable-next-line typescript/require-await -- async keeps a load-time config rejection a rejection, not a synchronous throw
 export async function apply(ctx, config) {
   const resolved = config
   assertPositiveInteger('globMaxResults', resolved.globMaxResults)

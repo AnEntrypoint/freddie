@@ -118,9 +118,18 @@ export function recordEnd(graph, outcome) {
   if (typeof outcome.agentsStarted === 'number') graph.agentsStarted = outcome.agentsStarted
 }
 
+function terminalGraph(graph) {
+  return graph.status !== 'running'
+}
+
 export class WorkflowGraphTracker {
+  maxRetainedTerminalGraphs
   graphs = new Map()
   listeners = new Set()
+
+  constructor({ maxRetainedTerminalGraphs = 20 } = {}) {
+    this.maxRetainedTerminalGraphs = maxRetainedTerminalGraphs
+  }
 
   list() {
     return [...this.graphs.values()].reverse().map(snapshotGraph)
@@ -136,51 +145,60 @@ export class WorkflowGraphTracker {
     return () => { this.listeners.delete(listener) }
   }
 
-  publish(id) {
-    const graph = this.graphs.get(id)
-    if (graph === undefined) return
-    const snapshot = snapshotGraph(graph)
-    for (const listener of this.listeners) listener(snapshot)
+  publish() {
+    const snapshots = this.list()
+    for (const listener of this.listeners) listener(snapshots)
   }
 
   onStart(info) {
     this.graphs.set(info.id, createWorkflowGraph(info))
-    this.publish(info.id)
+    this.publish()
   }
 
   onPhase(info, title) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordPhase(graph, title)
-    this.publish(info.id)
+    this.publish()
   }
 
   onLog(info, message) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordLog(graph, message)
-    this.publish(info.id)
+    this.publish()
   }
 
   onAgentStart(info, agent) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordAgentStart(graph, agent)
-    this.publish(info.id)
+    this.publish()
   }
 
   onAgentEnd(info, agent) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordAgentEnd(graph, agent)
-    this.publish(info.id)
+    this.publish()
   }
 
   onEnd(info, outcome) {
     const graph = this.graphs.get(info.id)
     if (graph === undefined) return
     recordEnd(graph, outcome)
-    this.publish(info.id)
+    this.pruneTerminalGraphs()
+    this.publish()
+  }
+
+  pruneTerminalGraphs() {
+    const terminalIds = [...this.graphs.values()]
+      .filter(terminalGraph)
+      .sort((left, right) => (left.endedAt ?? 0) - (right.endedAt ?? 0))
+      .map(graph => graph.id)
+    for (const id of terminalIds.slice(0, Math.max(0, terminalIds.length - this.maxRetainedTerminalGraphs))) {
+      this.graphs.delete(id)
+    }
   }
 }
 

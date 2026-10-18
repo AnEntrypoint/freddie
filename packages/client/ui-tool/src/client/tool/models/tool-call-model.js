@@ -145,15 +145,20 @@ export function toolRowModel(toolName, block, cwd, home) {
     ? block.callId
     : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
   const toolTitle = TOOL_TITLES[toolName]
-  const summary = variant === 'others' && toolName !== '' && toolTitle === undefined
+  const resultTitle = done && block.resultView?.card === 'generic'
+    && typeof block.resultView.title === 'string' && block.resultView.title !== ''
+    ? block.resultView.title
+    : undefined
+  const summary = resultTitle ?? (variant === 'others' && toolName !== '' && toolTitle === undefined
     ? `${toolName} · ${base}`
-    : base
+    : base)
   const output = done ? (resultText(block) || null) : null
   const errorSummary = state === 'error' && output !== null ? firstLine(output) : null
   return {
     variant,
     title: toolTitle ?? VARIANT_TITLES[variant],
     summary,
+    resultTitle,
     filePath: deriveFilePath(variant, argsRaw),
     body: deriveBody(variant, argsRaw),
     output,

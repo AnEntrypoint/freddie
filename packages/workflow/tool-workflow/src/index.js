@@ -176,10 +176,8 @@ function stopReasonError(result) {
       return `workflow run was cancelled${result.error !== undefined ? ` (${result.error})` : ''}`
     case 'error':
       return `workflow run failed: ${result.error ?? 'unknown error'}`
-    /* v8 ignore start -- defensive: WorkflowStopReason is a closed union, exhaustive by construction; a future variant fails here loudly */
     default:
       return `workflow run ended abnormally (${String(result.stopReason)})`
-    /* v8 ignore stop */
   }
 }
 

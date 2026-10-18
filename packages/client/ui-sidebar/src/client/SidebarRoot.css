@@ -176,7 +176,7 @@
   color: var(--freddie-alias-label-primary-inverted);
   background: var(--freddie-alias-label-primary);
   font-family: var(--ds-font-family-code);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 500;
   line-height: 16px;
 }
@@ -240,6 +240,13 @@
   margin-right: calc(-1 * var(--freddie-sidebar-inline-padding));
   padding-left: 4px;
   overflow: hidden;
+}
+
+.freddie-sidebarRoot__regionArea > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .freddie-sidebarRoot__collapsed .freddie-sidebarRoot__regionArea {

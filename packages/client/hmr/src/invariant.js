@@ -6,7 +6,6 @@ export const name = 'client-hmr-invariant'
 export const inject = ['invariants']
 
 const install = (ctx, fail) => {
-  // oxlint-disable-next-line typescript/no-misused-promises
   ctx.on('internal/plugin', async (fiber) => {
     if (fiber.name !== 'client-hmr' || fiber.uid !== null) return
     await Promise.resolve()

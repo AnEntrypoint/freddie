@@ -1,17 +1,8 @@
 #!/usr/bin/env node
-/**
- * Derive the GitHub Actions matrices from the checked-in package matrix
- * (`packages/<name>/prebuilds.json`). Single source: adding a platform
- * package extends CI and Release without editing a workflow.
- *
- *   node scripts/github-matrix.mjs ci                → one leg per distinct platform
- *   node scripts/github-matrix.mjs release-prebuild  → one leg per platform package
- */
 
 import path from 'node:path';
 import { platformDirs, readJson, root } from './repo.mjs';
 
-/** GitHub runner per prebuilds.json `platform` value — native builders only, no cross toolchain. */
 const RUNNERS = {
   'linux-x64': 'ubuntu-24.04',
   'linux-arm64': 'ubuntu-24.04-arm',

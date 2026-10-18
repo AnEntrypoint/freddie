@@ -56,11 +56,9 @@ export function apply(ctx, config) {
   const notify = async (notification) => {
     try {
       await conn.sessionUpdate(notification)
-    /* v8 ignore start -- the ACP SDK contains notification-handler failures; only a transport write failure reaches this guard. */
     } catch (error) {
       logger.warn(`acp: session/update failed: ${String(error)}`)
     }
-    /* v8 ignore stop */
   }
 
   const rejectFromError = (
@@ -82,7 +80,6 @@ export function apply(ctx, config) {
         await record.agent.whenIdle()
         await record.outputTail
       }
-      /* v8 ignore next -- this prompt owns the slot until this exact settlement clears it. */
       if (record.inflight !== inflight) return
       record.inflight = undefined
       if (inflight.cancelRequested) {
@@ -106,13 +103,11 @@ export function apply(ctx, config) {
         inflight.resolve(end.kind === 'max-tokens' ? 'end_turn' : turnEndToStopReason(end))
       }
     })()
-    /* v8 ignore start -- admissionDone only resolves, and the queued path's idle/output gates contain their own failures. */
       .catch((error) => {
         if (record.inflight !== inflight) return
         record.inflight = undefined
         inflight.reject(internalError(`prompt settlement failed: ${errorChain(error)}`))
       })
-    /* v8 ignore stop */
   }
 
   ctx.on('session/event', (session, event) => {
@@ -204,7 +199,6 @@ export function apply(ctx, config) {
           meta: { cwd: params.cwd },
           agentOptions: agentOptions(config),
         })
-        /* v8 ignore next 4 -- a real stdio close can race an in-flight create. */
         if (closed) {
           await handle.dispose()
           throw internalError('connection closed during session/new')
@@ -313,7 +307,6 @@ export function apply(ctx, config) {
     }
   }
 
-  /* v8 ignore next 4 -- production stdio wiring; tests inject config.stream. */
   const stream = config.stream ?? ndJsonStream(
     Writable.toWeb(process.stdout),
     Readable.toWeb(process.stdin),
@@ -365,7 +358,6 @@ export function apply(ctx, config) {
     return quiescing
   }
 
-  /* v8 ignore start -- production transport rejection and teardown failure. */
   void conn.closed
     .catch((error) => {
       logger.warn(`acp: connection closed with an error: ${String(error)}`)
@@ -374,7 +366,6 @@ export function apply(ctx, config) {
     .catch((error) => {
       logger.warn(`acp: connection-close teardown failed: ${String(error)}`)
     })
-  /* v8 ignore stop */
 
   ctx.effect(() => quiesce, 'acp.connection')
 }

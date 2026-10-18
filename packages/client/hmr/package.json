@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-client-hmr",
-  "description": "Dev-only hot-reload driver for script-loaded client entries: SSE rebuilt frames → invalidate/prefetch → fiber swap through the vendored Loader entry",
+  "description": "Dev-only hot-reload driver for script-loaded client entries: WebSocket rebuilt frames → invalidate/prefetch → fiber swap through the vendored Loader entry",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -28,13 +28,15 @@
   "freddie": {
     "client": {
       "inject": [],
+      "external": ["@freddie/schemastery"],
       "platform": "web",
       "immediately": true
     }
   },
   "license": "MIT",
   "dependencies": {
-    "@freddie/schemastery": "*"
+    "@freddie/schemastery": "*",
+    "ws": "^8.21.0"
   },
   "optionalDependencies": {
     "@freddie/freddie-client-web": "*",

@@ -236,7 +236,6 @@ function indexable(component) {
   return typeof component === 'object' && component !== null || typeof component === 'function'
 }
 
-/* jscpd:ignore-start */
 export function errorDetails(error) {
   if (typeof error !== 'object' || error === null) return { message: String(error) }
   const message = 'message' in error && typeof error.message === 'string'
@@ -245,7 +244,6 @@ export function errorDetails(error) {
   const stack = 'stack' in error && typeof error.stack === 'string' ? error.stack : undefined
   return { message, ...stack === undefined ? {} : { stack } }
 }
-/* jscpd:ignore-end */
 
 function renderFailureMessage(slot, message) {
   const redirect = Object.entries(DYNAMIC_CLIENT_REDIRECTS)

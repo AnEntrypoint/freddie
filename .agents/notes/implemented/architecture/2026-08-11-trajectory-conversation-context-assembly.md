@@ -65,7 +65,7 @@ The Context migration and the following presentation optimizations solve differe
 | Hot path | Retained behavior | Expected reduction |
 |---|---|---|
 | Markdown summaries | Layout retains source Markdown; each stable Table record memoizes its displayed summary by content, while Detail parses only the selected record | A one-record append reparses the changed visible record instead of every Markdown record |
-| Search text | `TrajectorySearchIndex` linearly checks stable Record IDs and source signatures, but normalizes Markdown only for changed records and commits updates in three-second batches | Signature comparison remains `O(C)`; expensive normalization follows the changed-record count, and continuous frame updates collapse into one batch per interval |
+| Search text | `TrajectorySearchIndex` linearly checks stable Record IDs and source signatures, normalizes Markdown only for changed records, and batches the latest pending layouts every three seconds while connected | Signature comparison remains `O(C)`; normalization follows changed records, and unchanged flushes do not cause another render ([finite scheduler](../bug-fix/2026-10-06-trajectory-finite-search-index-flush.md)) |
 | Timeline tooltip | Timing text is computed after the delayed tooltip opens | A render with no open tooltip performs no per-span label formatting |
 | Following Assistant lookup | One reverse pass records the next Assistant for every input position | The former repeated forward lookup falls from worst-case `O(C²)` to `O(C)` |
 | Group duration | Fixed decimal grouping replaces `toLocaleString('en-US')` for the invariant English numeric shape | Complexity remains linear in Groups, but the Intl formatter leaves the repeated render path |
@@ -88,9 +88,9 @@ Display memoization and search indexing stay separate. Search must include off-s
 
 ## Verification
 
-Runtime tests pin target registration, exact-ID append, update-before-start replay, prepend identity, Reader window-gap repair, Location replay, and isolation between Chat and Trajectory snapshots.
+Assembly verification requires live execution of target registration, exact-ID append, update-before-start replay, prepend identity, Reader window-gap repair, Location replay, and isolation between Chat and Trajectory snapshots.
 
-Trajectory Definition and Builder tests pin Assistant streaming and interruption, nested Tool calls and parallel interruption, Compaction and prompt inheritance, Steering classification and Step placement, Request marker order, stable contribution replacement, and prepend expansion. Table, layout, Timeline, and search tests pin deferred Markdown work, throttled index updates, tooltip-time formatting, and stable search results across append and prepend.
+Definition and Builder verification requires actual Assistant streaming and interruption, nested Tool calls and parallel interruption, Compaction and prompt inheritance, Steering classification and Step placement, Request marker order, stable contribution replacement, and prepend expansion. Presentation verification covers deferred Markdown work, throttled index updates, tooltip-time formatting, and stable search results across append and prepend. These requirements do not imply that every path is exercised by the separate search scheduler verification.
 
 ## Consequences
 

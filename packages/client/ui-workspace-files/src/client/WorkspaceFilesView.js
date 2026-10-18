@@ -138,7 +138,7 @@ export class FreddieWorkspaceFilesView extends HTMLElement {
       const advice = state.failure.retry ? ' Press Enter to try again.' : ''
       return { ...base, name: `${state.failure.message}${advice}`, retry: true }
     }
-    if (state.status === 'loading' && state.entries.length === 0) return { ...base, name: 'Loading...' }
+    if (state.status === 'loading' && state.entries.length === 0) return { ...base, name: 'Loading…' }
     if (state.status === 'ready' && state.entries.length === 0) return { ...base, name: 'This folder is empty.' }
     if (state.status === 'ready' && state.truncated) {
       return { ...base, name: `Listing truncated: showing the first ${String(state.entries.length)} entries. The host cut the rest.` }
@@ -396,7 +396,7 @@ export class FreddieWorkspaceFilesView extends HTMLElement {
       case 'idle':
         return h('p', { class: css.empty ?? '' }, 'Select a file to preview it. This view is read-only.')
       case 'loading':
-        return h('p', { class: css.empty ?? '', role: 'status' }, 'Loading...')
+        return h('p', { class: css.empty ?? '', role: 'status' }, 'Loading…')
       case 'text':
         return this.#renderText(preview)
       case 'image':
@@ -440,7 +440,7 @@ export class FreddieWorkspaceFilesView extends HTMLElement {
         ? h('button', {
           type: 'button', class: css.button ?? '', disabled: preview.loadingMore,
           onclick: () => this.#loadMore(),
-        }, preview.loadingMore ? 'Loading...' : 'Load more')
+        }, preview.loadingMore ? 'Loading…' : 'Load more')
         : null)
   }
 

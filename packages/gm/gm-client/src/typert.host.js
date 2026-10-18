@@ -8,6 +8,7 @@ const prdAddRequest = z.object({
   acceptance: z.string().optional(),
   status: z.string().optional(),
   route_family: z.string().optional(),
+  depends_on: z.array(z.string()).optional(),
 })
 const prdResolveRequest = z.object({
   id: z.string(),
@@ -20,6 +21,7 @@ const mutableAddRequest = z.object({
   obligation_kind: z.string().optional(),
   subject: z.string().optional(),
   text: z.string().optional(),
+  depends_on: z.array(z.string()).optional(),
 })
 const mutableResolveRequest = z.object({
   id: z.string(),
@@ -131,7 +133,7 @@ export const TYPERT = {
         types: [
           {
             name: 'GmPrdAddRequest',
-            declaration: 'export interface GmPrdAddRequest { readonly id: string; readonly title?: string; readonly subject?: string; readonly acceptance?: string; readonly status?: string; readonly route_family?: string; }',
+            declaration: 'export interface GmPrdAddRequest { readonly id: string; readonly title?: string; readonly subject?: string; readonly acceptance?: string; readonly status?: string; readonly route_family?: string; readonly depends_on?: readonly string[]; }',
           },
           {
             name: 'GmPrdResolveRequest',
@@ -139,7 +141,7 @@ export const TYPERT = {
           },
           {
             name: 'GmMutableAddRequest',
-            declaration: 'export interface GmMutableAddRequest { readonly id: string; readonly prd_id?: string; readonly obligation_kind?: string; readonly subject?: string; readonly text?: string; }',
+            declaration: 'export interface GmMutableAddRequest { readonly id: string; readonly prd_id?: string; readonly obligation_kind?: string; readonly subject?: string; readonly text?: string; readonly depends_on?: readonly string[]; }',
           },
           {
             name: 'GmMutableResolveRequest',

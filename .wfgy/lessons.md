@@ -108,3 +108,33 @@ Goal (G): Keep the Web conversation feed painting while a turn runs, without a c
 What drifted / what went wrong: The first diagnosis treated a missing mux baseline as the freeze. The live console showed replaceChild throwing because a rebuilt chat node missed a WeakMap cache and minted a second element.
 Fix / resolution: Cache assistant blocks by the stable node key, and insert a detached raw child instead of replacing it. Live page 2 painted the latest assistant text with an empty error list.
 Generalizes to: A ticking status card does not prove the transcript is rendering. Read the console before changing the stream path.
+
+## 2026-10-06 -- HMR streams can starve unrelated browser requests
+
+Goal (G): Make the GUI performant during boot, streaming, navigation, and multi-tab use.
+
+What drifted / what went wrong: A same-origin grammar fetch timed out despite a healthy host. Six open HMR EventSources occupied Chrome's HTTP/1.1 pool; closing one obsolete owned document made the same request complete in 28.8 ms. A background document also delayed its nominal five-second abort timer, so wall time alone initially overstated the request deadline.
+
+Fix / resolution: HMR uses WebSockets. Measure foreground request headers and the active transport rather than treating an import timeout as missing dependency metadata. Close only confirmed owned obsolete documents; never user tabs.
+
+Generalizes to: Separate browser connection admission, server response time, JavaScript scheduling, and module resolution when diagnosing boot failures.
+
+## 2026-10-06 -- WebSocket successful callbacks can carry null
+
+Goal (G): Keep the replacement HMR channel live while removing its HTTP connection cost.
+
+What drifted / what went wrong: Checking a ws send callback for strict undefined treated successful null as failure. A real client received the graph and closed with code 1006 after 26 ms; the browser repeatedly reconnected.
+
+Fix / resolution: Use the library's error truthiness convention. A native send proved isNull=true and truthy=false; the corrected live host retained graph-to-heartbeat delivery. Keep the unverified change unpushed until real behavior settles.
+
+Generalizes to: Exercise actual callback results and persistent connection lifetime, not only a successful handshake or syntax check.
+
+## 2026-10-06 -- Sequence-gap recovery requires an accepted graph baseline
+
+Goal (G): Verify the real browser recovers from lost HMR publications.
+
+What drifted / what went wrong: Closing a newly configured channel after its open event but before its graph arrived left lastSequence undefined. Reconnecting legitimately accepted the later graph as its first baseline, so that experiment could not establish gap recovery.
+
+Fix / resolution: Wait for an accepted sequence before disconnecting. Two real CSS publications during the disconnect produced expected 107, received 108, then an actual document reload and healthy fresh graph connection.
+
+Generalizes to: Transport-open, accepted protocol baseline, and recovered application state are separate verification points.

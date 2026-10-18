@@ -2,44 +2,9 @@ import { SubagentError } from './error.js'
 
 const COLD_READ_CONCURRENCY = 4
 
-/**
- * One entry of a {@link listChildren} result, ordered by header `createdAt`
- * with ties broken on id. Only a candidate whose durable header has
- * `origin: 'subagent'` is interpreted. A served `subagent` projection value
- * produces a `child`; a settled candidate whose fold served no identity
- * produces a `diagnostic`; a running candidate without one is omitted — its
- * descriptor may not be appended yet (the creation window). Diagnostics
- * relay the projection fold's outcome or a failed read, never a per-child
- * event scan, and never expose model-hidden descriptor content.
- * @typedef {SubagentChildRow | SubagentChildDiagnostic} SubagentChildListEntry
- */
 
-/**
- * A resolved child entry produced from a served `subagent` projection value.
- * @typedef {object} SubagentChildRow
- * @property {'child'} kind
- * @property {string} id
- * @property {'one-shot' | 'continuable'} mode
- * @property {string} [label]
- * @property {'running' | 'inactive'} activity
- * @property {boolean} hasChildren
- */
 
-/**
- * A settled candidate whose projection fold served no identity, or a failed
- * cold read.
- * @typedef {object} SubagentChildDiagnostic
- * @property {'diagnostic'} kind
- * @property {string} id
- * @property {'corrupt' | 'unavailable'} reason
- */
 
-/**
- * One entry of a descendant listing: the interpreted subagent facts plus its
- * position in the complete session tree. `parentId` is the durable direct
- * parent from the enumerated header, and `depth` counts edges from the root.
- * @typedef {(SubagentChildRow | SubagentChildDiagnostic) & { parentId: string, depth: number }} SubagentDescendantEntry
- */
 
 export async function listChildren(ctx, parentSessionId, signal) {
   const listing = await prepareListing(ctx, signal)
@@ -167,7 +132,6 @@ function descendantCandidates(corpus, rootSessionId) {
     .reverse()
   const visited = new Set([rootSessionId])
   while (stack.length > 0) {
-    // oxlint-disable-next-line typescript/no-non-null-assertion
     const position = stack.pop()
     const id = position.record.header.id
     if (visited.has(id)) continue

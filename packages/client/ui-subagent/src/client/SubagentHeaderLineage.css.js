@@ -7,6 +7,7 @@ const css = {
   switcherTitle: 'freddie-subagentHeaderLineage__switcherTitle',
   separator: 'freddie-subagentHeaderLineage__separator',
   activitySlot: 'freddie-subagentHeaderLineage__activitySlot',
+  count: 'freddie-subagentHeaderLineage__count',
   triggerOpen: 'freddie-subagentHeaderLineage__triggerOpen',
   menu: 'freddie-subagentHeaderLineage__menu',
   node: 'freddie-subagentHeaderLineage__node',

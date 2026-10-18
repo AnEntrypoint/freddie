@@ -1,0 +1,4 @@
+id: gm-stale-mcp-bundle-restart
+subject: 'gm-mcp serves bundle 0.2.35 while 0.2.37 is installed at C:/Users/user/.gm-tools/gm-mcp-server.mjs, and the stdio server cannot replace itself, so the session runs stale tooling until restarted. Make the MCP server detect a newer installed bundle at startup of each tool call and report ''restart required'' with the exact command, or hot-swap, so a stale server is never silently in use. Witness: install a newer bundle in a temp copy and confirm the reply names the mismatch.'
+status: pending
+session_id: gm-freddie-eff-20261012

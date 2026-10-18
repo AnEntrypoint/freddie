@@ -1,5 +1,3 @@
-/* jscpd:ignore-start -- deliberate mirror of tool-bash-persistent (persistent-pty note 2026-08-11-pwsh-persistent-pty):
-   the PowerShell counterpart shares the session registry, polling loop, and reset contract by design. */
 
 import { randomUUID } from 'node:crypto'
 import z from '@freddie/schemastery'
@@ -380,5 +378,3 @@ export function apply(ctx, config) {
   }
   registerPersistentPwsh(ctx, resolved)
 }
-
-/* jscpd:ignore-end */

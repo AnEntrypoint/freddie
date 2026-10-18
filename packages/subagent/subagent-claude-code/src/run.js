@@ -60,11 +60,6 @@ function sdkFailureCategory(subtype) {
   }
 }
 
-/**
- * Hide an unpublished product startup failure behind fixed safe facts.
- * @param {unknown} cause - original host-side failure retained only on the Error cause chain.
- * @returns {Error} a rejection safe to expose through the subagent start boundary.
- */
 export function claudeCodeStartupFailure(cause) {
   return new ClaudeCodeFailure({ stage: 'query-start', category: 'unknown' }, cause)
 }
@@ -81,11 +76,6 @@ function isAborted(signal) {
   return signal.aborted
 }
 
-/**
- * Validate and preserve the one-shot task before crossing the SDK boundary.
- * @param {readonly import('@freddie/freddie-llm').ContentBlock[]} prompt - task content accepted from the shared subagent service.
- * @returns {string} the exact text sequence as one SDK prompt.
- */
 export function textTask(prompt) {
   if (prompt.length === 0) {
     throw new Error('subagent-claude-code: the one-shot task must contain only text blocks')
@@ -103,11 +93,6 @@ export function textTask(prompt) {
   return texts.join('')
 }
 
-/**
- * Strictly derive the only SDK result that can complete a shared run.
- * @param {import('@anthropic-ai/claude-agent-sdk').SDKResultMessage} message - an official discriminated result union.
- * @returns {string} exact final text for a successful, non-error result.
- */
 export function successfulResult(message) {
   if (message.subtype !== 'success') {
     const category = sdkFailureCategory(message.subtype)
@@ -123,14 +108,6 @@ export function successfulResult(message) {
   return message.result
 }
 
-/**
- * Consume the complete SDK stream and require one strict success plus normal
- * iterator completion.
- * @param {AsyncIterable<import('@anthropic-ai/claude-agent-sdk').SDKMessage>} query - published official SDK query.
- * @param {() => void} [onPermissionDenied] - records a safe fact when the SDK reports native denial.
- * @param {() => void} [onResult] - records that the SDK supplied a terminal result message.
- * @returns {Promise<import('@freddie/freddie-subagent').SubagentResult>} the completed shared result.
- */
 export async function consumeClaudeQuery(query, onPermissionDenied, onResult) {
   let answer
   for await (const message of query) {
@@ -151,19 +128,7 @@ export async function consumeClaudeQuery(query, onPermissionDenied, onResult) {
   }
 }
 
-/**
- * The minimal official SDK query surface this module depends on.
- * @typedef {object} ClaudeCodeQueryHandle
- * @property {function(): void} close
- */
 
-/**
- * Close the official query, terminate the managed range, and wait for the
- * subprocess owner to prove it is quiescent.
- * @param {ClaudeCodeQueryHandle | undefined} query - official SDK query, when creation reached that point.
- * @param {import('@freddie/freddie-subprocess').SubprocessHandle} child - shared-service handle that owns the CLI managed range, including
- *   a published handle whose direct result later rejects.
- */
 export async function disposeClaudeCodeChild(query, child) {
   const failures = []
   let outcome
@@ -195,14 +160,6 @@ export async function disposeClaudeCodeChild(query, child) {
   await child.done.catch(() => {})
 }
 
-/**
- * Build the fixed official SDK options for one one-shot provider run.
- * @param {ClaudeCodeRunSpec} spec - Workspace, environment, process service, and disposal policy.
- * @param {AbortController} controller - per-run cancellation owner.
- * @param {(child: import('@freddie/freddie-subprocess').SubprocessHandle, process: ManagedClaudeCodeProcess) => void} capture - receives the shared child and SDK-facing process synchronously.
- * @param {(diagnostic: string) => void} captureDiagnostic - receives safe facts from unattended interaction callbacks.
- * @returns {import('@anthropic-ai/claude-agent-sdk').Options} options that inherit native settings while disabling persistence and user questions.
- */
 export function claudeQueryOptions(spec, controller, capture, captureDiagnostic) {
   return {
     abortController: controller,
@@ -258,12 +215,6 @@ export function claudeQueryOptions(spec, controller, capture, captureDiagnostic)
   }
 }
 
-/**
- * Start one official Claude Agent SDK query and publish its one-shot run.
- * @param {import('@freddie/freddie-subagent').SubagentStartRequest} request - resolved shared subagent request.
- * @param {ClaudeCodeRunSpec} spec - Workspace, environment, process service, and diagnostic policy.
- * @returns {Promise<import('@freddie/freddie-subagent').SubagentRun>} the published run after both Query and the real CLI handle exist.
- */
 export async function startClaudeCodeRun(request, spec) {
   const prompt = textTask(request.prompt)
   if (request.signal.aborted) {
@@ -423,14 +374,3 @@ export async function startClaudeCodeRun(request, spec) {
     },
   })
 }
-
-/**
- * @typedef {object} ClaudeCodeRunSpec
- * @property {string} cwd - Parent Session workspace supplied to the SDK and real CLI.
- * @property {string} [model] - Profile-selected native model; omitted to preserve Claude settings.
- * @property {string} permissionMode - Profile-selected native non-interactive permission mode.
- * @property {Record<string, string>} env - Explicit deployment/test environment layered after shared scrubbing.
- * @property {number} disposeGraceMs - Subprocess termination grace passed to the shared managed-range owner.
- * @property {(spec: import('@freddie/freddie-subprocess').SubprocessSpawnSpec) => import('@freddie/freddie-subprocess').SubprocessHandle} spawn - Shared subprocess service spawn operation.
- * @property {(error: Error, stopReason: string) => void} [onError] - Host diagnostic sink for a product failure kept outside model-visible text.
- */

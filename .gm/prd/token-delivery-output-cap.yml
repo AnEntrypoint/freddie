@@ -1,0 +1,8 @@
+id: token-delivery-output-cap
+title: Stop reserving unused output tokens
+subject: 'Pre: DeepSeek defaultMaxTokens is 256000 against a 1000000 window. Invariant: an explicit per-request cap still wins over the adapter default. Post: the shipped default no longer pre-allocates a quarter of the window on every chat call unless the endpoint requires it.'
+acceptance: live request header records a smaller materialized maxTokens and a chat call still completes.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: Rejected as a shipped default change. settings.yaml sets grok contextWindow 256000 while DEFAULT_MAX_TOKENS is 256000. acptoapi CHANGELOG 1.0.246 and model-token-limits.js shouldOmitMaxTokens already drop max_tokens for xai-oauth before upstream, because xAI subtracts the cap from the prompt budget. Lowering the DeepSeek default would change non-xAI routes without a measured win on this route.

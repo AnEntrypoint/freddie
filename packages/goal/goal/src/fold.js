@@ -157,7 +157,6 @@ function requireNextRevision(current, next, operation) {
 function validateSnapshotTransition(state, change, current) {
   const next = change.goal
   requireNextRevision(current, next, change.operation)
-  /* v8 ignore next -- a current goal established by this fold always has an updatedAt */
   if (state.updatedAt === undefined) throw new Error('current goal fold lacks updatedAt')
   if (change.createdAt !== state.createdAt
     || change.updatedAt < state.updatedAt
@@ -195,12 +194,10 @@ function validateSnapshotTransition(state, change, current) {
       requireSameDefinition(current, next, change.operation)
       if (current.phase !== 'active' || next.phase !== 'blocked') throw new Error('goal block has an invalid phase transition')
       break
-    /* v8 ignore start -- the caller excludes create and GoalOperation is closed; these arms retain fail-loud exhaustiveness */
     case 'create':
       throw new Error('goal create cannot be validated as a current-goal transition')
     default:
       throw new Error('unknown goal snapshot operation')
-    /* v8 ignore stop */
   }
 }
 
@@ -216,7 +213,6 @@ export function applyGoalChange(state, change) {
     const current = state.goal
     if (current === undefined) throw new Error('goal clear requires a current goal')
     requireNextRevision(current, change.cleared, change.operation)
-    /* v8 ignore next -- a current goal established by this fold always has an updatedAt */
     if (state.updatedAt === undefined) throw new Error('current goal fold lacks updatedAt')
     if (change.clearedAt < state.updatedAt) {
       throw new Error('goal clear timestamp cannot precede the current goal update')
@@ -250,7 +246,6 @@ export function applyGoalChange(state, change) {
 export function applyGoalEvent(state, event) {
   if (event.type === 'goal/change') {
     const change = decodeGoalChange(event.data)
-    /* v8 ignore next -- the event's declared payload always identifies itself as a goal change. */
     if (change === undefined) throw new Error(`goal change at session event ${event.seq} has an invalid kind`)
     applyGoalChange(state, change)
     return

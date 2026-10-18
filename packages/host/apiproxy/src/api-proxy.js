@@ -971,10 +971,6 @@ export function createApiProxy(ctx, defaults) {
       const id = approvalId
       return new Promise((resolve) => {
         const settle = (outcome) => {
-          /* v8 ignore next 3 -- defensive double-settle guard: respond() routes
-             through the pending table (a settled id is not-pending before it can
-             re-settle) and the first settle removes the abort listener, so no
-             reachable path settles twice; kept against future settle callers. */
           if (!pendingApprovals.delete(pending.rpcId)) return
           req.signal?.removeEventListener('abort', onAbort)
           broadcast({ type: 'approval/resolved', sessionId: pending.sessionId, approvalId: id, outcome })

@@ -233,7 +233,6 @@ export class ToolRuntime extends Service {
         if (mode === 'native') return ''
         const runtime = this.requireCodeRuntime(mode)
         const render = SDK_RENDERERS[runtime.language]
-        /* v8 ignore next -- requireCodeRuntime rejects an unknown language before this runs. */
         if (render === undefined) throw new Error(`freddie-tools: no SDK renderer for ${runtime.language}`)
         return this.renderSdk(context.scope, runtime.language, render)
       },
@@ -304,7 +303,6 @@ export class ToolRuntime extends Service {
         yield ctx.systemPrompt.section(this.sdkSection())
       }
     }.bind(this), 'tools.presentAs()')
-    // oxlint-disable-next-line typescript/no-misused-promises -- synchronous composite teardown; direct return preserves disposer identity
     return dispose
   }
 
@@ -458,7 +456,6 @@ export class ToolRuntime extends Service {
       .filter(definition => definition.name !== RUN_CODE_NAME)
       .map((definition) => {
         const output = snapshotJsonValue(definition.output.schema)
-        /* v8 ignore next -- registration already validated and retained this schema as lossless JSON. */
         if (output === undefined) {
           throw new Error(`tool "${definition.name}" output schema must be lossless JSON before SDK projection`)
         }
@@ -525,7 +522,6 @@ export class ToolRuntime extends Service {
         return await this.finalizeScheduledExecution(prepared.exec, prepared.result)
       case 'final-result':
         return this.finishScheduledExecution(prepared.exec, prepared.result)
-      /* v8 ignore next -- closed-union exhaustiveness guard */
       default:
         return assertNever(prepared, 'scheduled tool preparation')
     }
@@ -643,14 +639,12 @@ export class ToolRuntime extends Service {
 
   callerCancelled(exec) {
     const state = this.cancellationStates.get(exec)
-    /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
     if (state === undefined) throw new Error('tool registry scheduler invariant violated: missing cancellation state')
     return state.callerSignal.aborted
   }
 
   cancellationResult(exec, prior) {
     const state = this.cancellationStates.get(exec)
-    /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
     if (state === undefined) throw new Error('tool registry scheduler invariant violated: missing cancellation state')
     return state.bodyInvoked
       ? toolAbortedResult(prior)
@@ -659,7 +653,6 @@ export class ToolRuntime extends Service {
 
   async dispatchToolBody(exec) {
     const state = this.cancellationStates.get(exec)
-    /* v8 ignore next -- only registry-minted executions reach the staged scheduler methods */
     if (state === undefined) throw new Error('tool registry scheduler invariant violated: missing cancellation state')
     const wrapperSignal = exec.signal
     const fused = fuseToolSignals(state.callerSignal, wrapperSignal)
@@ -697,7 +690,6 @@ export class ToolRuntime extends Service {
       )
       const normalized = this.normalizeDispatchResult(exec, result)
       const deferredContexts = this.deferredContexts.get(exec)
-      /* v8 ignore next -- dispatch only receives executions minted by this registry's prepare stage */
       if (deferredContexts === undefined) throw new Error('tool registry scheduler invariant violated: unprepared execution')
       const resultWithDeferredContexts = deferredContexts.length === 0
         ? normalized

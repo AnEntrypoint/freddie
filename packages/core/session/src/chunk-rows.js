@@ -204,7 +204,6 @@ function expandRow(row) {
           argumentsDelta: members[k],
         }
         break
-      /* v8 ignore next 2 -- validateRow only returns the three row tags */
       default:
         return assertNever(row, 'chunk-rows expandRow')
     }

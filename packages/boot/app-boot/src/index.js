@@ -239,7 +239,6 @@ export function renderConfigDump(
   let composed = base
   for (let count = 1; count <= layers.length; count += 1) {
     const layer = layers[count - 1]
-    /* v8 ignore next */
     if (layer === undefined) continue
     const warnings = []
     composed = snapshot(count, warnings)
@@ -277,7 +276,6 @@ function groupedDump(
   }
   for (let index = 0; index < composed.length; index += 1) {
     const record = provenance[index]
-    /* v8 ignore next */
     if (record === undefined) continue
     const label = record.patchedBy.length === 0
       ? record.origin
@@ -307,7 +305,6 @@ export async function mountRootInclude(
         const specifier = isAbsolute(name) ? pathToFileURL(name).href : name
         if (name.startsWith('.') || name.startsWith('cordis:')) return super.import(specifier, getOuterStack)
         const internal = this.ctx.loader.internal
-        /* v8 ignore next */
         if (internal === undefined) return super.import(specifier, getOuterStack)
         return internal.import(specifier, bareModuleBaseUrl, {})
       }

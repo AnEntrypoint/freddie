@@ -161,7 +161,6 @@ function renderBody(body, maxInputChars) {
       }
     case 'text':
       return { text: content, sourceTruncated }
-    /* v8 ignore next 2 -- WebFetchBody is a closed union; this arm is unreachable and only makes adding a kind a compile error. */
     default:
       return assertNever(body, 'unhandled web fetch body kind')
   }
@@ -169,13 +168,6 @@ function renderBody(body, maxInputChars) {
 
 const TRUNCATION_FOOTER = '\n\n(Content truncated. Fetch a more specific URL or section for the full text.)'
 
-/**
- * The bounded model-facing render of one fetch result: complete text and
- * whether the provider, a source cut, or the output cap truncated it.
- * @typedef {object} RenderedFetch
- * @property {string} text
- * @property {boolean} truncated
- */
 
 function renderFetchOutput(result, maxOutputChars) {
   const byCap = renderCache.get(result) ?? new Map()
@@ -208,21 +200,6 @@ export function presentFetchCall(args) {
   return { card: 'generic', title: args.url, kind: 'fetch', rawInput: args.url }
 }
 
-/**
- * The `web_fetch` tool's private `tool/result` `meta` payload: the fetch summary
- * a UI cannot recover from the model-facing render text without reparsing its
- * header line. Attached opaquely (as `JsonValue`) on the tool result and
- * persisted with the session log, so `presentResult` reproduces the fetch card
- * on replay. The body itself is already markdown in the result content, so it is
- * not duplicated here. `truncated` is the effective truncation the render text
- * reflects, which a client cannot recompute (it does not know the deployment's
- * `fetchMaxOutputChars`); this is why fetch meta is carried, not derived from the
- * header line (see the web-result-card Agent Note).
- * @typedef {object} WebFetchMeta
- * @property {string} url
- * @property {number} statusCode
- * @property {boolean} truncated - the effective truncation the render text reflects.
- */
 
 export function fetchMetaFromValue(value, maxOutputChars) {
   return { url: value.url, statusCode: value.statusCode, truncated: renderFetchOutput(value, maxOutputChars).truncated }

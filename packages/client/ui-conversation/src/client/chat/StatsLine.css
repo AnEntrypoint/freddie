@@ -1,20 +1,21 @@
 .freddie-statsLine__root {
-  display: block;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 12px;
+  min-width: 0;
   max-width: var(--freddie-chat-content-width);
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
-  padding: 4px calc(var(--freddie-composer-side-clearance) + 16px) 0px;
+  padding: 4px 8px 0;
+  text-align: center;
   font-size: 12px;
-  line-height: 20px;
+  line-height: 18px;
   color: var(--freddie-alias-label-tertiary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.freddie-statsLine__sep {
-  color: var(--freddie-alias-separator-primary);
-  margin: 0 10px;
+.freddie-statsLine__root > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

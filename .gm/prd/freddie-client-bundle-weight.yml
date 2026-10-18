@@ -1,0 +1,7 @@
+id: freddie-client-bundle-weight
+subject: 'packages/client is 9.1MB across 1317 files, and CSS-in-JS modules include packages/client/ui-theme/src/styles/design-platform.css.js at 19816 bytes and gradient-shadow-text.css.js at 10507 bytes, flagged by scan_deps ratio warnings. Measure the shipped client payload, find the dominant byte contributors, and reduce them with no change in rendered output. Witness: byte totals before and after, plus a live render comparison of the Web UI.'
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: 'Live exec_js at this dispatch re-measures the two theme sheets: design-platform.css.js 10869 bytes (was 19816) and gradient-shadow-text.css.js 1816 bytes (was 10507), -58 percent together. Whole-client effect small, union -0.76 percent per the earlier worker measurement; slot-catalog.js change in 90d9b959 is a separate row.'
+resolution: 'Removed 216 unconsumed custom properties and 49 duplicate dark declarations from the two theme sheets, with cascade winners unchanged for 133 tokens in both states. Earlier whole-client result: web closure unchanged; union of closures -0.76 percent.'
+commit_sha: 181f77b0b322f02e9793bfd4f590ddbe4f20e864

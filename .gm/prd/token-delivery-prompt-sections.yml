@@ -1,0 +1,8 @@
+id: token-delivery-prompt-sections
+title: Cut prompt sections that repeat every step
+subject: 'Pre: system-prompt sections are static per mode. Invariant: a section the model must see remains present once. Post: sections that restate the same guidance, or that are empty, are omitted from the rendered system string.'
+acceptance: rendered system prompt of two steps is identical when inputs are unchanged, and empty sections contribute zero bytes.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: system-prompt/src/index.js:46-50 filters empty section text before join. Live header is logged once; a second identical render does not append request/header (agent.js:416). Empty sections already contribute zero bytes.

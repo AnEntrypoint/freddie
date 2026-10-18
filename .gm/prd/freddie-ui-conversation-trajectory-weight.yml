@@ -1,0 +1,5 @@
+id: freddie-ui-conversation-trajectory-weight
+subject: 'ui-conversation (323696 bytes union) and ui-trajectory (244787 bytes union) are the two largest client closures after cordis-client-runner. Find proven-unread exports, dead style and markup branches, and duplicated helpers that the client never reaches, and remove only those. Witness: byte totals before and after for each package, and a live check that the conversation and trajectory views still mount with no console errors.'
+status: completed
+session_id: gm-freddie-eff-20261012
+witness: 'exec_js 1791822347958-500-9bdc2e6a089db588: unreached conversation contract files and trajectory component files absent, dead declarations absent; CI publint success on 7ac686b7 (run 38276341030) and 563574d7 (run 38276838113); served CSS six sheets 58657->54765 bytes.'

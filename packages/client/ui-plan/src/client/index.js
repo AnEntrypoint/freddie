@@ -20,5 +20,5 @@ export function apply(ctx) {
         return null
       },
     }),
-  }, webjsxSlot('freddie-plan-chip')))
+  }, webjsxSlot('freddie-plan-chip', { subscriptions: 'reads' })))
 }

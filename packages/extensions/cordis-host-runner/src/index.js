@@ -303,7 +303,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     return this.inspectRegistry.resolveClientQuery(agent, requestId, resolution)
   }
 
-  /* jscpd:ignore-start */
   inventory() {
     return this.registry.all().map(plugin => ({
       pluginId: plugin.pluginId,
@@ -323,7 +322,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
       ...plugin.latestRun === undefined ? {} : { latestRun: cloneAttempt(plugin.latestRun) },
     }))
   }
-  /* jscpd:ignore-end */
 
   snapshot(agent) {
     return this.registry.ofSession(agent.id).map(plugin => ({
@@ -410,14 +408,12 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
         ...definition.hostCode === undefined ? {} : { host: definition.hostCode },
         ...definition.clientCode === undefined ? {} : { client: definition.clientCode },
       },
-      /* jscpd:ignore-start */
       ...plugin.currentPackageId === undefined ? {} : { currentPackageId: plugin.currentPackageId },
       ...plugin.nextPackageId === undefined ? {} : { nextPackageId: plugin.nextPackageId },
       ...plugin.run === undefined ? {} : {
         activeRun: { pluginRunId: plugin.run.pluginRunId, packageId: plugin.run.packageId },
       },
       ...plugin.latestRun === undefined ? {} : { latestRun: cloneAttempt(plugin.latestRun) },
-      /* jscpd:ignore-end */
     }
   }
 
@@ -754,7 +750,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     }))
   }
 
-  /* jscpd:ignore-start */
   steerGuardFailure(plugin, run, platform, failure) {
     const reportKey = `${platform} guard ${failure.message}`
     if (!this.claimRuntimeFailure(plugin, run, reportKey)) return
@@ -772,7 +767,6 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
       source: { kind: 'plugin', plugin: 'cordis-host-runner' },
     }))
   }
-  /* jscpd:ignore-end */
 
   claimRuntimeFailure(plugin, run, key) {
     const attempt = plugin.latestRun

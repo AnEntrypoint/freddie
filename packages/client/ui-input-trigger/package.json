@@ -31,7 +31,10 @@
         "@freddie/freddie-client-runtime",
         "@freddie/freddie-client-locale"
       ],
-      "platform": "web"
+      "platform": "web",
+      "external": [
+        "@freddie/freddie-file-reference/grammar"
+      ]
     }
   },
   "license": "MIT",

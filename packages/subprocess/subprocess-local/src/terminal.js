@@ -47,13 +47,11 @@ export class LocalTerminalHandle {
     })
   }
 
-  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async write(data) {
     if (this.exited) throw new Error('terminal process has exited')
     this.terminal.write(data)
   }
 
-  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async resize(cols, rows) {
     if (this.exited) throw new Error('terminal process has exited')
     if (!Number.isSafeInteger(cols) || cols <= 0 || !Number.isSafeInteger(rows) || rows <= 0) {
@@ -62,7 +60,6 @@ export class LocalTerminalHandle {
     this.terminal.resize(cols, rows)
   }
 
-  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
   async inspectForeground() {
     this.descendants()
     const processGroupId = this.inspector.foregroundPgid(this.pid)
@@ -261,8 +258,6 @@ export class LocalTerminalHandle {
   settleExitIfGone() {
     if (this.platform !== 'win32') return
     if (this.exited) return
-    /* v8 ignore next -- stopShellWindows() verified the shell is gone or threw;
-       the identity re-check is a defensive fence for a future caller. */
     if (this.rootIdentity !== undefined && this.inspector.isAlive(this.rootIdentity)) return
     this.exited = true
     this.output.end()

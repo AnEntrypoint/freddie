@@ -7,7 +7,7 @@ export class SlotRegistry extends Service {
   _core = new SlotCore()
   _stores = new Map()
   _renderer
-  _locale
+  _localeSlot = { face: undefined }
   _host
 
   constructor(ctx) {
@@ -85,11 +85,12 @@ export class SlotRegistry extends Service {
   }
 
   installLocale(face) {
-    if (this._locale !== undefined) throw new Error('locale face already installed (installLocale() is boot-once)')
+    const slot = this._localeSlot
+    if (slot.face !== undefined) throw new Error('locale face already installed (installLocale() is boot-once)')
     this.ctx.effect(() => {
-      this._locale = face
+      slot.face = face
       return () => {
-        if (this._locale === face) this._locale = undefined
+        if (slot.face === face) slot.face = undefined
       }
     }, 'slots.installLocale()')
   }
@@ -176,23 +177,25 @@ export class SlotRegistry extends Service {
     if (workspaces === undefined) {
       throw new Error("renderSlot('root') before the workspaces service mounted — boot order puts runtime apply first")
     }
-    const service = this
+    const localeSlot = this._localeSlot
+    const core = this._core
+    const resolveStore = this.resolveStore.bind(this)
     this._host = {
-      subscribe: (key, fn) => this._core.subscribe(key, fn),
-      getVersion: key => this._core.getVersion(key),
-      entriesOf: key => this._core.entries(key),
-      entriesOfSlot: key => this._core.entriesOfSlot(key),
-      reportEntryError: (key, entry, error, info) => { this._core.reportEntryError(key, entry, error, info) },
-      specOf: key => this._core.specDynamic(key),
-      isLive: entry => this._core.isLive(entry),
+      subscribe: (key, fn) => core.subscribe(key, fn),
+      getVersion: key => core.getVersion(key),
+      entriesOf: key => core.entries(key),
+      entriesOfSlot: key => core.entriesOfSlot(key),
+      reportEntryError: (key, entry, error, info) => { core.reportEntryError(key, entry, error, info) },
+      specOf: key => core.specDynamic(key),
+      isLive: entry => core.isLive(entry),
       storeOf: (entry, scopeKey) =>
-        entry.store === undefined ? undefined : this.resolveStore(entry.store, scopeKey),
+        entry.store === undefined ? undefined : resolveStore(entry.store, scopeKey),
       sessions: {
         list: sessions.list,
         provideInfo: sessions.currentProvideInfo,
       },
       workspaces: { list: workspaces.list },
-      get locale() { return service._locale },
+      get locale() { return localeSlot.face },
     }
     return this._host
   }
@@ -221,7 +224,6 @@ export class SlotRegistry extends Service {
 
   _release(handle) {
     const record = this._stores.get(handle)
-    /* v8 ignore next */
     if (record === undefined) return
     record.refs -= 1
     if (record.refs === 0) this._stores.delete(handle)

@@ -1,10 +1,11 @@
 
-import { resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
+import { functionSlot, resolveSlotLabel, webjsxSlot } from '@freddie/freddie-client-ui-slots'
 import { resolveWorkspacePath } from '@freddie/freddie-client-runtime/client'
 import { createChatStore } from './stores.js'
 import { ConversationController, UnsupportedImageMediaTypeError } from './service.js'
 import { ComposerBlockRegistry } from './input/blocks.js'
 import { InputHub } from './input/hub.js'
+import { projectClipboard } from './input/machine.js'
 import { ComposerSubmissionPolicy } from './input/submission-policy.js'
 import './skeleton/InputBar.js'
 import './settings/EnterBehaviorRow.js'
@@ -14,8 +15,9 @@ import { ApprovalPanel } from './skeleton/ApprovalPanel.js'
 import { todoDockEntry } from './skeleton/TodoPanel.js'
 import { queueDockEntry } from './queue/QueueDock.js'
 import './skeleton/ConversationRoot.js'
+import './skeleton/ConversationComposer.js'
 import './skeleton/ConversationSession.js'
-import { DetailsPanel } from './skeleton/DetailsPanel.js'
+import { createDetailMaterialSource } from './skeleton/DetailsPanel.js'
 import { en, NS } from './locales.js'
 import { registerConversationNodes } from './conversation-nodes/register.js'
 import { registerChatNodeRenderers } from './chat/register-node-renderers.js'
@@ -41,6 +43,10 @@ const ABSENT_LEXICON = {
   subscribe: () => () => {},
 }
 const ABSENT_MENU_LAUNCHER = {
+  getSnapshot: () => null,
+  subscribe: () => () => {},
+}
+const ABSENT_DETAIL_MATERIAL = {
   getSnapshot: () => null,
   subscribe: () => () => {},
 }
@@ -76,7 +82,7 @@ function selectApproval({ interactions }) {
   return interactions.find((i) => i.kind === 'approval') ?? null
 }
 
-export function apply(ctx) {
+export async function apply(ctx, config) {
   const sessions = ctx.sessions
   const workspaces = ctx.workspaces
   const layout = ctx.layout
@@ -110,7 +116,6 @@ export function apply(ctx) {
   const viewTabs = () => {
     const tabs = []
     for (const entry of slots.entries('conversation.view')) {
-      /* v8 ignore next */
       if (entry.options.id === undefined) continue
       tabs.push({ id: entry.options.id, label: resolveSlotLabel(entry.options.label) ?? entry.options.id })
     }
@@ -125,6 +130,8 @@ export function apply(ctx) {
   const inputHub = new InputHub(sessions, ctx, t)
 
   const composerBlocks = new ComposerBlockRegistry()
+
+  await ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
 
   ctx.effect(() => sessions.provide({
     hooks: ['input'],
@@ -144,6 +151,14 @@ export function apply(ctx) {
     children: {
       'conversation.session': { kind: 'single', scope: 'session' },
       'conversation.session.header': { kind: 'single', scope: 'session' },
+      'conversation.composer.body': { kind: 'single', scope: 'session-maybe' },
+    },
+  }, webjsxSlot('freddie-conversation-root', { subscriptions: 'reads' }))
+
+  slots.register({
+    name: 'conversation.composer.body',
+    locale: NS,
+    children: {
       'conversation.composer': { kind: 'chain', scope: 'session' },
       'conversation.composer.bar': { kind: 'single', scope: 'session-maybe' },
       'conversation.input.overlay': { kind: 'list', scope: 'session' },
@@ -177,7 +192,7 @@ export function apply(ctx) {
         sessions.open(nextId)
       },
     }),
-  }, webjsxSlot('freddie-conversation-root'))
+  }, webjsxSlot('freddie-conversation-composer', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.session',
@@ -190,10 +205,17 @@ export function apply(ctx) {
       return {
         views,
         releaseSessionImages: (id) => { conversation.releaseSessionImages(id) },
-        bindDraftMirror: write => inputHub.shell(sessionId).bindMirror(write),
+        bindDraftMirror: () => {
+          const store = slots.resolveStore(chatStore, sessionId)
+          const shell = inputHub.shell(sessionId)
+          const draft = store.readDraft()
+          if (shell.snapshot.draft === '' && draft !== '') shell.setDraft(draft)
+          store.writeDraft(projectClipboard(shell.snapshot))
+          return shell.bindMirror(store.writeDraft)
+        },
       }
     },
-  }, webjsxSlot('freddie-conversation-session'))
+  }, webjsxSlot('freddie-conversation-session', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.session.header',
@@ -208,7 +230,7 @@ export function apply(ctx) {
       views,
       open: (id) => { sessions.open(id) },
     }),
-  }, webjsxSlot('freddie-conversation-session-header'))
+  }, webjsxSlot('freddie-conversation-session-header', { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.composer.bar',
@@ -289,9 +311,9 @@ export function apply(ctx) {
         },
       }
     },
-  }, webjsxSlot('freddie-input-bar'))
+  }, webjsxSlot('freddie-input-bar', { subscriptions: 'reads' }))
 
-  slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, ApprovalPanel)
+  slots.register({ name: 'conversation.composer', select: selectApproval, priority: 1, locale: NS }, functionSlot(ApprovalPanel, { subscriptions: 'reads' }))
 
   slots.register({
     name: 'conversation.view',
@@ -330,6 +352,7 @@ export function apply(ctx) {
           },
           read: () => chatScrollPositions.get(sessionId) ?? null,
         },
+        mountedRowBudget: config.mountedRowBudget,
         forkAt: (seq) => {
           sessions.fork({ sessionId, atSeq: seq, increaseTitle: true })
             .then((childId) => { sessions.open(childId) })
@@ -338,11 +361,9 @@ export function apply(ctx) {
         },
       }
     },
-  }, webjsxSlot('freddie-chat-view'))
+  }, webjsxSlot('freddie-chat-view', { subscriptions: 'reads' }))
 
-  slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line'))
-
-  ctx.plugin(ConversationController, { input: inputHub, blocks: composerBlocks })
+  slots.register({ name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS }, webjsxSlot('freddie-stats-line', { subscriptions: 'reads' }))
 
   ctx.plugin(todoDockEntry)
 
@@ -355,9 +376,17 @@ export function apply(ctx) {
       'conversation.details.tool': { kind: 'single', scope: 'session' },
     },
     store: chatStore,
-    inject: () => ({
-      closeDetails: () => { layout.closeDetails() },
-    }),
-  }, DetailsPanel)
+    inject: (sessionId) => {
+      const session = sessions.binding(sessionId)?.session
+      return {
+        closeDetails: () => { layout.closeDetails() },
+        hooks: {
+          detail: session === undefined
+            ? ABSENT_DETAIL_MATERIAL
+            : createDetailMaterialSource(session, slots.resolveStore(chatStore, sessionId)),
+        },
+      }
+    },
+  }, webjsxSlot('freddie-details-panel', { subscriptions: 'reads' }))
 
 }

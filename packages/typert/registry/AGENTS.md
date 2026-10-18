@@ -2,4 +2,4 @@
 
 ## Rationale
 
-- `service.js` `configure`: the resolver map erases each merge-declared Wire type; the type is restored only at the typed `configure()` boundary so strict function variance remains sound.
+- `service.js` `configure` wraps the resolver in an async function so synchronous resolver failures become rejections. Registry disposers withdraw only their exact entry; duplicate live owners are rejected.

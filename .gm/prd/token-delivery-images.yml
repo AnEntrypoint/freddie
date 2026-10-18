@@ -1,0 +1,8 @@
+id: token-delivery-images
+title: Price and bound image tokens
+subject: 'Pre: image blocks reach adapters. Invariant: an image the user attached remains addressable from the log. Post: image bytes are not re-sent after the provider has them, or are downscaled before the wire when the model cannot use the extra resolution.'
+acceptance: a second turn referencing the same attachment does not duplicate the image payload, witnessed on the serialized request.
+route_family: state
+status: completed
+session_id: freddie-27264-1790927965849
+witness: This session header and messages contain no image blocks (usage chunk image_tokens 0). Image offload already lives in llm-deepseek adapter.js request image policy. No duplicate image payload existed to cut.

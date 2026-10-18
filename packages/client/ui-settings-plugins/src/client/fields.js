@@ -39,26 +39,3 @@ export function ValueField(props) {
     )
   )
 }
-
-export function SecretField(props) {
-  return (
-    h('div', {class: css.field ?? ''},
-      h('div', {class: css.head ?? ''},
-        h('label', {class: css.label ?? '', for: props.id}, props.label),
-        h('span', {class: css.badges ?? ''},
-          h('span', {class: props.configured ? css.badge ?? '' : css.badgeMuted ?? ''}, props.stateLabel),
-        ),
-      ),
-      h('input', {
-        id: props.id,
-        class: css.input ?? '',
-        type: 'password',
-        autocomplete: 'off',
-        value: props.text,
-        disabled: props.disabled,
-        oninput: (event) => { props.onEdit((event.target).value) },
-      }),
-      h('p', {class: css.hint ?? ''}, props.hint),
-    )
-  )
-}

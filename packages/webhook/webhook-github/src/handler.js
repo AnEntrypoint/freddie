@@ -3,10 +3,6 @@ import { snapshotJsonValue } from '@freddie/freddie-values'
 import { WebhookDeliveryId, WebhookSourceId } from '@freddie/freddie-webhook'
 import { readBoundedUtf8Body, WebhookHttpError } from './body.js'
 
-/**
- * @typedef {{ readonly source: string; readonly secretEnv: string; readonly maxBodyBytes: number }} GitHubWebhookHandlerConfig
- *   Handler values validated once at plugin load. `secretEnv` is an already-branded `CredentialRef`.
- */
 
 function requiredHeader(request, name) {
   const values = request.headersDistinct[name]
@@ -51,12 +47,6 @@ function parsePayload(body) {
   return snapshot
 }
 
-/**
- * Create one exact-route GitHub handler.
- * @param {import('@freddie/cordis').Context} ctx - adapter context carrying credentials and webhook runtime.
- * @param {GitHubWebhookHandlerConfig} config - validated source, credential reference, and body ceiling.
- * @returns {(request: import('node:http').IncomingMessage, response: import('node:http').ServerResponse) => Promise<void>} an HTTP handler that answers after in-memory dispatch, never rule settlement.
- */
 export function createGitHubWebhookHandler(ctx, config) {
   return async (request, response) => {
     try {

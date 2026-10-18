@@ -30,7 +30,6 @@ export function searchCardModel(block) {
     if (!isValidFiles(result.files)) return null
     return { title: result.title, recovery, card: { kind: 'matches', files: result.files, ...common } }
   }
-  // oxlint-disable-next-line typescript/no-unnecessary-condition
   if (result.shape !== 'paths') return null
   if (!Array.isArray(result.paths) || !result.paths.every(path => typeof path === 'string')) return null
   return { title: result.title, recovery, card: { kind: 'paths', paths: result.paths, ...common } }

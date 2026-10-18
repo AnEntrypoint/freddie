@@ -28,7 +28,3 @@ export function chatNode(
     data,
   }
 }
-
-export function coordinate(value) {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined
-}

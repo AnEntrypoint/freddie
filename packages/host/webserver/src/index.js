@@ -4,7 +4,7 @@ import z from '@freddie/schemastery'
 import { renderIndexInjections } from './injections.js'
 
 export { renderIndexInjections } from './injections.js'
-export { etagOf, sendFile } from './static-file.js'
+export { etagOf, sendBody, sendFile } from './static-file.js'
 
 export function stripHmrPrefix(pathname) {
   if (!pathname.startsWith('/__hmr/')) return pathname

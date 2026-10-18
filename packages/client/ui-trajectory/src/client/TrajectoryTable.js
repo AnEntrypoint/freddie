@@ -10,6 +10,7 @@ import {
   MarkdownText,
   Tooltip,
   defineElement,
+  resolveElementTag,
 } from '@freddie/freddie-client-ui-primitives'
 import { structuredPatch } from 'diff'
 import { formatElapsedSeconds, trajectoryRecordId } from './trajectory-record.js'
@@ -21,6 +22,7 @@ import css from './TrajectoryTable.css.js'
 
 const BOTTOM_FOLLOW_THRESHOLD_PX = 2
 const OLDER_LOAD_THRESHOLD_PX = 48
+const FOCUS_INSPECTOR_FRAMES = 30
 const HISTORY_LOAD_ROW_HEIGHT_PX = 30
 const VIRTUALIZATION_THRESHOLD = 100
 const VIRTUAL_OVERSCAN_ROWS = 12
@@ -319,7 +321,7 @@ function requestStep(group) {
 }
 
 function requestKey(turn, group) {
-  return `${turn} ${group}`
+  return `${turn}\u0000${group}`
 }
 
 function indexRequestBoundaries(records) {
@@ -1444,6 +1446,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
   #tableScrollInitialized = false
   #tableScrollReady = false
   #pendingScrollRecordId = null
+  #pendingInspectFocus = false
   #loadingOlder = false
   #olderLoading = false
   #olderLoadAnchor = null
@@ -1585,6 +1588,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
       if (target !== undefined) {
         this.#openRecordSummary(target)
         this.#pendingScrollRecordId = trajectoryRecordId(target.cell)
+        this.#pendingInspectFocus = true
         onInspectApplied?.()
       }
     }
@@ -1627,6 +1631,11 @@ export class FreddieTrajectoryTable extends HTMLElement {
     })
   }
 
+  #syncTableTailFollow(pane) {
+    this.#followsTableTail =
+      pane.scrollHeight - pane.clientHeight - pane.scrollTop <= BOTTOM_FOLLOW_THRESHOLD_PX
+  }
+
   #ensureVirtualizer(
     virtualizationEnabled,
     count,
@@ -1634,6 +1643,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
     getItemKey,
     scrollMargin,
   ) {
+    if (!this.isConnected) return null
     const pane = this.#tablePaneEl
     if (pane === null) return null
     const options = {
@@ -1663,7 +1673,10 @@ export class FreddieTrajectoryTable extends HTMLElement {
       observeElementOffset: (instance, cb) => {
         const element = instance.scrollElement
         if (element === null) return undefined
-        const notify = () => { cb(element.scrollTop, false) }
+        const notify = () => {
+          this.#syncTableTailFollow(element)
+          cb(element.scrollTop, false)
+        }
         notify()
         element.addEventListener('scroll', notify, { passive: true })
         return () => { element.removeEventListener('scroll', notify) }
@@ -1877,8 +1890,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
           'data-trajectory-scroll': '',
           onscroll: (event) => {
             const pane = event.currentTarget
-            this.#followsTableTail =
-              pane.scrollHeight - pane.clientHeight - pane.scrollTop <= BOTTOM_FOLLOW_THRESHOLD_PX
+            this.#syncTableTailFollow(pane)
             this.#requestOlder(pane, true)
           },
           onclick: (event) => {
@@ -2168,6 +2180,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
           h('aside', {
             class: css.details ?? '',
             'aria-label': 'Event details',
+            tabIndex: -1,
             style: this.#detailsWidth === null ? '' : `width: ${this.#detailsWidth}px`,
           },
             h('div', {
@@ -2658,15 +2671,19 @@ export class FreddieTrajectoryTable extends HTMLElement {
     const position = records.findIndex(record =>
       trajectoryRecordId(record.cell) === id && record.collapsedSummary === undefined)
     if (position === -1) return
+    const focusInspected = this.#pendingInspectFocus
     if (virtualizationEnabled) {
       const virtualIndex = virtualIndexByRecordId.get(id)
       if (virtualIndex === undefined) return
       this.#pendingScrollRecordId = null
+      this.#pendingInspectFocus = false
       this.#followsTableTail = false
       rowVirtualizer?.scrollToIndex(virtualIndex, { behavior: 'smooth', align: 'center' })
+      if (focusInspected) this.#focusInspector()
       return
     }
     this.#pendingScrollRecordId = null
+    this.#pendingInspectFocus = false
     this.#followsTableTail = false
     const recordIndex = records[position]?.cell.index
     const row = recordIndex === undefined
@@ -2675,6 +2692,15 @@ export class FreddieTrajectoryTable extends HTMLElement {
     if (row !== undefined && row !== null && typeof row.scrollIntoView === 'function') {
       row.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
+    if (focusInspected) this.#focusInspector()
+  }
+
+  #focusInspector(framesLeft = FOCUS_INSPECTOR_FRAMES) {
+    requestAnimationFrame(() => {
+      const inspector = this.querySelector('aside[aria-label="Event details"]')
+      if (inspector !== null) inspector.focus({ preventScroll: true })
+      else if (framesLeft > 0) this.#focusInspector(framesLeft - 1)
+    })
   }
 
   #applyTimelineFocus(
@@ -2744,6 +2770,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
     virtualizationEnabled,
     rowVirtualizer,
   ) {
+    if (!this.isConnected) return
     const pane = this.#tablePaneEl
     if (pane === null) return
     const { historyStartSeq } = this.#props
@@ -2775,7 +2802,7 @@ export class FreddieTrajectoryTable extends HTMLElement {
 defineElement('freddie-trajectory-table', FreddieTrajectoryTable)
 
 export function TrajectoryTable(props) {
-  const el = document.createElement('freddie-trajectory-table')
-  el.setProps(props)
-  return el
+  return h(resolveElementTag('freddie-trajectory-table'), {
+    ref: (el) => { el?.setProps(props) },
+  })
 }

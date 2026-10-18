@@ -60,12 +60,13 @@ class WorkerThreadWorkflowEngine extends WorkflowEngine {
     maxItemsPerCall: z.natural().min(1).default(4096),
     syncTimeoutMs: z.natural().min(1).default(5000),
     disposeGraceMs: z.natural().default(5000),
+    maxRetainedTerminalGraphs: z.natural().min(1).default(20),
   })
 
   config
 
   constructor(ctx, config) {
-    super(ctx)
+    super(ctx, { maxRetainedTerminalGraphs: config.maxRetainedTerminalGraphs })
     this.config = config
   }
 

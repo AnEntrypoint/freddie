@@ -4,7 +4,7 @@
 }
 
 .freddie-hoverCard__card {
-  --dsw-hovercard-bg: #2C2C2E;
+  --dsw-hovercard-bg: var(--dsw-static-neutral-bluish-850);
   position: fixed;
   z-index: 100;
   box-sizing: border-box;

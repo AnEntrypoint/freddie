@@ -92,6 +92,11 @@ export class FreddiePermissionSelect extends HTMLElement {
     this.#render()
   }
 
+  disconnectedCallback() {
+    this.#confirmModal?.remove()
+    this.#confirmModal = null
+  }
+
   #submit(id) {
     if (this.#props === null) return
     this.#pick = id
@@ -180,19 +185,21 @@ export class FreddiePermissionSelect extends HTMLElement {
     })
     const menu = this.#menu
 
-    this.#confirmModal = renderRiskConfirmation(this.#confirmModal, {
-      open: confirmation !== null,
-      title: t('access.confirm.title'),
-      description: t('access.confirm.description'),
-      acknowledgeLabel: t('access.confirm.acknowledge'),
-      cancelLabel: t('access.confirm.cancel'),
-      confirmLabel: t('access.confirm.enable'),
-      acknowledged,
-      disabled: locked,
-      onAcknowledgedChange: (next) => { this.#acknowledged = next; this.#render() },
-      onCancel: () => { this.#closeConfirmation() },
-      onConfirm: () => { this.#confirmFullAccess() },
-    })
+    if (this.isConnected) {
+      this.#confirmModal = renderRiskConfirmation(this.#confirmModal, {
+        open: confirmation !== null,
+        title: t('access.confirm.title'),
+        description: t('access.confirm.description'),
+        acknowledgeLabel: t('access.confirm.acknowledge'),
+        cancelLabel: t('access.confirm.cancel'),
+        confirmLabel: t('access.confirm.enable'),
+        acknowledged,
+        disabled: locked,
+        onAcknowledgedChange: (next) => { this.#acknowledged = next; this.#render() },
+        onCancel: () => { this.#closeConfirmation() },
+        onConfirm: () => { this.#confirmFullAccess() },
+      })
+    }
 
     const vdom = h('span', null, menu)
     applyDiff(this, vdom)

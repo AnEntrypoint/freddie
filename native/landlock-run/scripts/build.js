@@ -1,30 +1,7 @@
-/**
- * Build every native tool this host can build, into its per-platform
- * package.
- *
- * Targets are derived from the checked-in matrix: each
- * `packages/<name>/prebuilds.json` whose `platform` matches this host names
- * the binaries to produce; the TOOLS table below maps each `tool` to its C
- * source. Builds are NATIVE-ONLY — each Linux architecture compiles its own
- * binary with the distro's `musl-gcc` (static musl: runs on glibc and musl
- * distros alike, no loader or libc expectations on the consumer host), and
- * CI's per-arch runners are the builders of record. No cross toolchain
- * exists here on purpose: native runners replace it, and the audit surface
- * is the reviewed C source plus the CI job that built the binary.
- *
- * Binaries land in `packages/<name>/bin/` — git-ignored (root
- * `.gitignore`), packed into the platform package's npm tarball behind its
- * `prepack` gate (`scripts/verify-launcher-binary.mjs`).
- *
- * Run: `pnpm run build:native` (Linux with musl-gcc on PATH:
- * `apt-get install musl-tools`). Non-Linux hosts fail fast — no platform
- * package exists for them to build.
- */
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 
-/** Each native tool's C source, keyed by the `tool` field in prebuilds.json. */
 const TOOLS = {
   'landlock-run': { source: 'packages/entry/src/main.c' },
 }
@@ -37,7 +14,6 @@ if (process.platform !== 'linux') {
 }
 const hostPlatform = `linux-${process.arch}`
 
-/** This host's platform packages, from the checked-in matrix. */
 const targets = []
 const packagesRoot = join(repoRoot, 'packages')
 for (const name of readdirSync(packagesRoot).sort()) {

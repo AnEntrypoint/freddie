@@ -1,0 +1,9 @@
+id: token-usage-forward
+title: Forward provider usage on the chat stream
+subject: 'Pre: live session assistant/message usageCount is 0 because acptoapi drops stream usage. Invariant: a usage object the upstream sends is forwarded before [DONE]. Post: a live streaming chat completion contains prompt_tokens and completion_tokens.'
+acceptance: exec_js POST /v1/chat/completions stream against localhost:4800 returns a usage chunk with prompt_tokens.
+status: completed
+route_family: observability
+session_id: freddie-107108-1791049571843
+witness: 'exec_js 1791106377744 POST http://127.0.0.1:4800/v1/chat/completions model xai-oauth/grok-4.7 stream=true returned HTTP 200 with a usage chunk before [DONE]: prompt_tokens 1250, completion_tokens 1, cached_tokens 1152, reasoning_tokens 50. Gateway pid 102020 loaded the patched openai.js stream_options.include_usage path.'
+commit_comment: Forward upstream stream usage before [DONE]

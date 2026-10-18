@@ -28,6 +28,8 @@ export class FreddieMessageIconActions extends HTMLElement {
   }
 
   connectedCallback() {
+    this.#day.stop()
+    this.#day = createCalendarDay(() => { this.#render() })
     this.#render()
   }
 

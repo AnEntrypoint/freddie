@@ -48,3 +48,9 @@ pnpm build:native    # this Linux architecture's binaries (needs musl-tools); fa
 ## Documentation
 
 User-facing docs are English. Keep the README focused on install, usage, and support status; durable design decisions belong in docs/ alongside the code, and the current implementation belongs in [docs/architecture.md](docs/architecture.md).
+
+- Attribute launcher failure only when exit 125 accompanies a launcher-owned fatal diagnostic; an executed command can itself exit 125. probe() is the availability signal: failed or timed-out spawns return unusable; zero exit with the partial report returns partial, otherwise full. Cache the synchronous verdict in the consumer; sandbox policy stays outside the entry package.
+
+- Publication follows packed order (platforms before entries), compares tarball SHA-512 integrity with the registry, skips identical content, and rejects a changed payload at the same version. After failed publication re-read registry integrity before retrying: reported failure may have committed. Retry only enumerated transient codes; preserve publish spacing and bounded exponential backoff. Create the namespaced tag from the merged release commit.
+
+- Preserve kernel UAPI layouts, including packed landlock_path_beneath_attr. ABI 1 grants bits 0–12, ABI 2 adds REFER, ABI 3 adds TRUNCATE, and ABI 5 adds IOCTL_DEV; ABI 4 adds no filesystem bit. Negotiate only known supported bits and report older-ABI confinement as partial. File grants remove directory-only bits or the kernel rejects the rule. Set PR_SET_NO_NEW_PRIVS before restricting; unopenable grant roots or failed restriction prevent exec. Grant arrays and the NULL-terminated command argv have launcher-process lifetime.

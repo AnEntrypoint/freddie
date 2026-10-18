@@ -1,0 +1,7 @@
+id: gm-runtime-hmr-final-witness
+title: Live-witness GM runtime metric after projection event
+subject: 'Pre: the active HMR queue has a stashed GM source set. Invariant: host plugin reload and the subsequent model tool dispatch remain separated by the HMR idle boundary. Post: the client sees the existing session projection update and retains a healthy active ui-observability fiber.'
+acceptance: The active HMR journal records reload after idle, then a fresh GUI GM tool dispatch reaches an Overview whose GM runtime metric shows the active daemon's leaf values.
+status: in-progress
+route_family: observability
+session_id: freddie-2128598-1790941468204

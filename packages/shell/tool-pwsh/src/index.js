@@ -14,7 +14,6 @@ export const Config = z.object({
   enableRunInBackground: z.boolean().default(true),
 })
 
-/* jscpd:ignore-start -- minimal mirror of freddie-tool-bash's validation and execute plumbing (Agent Note). */
 function validatePwshArgs(args) {
   if (args.command.trim().length === 0) {
     throw new Error('invalid command: expected a non-empty string')
@@ -27,7 +26,6 @@ function validatePwshArgs(args) {
   }
   validateEscalationArgs(args.sandbox_permissions, args.justification)
 }
-/* jscpd:ignore-end */
 
 export function describePwshInvocation(pwshPath) {
   if (typeof pwshPath !== 'string' || pwshPath.length === 0) {
@@ -100,7 +98,6 @@ function canonicalPwshResult(result) {
     timedOut: result.timedOut,
     aborted: result.aborted,
     timeoutMs: result.timeoutMs,
-    /* jscpd:ignore-start -- the canonical projection and background-handle shape mirror freddie-tool-bash's by design (Agent Note). */
     stdout: output(result.stdout),
     stderr: output(result.stderr),
     ...result.sandbox !== undefined ? {
@@ -118,9 +115,7 @@ const BACKGROUND_OUTPUT_PROPERTIES = {
   kind: { type: 'string', required: true, const: 'background' },
   jobId: { type: 'string', required: true },
 }
-/* jscpd:ignore-end */
 
-/* jscpd:ignore-start -- deliberate mirror of freddie-tool-bash's apply() preamble (pwsh-tool-and-executor Agent Note). */
 export function apply(ctx, config = {}) {
   const backgroundEnabled = config.enableRunInBackground ?? true
   const defaultMode = ctx.shell.sandboxMode
@@ -129,11 +124,9 @@ export function apply(ctx, config = {}) {
   if (defaultMode !== undefined && sandboxPolicy === undefined) {
     throw new Error('tool-pwsh: the mounted bash executor confines but ctx.sandboxPolicy is missing')
   }
-  /* jscpd:ignore-end */
   const resolveSandboxPolicy = (exec) =>
     sandboxPolicy?.resolve(exec.agent === undefined ? {} : { session: exec.agent.session })
 
-  /* jscpd:ignore-start -- deliberate mirror of freddie-tool-bash's escalation resolver (pwsh-tool-and-executor Agent Note). */
   const approvePwshEscalation = (
     mode,
     justification,
@@ -155,7 +148,6 @@ export function apply(ctx, config = {}) {
       },
     )
   }
-  /* jscpd:ignore-end */
 
   ctx.systemPrompt.section({
     name: 'tool:pwsh',
@@ -167,7 +159,6 @@ export function apply(ctx, config = {}) {
   ctx.tools.register(defineTool({
     name: 'pwsh',
     description: pwshDescription(backgroundEnabled, escalationModes, ctx.shell.pwshPath),
-    /* jscpd:ignore-start -- deliberate mirror of freddie-tool-bash's parameter surface (pwsh-tool-and-executor Agent Note). */
     parameters: {
       command: { type: 'string', required: true, description: 'The PowerShell command to execute.' },
       description: {
@@ -194,9 +185,7 @@ export function apply(ctx, config = {}) {
         },
       } : {},
     },
-    /* jscpd:ignore-end */
     output: {
-      /* jscpd:ignore-start -- deliberate result-schema symmetry with freddie-tool-bash. */
       schema: {
         oneOf: [
           {
@@ -248,7 +237,6 @@ export function apply(ctx, config = {}) {
           },
         ],
       },
-      /* jscpd:ignore-end */
       render: (_args, value) => [{
         type: 'text',
         text: value.kind === 'background'
@@ -256,7 +244,6 @@ export function apply(ctx, config = {}) {
           : renderPwshResult(value, escalationModes),
       }],
     },
-    /* jscpd:ignore-start -- the execute path mirrors freddie-tool-bash's by design (see the pwsh-tool-and-executor Agent Note). */
     async execute(args, exec) {
       validatePwshArgs(args)
       const standingPolicy = resolveSandboxPolicy(exec)
@@ -313,8 +300,6 @@ export function apply(ctx, config = {}) {
       }
       return canonicalPwshResult(result)
     },
-    /* jscpd:ignore-end */
-    /* jscpd:ignore-start -- the background call card mirrors presentBashCall's by design (Agent Note). */
     presentCall: (args) => {
       if (args.run_in_background === true) {
         return {
@@ -332,8 +317,6 @@ export function apply(ctx, config = {}) {
         ...args.workdir !== undefined ? { cwd: args.workdir } : {},
       }
     },
-    /* jscpd:ignore-end */
-    /* jscpd:ignore-start -- the completed-result presentation mirrors presentBashResult's by design (Agent Note). */
     presentResult: (args, result) => {
       const block = result.content.length === 1 ? result.content[0] : undefined
       if (block === undefined || block.type !== 'text') return undefined
@@ -345,6 +328,5 @@ export function apply(ctx, config = {}) {
       const { body, ...exit } = parseExitStatus(raw)
       return { card: 'terminal', output: body, ...exit }
     },
-    /* jscpd:ignore-end */
   }))
 }

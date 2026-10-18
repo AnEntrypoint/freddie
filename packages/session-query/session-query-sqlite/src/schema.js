@@ -119,7 +119,6 @@ function inlineNullBindings(sql, params) {
       args.push(value)
     }
   }
-  /* v8 ignore next */
   if (index !== params.length) throw new Error('session-search statement placeholder count does not match its bindings')
   return { sql: out, args }
 }

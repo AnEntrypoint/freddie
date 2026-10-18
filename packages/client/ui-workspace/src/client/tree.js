@@ -107,6 +107,7 @@ function sessionNode(
     running: s.running,
     runningSubagentCount: descendants.get(s.id)?.runningCount ?? 0,
     completed: s.completed === true,
+    errored: s.errored === true,
     updatedAt: s.updatedAt,
     ...(s.pendingInteraction === undefined ? {} : { pendingInteraction: s.pendingInteraction }),
     ...(s.readOnly === true ? { readOnly: true } : {}),
@@ -225,6 +226,7 @@ export function deriveSearchResults(
           ? {}
           : { pendingInteraction: summary.pendingInteraction }),
         completed: summary.completed === true,
+        errored: summary.errored === true,
         ...match === undefined ? {} : { snippet: match.snippet },
       }
     }),

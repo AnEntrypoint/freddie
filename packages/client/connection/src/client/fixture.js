@@ -463,7 +463,6 @@ function buildAlphaLog() {
   return events
 }
 
-/* v8 ignore next */
 const str = (value, fallback = '') => typeof value === 'string' ? value : fallback
 
 function presentCall(name, argsRaw) {
@@ -471,7 +470,6 @@ function presentCall(name, argsRaw) {
   try {
     args = JSON.parse(argsRaw)
   } catch {
-    /* v8 ignore next 2 */
     return undefined
   }
   switch (name) {
@@ -565,7 +563,6 @@ function viewFor(event, log) {
     const callId = String(event.data.message.source.callId)
     for (let i = log.length - 1; i >= 0; i--) {
       const candidate = log[i]
-      /* v8 ignore next */
       if (candidate !== undefined && candidate.type === 'tool/call' && String(candidate.data.callId) === callId) {
         const resultText = event.data.message.content[0].content.map(b => (b.type === 'text' ? b.text : '')).join('')
         const view = presentResult(candidate.data.name, candidate.data.arguments, resultText)
@@ -815,12 +812,23 @@ function contextPressureOf(
   }
 }
 
+function gmProgressValueOf(data) {
+  return {
+    verb: null, status: 'idle', phase: null, prdPendingCount: null, mutablesPendingCount: null,
+    sessionId: null, belongsToConfiguredSession: false, startedAt: null, finishedAt: null,
+    durationMs: null, error: null, runtime: null, nodes: [], edges: [], walking: null,
+    ...data,
+  }
+}
+
 function projectionValuesOf(log) {
   const values = {}
   const titleEvent = log.findLast(item => item.type === 'session/title')
   if (titleEvent !== undefined) {
     values['title'] = titleEvent.data.title
   }
+  const progressEvent = log.findLast(item => item.type === 'gm/progress')
+  if (progressEvent !== undefined) values['gmProgress'] = gmProgressValueOf(progressEvent.data)
   values['todos'] = backscanTodos(log) ?? null
   values['permissions'] = permissionSelectOf(log)
   values['plan'] = planViewOf(log)
@@ -842,6 +850,9 @@ function projectionValuesOf(log) {
 
 function projectionFramesOf(id, log, event) {
   const type = event.type
+  if (type === 'gm/progress') {
+    return [{ type: 'session/projection', sessionId: id, key: 'gmProgress', value: gmProgressValueOf(event.data), seq: event.seq }]
+  }
   const frames = []
   const advancesBothTokenMeterUnits = usageSampleOf(event) !== undefined
   if (advancesBothTokenMeterUnits) {
@@ -884,7 +895,6 @@ function projectionFramesOf(id, log, event) {
   if (frames.length > 0) return frames
   if (type === 'session/title') {
     const values = projectionValuesOf(log)
-    /* v8 ignore next */
     if (!Object.hasOwn(values, 'title')) return []
     return [{ type: 'session/projection', sessionId: id, key: 'title', value: values['title'], seq: event.seq }]
   }
@@ -936,7 +946,6 @@ function pageOf(
   let messages = 0
   for (let i = end - 1; i >= 0; i--) {
     const event = log[i]
-    /* v8 ignore next */
     if (event === undefined) break
     if (event.type === 'user/message' || event.type === 'assistant/message') messages++
     if (event.type === 'turn/start' && messages >= maxMessages) {
@@ -1127,15 +1136,15 @@ export function createFixtureApi(options = {}) {
   return createFixtureWorld(options).api
 }
 
-export function createFixtureFaces(options = {}) {
-  return createFixtureWorld(options)
-}
-
 function createFixtureWorld(options) {
   const sessions = options.empty ? [] : [
     { sessionId: sid('fx-alpha'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture' },
     { sessionId: sid('fx-beta'), updatedAt: Date.now() - 60_000, running: false, blank: false, parentSessionId: sid('fx-alpha'), cwd: '/tmp/fixture' },
     { sessionId: sid('fx-gamma'), updatedAt: Date.now() - 120_000, running: false, blank: false, cwd: '/tmp/fixture' },
+    ...options.lineage === 'running' || options.lineage === 'pending'
+      ? [{ sessionId: sid('fx-lineage-running'), updatedAt: Date.now(), running: true, blank: false, cwd: '/tmp/fixture', origin: 'subagent', parentSessionId: sid('fx-alpha') }]
+      : [],
+    ...Array.from({ length: Math.max(0, (options.sessionCount ?? 0) - 3) }, (_, index) => ({ sessionId: sid(`fx-bulk-${index}`), updatedAt: Date.now() - (index + 3) * 60_000, running: false, blank: false, cwd: '/tmp/fixture' })),
   ]
   const logs = new Map([[sid('fx-alpha'), buildAlphaLog()]])
   const modelSelections = new Map(sessions.map(session => [
@@ -1168,7 +1177,7 @@ function createFixtureWorld(options) {
     workspaceId: wid('fx-ws-fixture'),
     path: '/tmp/fixture',
     title: 'fixture',
-    sessionIds: [sid('fx-alpha'), sid('fx-beta'), sid('fx-gamma')],
+    sessionIds: sessions.map(session => session.sessionId),
     createdAt: fixtureEpoch,
     updatedAt: fixtureEpoch,
   }, {
@@ -1277,9 +1286,13 @@ function createFixtureWorld(options) {
   }
   const setRunning = (id, running) => {
     const summary = summaryOf(id)
-    if (summary === undefined || summary.running === running) return
+    if (summary === undefined) return
+    const wasErrored = summary.errored === true
+    const errored = running ? false : wasErrored
+    if (summary.running === running && wasErrored === errored) return
     summary.running = running
-    emitHost({ type: 'host/session-status', sessionId: id, running })
+    summary.errored = errored
+    emitHost({ type: 'host/session-status', sessionId: id, running, errored })
   }
   const logOf = (id) => {
     let log = logs.get(id)
@@ -1294,7 +1307,6 @@ function createFixtureWorld(options) {
     const event = { seq: log.length, time: Date.now(), ...e }
     log.push(event)
     const view = viewFor(event, log)
-    /* v8 ignore next 3 */
     emitMux(view === undefined
       ? { type: 'session/event', sessionId: id, event }
       : { type: 'session/event', sessionId: id, event, view })
@@ -1616,6 +1628,24 @@ function createFixtureWorld(options) {
       const messageSeqs = log.filter(event => event.type === 'user/message').map(event => event.seq)
       append(sid(id), { type: 'session/title', data: { title, messageSeqs, source: { kind: 'provider', provider: 'fixture' } } })
     },
+    describeSessions() {
+      return sessions.map(s => ({ id: s.sessionId, running: s.running, updatedAt: s.updatedAt }))
+    },
+    setSessionErrored(id) {
+      const sessionId = sid(id)
+      const summary = summaryOf(sessionId)
+      if (summary === undefined) throw new Error(`fixture: no session ${id}`)
+      if (!summary.running) {
+        const turn = nextTurn.get(sessionId) ?? 0
+        nextTurn.set(sessionId, turn + 1)
+        append(sessionId, { type: 'turn/start', data: { turn } })
+      }
+      const turn = (nextTurn.get(sessionId) ?? 1) - 1
+      append(sessionId, { type: 'turn/end', data: { turn, reason: { kind: 'error', error: { code: 'fixture-injected', message: 'fixture injected error' } } } })
+      summary.running = false
+      summary.errored = true
+      emitHost({ type: 'host/session-status', sessionId, running: false, errored: true })
+    },
     startReasoningChunkStorm(
       id,
       chunkCount,
@@ -1775,6 +1805,16 @@ function createFixtureWorld(options) {
     breakStreams() {
       for (const breakNow of [...streamBreakers]) breakNow()
     },
+    gmProgress(id, data) {
+      append(sid(id), { type: 'gm/progress', ignorable: true, data })
+    },
+    terminalOutput(id, name, text) {
+      emitMux({
+        type: 'terminal/activity',
+        sessionId: sid(id),
+        activity: { type: 'output', text, snapshot: { sessionId: `${id}-${name}`, name, status: { kind: 'running' } } },
+      })
+    },
   }
   ;(globalThis).__fxTiming = timingHooks
 
@@ -1782,7 +1822,6 @@ function createFixtureWorld(options) {
     const step = 0
     append(id, { type: 'step/start', data: { turn, step } })
     append(id, { type: 'assistant/chunk', data: { turn, step, chunk: { type: 'block-start', index: 0, blockType: 'text' } } })
-    /* v8 ignore next */
     const pieces = replyText.match(/[\s\S]{1,6}/gu) ?? [replyText]
     let i = 0
     const finish = (aborted) => {
@@ -1872,7 +1911,6 @@ function createFixtureWorld(options) {
         const cwd = workspace?.path ?? request.payload.cwd ?? '/tmp/fixture'
         const requestedId = request.payload.sessionId
         const attachWorkspace = (sessionId) => {
-          /* v8 ignore next */
           if (workspace === undefined || workspace.sessionIds.includes(sessionId)) return
           workspace.sessionIds = [sessionId, ...workspace.sessionIds]
           workspace.updatedAt = new Date().toISOString()
@@ -2131,7 +2169,12 @@ function createFixtureWorld(options) {
       },
     },
     subagents: {
-      list: request => ok(request, { entries: [], parentAvailable: true }),
+      list: request => ok(request, {
+        entries: options.lineage === 'running' && request.payload.parentSessionId === sid('fx-alpha')
+          ? [{ kind: 'child', id: sid('fx-lineage-running'), mode: 'continuable', label: 'Fixture running subagent', activity: 'running', hasChildren: false }]
+          : [],
+        parentAvailable: true,
+      }),
       history: (request) => {
         const log = logs.get(request.payload.childSessionId) ?? []
         return Promise.resolve(ok(
@@ -2258,7 +2301,6 @@ function createFixtureWorld(options) {
         if (beforeWorkspaceId !== workspaceId) {
           const previousOrder = workspaces.map(candidate => candidate.workspaceId)
           const [workspace] = workspaces.splice(source, 1)
-          /* v8 ignore next */
           if (workspace === undefined) throw new Error(`fixture lost workspace ${workspaceId}`)
           const at = beforeWorkspaceId === undefined
             ? workspaces.length
@@ -2453,6 +2495,9 @@ function createFixtureWorld(options) {
           for (const key of Object.keys(values)) {
             conn.push({ rpcId: mint(), payload: { type: 'session/projection', sessionId: s.sessionId, key, value: values[key], seq: log.length - 1 } })
           }
+          if (s.origin === 'subagent') {
+            conn.push({ rpcId: mint(), payload: { type: 'session/projection', sessionId: s.sessionId, key: 'subagentTiming', value: { settledMs: 0, active: { since: Date.now() - 65_000, through: Date.now() } }, seq: log.length - 1 } })
+          }
         }
         if (approvalPending) {
           conn.push({
@@ -2487,7 +2532,6 @@ function createFixtureWorld(options) {
         const GAMMA_FLIP_INTERVAL_MS = 5000
         const timer = setInterval(() => {
           const gamma = summaryOf(sid('fx-gamma'))
-          /* v8 ignore next */
           if (gamma !== undefined) setRunning(gamma.sessionId, !gamma.running)
         }, GAMMA_FLIP_INTERVAL_MS)
         try {
@@ -2749,9 +2793,11 @@ function fixtureOptionsFromLocation() {
   const query = new URLSearchParams(location.search)
   return {
     empty: query.get('fixture') === 'empty',
+    sessionCount: Number(query.get('fixtureSessions') ?? 0),
     rejectPrompt: query.get('fixturePrompt') === 'reject',
     failWorkspaceAttach: query.get('fixtureAttach') === 'fail',
     dropSessionCreateResponse: query.get('fixtureSessionCreate') === 'drop-response',
     createFrameOrder: query.get('fixtureFrames') === 'workspace-first' ? 'workspace-first' : 'session-first',
+    lineage: query.get('fixtureLineage') ?? undefined,
   }
 }

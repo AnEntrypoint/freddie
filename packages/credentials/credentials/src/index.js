@@ -94,9 +94,6 @@ export class CredentialProvider extends Service {
     this.fanOut('credentials/record-updated', key)
   }
 
-  /* jscpd:ignore-start -- deliberate symmetry with the settings seam's commit
-     fan-out: the contained-dispatch shape is the reviewed listener-lifecycle
-     contract, and extracting it would couple the two seams' event semantics. */
   fanOut(event, subject) {
     let invariantFailure
     const args = [event, subject]
@@ -118,7 +115,6 @@ export class CredentialProvider extends Service {
     }
     if (invariantFailure !== undefined) throw invariantFailure
   }
-  /* jscpd:ignore-end */
 
   warnListenerFailure(event, subject, error) {
     this.ctx.logger.warn('credentials: a %s listener for "%s" failed', event, subject)

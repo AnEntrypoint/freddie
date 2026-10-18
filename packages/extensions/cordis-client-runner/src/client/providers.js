@@ -1,7 +1,6 @@
 import { queryEventApi, queryServiceApi } from './api-catalog.js'
 import { CLIENT_SLOT_API } from './slot-catalog.js'
 
-/* jscpd:ignore-start */
 const EMPTY_INPUT = { type: 'object', properties: {}, additionalProperties: false }
 const ANY_OUTPUT = { description: 'JSON data owned by this inspect provider.' }
 const SERVICE_INPUT = exactInput('service', 'Exact Service key. Omit it for the compact Service and method-signature directory.')
@@ -12,7 +11,6 @@ const SERVICE_OUTPUT = {
 const EVENT_OUTPUT = {
   description: 'Compact Event directory, or one exact Event contract with only its referenced type declarations.',
 }
-/* jscpd:ignore-end */
 const SUBTREE_OUTPUT = {
   description: 'Compact purpose/topology trees. With root, selected also contains that Slot\'s full contract and live occupants.',
 }
@@ -117,7 +115,6 @@ export function clientInspectProviders(ctx) {
   ]
 }
 
-/* jscpd:ignore-start */
 function registration(id, description, method, query, inputSchema = EMPTY_INPUT, outputSchema = ANY_OUTPUT) {
   return {
     manifest: {
@@ -146,7 +143,6 @@ function readExact(input, field) {
   const value = input[field]
   return typeof value === 'string' ? value : undefined
 }
-/* jscpd:ignore-end */
 
 const SLOT_CATALOG = new Map(CLIENT_SLOT_API.map(entry => [entry.key, entry]))
 const GUARDED_SLOT_KEYS = new Map([

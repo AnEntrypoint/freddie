@@ -1,5 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { renderTooltip, defineElement } from '@freddie/freddie-client-ui-primitives'
+import { defineElement } from '@freddie/freddie-client-ui-primitives'
 import { formatTokensPerSecond } from './message-chrome.js'
 import { assistantStepReading } from './turn-metrics.js'
 import css from './StatsLine.css.js'
@@ -39,15 +39,17 @@ export function deriveStats(nodes) {
 
 export function formatTokens(n) {
   const scaled = (v) =>
-    v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10)
+    v >= 100 ? Math.round(v) : Math.round(v * 10) / 10
   if (n < 1_000) return String(n)
-  if (n < 1_000_000) return `${scaled(n / 1_000)}K`
-  return `${scaled(n / 1_000_000)}M`
+  if (scaled(n / 1_000) < 1_000) return `${scaled(n / 1_000)}K`
+  if (scaled(n / 1_000_000) < 1_000) return `${scaled(n / 1_000_000)}M`
+  return `${scaled(n / 1_000_000_000)}B`
 }
 
 export function formatDuration(ms) {
   const s = ms / 1_000
-  if (s < 60) return `${Math.round(s * 10) / 10}s`
+  const tenths = Math.round(s * 10)
+  if (tenths < 600) return `${tenths / 10}s`
   const whole = Math.round(s)
   return `${Math.floor(whole / 60)}m${whole % 60}s`
 }
@@ -108,7 +110,7 @@ export function contextOccupancy(pressure) {
   const usedTokens = pressure?.projectedTokens ?? pressure?.pressureTokens
   if (usedTokens === undefined || pressure?.contextWindow === undefined) return null
   return {
-    percent: Math.min(100, Math.round(usedTokens / pressure.contextWindow * 100)),
+    percent: Math.min(usedTokens < pressure.contextWindow ? 99 : 100, Math.round(usedTokens / pressure.contextWindow * 100)),
     usedTokens,
     contextWindow: pressure.contextWindow,
   }
@@ -122,11 +124,7 @@ const DEFAULT_PROPS = {
 
 export class FreddieStatsLine extends HTMLElement {
   #props = DEFAULT_PROPS
-  #truncated = false
-  #resizeObserver = null
-  #resizeRoot = null
   #unsubscribe = null
-  #tooltipEl = null
 
   setProps(props) {
     this.#props = props
@@ -142,7 +140,6 @@ export class FreddieStatsLine extends HTMLElement {
   disconnectedCallback() {
     this.#unsubscribe?.()
     this.#unsubscribe = null
-    this.#unbindResize()
   }
 
   #bindSession() {
@@ -150,34 +147,11 @@ export class FreddieStatsLine extends HTMLElement {
     this.#unsubscribe = null
   }
 
-  #unbindResize() {
-    this.#resizeObserver?.disconnect()
-    this.#resizeObserver = null
-    this.#resizeRoot = null
-  }
-
-  #bindResize(root) {
-    if (this.#resizeObserver !== null && this.#resizeRoot === root) return
-    this.#unbindResize()
-    this.#resizeRoot = root
-    const measure = () => {
-      const next = root.scrollWidth > root.clientWidth
-      if (next === this.#truncated) return
-      this.#truncated = next
-      this.#render()
-    }
-    measure()
-    if (typeof ResizeObserver === 'undefined') return
-    this.#resizeObserver = new ResizeObserver(measure)
-    this.#resizeObserver.observe(root)
-  }
-
   #render() {
     const { useSession, useProjection, t } = this.#props
-    const settledNodes = useSession(s => s.chat.legacy.nodes)
-    const usage = useProjection('tokenUsage')
     const projected = useProjection('sessionStats')
-    const stats = projected ?? deriveStats(settledNodes)
+    const usage = useProjection('tokenUsage')
+    const stats = projected ?? deriveStats(useSession(s => s.chat.legacy.nodes))
     const groups = []
     if (stats.steps > 0) {
       groups.push(t('stats.counts', { turns: stats.turns, steps: stats.steps }))
@@ -205,28 +179,11 @@ export class FreddieStatsLine extends HTMLElement {
         output: formatTokens(usage.outputTokens),
       }))
     }
-    const line = groups.join(' | ')
-
-    if (groups.length === 0) {
-      applyDiff(this, [])
-      this.#unbindResize()
-      return
-    }
-
-    this.#tooltipEl = renderTooltip(this.#tooltipEl, {
-      label: line, side: 'top', delayMs: 500, disabled: !this.#truncated,
-      children: [
-        h('div', { 'data-stats-root': '', class: css.root ?? '' },
-          groups.map((group, i) => [
-            i > 0 && [h('span', { class: css.sep ?? '', 'aria-hidden': true }, '|'), ' '],
-            h('span', null, group),
-          ]),
-        ),
-      ],
-    })
-    applyDiff(this, this.#tooltipEl)
-    const root = this.querySelector('[data-stats-root]')
-    if (root !== null) this.#bindResize(root)
+    applyDiff(this, groups.length === 0 ? [] : [
+      h('div', { 'data-stats-root': '', class: css.root ?? '' },
+        groups.map((group, index) => h('span', { key: index }, group)),
+      ),
+    ])
   }
 }
 

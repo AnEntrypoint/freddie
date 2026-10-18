@@ -115,6 +115,10 @@ function canUpdateVNodes(newVNode, oldVNode) {
         }
     }
 }
+function isInPlace(parent, node, lastPlacedNode) {
+    const expected = lastPlacedNode ? lastPlacedNode.nextSibling : parent.firstChild;
+    return node.parentNode === parent && node === expected;
+}
 function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
     const nodes = [];
     let lastPlacedNode = null;
@@ -123,6 +127,11 @@ function applyChanges(parent, changes, originalNodes, nodeOrderUnchanged) {
             let node = undefined;
             if (change.vnode instanceof Node) {
                 node = change.vnode;
+                if (isInPlace(parent, node, lastPlacedNode)) {
+                    lastPlacedNode = node;
+                    nodes.push(node);
+                    continue;
+                }
             }
             else if (isVElement(change.vnode)) {
                 node = createDOMElement(change.vnode, getNamespaceURI(parent));

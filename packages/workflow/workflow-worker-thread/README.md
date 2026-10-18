@@ -80,6 +80,7 @@ The host keeps a ledger of forwarded child starts. A graceful worker supplies th
 | `maxItemsPerCall` | `4096` | Items accepted by one `parallel()` or `pipeline()` call. |
 | `syncTimeoutMs` | `5000` | VM timeout for the script's initial synchronous slice. |
 | `disposeGraceMs` | `5000` | Bound before force-settlement/termination and for public disposal. |
+| `maxRetainedTerminalGraphs` | `20` | Terminal `ctx.workflowEngine.graphs` snapshots retained after oldest-first pruning; running graphs remain retained. |
 
 An owning consumer may set `WorkflowStartRequest.subagentProvider` and `WorkflowStartRequest.maxTotalAgents` for one run. These are engine-level policy, not script hooks or model-facing options; the ordinary `workflow` tool leaves both unset. A per-run total-child cap may lower but never raise the configured `maxTotalAgents` ceiling.
 

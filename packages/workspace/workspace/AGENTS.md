@@ -7,3 +7,5 @@
 - `index.js` `archiveSession`: the operation-chain slot serializes against every other registry write, so its check-then-write pair cannot interleave with another archive.
 - `index.js` `deleteKnown`: if the order rollback fails the durable marker still says to finish deletion, so the cache drops the entity to agree with that recoverable direction. If only clearing the marker fails after the table delete committed (and was published to Host streams), the marker is kept for startup recovery and a warning is logged instead of reporting failure for a state that became true.
 - `index.js` `enqueueOperation`: pending-mutation recovery runs before every operation so a committed delete with only its marker cleanup pending is retried before another create/delete can overwrite the pending operation record.
+
+- Consumers use the durable workspace view and membership methods; paths are canonicalized at creation and membership exposes path-valid Session ids in durable order. status checks the directory without mutating the record. Keep the entity implementation private. [Public API](README.md).

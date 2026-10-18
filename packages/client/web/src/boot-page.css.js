@@ -3,6 +3,7 @@ const css = {
   card: 'freddie-bootPage__card',
   wordmark: 'freddie-bootPage__wordmark',
   hint: 'freddie-bootPage__hint',
+  progress: 'freddie-bootPage__progress',
   spinner: 'freddie-bootPage__spinner',
   failed: 'freddie-bootPage__failed',
   failedTitle: 'freddie-bootPage__failedTitle',
@@ -15,5 +16,6 @@ const css = {
   statusValue: 'freddie-bootPage__statusValue',
   statusLabel: 'freddie-bootPage__statusLabel',
   statusMeta: 'freddie-bootPage__statusMeta',
+  current: 'freddie-bootPage__current',
 }
 export default css

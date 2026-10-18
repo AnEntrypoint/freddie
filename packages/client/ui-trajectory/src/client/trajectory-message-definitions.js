@@ -3,7 +3,6 @@ import {
 } from '@freddie/freddie-client-runtime/client'
 import { trajectoryNode } from './trajectory-definition-common.js'
 
-/* jscpd:ignore-start */
 function applySplice(
   previous,
   splice,
@@ -83,7 +82,6 @@ const trajectoryMessageDefinition = {
     ? null
     : trajectoryNode(context, context.state.seq, { kind: 'node', node: context.state }),
 }
-/* jscpd:ignore-end */
 
 export function registerTrajectoryMessageDefinitions(ctx) {
   ctx.conversationEvents.register(trajectoryInboxDefinition)

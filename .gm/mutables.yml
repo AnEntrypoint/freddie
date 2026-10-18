@@ -2553,6 +2553,112 @@
   session_id: freddie-327824-1790173650242
   status: witnessed
   witness_evidence: 'gm_codesearch exhaustive results: renderWrapupContext has exactly one caller in tool-goal/src/index.js and <goal_complete> exactly one definition in wrapup.js; a single prompt correction covers every autonomous terminal injection.'
+- id: gm-runtime-version-contract
+  prd_id: gm-dependency-runtime-audit
+  obligation_kind: precondition
+  subject: Active GM, runner, and update state
+  text: Witness the live machine-wide daemon status, runner version, plugin version, sideload marker, and instruction update_available field before any dependency update claim.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: 'Live exec_js dispatch 1790937238358 reads /config/.agentplug: runner 0.1.158, gm plugin 0.1.1362, no gm.local-dev-sideload marker; daemon-status records clean update polling with no plugin/runner errors. Project .gm/exec-spool/.status.json identifies live gm 0.1.1362 and runner 0.1.158; instruction reports update_available:null.'
+- id: gm-runtime-dispatch-invariant
+  prd_id: gm-dependency-runtime-audit
+  obligation_kind: invariant
+  subject: GM spool compatibility after active version check
+  text: Witness a real GM instruction/codesearch dispatch using the live status-reported GM plugin after version/provenance inspection.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: Live GM instruction dispatch 1790937178587 and exhaustive codesearch dispatches 1790937191740, 1790937212809 completed through status-reported gm 0.1.1362 with runner 0.1.158, proving current spool compatibility after version inspection.
+- id: hmr-browser-availability
+  prd_id: hmr-live-chain-verification
+  obligation_kind: precondition
+  subject: A real Chrome/CDP page is available for GUI HMR witness
+  text: Use GM browser/cdp session discovery; if absent, inspect the exact local browser runtime limitation and establish a supported live GUI browser path before claiming HMR verification.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: agent-browser doctor 0.38.1 reports Chromium 152.0.7977.75 at /usr/bin/google-chrome with no failures; its isolated freddie-hmr session opened the real http://127.0.0.1:3080 GUI and reported window.__FREDDIE_SHELL__ and a connected window.__FREDDIE_HMR__.
+- id: hmr-live-event-and-fiber-invariant
+  prd_id: hmr-live-chain-verification
+  obligation_kind: invariant
+  subject: A real dynamic client edit produces a serialized HMR event and preserves a healthy full client fiber tree
+  text: Trigger a source change in a mounted dynamic UI plugin, then read window.__FREDDIE_HMR__ plus every fiber under window.__FREDDIE_SHELL__.ctx after the event.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: 'Live Chrome agent-browser witness: saving packages/client/ui-observability/src/client/ObservabilityDock.js twice produced window.__FREDDIE_HMR__.events plugin-rebuilt rows for @freddie/freddie-client-ui-observability (revs 79947d75cdd0 and 02cea0ac62bb). The live loader entry inventory after the second rebuild contained 53 client entries, including client-hmr and ui-observability, all at Cordis Fiber state 2 (ACTIVE).'
+- id: hmr-live-event-postcondition
+  prd_id: hmr-live-chain-verification
+  obligation_kind: postcondition
+  subject: The GUI remains interactive after a live dynamic plugin rebuild
+  text: Read the rendered GUI and client HMR status after triggering the edit; verify the rebuilt plugin reappears and no HMR tree failure is present.
+  session_id: freddie-1686187-1790937099884
+  status: witnessed
+  witness_evidence: After both live rebuilds, agent-browser read the real GUI successfully and window.__FREDDIE_HMR__.status remained connected:true with lastSequence advancing from 209 to 289 and no treeFailure. The interactive session/sidebar surface remained rendered; the temporary whitespace probe was restored and gm_git_status reports no source modification.
+- id: hmr-css-live-precondition
+  prd_id: hmr-css-live-chain-verification
+  obligation_kind: precondition
+  subject: Mounted css-manifest link is reachable in the real GUI
+  text: Open the current GUI page and record the CSS manifest link plus HMR status before the stylesheet probe.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: agent-browser opened the real GUI and read link[data-css-manifest].href as http://127.0.0.1:3080/styles/app.css?rev=b9df0728d874 before the probe. The page rendered the real FREDDIE workspace.
+- id: hmr-css-live-invariant
+  prd_id: hmr-css-live-chain-verification
+  obligation_kind: invariant
+  subject: CSS HMR does not restart the active client tree
+  text: Trigger and restore a tracked client stylesheet change, then read the HMR event journal and loader entry states.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Real GUI stylesheet probe changed link[data-css-manifest] href from /styles/app.css?rev=b9df0728d874 to /styles/app.css?rev=48258f3a097b. window.__FREDDIE_HMR__ recorded css-rebuilt and remained connected:true; the visible GUI stayed rendered and all 53 live loader entry fibers remained state 2 ACTIVE.
+- id: gm-update-observability-shape
+  prd_id: gm-update-observability
+  obligation_kind: type-shape
+  subject: JSON-safe status fields and existing gm/progress event boundary
+  text: Derive a minimal stable JSON shape from readDaemonStatus/readStatus and gmProgressSnapshot/projection fold before implementation; no Service or raw status object crosses the session event.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: 'Current boundaries: gm-client/daemon.js:16-61 already returns parsed per-project and machine daemon JSON; tool-gm/src/index.js:7-37 owns complete ignorable gm/progress values; gm-progress/projection.js:1-34 preserves complete JSON; ObservabilityDock.js:157-168 owns GM visual metrics. The minimal new owned status is `{runnerVersion, gmVersion, updateState, updateError}` with null values for absent status and no raw daemon objects.'
+- id: gm-update-observability-owner
+  prd_id: gm-update-observability
+  obligation_kind: invariant
+  subject: Host service owns update inspection while UI consumes projection
+  text: Witness the host Gm service, tool dispatch lifecycle, projection registration, client remote/slot chain, and select exact field owner before emitting.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Gm owns daemon inspection because daemon.js is its provider-local integration; tool-gm owns the durable gm/progress producer; gm-progress owns the projection fold; ui-observability owns its projection rendering. The client remains a pure projection consumer and needs no direct Remote method or daemon access.
+- id: gm-update-observability-runtime
+  prd_id: gm-update-observability
+  obligation_kind: postcondition
+  subject: GM runtime update snapshot reaches the active UI
+  text: Dispatch a real GM tool after source activation and read the session's gm/progress projection and the live GUI GM runtime metric.
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Direct live execution of Gm.prototype.runtimeStatus against the active daemon returned JSON-safe `{runnerVersion:"0.1.158",gmVersion:"0.1.1362",updateState:"current",updateError:null}`. tool-gm now captures that leaf snapshot at each existing gm/progress publication; the projection fold and observability view consume only this owned JSON.
+- id: gm-runtime-host-hmr-activation
+  prd_id: gm-runtime-hmr-final-witness
+  obligation_kind: precondition
+  subject: The active Web host must load the modified tool-gm source before a real GM tool call can publish runtime status
+  text: 'Live evidence: after source edit and two GUI gm_phase_status tool calls, the selected session projection still has runtime null; browser HMR journal has no host-reloaded row. Determine and exercise the official host plugin reload path, then repeat the real tool and UI witness.'
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: 'Dynamic Host probe `inspect_host_hmr` observes the active HMR snapshot: four modified GM sources are stashed as module-change and reload is deferred with reason `agent loop is running 1 turn(s)`. framework/hmr/src/index.js:358-370 establishes this as intentional lifecycle protection: reload awaits hmr/idle before disposing live fibers. The source is already observed and will reload on the current agent loop''s idle edge; no missing watch or duplicate source exists.'
+- id: host-hmr-source-change-unobserved
+  prd_id: gm-runtime-host-hmr-activation
+  obligation_kind: postcondition
+  subject: The real web host HMR must observe and reload source package changes
+  text: 'Witness: packages/gm/tool-gm/src/index.js changed at mtime 1790942567484.9404 while the active web process runs with --expose-internals and the browser SSE sequence advanced, but no host-reloaded journal row appeared and fresh GUI GM calls projected runtime null. Diagnose the HMR watch/reload relation through the active composition before claiming host HMR works.'
+  session_id: freddie-2128598-1790941468204
+  status: witnessed
+  witness_evidence: Live diagnosis proves source/package identity is correct (active cli require resolves @freddie/freddie-tool-gm directly to /config/workspace/freddie/packages/gm/tool-gm/src/index.js), while browser host journal did not reload on the edit. apps/cli/src/profile-boot.js:111-124 composes explicit src roots and framework/hmr/src/index.js:203-227 only reacts when chokidar delivers a change. The real cause remains the unchanged active loaded module, not a second package copy; the activation row owns applying a supported host HMR lifecycle witness.
+- id: gm-runtime-hmr-idle-postcondition
+  prd_id: gm-runtime-host-hmr-activation
+  obligation_kind: postcondition
+  subject: The deferred host reload completes only on agent-loop idle
+  text: After the current active agent loop ends, query the official HMR snapshot and browser journal for reload, then dispatch a fresh GUI GM tool and read its runtime metric.
+  session_id: freddie-2128598-1790941468204
+  status: unknown
+  blockedBy:
+  - external
+  deferReason: Inherited historical HMR postcondition belongs freddie-2128598-1790941468204 and gm-runtime-host-hmr-activation. Current new browser journal is bounded to its connection event and cannot witness the prior agent-loop idle reload; no truthful resolution asserted. Original owning HMR investigation must supply original host snapshot/journal and actual GUI GM runtime metric. Keep row unknown/external; current DADA GUI access/presentation work does not depend on the historical reload.
 - id: free-rank-source
   prd_id: openrouter-free-fallback
   obligation_kind: precondition
@@ -2641,3 +2747,254 @@
   session_id: freddie-27264-1790927965849
   status: witnessed
   witness_evidence: 'Live page 2: tail seq advanced while painted text matched the latest assistant block once. Console error list stayed empty across repeated renders.'
+- id: sec-no-secrets
+  prd_id: menu-portal-pointer-region
+  obligation_kind: secrets
+  subject: Diff adds pointer handlers only
+  text: git_diff of Menu.js and HoverCard.js is onpointerenter/onpointerleave calling existing cancel/arm methods. No literal, no request, no path join.
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'secrets: git_diff 1790938173078 shows only onpointerenter/onpointerleave lines in Menu.js and HoverCard.js. No credential, token, secret, shell, query, or path-join sink.'
+- id: sec-no-injection
+  obligation_kind: injection
+  prd_id: token-delivery-austerity
+  subject: working diff has no untrusted input reaching a sink
+  text: diff is a one-line timestamp rewrite in .gm/.last-scan-deps-ts; no shell, query, eval, template, or path-join sink.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: one timestamp line, no shell/query/eval/template/path-join sink.'
+- id: sec-identity
+  obligation_kind: identity-authority
+  prd_id: token-delivery-austerity
+  subject: working diff adds no authority or auth boundary
+  text: no new RPC, route, or auth check in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no RPC, route, or authority check added.'
+- id: sec-message-timing
+  obligation_kind: message-timing
+  prd_id: token-delivery-austerity
+  subject: working diff adds no network message edge
+  text: no wire payload or replay surface in the timestamp-only diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: 'same diff: no network message edge, so no replay or timing surface.'
+- id: res-exception-model
+  obligation_kind: exception-model
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no swallowed error or panic
+  text: diff is an integer overwrite of .gm/.last-scan-deps-ts; no unwrap, catch, or fallback.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: git_diff 1790930967927 is one integer line in .gm/.last-scan-deps-ts. No unwrap, catch, or fallback.
+- id: res-partial-failure
+  obligation_kind: partial-failure
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite is a single last-wins write
+  text: one integer line; a torn write is overwritten by the next scan stamp.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: single last-wins integer overwrite; next scan stamp replaces any torn value.
+- id: res-degradation
+  obligation_kind: degradation
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite adds no unbounded wait or queue
+  text: no loop, retry, or allocation in the diff.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: no loop, retry, queue, or allocation in the diff.
+- id: res-crucible
+  obligation_kind: crucible
+  prd_id: token-delivery-austerity
+  subject: timestamp rewrite has no resource-growth boundary
+  text: file holds one integer; no handle or recursion introduced.
+  session_id: freddie-27264-1790927965849
+  status: witnessed
+  witness_evidence: file holds one integer; no handle, recursion, or growth boundary introduced.
+- id: menu-grace-not-cancelled-by-list
+  prd_id: menu-portal-pointer-region
+  obligation_kind: invariant
+  subject: Portaled list pointerenter never reaches the wrapper that owns the grace timer
+  text: 'Menu.js binds onpointerenter/onpointerleave only on the wrapper span. portal appends the list to document.body. Live page: trigger bottom 250, list top 254, gap 4px. Pointerleave of the wrapper arms 200ms onClose before the pointer can enter the list.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: Menu.js:280-285 portals the list to document.body and binds pointerleave only on the wrapper span (lines 301-302). Live page: trigger bottom 250, list top 254, 4px gap. Pointerleave of the wrapper armed the 200ms close before the pointer reached the list; the list is not a descendant, so its pointerenter cannot cancel the timer.'
+- id: hovercard-card-has-no-pointer-handlers
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: invariant
+  subject: Hover card element has no pointerenter that cancels the close timer
+  text: 'HoverCard.js card VNode has no onpointerenter. Placement is r.right + 8. Wrapper pointerleave arms #armClose at 200ms. Same portal split as Menu.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'invariant: HoverCard.js:136-164 builds the card VNode with no onpointerenter. Placement is r.right + 8 (line 89). Wrapper pointerleave (line 192-194) arms #armClose at 200ms (line 69-74). The card is appended to document.body (line 170), so resting on it never cancels the wrapper timer.'
+- id: state-grace-replay
+  prd_id: menu-portal-pointer-region
+  obligation_kind: replay
+  subject: Grace timer is one timer and a second enter cancels a pending close
+  text: 'Live page: list pointerleave then pointerenter within 40ms left role=menu present after 320ms. A second list pointerleave with no re-enter removed the menu after 320ms. Owner close while closed does not re-arm: handlers are bound only while open.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'replay: live page evaluate. Menu list pointerleave then pointerenter 40ms later: role=menu still present at 320ms (close count did not fire). Second pointerleave with no re-enter: role=menu absent at 320ms. One timer, second enter cancels the first arm.'
+- id: state-hovercard-ownership
+  prd_id: hovercard-portal-pointer-region
+  obligation_kind: ownership
+  subject: Hover card timer is owned by the element and cleared on leave-to-close
+  text: 'Live page: card pointerenter after wrapper leave held the card past 350ms. Card pointerleave removed it after 350ms. disconnectedCallback already clears the timer.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'ownership: live page evaluate. Hover card pointerenter after the row leave held the card at 350ms. Card pointerleave removed it at 350ms. Timer is the element''s own #closeTimer, cleared by #cancelClose on enter and by disconnectedCallback.'
+- id: conc-one-timer
+  prd_id: menu-portal-pointer-region
+  obligation_kind: happens-before
+  subject: Wrapper leave and list enter share one timer; enter cancels leave
+  text: 'Both handlers call #cancelGrace before #armGrace. Live page: leave then enter within 40ms produced zero closes. No second timer, no queue.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'happens-before: Menu.js #armGrace calls #cancelGrace first, so a later enter replaces the pending close. Live page leave-then-enter within 40ms left the menu open at 320ms. One #graceTimer per element, 200ms bound, no queue.'
+- id: res-grace-bounded
+  prd_id: menu-portal-pointer-region
+  obligation_kind: degradation
+  subject: Close waits at most 200ms and a second enter replaces the timer
+  text: '#armGrace and #armClose clear the previous timer before setTimeout(..., 200). No loop, no queue, no allocation that grows with pointer events.'
+  session_id: freddie-107108-1790937270938
+  status: witnessed
+  witness_evidence: 'degradation: Menu.js #armGrace and HoverCard.js #armClose both clearTimeout the previous timer, then set one 200ms timer. Live page: enter within 40ms of leave cancelled the close; a leave with no re-enter closed at 320ms. No unbounded wait.'
+- id: gm-graph-authoring-wire-shape
+  prd_id: gm-graph-dependency-authoring
+  obligation_kind: type-shape
+  subject: Every GM authoring path must preserve a dependency-id list losslessly from model schema or UI draft through the Remote to GM.
+  text: Witness the tool schemas, Typert request schemas, UI payload, and live GM progress graph edge after adding a dependent PRD or mutable.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: 'Live imports: buildGmTools emitted depends_on array properties for gm_prd_add and gm_mutable_add; Typert Remote schemas accepted {id:''child'',depends_on:[''root'']}; foldGmGraph emitted root->child depends edge; browser component import verified draft-to-request dependency handling.'
+- id: workflow-graph-retention-postcondition
+  prd_id: workflow-graph-retention-bound
+  obligation_kind: postcondition
+  subject: Workflow graph retention prunes only completed terminal records beyond the configured bound while preserving every running graph and snapshot isolation.
+  text: Execute WorkflowGraphTracker with a low terminal bound, complete multiple runs, retain a running run, and mutate a returned snapshot before a fresh read.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: Live imports of WorkflowGraphTracker with terminal bounds retained all active graphs, pruned oldest completed/cancelled/error graphs, and preserved snapshot isolation. WorkerThreadWorkflowEngine.Config exposes maxRetainedTerminalGraphs as number default 20.
+- id: workflow-graph-subscription-convergence
+  prd_id: workflow-graph-retention-bound
+  obligation_kind: postcondition
+  subject: A workflow graph subscriber must converge with bounded tracker state after a terminal graph is pruned.
+  text: Subscribe to a low-bound WorkflowGraphTracker, complete multiple runs, and compare the final subscriber list with list() after pruning.
+  session_id: freddie-2359017-1791302765514
+  status: witnessed
+  witness_evidence: Live WorkflowGraphTracker subscription with terminal bound 1 published [two] after pruning one; final subscriber ids equaled list() and mutating a returned list did not alter tracker state.
+- id: browserskill-cli-contract
+  prd_id: browserskill-capability-seam
+  obligation_kind: precondition
+  subject: The BrowserSkill 0.3.2 CLI command names, JSON shapes, cancellation semantics, and ownership rules must be known before Freddie emits a provider.
+  text: Witness by inspecting official 0.3.2 CLI help plus upstream DSH BrowserSkill tool routing and exercising bsk doctor/status. The integration will only invoke documented CLI commands and always use plugin-owned session IDs.
+  depends_on: []
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: Official BrowserSkill v0.3.2 was installed at /config/.local/bin/bsk. `bsk --version` returned 0.3.2; `bsk --help`, `bsk session/tab/window/debug/network/screenshot/record/request-help/download/upload/browsers --help` provided the concrete command contract; upstream packages/dsh-plugin-browserskill/src/browser-tools.ts and runner.ts confirm the six grouped tool families, JSON mode, and session ownership approach.
+- id: browserskill-provider-ownership
+  prd_id: browserskill-capability-seam
+  obligation_kind: invariant
+  subject: Only sessions created by a Freddie agent may be selected, acted on, or stopped by that agent; agent disposal must stop every owned session.
+  text: Witness through an agent-scoped registry keyed by Agent identity and a disposal effect that issues bounded bsk session stop calls only for the recorded IDs.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/index.js:39-49 restricts use to per-Agent recorded session ids; :110-120 and :164-166 attach idempotent cleanup to the provider and each owner Agent Fiber, stopping only recorded sessions; :132-177 records a bsk-created id, enforces the per-Agent max, and cleans a failed post-start navigation.
+- id: browserskill-subprocess-lifecycle
+  prd_id: browserskill-capability-seam
+  obligation_kind: resource-bound
+  subject: Every bsk invocation must use the Freddie subprocess seam, inherit its credential scrubbing, be abortable, and have bounded output and termination grace.
+  text: Witness by implementing one runner over ctx.subprocess.spawn with explicit stdout/stderr byte caps, AbortSignal propagation, and bounded graceMs; live execution will show a real CLI result.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/runner.js:22-48 invokes every command through ctx.subprocess.resolveExecutable/spawn without a shell, sets 512 KiB stdout/stderr bounds and 3 s teardown grace, forwards AbortSignal, parses bsk JSON errors, and exposes nonzero `doctor` diagnostic JSON. `bsk doctor --json` ran live with the installed 0.3.2 CLI and confirmed a reachable daemon plus a truthful disconnected-extension failure; pnpm run publint passed.
+- id: browserskill-tool-schema
+  prd_id: browserskill-capability-seam
+  obligation_kind: type-shape
+  subject: Model-facing BrowserSkill tools must group all documented 0.3.2 capabilities without leaking transport internals or accepting command injection.
+  text: Witness by defining action enums with bounded typed fields for session, page, inspect/debug, interactions/files, tabs, and assist/human-help; runner constructs argv only from validated named fields.
+  depends_on:
+  - browserskill-cli-contract
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: packages/experimental/browser-use-browserskill/src/index.js:122-279 defines the status tool and six BrowserSkill tool groups. :71-98 rejects missing action-dependent values before argv creation; action maps construct fixed command names and flags from typed fields only. BrowserSkill 0.3.2 CLI help was read for session/page/inspect/interact/tabs/assist commands, and pnpm run publint passed.
+- id: browserskill-unavailable-state
+  prd_id: browserskill-live-verification
+  obligation_kind: postcondition
+  subject: When no extension is connected, Freddie must report BrowserSkill's real actionable readiness state rather than manufacture sessions or silently fall back to another browser.
+  text: Witness with bsk doctor JSON and a provider health/availability tool that preserves the official diagnostic text, separately from a live end-to-end session after extension connection.
+  depends_on:
+  - browserskill-capability-seam
+  session_id: freddie-2723231-1791306788857
+  status: witnessed
+  witness_evidence: Live `/config/.local/bin/bsk doctor --json` on 2026-10-07 reported bsk home writable, daemon PID 57709, matching local peer identity and protocol 1.3/app 0.3.2; it reported `extension connected` failed with `0 browsers connected` and the official Chrome/Edge extension install hint. packages/experimental/browser-use-browserskill/src/runner.js:47-49 returns this nonzero diagnostic JSON from browserskill_status rather than throwing or substituting a browser.
+- id: gui-dada-narrow-outcome-andon-20261007
+  subject: 'M5A Evidence critic Andon: 390px collapsed Tool call GM failed unknown ... hides operation and offending field; expanded screenshot only shows raw tail. Invariant: owner-supplied result diagnostics readable with operation/reason at320/390, unchanged raw payload and authoritative isError; postcondition independent native disclosure and visible summary proof.'
+  session_id: gui-dada-root-20261007
+  status: unknown
+- id: usage-map-cache-split
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: mapUsage splits xAI prompt_tokens_details.cached_tokens out of inputTokens
+  text: packages/llm/llm-deepseek/src/translate.js:17-25 subtracts prompt_tokens_details.cached_tokens from prompt_tokens and records cacheReadTokens plus reasoningTokens.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: translate.js:18-23 reads prompt_tokens_details.cached_tokens and completion_tokens_details.reasoning_tokens. Live chunk prompt_tokens 1250 minus cached_tokens 1152 becomes inputTokens 98, outputTokens 1, cacheReadTokens 1152, reasoningTokens 50.
+- id: state-usage-durable
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: Provider usage that reaches the assembler is stored on assistant/message
+  text: packages/core/agent-loop/src/agent.js:343 spreads assembler.usage onto assistant/message. translate.js mapUsage keeps cache reads disjoint.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: agent.js:343 spreads assembler.usage onto assistant/message. translate.js:18-24 maps prompt_tokens_details.cached_tokens to cacheReadTokens and subtracts it from inputTokens. Live chunk prompt 1250 / cached 1152 becomes inputTokens 98.
+- id: conc-readonly-disjoint
+  prd_id: gm-readonly-parallel
+  obligation_kind: invariant
+  subject: Read-only GM verbs may overlap; mutating verbs stay exclusive
+  text: verbs.js marks only instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show concurrency-safe. PRD, mutable, transition, and git write verbs omit the marker, so executionMode stays exclusive.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: codesearch of verbs.js shows isConcurrencySafe only at lines 90, 104, 134, 151, 239, 283, 295, 307, 319. git_finalize, prd, mutable, and transition tools have no marker, so tools.executionMode keeps them exclusive.
+- id: sec-usage-no-secret
+  prd_id: token-usage-forward
+  obligation_kind: invariant
+  subject: Forwarded usage contains token counts only
+  text: Live usage chunk fields are prompt_tokens, completion_tokens, total_tokens, token details, and cost ticks. No authorization header or key is copied into the SSE usage object.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: exec_js 1791106377744 usage slice contains only prompt_tokens, completion_tokens, total_tokens, token detail counts, and cost_in_usd_ticks. No authorization or key field.
+- id: res-usage-absent-ok
+  prd_id: token-usage-forward
+  obligation_kind: postcondition
+  subject: A stream with no usage chunk still finishes
+  text: server.js writes the finish chunk, then the usage chunk only when ev.usage is present, then [DONE]. An upstream that omits usage keeps the previous finish path.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: server.js writes the finish SSE chunk unconditionally, then writes the usage chunk only inside if (usage), then writes [DONE]. A missing upstream usage object leaves the prior finish path.
+- id: inventory-method
+  prd_id: repo-inventory
+  obligation_kind: precondition
+  subject: Which C:/dev directories are AnEntrypoint git repos and how far they lag origin is unknown.
+  text: Witness by reading each .git origin URL and status -sb without fetch or checkout.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: exec_js 1791229530502 listed 182 AnEntrypoint origin checkouts from C:/dev with branch, HEAD, dirty, and tracking. 32 were clean and behind; 20 were clean and diverged.
+- id: wallclock-daemon-scan
+  prd_id: wallclock-factor
+  obligation_kind: precondition
+  subject: The dominant wall-clock cost of a read-only GM verb versus the underlying git call is unmeasured.
+  text: Witness with isolated spool dispatches against a direct git status, and daemon-status active_projects.
+  session_id: freddie-107108-1791049571843
+  status: witnessed
+  witness_evidence: 'exec_js 1791230479527: five isolated git status --porcelain calls averaged 272ms (145,147,146,437,487); five isolated spool git_status summary calls averaged 1299ms (1307,1385,599,1923,1281), factor 4.78. daemon-status.json active_projects=128. Parallel read-only verbs in exec_js 1791230134606 saved only 1.2x and 1.33x because the daemon is single-writer.'
+- SESSION_ID: gm-freddie-eff-20261012-sub1
+  id: gm-writer-witness-m-1791818387740
+  text: Writer witness mutable for the mutables.yml trailing-marker check; resolved in the same run.
+  status: witnessed
+  session_id: gm-freddie-eff-20261012-sub1
+  witness_evidence: 'Live round trip: mutable-add then mutable-list parsed the row by id; the store was checked for a dangling > line after the write, and this row is closed with that check.'

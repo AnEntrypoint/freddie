@@ -131,7 +131,6 @@ export class ThemeRuntime {
       ? (this.media?.matches === true ? 'dark' : 'light')
       : this.preference
     const active = this.themes.find(t => t.id === resolvedId)
-    /* v8 ignore next 2 */
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
     return Object.freeze({
       preference: this.preference,

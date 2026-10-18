@@ -31,6 +31,11 @@ export class FreddieSidebarRoot extends HTMLElement {
 
   #renderedOnce = false
 
+  #expandSidebar = () => {
+    const props = this.#props
+    if (props?.collapsed) props.toggleSidebar()
+  }
+
   setProps(props) {
     const prevCollapsed = this.#props?.collapsed
     this.#props = props
@@ -148,7 +153,7 @@ export class FreddieSidebarRoot extends HTMLElement {
         onpointerleave: this.#onPointerLeave,
       },
         h('div', {class: css.logoRow ?? ''},
-          wide && (
+          h('span', { style: 'display: contents;' }, wide && (
             h('button', {
               type: 'button',
               class: clsx(css.brand, css.wide),
@@ -171,11 +176,12 @@ export class FreddieSidebarRoot extends HTMLElement {
                 ),
               ),
             )
-          ),
+          )),
           this.#tooltip('toggle', {label: collapsed ? t('toggle.open') : t('toggle.collapse'), delayMs: 500, children: [
             h('button', {
               type: 'button',
               class: clsx(css.iconButton, css.toggle),
+              'data-sidebar-toggle': '',
               'aria-label': collapsed ? t('toggle.open') : t('toggle.collapse'),
               onclick: () => { toggleSidebar() },
             },
@@ -204,7 +210,7 @@ export class FreddieSidebarRoot extends HTMLElement {
         h('div', {class: css.regionArea ?? ''},
           embedHostedSlotAsWebjsxChild(renderSlot('sidebar.workspaces', {
             wide,
-            expandSidebar: () => { if (collapsed) toggleSidebar() },
+            expandSidebar: this.#expandSidebar,
           })),
         ),
 

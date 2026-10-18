@@ -14,143 +14,19 @@ import { assertSubagentMaxDepth } from './depth.js'
 import { seedDescriptorTurn } from './descriptor-seed.js'
 import { SubagentError } from './error.js'
 
-/**
- * Message source recorded when a model coordinator follows up with a child
- * directly, e.g. `{ kind: 'coordinator', form: 'relay', senderSessionId }` as
- * sent by `tool-subagent-control`.
- * @typedef {object} SubagentCoordinatorMessageSource
- * @property {'coordinator'} kind
- * @property {'relay'} form
- * @property {string} senderSessionId - the coordinating parent's session id.
- */
 
-/**
- * Durable attribution for a continuable child's explicit parent report, built
- * by {@link SubagentContinuationManager#deliverReport}.
- * @typedef {object} SubagentReportMessageSource
- * @property {'subagent-report'} kind
- * @property {'relay'} form
- * @property {string} senderSessionId - the reporting child's session id.
- */
 
-/**
- * Durable attribution for the runtime's own account of a continuable child
- * settling. Deliberately a different kind from
- * {@link SubagentReportMessageSource}: a report is content the child chose,
- * while this message is the manager stating what became of the child, and a
- * transcript that merged them would credit the child with words it never wrote.
- * @typedef {object} SubagentSettledMessageSource
- * @property {'subagent-settled'} kind
- * @property {'notice'} form
- * @property {string} summary - bounded summary of the settlement notice text.
- * @property {string} senderSessionId - the settled child's session id.
- */
 
-/**
- * Deployment scheduling policy for accepted child reports: `'quiet'` injects
- * next-step context without waking the parent, `'next-step'` steers and wakes
- * it.
- * @typedef {'quiet' | 'next-step'} SubagentReportDelivery
- */
 
-/**
- * Options for one continuable child's report to its direct parent.
- * @typedef {object} SubagentReportOptions
- * @property {SubagentReportDelivery} delivery
- * @property {AbortSignal} signal
- */
 
-/**
- * What a caller asks for when starting a continuable background child.
- * @typedef {object} SubagentStartContinuableSpec
- * @property {import('@freddie/freddie-session').SessionId} [childId] - a
- * caller-reserved durable id; omitted to let the manager mint one.
- * @property {string} provider - the subagent provider name.
- * @property {string} [label]
- * @property {object} request - the delegation request (`parent`, `prompt`,
- * `maxDepth`, `agentOptions`, `persona`, `toolFilter`).
- * @property {AbortSignal} signal
- */
 
-/**
- * Identities returned once a continuable child accepted its initial prompt.
- * @typedef {object} SubagentStartContinuableResult
- * @property {import('@freddie/freddie-session').SessionId} childId
- * @property {string} messageId
- */
 
-/**
- * Authority under which one interrupt request is admitted. `user` carries the
- * durable direct-parent address a human client presented; `ancestor` carries
- * the exact live Agent object whose recorded lineage must contain the caller.
- * @typedef {{ kind: 'user', parentSessionId: import('@freddie/freddie-session').SessionId } | { kind: 'ancestor', agent: object }} SubagentInterruptAuthority
- */
 
-/**
- * Options for following up with one continuable child.
- * @typedef {object} SubagentFollowupOptions
- * @property {SubagentCoordinatorMessageSource | object} source
- * @property {AbortSignal} signal
- */
 
-/**
- * The residency state of one continuable child, derived from Agent quiescence
- * and the owned-child set rather than a second state machine:
- * `running` — the Agent has an active admission or turn, or waking inbox work;
- * `waiting` — the Agent is quiescent but still owns undisposed children;
- * `settled` — quiescent with every owned child disposed, so the manager
- * disposes the `AgentHandle` and removes the Activation.
- * @typedef {'running' | 'waiting' | 'settled'} SubagentResidencyState
- */
 
-/**
- * Hooks the manager needs from the owning service. Declared here, by the
- * dependent, so the manager states exactly what it requires instead of
- * depending back on the whole {@link import('./index.js').SubagentRuntime}.
- * Package-private: no consumer outside this package supplies a host.
- * @typedef {object} SubagentContinuationHost
- * @property {function} prepareContinuable
- * @property {function} observeActivation
- */
 
-/**
- * One residency epoch for a reconstructed continuable child Agent. It directly
- * owns the published `AgentHandle`; the manager's private activation-owner
- * scope is its structural Cordis owner.
- * @typedef {object} Activation
- * @property {import('@freddie/freddie-session').SessionId} childId
- * @property {import('@freddie/freddie-session').SessionId} parentSession
- * @property {string} provider
- * @property {object} handle - the published `AgentHandle`.
- * @property {WeakSet<object>} ancestry
- * @property {Set<import('@freddie/freddie-session').SessionId>} ownedChildren
- * @property {object} observer - the {@link ActivationObserver} tracking this epoch.
- * @property {Promise<Error|undefined>|undefined} disposal
- * @property {Set<string>} accepted - message ids admitted but not yet drained.
- * @property {boolean} announced
- * @property {PromiseWithResolvers<void>} poke
- */
 
-/**
- * Inputs shared by fresh and resumed Activation materialization.
- * @typedef {object} SubagentMaterializationInputs
- * @property {import('@freddie/freddie-session').SessionId} childId
- * @property {string} provider
- * @property {object} parent - the live parent Agent.
- * @property {{ seed: object[], meta: object, delegatedPolicies: object }} [create] - present for a fresh child; absent to resume.
- * @property {object} agentOptions
- * @property {{ persona: unknown, toolFilter: unknown }} composition
- * @property {AbortSignal} signal
- */
 
-/**
- * One admitted materialization and the exact live ancestry observed at its
- * synchronous admission boundary. Retaining identities lets a scoped teardown
- * keep waiting even if an intermediate Agent leaves the registry meanwhile.
- * @typedef {object} SubagentMaterialization
- * @property {object[]} lineage - the live ancestry at admission.
- * @property {Promise<void>} settled
- */
 
 function disposalOf(activation) {
   return activation.disposal
@@ -169,20 +45,11 @@ function settlementSummary(childId, stopReason) {
       return `${subject} declined the task.`
     case 'error':
       return `${subject} failed before it finished.`
-    /* v8 ignore next 4 -- `SubagentResult['stopReason']` is merge-extensible, so this arm
-     * needs a backend that adds a variant; an unnameable ending is reported as unfinished
-     * rather than silently as success. */
     default:
       return `${subject} ended abnormally (${String(stopReason)}) before it finished.`
   }
 }
 
-/**
- * Whether one settlement attempt opened the disposal transaction.
- * @typedef {object} SubagentSettlementAttempt
- * @property {boolean} settling
- * @property {Promise<Error|undefined>} [done] - present only when `settling` is true.
- */
 
 class ChildLock {
   tails = new Map()
@@ -299,21 +166,14 @@ export class SubagentContinuationManager {
       const live = await this.locks.run(childId, async () => {
         const activation = this.activations.get(childId)
         if (activation === undefined) return this.coldResume(parent, childId, content, options)
-        /* v8 ignore next 3 -- the send-versus-dispose cutoff: reaching this arm needs a
-         * delivery to observe the transaction inside the same critical section that opened it,
-         * which no test can schedule deterministically. The behavior is covered end-to-end by
-         * "cold-resumes a delivery that lost the race with final disposal". */
         if (activation.disposal !== undefined) {
           return activation.disposal.then(() => undefined, () => undefined)
         }
         return this.submitAdmitted(activation, content, options.source, parent, options.signal)
       })
-      /* v8 ignore start -- only the lost-cutoff arm above returns undefined, so only that
-       * race reaches the retry below, which then cold-resumes a new Activation. */
       if (live !== undefined) return live
       this.assertAdmitting(parent)
       options.signal.throwIfAborted()
-      /* v8 ignore stop */
     }
   }
 
@@ -355,7 +215,6 @@ export class SubagentContinuationManager {
     )
   }
 
-  // oxlint-disable-next-line typescript/require-await -- keep rejection semantics without yielding during admission
   async reportFrom(child, content, options) {
     options.signal.throwIfAborted()
     this.assertAdmitting(child)
@@ -372,8 +231,6 @@ export class SubagentContinuationManager {
         'UNAUTHORIZED',
       )
     }
-    /* v8 ignore next 6 -- only a synchronous re-entrant disposer can open this
-     * transaction between exact-agent authorization and this no-await cutoff. */
     if (activation.disposal !== undefined) {
       throw new SubagentError(
         `subagent "${child.id}" activation is being disposed; the report was not delivered`,
@@ -385,7 +242,6 @@ export class SubagentContinuationManager {
 
   resolveReportParent(child) {
     const parentId = child.session.header.parentSession
-    /* v8 ignore next -- every continuation-managed child has direct-parent metadata. */
     const parent = parentId === undefined ? undefined : this.ctx.agents.get(parentId)
     if (parent === undefined) {
       throw new SubagentError(
@@ -630,8 +486,6 @@ export class SubagentContinuationManager {
     try {
       return this.submitAdmitted(activation, content, source, parent, signal)
     } catch (error) {
-      /* v8 ignore next -- rollback disposal failures must not mask the
-       * pre-acceptance signal, drain, or lifecycle failure. */
       await this.dispose(activation).catch(() => undefined)
       throw error
     }
@@ -698,8 +552,6 @@ export class SubagentContinuationManager {
       this.assertAdmitting(parent)
       this.acquireOwnership(parent, childId)
       handle.agent.ctx.on('agent/inbox/claimed', ({ message }) => {
-        /* v8 ignore next -- a claim of an id this manager never admitted needs
-         * another sender on the same child, which no current path allows. */
         if (activation.accepted.delete(message.id)) this.wake(activation)
       })
       handle.agent.ctx.on('agent/inbox/discarded', ({ message }) => {
@@ -707,8 +559,6 @@ export class SubagentContinuationManager {
       })
       observer.start(handle.agent)
     } catch (error) {
-      /* v8 ignore next -- rollback failure must not mask the admission failure
-       * that prevented this operation from returning an accepted message id. */
       await this.rollbackUnpublished(activation).catch(() => undefined)
       throw error
     }
@@ -775,8 +625,6 @@ export class SubagentContinuationManager {
   submitAdmitted(activation, content, source, parent, signal) {
     signal.throwIfAborted()
     this.assertAdmitting(parent)
-    /* v8 ignore next 6 -- only a synchronous re-entrant disposer can change
-     * this field between the caller's live check and this no-await boundary. */
     if (disposalOf(activation) !== undefined) {
       throw new SubagentError(
         `subagent "${activation.childId}" activation is being disposed; the message was not accepted`,

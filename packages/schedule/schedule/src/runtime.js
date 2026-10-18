@@ -112,10 +112,8 @@ export class ScheduleRuntime {
   }
 
   retire(run) {
-    /* v8 ignore next */
     if (this.run !== run) return
     this.run = undefined
-    /* v8 ignore next */
     if (this.requested && !this.stopping && !this.faulted) this.requestDrive()
   }
 

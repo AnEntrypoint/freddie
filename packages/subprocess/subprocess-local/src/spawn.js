@@ -22,21 +22,7 @@ export function childEnv(extra) {
   return Object.fromEntries(entries)
 }
 
-/**
- * Injectable knobs so tests can exercise spill and platform behavior deterministically.
- * @typedef {object} SpawnInternals
- * @property {string} [spillDir] - Directory for spill files (defaults to the OS temp dir).
- * @property {(pid: number) => void} [taskkill] - Windows tree-termination runner (defaults to `taskkill /PID <pid> /T /F`).
- * @property {NodeJS.Platform} [platform] - Host platform override for signalling decisions.
- * @property {(processGroupId: number) => boolean | undefined} [linuxProcessGroupHasLiveMembers] - Linux process-group member probe (defaults to `/proc` inspection).
- */
 
-/**
- * Local-only synchronous final termination used by the owning service during
- * host exit and as the last fallback after failed normal disposal. It is
- * intentionally absent from the public subprocess seam.
- * @typedef {import('@freddie/freddie-subprocess').SubprocessHandle & { terminateForHostExit(): void }} LocalSubprocessHandle
- */
 
 function sleepTick() {
   return sleepMs(15)
@@ -175,18 +161,14 @@ function signalTree(platform, pid, sig, child, taskkill) {
     taskkill(pid)
     return
   }
-  /* v8 ignore next -- kill/terminate gate on treeAlive(), which is false for pid -1; this guard protects direct callers only. */
   if (pid <= 0) return
   try {
     process.kill(-pid, sig)
   } catch {
-    /* v8 ignore start -- the fallback needs a live child whose group signal fails
-       (EPERM-style), which POSIX CI cannot stage; the swallow keeps teardown idempotent. */
     try {
       child.kill(sig)
     } catch {
     }
-    /* v8 ignore stop */
   }
 }
 
@@ -241,8 +223,6 @@ export function spawnSubprocess(spec, internals = {}) {
   const pid = child.pid ?? SPAWN_FAILED_PID
 
   const treeAlive = () => {
-    /* v8 ignore next -- only a timer callback already queued when the observer settles can enter here;
-       the guard is the final defense against probing an id after its tree was confirmed absent. */
     if (treeExitObserved) return false
     if (pid <= 0) return false
     if (platform === 'win32') {
@@ -254,14 +234,9 @@ export function spawnSubprocess(spec, internals = {}) {
       return true
     } catch (error) {
       const code = error.code
-      /* v8 ignore next 2 -- POSIX reports an absent group as ESRCH; child-reaping timing
-         makes observing the other arm platform-dependent. */
       if (code === 'ESRCH') return false
-      /* v8 ignore start -- EPERM and non-POSIX negative-pid failures are platform defenses; CI runs
-         tree-lifecycle tests on POSIX hosts where absence reports ESRCH. */
       if (code === 'EPERM') return true
       return child.exitCode === null && child.signalCode === null
-      /* v8 ignore stop */
     }
   }
 
@@ -276,8 +251,6 @@ export function spawnSubprocess(spec, internals = {}) {
   }
 
   const kill = (sig) => {
-    /* v8 ignore next -- the shared exit observer cancels the ordinary dead-tree timer;
-       this remains the timer/death race guard and cannot be staged deterministically. */
     if (!treeAlive()) return
     signalTree(platform, pid, sig, child, taskkill)
   }
@@ -285,7 +258,6 @@ export function spawnSubprocess(spec, internals = {}) {
   const terminate = () => {
     if (treeExitObserved || graceTimer !== undefined) return
     void observeTreeExit()
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- observer can record absence before its first await.
     if (treeExitObserved) return
     kill('SIGTERM')
     graceTimer = setTimeout(() => { kill('SIGKILL') }, spec.graceMs)
@@ -344,7 +316,6 @@ export function spawnSubprocess(spec, internals = {}) {
     const aborted = Promise.withResolvers()
     const onAbort = () => { aborted.resolve(false) }
     signal.addEventListener('abort', onAbort, { once: true })
-    /* v8 ignore next -- closes the event-loop race between the preceding aborted check and listener registration. */
     if (signal.aborted) onAbort()
     try {
       return await Promise.race([observed.then(() => true), aborted.promise])
@@ -355,11 +326,9 @@ export function spawnSubprocess(spec, internals = {}) {
 
   return {
     pid,
-    /* v8 ignore start -- pipe-mode fds exist on every spawn Node returns; the null-coalesces guard a nonconforming ChildProcess only. */
     stdin: stdinMode === 'pipe' ? child.stdin ?? undefined : undefined,
     stdout: outMode === 'pipe' ? child.stdout ?? undefined : undefined,
     stderr: errMode === 'pipe' ? child.stderr ?? undefined : undefined,
-    /* v8 ignore stop */
     collected: {
       ...stdoutCollector !== undefined ? { stdout: stdoutCollector } : {},
       ...stderrCollector !== undefined ? { stderr: stderrCollector } : {},

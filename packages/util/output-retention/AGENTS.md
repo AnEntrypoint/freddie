@@ -7,3 +7,5 @@
 - `finish()`: with nothing omitted by budget, prefix and suffix are adjacent slices of one stream, so a codepoint may span the head/tail split and the whole is decoded as one buffer; trimming or decoding the halves separately would corrupt it. Only a real omitted gap makes each side a true cut: each side is trimmed to a UTF-8 boundary and decoded separately.
 - `finish()` reports omission against the bytes actually returned, not the pre-trim budget: a boundary trim drops partial-codepoint bytes too, and a budget-derived count would overstate the retained text in any "Omitted N bytes" notice.
 - `trimTrailingPartialUtf8` scans back over at most 3 continuation bytes (a UTF-8 sequence is at most 4 bytes); a byte that is not a valid lead is left untouched.
+
+- Retained items remain in push order; seen counts every submitted item, including omissions. truncated reports omitted available content. Text remains UTF-8 boundary safe; counts include boundary bytes removed as well as budget gaps. Keep none, exact-count, and unknown-count notices distinct.

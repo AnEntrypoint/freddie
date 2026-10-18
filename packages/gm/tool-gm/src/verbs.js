@@ -8,6 +8,7 @@ import {
   presentCodesearchCall,
   presentCodesearchResult,
   presentGenericCall,
+  presentGmOutcomeResult,
   presentInstructionCall,
   presentInstructionResult,
   presentRecallCall,
@@ -23,9 +24,9 @@ const jsonOutput = {
 }
 
 export function buildGmTools(gm, onProgress = () => {}) {
-  const reportProgress = (dispatch, exec) => {
+  const reportProgress = async (dispatch, exec) => {
     try {
-      onProgress(dispatch, exec)
+      await onProgress(dispatch, exec)
     } catch (error) {
       void error
     }
@@ -41,6 +42,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall,
     presentResult,
     timeoutMs = GM_TOOL_TIMEOUT_MS,
+    isConcurrencySafe,
   }) => {
     return defineTool({
       name,
@@ -48,23 +50,24 @@ export function buildGmTools(gm, onProgress = () => {}) {
       parameters,
       output,
       timeoutMs,
+      ...isConcurrencySafe === undefined ? {} : { isConcurrencySafe },
       presentCall,
-      presentResult,
+      presentResult: (args, result) => presentGmOutcomeResult(args, result) ?? presentResult?.(args, result),
       async execute(args, exec) {
         const cwd = exec.agent?.session.header.cwd
         const startedAt = Date.now()
         const body = toBody(args)
-        reportProgress({ verb, status: 'running', startedAt, body }, exec)
+        await reportProgress({ verb, status: 'running', startedAt, body }, exec)
         try {
           const value = await gm.call(verb, body, {
             signal: exec.signal,
             timeoutMs,
             ...cwd === undefined ? {} : { cwd },
           })
-          reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
+          await reportProgress({ verb, status: 'completed', startedAt, finishedAt: Date.now(), value, body }, exec)
           return value
         } catch (error) {
-          reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
+          await reportProgress({ verb, status: 'failed', startedAt, finishedAt: Date.now(), error, body }, exec)
           throw error
         }
       },
@@ -85,6 +88,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     presentCall: presentInstructionCall,
     presentResult: presentInstructionResult,
+    isConcurrencySafe: () => true,
   })
 
   const phaseStatusTool = jsonTool({
@@ -98,6 +102,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       presentationMeta: (_args, value) => compactMetaFromValue('gm phase-status', value),
     },
     presentCall: () => presentGenericCall('gm phase-status'),
+    isConcurrencySafe: () => true,
   })
 
   const codesearchTool = jsonTool({
@@ -127,6 +132,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     presentCall: presentCodesearchCall,
     presentResult: presentCodesearchResult,
     timeoutMs: GM_CODESEARCH_TIMEOUT_MS,
+    isConcurrencySafe: () => true,
   })
 
   const recallTool = jsonTool({
@@ -143,6 +149,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     presentCall: presentRecallCall,
     presentResult: presentRecallResult,
+    isConcurrencySafe: () => true,
   })
 
   const prdAddTool = jsonTool({
@@ -156,6 +163,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       acceptance: { type: 'string', description: 'Concrete pre/post-conditions the row must satisfy to resolve.' },
       status: { type: 'string', description: 'Row status, e.g. "pending", "done", "resolved", "in-progress".' },
       route_family: { type: 'string', description: 'One of grounding/reasoning/state/execution/boundary/representation/observability.' },
+      depends_on: { type: 'array', items: { type: 'string' }, description: 'Ids of PRD or mutable rows that must resolve first.' },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm prd-add: ${args.id}`),
@@ -171,6 +179,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
       obligation_kind: { type: 'string', description: 'precondition | invariant | postcondition | resource-bound | type-shape.' },
       subject: { type: 'string', description: 'What is unknown or must hold.' },
       text: { type: 'string', description: 'How it will be witnessed.' },
+      depends_on: { type: 'array', items: { type: 'string' }, description: 'Ids of PRD or mutable rows that must resolve first.' },
     },
     toBody: args => args,
     presentCall: args => presentGenericCall(`gm mutable-add: ${args.id}`),
@@ -230,6 +239,8 @@ export function buildGmTools(gm, onProgress = () => {}) {
     output: jsonOutput,
     timeoutMs: GM_TOOL_TIMEOUT_MS,
     presentCall: () => presentGenericCall('gm exec_js'),
+    presentResult: presentGmOutcomeResult,
+    isConcurrencySafe: () => true,
     async execute(args, exec) {
       const requested = typeof args.timeoutMs === 'number' && Number.isFinite(args.timeoutMs) ? args.timeoutMs : 0
       const budget = Math.max(GM_TOOL_TIMEOUT_MS, requested)
@@ -273,6 +284,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     parameters: {},
     toBody: () => ({}),
     presentCall: () => presentGenericCall('gm git_status'),
+    isConcurrencySafe: () => true,
   })
 
   const gitLogTool = jsonTool({
@@ -280,10 +292,11 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'git_log',
     description: 'Dispatch gm\'s `git_log` verb: recent commit history for the session workspace.',
     parameters: {
-      max_count: { type: 'number', description: 'Optional commit cap.' },
+      limit: { type: 'number', description: 'Optional commit cap.' },
     },
-    toBody: args => (args.max_count === undefined ? {} : { max_count: args.max_count }),
+    toBody: args => (args.limit === undefined ? {} : { limit: args.limit }),
     presentCall: () => presentGenericCall('gm git_log'),
+    isConcurrencySafe: () => true,
   })
 
   const gitDiffTool = jsonTool({
@@ -295,6 +308,7 @@ export function buildGmTools(gm, onProgress = () => {}) {
     },
     toBody: args => (typeof args.path === 'string' && args.path.trim().length > 0 ? { path: args.path } : {}),
     presentCall: () => presentGenericCall('gm git_diff'),
+    isConcurrencySafe: () => true,
   })
 
   const gitShowTool = jsonTool({
@@ -302,10 +316,11 @@ export function buildGmTools(gm, onProgress = () => {}) {
     verb: 'git_show',
     description: 'Dispatch gm\'s `git_show` verb: show one commit or object.',
     parameters: {
-      object: { type: 'string', description: 'Commit or object name; omit for HEAD.' },
+      rev: { type: 'string', description: 'Commit or object name; omit for HEAD.' },
     },
-    toBody: args => (typeof args.object === 'string' && args.object.trim().length > 0 ? { object: args.object } : {}),
-    presentCall: args => presentGenericCall(args.object === undefined ? 'gm git_show' : `gm git_show: ${args.object}`),
+    toBody: args => (typeof args.rev === 'string' && args.rev.trim().length > 0 ? { rev: args.rev } : {}),
+    presentCall: args => presentGenericCall(args.rev === undefined ? 'gm git_show' : `gm git_show: ${args.rev}`),
+    isConcurrencySafe: () => true,
   })
 
   const gitPushTool = jsonTool({

@@ -2,7 +2,6 @@ import { SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { PwshLocalExecutor } from '@freddie/freddie-pwsh-local'
 import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.js'
 
-/* jscpd:ignore-start -- deliberate call-for-call mirror of bash-sandbox's executor (pwsh-tool-and-executor Agent Note) */
 export class SandboxPwshExecutor extends PwshLocalExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']
 
@@ -95,6 +94,5 @@ export class SandboxPwshExecutor extends PwshLocalExecutor {
     return this.ctx.sandbox.confine(this.argv(spec), policy)
   }
 }
-/* jscpd:ignore-end */
 
 export default SandboxPwshExecutor

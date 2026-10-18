@@ -36,6 +36,19 @@ function ProjectRowItem(cache, rowId, props) {
 function SessionNodeItem(cache, rowId, props) {
   return cachedRowItem(cache, 'freddie-session-node-item', rowId, props)
 }
+
+function sessionRowMarker(drag, accountKey, id) {
+  return drag !== null && drag.accountKey === accountKey && drag.over?.id === id ? drag.over.half : null
+}
+
+function repaintSessionRow(cache, rows, drag, id) {
+  const row = rows.get(id)
+  if (row === undefined) return
+  SessionNodeItem(cache, id, {
+    ...row.props,
+    drag: { ...row.props.drag, marker: sessionRowMarker(drag, row.accountKey, id) },
+  })
+}
 import { FLAT_SESSION_ORDER_KEY } from './stores.js'
 import { renderWorkspacePickFlow } from './WorkspacePicker.js'
 import css from './WorkspaceBrowser.css.js'
@@ -216,6 +229,13 @@ function ViewOptionsMenu(props) {
   return el
 }
 
+function releasedInsideList(host, event) {
+  const list = host.querySelector('[role="tree"]')
+  if (list === null) return false
+  const { left, right, top, bottom } = list.getBoundingClientRect()
+  return event.clientX >= left && event.clientX <= right && event.clientY >= top && event.clientY <= bottom
+}
+
 function workspaceGroupHalf(e) {
   const rect = e.currentTarget.getBoundingClientRect()
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
@@ -233,6 +253,8 @@ export class FreddieSessionTree extends HTMLElement {
   #promotedCurrentGroup = undefined
   #projectRowCache = new Map()
   #sessionNodeCache = new Map()
+  #sessionRows = new Map()
+  #layout = null
 
   setProps(props) {
     this.#props = props
@@ -251,15 +273,58 @@ export class FreddieSessionTree extends HTMLElement {
     this.#nativeDrag.sync(active)
   }
 
+  #hoverSessionRow(id, half) {
+    const drag = this.#drag
+    if (drag === null) return
+    const previous = drag.over
+    if (previous !== null && previous.id === id && previous.half === half) return
+    this.#drag = { ...drag, over: { id, half } }
+    if (previous !== null && previous.id !== id) repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, previous.id)
+    repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, id)
+  }
+
+  #commitSessionDrag(activeDrag, over) {
+    const { groups, orderedWorkspaces, orderedUngroupedSessionIds } = this.#layout
+    const { setSessionOrder, orderBy, insertSessionBefore } = this.#props
+    if (this.#sessionDropCommitted) return
+    this.#sessionDropCommitted = true
+    this.#drag = null
+    const group = groups.find(candidate => candidate.key === activeDrag.accountKey)
+    if (group === undefined) { this.#render(); return }
+    const targetIndex = group.sessions.findIndex(session => session.id === over.id)
+    if (targetIndex === -1) { this.#render(); return }
+    const anchor = over.half === 'before' ? over.id : group.sessions[targetIndex + 1]?.id
+    if (anchor === activeDrag.sessionId) { this.#render(); return }
+    const sourceIndex = group.sessions.findIndex(session => session.id === activeDrag.sessionId)
+    const anchorIndex = anchor === undefined
+      ? group.sessions.length
+      : group.sessions.findIndex(session => session.id === anchor)
+    if (sourceIndex !== -1 && (anchorIndex === sourceIndex || anchorIndex === sourceIndex + 1)) { this.#render(); return }
+    const accountSessionIds = activeDrag.accountKey === UNGROUPED_KEY
+      ? orderedUngroupedSessionIds
+      : orderedWorkspaces.find(workspace => workspace.workspaceId === activeDrag.accountKey)?.sessionIds
+    if (accountSessionIds === undefined) { this.#render(); return }
+    const nextOrder = accountSessionIds.filter((id) => id !== activeDrag.sessionId)
+    const insertAt = anchor === undefined ? nextOrder.length : nextOrder.indexOf(anchor)
+    nextOrder.splice(insertAt === -1 ? nextOrder.length : insertAt, 0, activeDrag.sessionId)
+    setSessionOrder(activeDrag.accountKey, nextOrder.map((id) => id))
+    if (orderBy !== 'updated' && activeDrag.accountKey !== UNGROUPED_KEY) {
+      insertSessionBefore(activeDrag.accountKey, activeDrag.sessionId, anchor).catch((reason) => {
+        console.warn('session reorder rejected:', reason)
+      })
+    }
+    this.#render()
+  }
+
   #render() {
     const props = this.#props
     if (props === null) return
     const {
       useSessions, startSession, open, forkSession, workspaces, archivedSessionIds,
       onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive,
-      insertWorkspaceBefore, insertSessionBefore, orderBy,
+      insertWorkspaceBefore, orderBy,
       groupExpansion, setGroupExpanded,
-      sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, home, t,
+      sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, home, t,
     } = props
     const list = useSessions(s => s)
     const current = list.current
@@ -325,36 +390,6 @@ export class FreddieSessionTree extends HTMLElement {
     })
     const now = Date.now()
 
-    const commitSessionDrag = (activeDrag, over) => {
-      if (this.#sessionDropCommitted) return
-      this.#sessionDropCommitted = true
-      this.#drag = null
-      const group = groups.find(candidate => candidate.key === activeDrag.accountKey)
-      if (group === undefined) { this.#render(); return }
-      const targetIndex = group.sessions.findIndex(session => session.id === over.id)
-      if (targetIndex === -1) { this.#render(); return }
-      const anchor = over.half === 'before' ? over.id : group.sessions[targetIndex + 1]?.id
-      if (anchor === activeDrag.sessionId) { this.#render(); return }
-      const sourceIndex = group.sessions.findIndex(session => session.id === activeDrag.sessionId)
-      const anchorIndex = anchor === undefined
-        ? group.sessions.length
-        : group.sessions.findIndex(session => session.id === anchor)
-      if (sourceIndex !== -1 && (anchorIndex === sourceIndex || anchorIndex === sourceIndex + 1)) { this.#render(); return }
-      const accountSessionIds = activeDrag.accountKey === UNGROUPED_KEY
-        ? orderedUngroupedSessionIds
-        : orderedWorkspaces.find(workspace => workspace.workspaceId === activeDrag.accountKey)?.sessionIds
-      if (accountSessionIds === undefined) { this.#render(); return }
-      const nextOrder = accountSessionIds.filter((id) => id !== activeDrag.sessionId)
-      const insertAt = anchor === undefined ? nextOrder.length : nextOrder.indexOf(anchor)
-      nextOrder.splice(insertAt === -1 ? nextOrder.length : insertAt, 0, activeDrag.sessionId)
-      setSessionOrder(activeDrag.accountKey, nextOrder.map((id) => id))
-      if (orderBy !== 'updated' && activeDrag.accountKey !== UNGROUPED_KEY) {
-        insertSessionBefore(activeDrag.accountKey, activeDrag.sessionId, anchor).catch((reason) => {
-          console.warn('session reorder rejected:', reason)
-        })
-      }
-      this.#render()
-    }
     const commitWorkspaceDrag = (
       activeDrag,
       over,
@@ -380,6 +415,8 @@ export class FreddieSessionTree extends HTMLElement {
       && workspaceDrag?.over?.id === groups[0].workspaceId
       && workspaceDrag?.over?.half === 'before'
 
+    this.#layout = { groups, orderedWorkspaces, orderedUngroupedSessionIds }
+    const sessionRows = new Map()
     const vdom = (
       h('div', {class: clsx(css.treeBody, css.wide)},
         workspaceDropAtListStart && h('span', {class: css.listTopDropIndicator ?? '', 'aria-hidden': 'true'}),
@@ -472,11 +509,9 @@ export class FreddieSessionTree extends HTMLElement {
                     ? undefined
                     : {
                       rename: () => {
-                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onRenameRequest(group.workspaceId, group.label)
                       },
                       delete: () => {
-                        /* v8 ignore next */
                         if (group.workspaceId !== undefined) onDeleteRequest(group.workspaceId, group.label)
                       },
                     },
@@ -493,37 +528,34 @@ export class FreddieSessionTree extends HTMLElement {
                       this.#render()
                     },
                     active: sameGroupDrag,
-                    marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
-                    hover: (half) => {
-                    /* v8 ignore next */
-                      if (this.#drag === null) return
-                      this.#drag = { ...this.#drag, over: { id: node.id, half } }
-                      this.#render()
-                    },
+                    marker: sessionRowMarker(drag, group.key, node.id),
+                    hover: (half) => this.#hoverSessionRow(node.id, half),
                     drop: (half) => {
-                    /* v8 ignore next */
                       if (this.#drag === null) return
-                      commitSessionDrag(this.#drag, { id: node.id, half })
+                      this.#commitSessionDrag(this.#drag, { id: node.id, half })
                     },
-                    end: () => {
+                    end: (event) => {
                       const d = this.#drag
-                      if (d?.over !== null && d?.over !== undefined) commitSessionDrag(d, d.over)
+                      if (d?.over !== null && d?.over !== undefined && releasedInsideList(this, event)) this.#commitSessionDrag(d, d.over)
                       else { this.#drag = null; this.#render() }
                       this.#sessionDropCommitted = false
                     },
                   }
+                  const rowProps = {
+                    node,
+                    accountKey: group.key,
+                    currentId: current,
+                    now,
+                    onOpen: open,
+                    onRename: onSessionRename,
+                    onFork: forkSession,
+                    onArchive: onSessionArchive,
+                    drag: dragProps,
+                    t,
+                  }
+                  sessionRows.set(node.id, { accountKey: group.key, props: rowProps })
                   return h('div', { key: node.id, style: 'display:contents' },
-                    SessionNodeItem(this.#sessionNodeCache, node.id, {
-                      node,
-                      currentId: current,
-                      now,
-                      onOpen: open,
-                      onRename: onSessionRename,
-                      onFork: forkSession,
-                      onArchive: onSessionArchive,
-                      drag: dragProps,
-                      t,
-                    }),
+                    SessionNodeItem(this.#sessionNodeCache, node.id, rowProps),
                   )
                 }),
                 group.sessions.length > COLLAPSED_SESSION_LIMIT && (
@@ -554,6 +586,7 @@ export class FreddieSessionTree extends HTMLElement {
     )
     pruneRowCache(this.#projectRowCache, groups.map(group => group.key))
     pruneRowCache(this.#sessionNodeCache, groups.flatMap(group => group.sessions.map(node => node.id)))
+    this.#sessionRows = sessionRows
     applyDiff(this, vdom)
   }
 }
@@ -573,6 +606,8 @@ export class FreddieFlatList extends HTMLElement {
   #previousOrderBy = null
   #nativeDrag = new NativeDragAcceptance()
   #sessionNodeCache = new Map()
+  #sessionRows = new Map()
+  #layout = null
 
   setProps(props) {
     this.#props = props
@@ -591,12 +626,42 @@ export class FreddieFlatList extends HTMLElement {
     this.#nativeDrag.sync(active)
   }
 
+  #hoverSessionRow(id, half) {
+    const drag = this.#drag
+    if (drag === null) return
+    const previous = drag.over
+    if (previous !== null && previous.id === id && previous.half === half) return
+    this.#drag = { ...drag, over: { id, half } }
+    if (previous !== null && previous.id !== id) repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, previous.id)
+    repaintSessionRow(this.#sessionNodeCache, this.#sessionRows, this.#drag, id)
+  }
+
+  #commitDrag(activeDrag, over) {
+    const { rows } = this.#layout
+    const { setSessionOrder } = this.#props
+    if (this.#dropCommitted) return
+    this.#dropCommitted = true
+    this.#drag = null
+    const targetIndex = rows.findIndex(row => row.id === over.id)
+    if (targetIndex === -1) { this.#render(); return }
+    const anchor = over.half === 'before' ? over.id : rows[targetIndex + 1]?.id
+    if (anchor === activeDrag.sessionId) { this.#render(); return }
+    const sourceIndex = rows.findIndex(row => row.id === activeDrag.sessionId)
+    const anchorIndex = anchor === undefined ? rows.length : rows.findIndex(row => row.id === anchor)
+    if (sourceIndex !== -1 && (anchorIndex === sourceIndex || anchorIndex === sourceIndex + 1)) { this.#render(); return }
+    const nextOrder = rows.map(row => row.id).filter(id => id !== activeDrag.sessionId)
+    const insertAt = anchor === undefined ? nextOrder.length : nextOrder.indexOf(anchor)
+    nextOrder.splice(insertAt === -1 ? nextOrder.length : insertAt, 0, activeDrag.sessionId)
+    setSessionOrder(FLAT_SESSION_ORDER_KEY, nextOrder.map(id => id))
+    this.#render()
+  }
+
   #render() {
     const props = this.#props
     if (props === null) return
     const {
       useSessions, open, forkSession, onSessionRename, onSessionArchive, archivedSessionIds,
-      orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, setSessionOrder, t,
+      orderBy, sessionOrderByAccount, sessionUpdatedAtByAccount, syncSessionOrderAccount, t,
     } = props
     const list = useSessions(s => s)
     const baseRows = deriveFlat(list, archivedSessionIds)
@@ -631,25 +696,10 @@ export class FreddieFlatList extends HTMLElement {
     const drag = this.#drag
     this.#syncNativeDragAcceptance(drag !== null)
 
-    const commitDrag = (activeDrag, over) => {
-      if (this.#dropCommitted) return
-      this.#dropCommitted = true
-      this.#drag = null
-      const targetIndex = rows.findIndex(row => row.id === over.id)
-      if (targetIndex === -1) { this.#render(); return }
-      const anchor = over.half === 'before' ? over.id : rows[targetIndex + 1]?.id
-      if (anchor === activeDrag.sessionId) { this.#render(); return }
-      const sourceIndex = rows.findIndex(row => row.id === activeDrag.sessionId)
-      const anchorIndex = anchor === undefined ? rows.length : rows.findIndex(row => row.id === anchor)
-      if (sourceIndex !== -1 && (anchorIndex === sourceIndex || anchorIndex === sourceIndex + 1)) { this.#render(); return }
-      const nextOrder = rows.map(row => row.id).filter(id => id !== activeDrag.sessionId)
-      const insertAt = anchor === undefined ? nextOrder.length : nextOrder.indexOf(anchor)
-      nextOrder.splice(insertAt === -1 ? nextOrder.length : insertAt, 0, activeDrag.sessionId)
-      setSessionOrder(FLAT_SESSION_ORDER_KEY, nextOrder.map(id => id))
-      this.#render()
-    }
     const now = Date.now()
 
+    this.#layout = { rows }
+    const sessionRows = new Map()
     const vdom = (
       h('div', {class: clsx(css.treeBody, css.wide)},
         h('div', {class: clsx(css.list, css.flatList), role: 'tree', 'aria-label': t('section.sessions')},
@@ -658,41 +708,40 @@ export class FreddieFlatList extends HTMLElement {
           ),
           rows.map((node) => {
             const active = drag !== null
-            return h('div', { key: node.id, style: 'display:contents' },
-              SessionNodeItem(this.#sessionNodeCache, node.id, {
-                node,
-                currentId: list.current,
-                now,
-                onOpen: open,
-                onRename: onSessionRename,
-                onFork: forkSession,
-                onArchive: onSessionArchive,
-                flat: true,
-                drag: {
-                  start: () => {
-                    this.#dropCommitted = false
-                    this.#drag = { accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, over: null }
-                    this.#render()
-                  },
-                  active,
-                  marker: active && drag.over?.id === node.id ? drag.over.half : null,
-                  hover: (half) => {
-                    if (this.#drag === null) return
-                    this.#drag = { ...this.#drag, over: { id: node.id, half } }
-                    this.#render()
-                  },
-                  drop: (half) => {
-                    if (this.#drag !== null) commitDrag(this.#drag, { id: node.id, half })
-                  },
-                  end: () => {
-                    const d = this.#drag
-                    if (d?.over !== null && d?.over !== undefined) commitDrag(d, d.over)
-                    else { this.#drag = null; this.#render() }
-                    this.#dropCommitted = false
-                  },
+            const rowProps = {
+              node,
+              accountKey: FLAT_SESSION_ORDER_KEY,
+              currentId: list.current,
+              now,
+              onOpen: open,
+              onRename: onSessionRename,
+              onFork: forkSession,
+              onArchive: onSessionArchive,
+              flat: true,
+              drag: {
+                start: () => {
+                  this.#dropCommitted = false
+                  this.#drag = { accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, over: null }
+                  this.#render()
                 },
-                t,
-              }),
+                active,
+                marker: sessionRowMarker(drag, FLAT_SESSION_ORDER_KEY, node.id),
+                hover: (half) => this.#hoverSessionRow(node.id, half),
+                drop: (half) => {
+                  if (this.#drag !== null) this.#commitDrag(this.#drag, { id: node.id, half })
+                },
+                end: (event) => {
+                  const d = this.#drag
+                  if (d?.over !== null && d?.over !== undefined && releasedInsideList(this, event)) this.#commitDrag(d, d.over)
+                  else { this.#drag = null; this.#render() }
+                  this.#dropCommitted = false
+                },
+              },
+              t,
+            }
+            sessionRows.set(node.id, { accountKey: FLAT_SESSION_ORDER_KEY, props: rowProps })
+            return h('div', { key: node.id, style: 'display:contents' },
+              SessionNodeItem(this.#sessionNodeCache, node.id, rowProps),
             )
           }),
         ),
@@ -700,6 +749,7 @@ export class FreddieFlatList extends HTMLElement {
       )
     )
     pruneRowCache(this.#sessionNodeCache, rows.map(node => node.id))
+    this.#sessionRows = sessionRows
     applyDiff(this, vdom)
   }
 }
@@ -1060,7 +1110,6 @@ export class FreddieWorkspaceBrowser extends HTMLElement {
   #confirmDelete() {
     const props = this.#props
     const deleteTarget = this.#deleteTarget
-    /* v8 ignore next */
     if (props === null || this.#deleting || deleteTarget === null) return
     this.#deleting = true
     this.#deleteCommittedId = null

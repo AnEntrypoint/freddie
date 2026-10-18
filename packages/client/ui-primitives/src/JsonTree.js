@@ -266,7 +266,7 @@ function renderJsonTreeNode(args) {
       Fragment,
       null,
       h('span', {
-        class: clsx(css.expander, expanded ? css.collapseIcon : css.expandIcon),
+        class: clsx(css.expander, expanded && css.collapseIcon),
         'data-json-expander': '',
         'data-node-id': nodeId,
         role: 'button',

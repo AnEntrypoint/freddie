@@ -1,3 +1,4 @@
+import { functionSlot } from '@freddie/freddie-client-ui-slots'
 import { ComposerAttachments } from './ComposerAttachments.js'
 import { MessageImages } from './MessageImages.js'
 
@@ -7,9 +8,9 @@ export function apply(ctx) {
   ctx.slots.inject('conversation.input.attachments', () => ctx.slots.register({
     name: 'conversation.input.attachments',
     locale: 'conversation',
-  }, ComposerAttachments))
+  }, functionSlot(ComposerAttachments, { subscriptions: 'reads' })))
   ctx.slots.inject('conversation.message.images', () => ctx.slots.register({
     name: 'conversation.message.images',
     locale: 'conversation',
-  }, MessageImages))
+  }, functionSlot(MessageImages, { subscriptions: 'reads' })))
 }

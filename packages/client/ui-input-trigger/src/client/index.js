@@ -31,6 +31,6 @@ export function apply(ctx) {
           onDismiss: () => { controller.dismiss() },
         }
       },
-    }, webjsxSlot('freddie-menu-view')))
+    }, webjsxSlot('freddie-menu-view', { subscriptions: 'reads' })))
   })
 }

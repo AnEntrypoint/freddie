@@ -198,7 +198,6 @@ function snapshotSections(source) {
 
 export function SnapshotBody({ content, source, t, jsonBlock }) {
   const sections = snapshotSections(source)
-  /* v8 ignore next */
   if (sections === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
     h('p', { class: css.catalogNotice ?? '', 'data-context-snapshot-supersedes': '' },
@@ -221,7 +220,6 @@ export function NoticeBody({ content, t, jsonBlock }) {
 
 export function RelayBody({ content, source, t, jsonBlock }) {
   const sender = relaySender(source)
-  /* v8 ignore next */
   if (sender === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
     h('p', { class: css.relaySender ?? '', 'data-context-relay-sender': '' },
@@ -316,7 +314,6 @@ export function contextBody(form, props) {
         : { rendered: 'recall', summary: null, body: RecallBody(props) }
     case null:
       return opaque
-    /* v8 ignore next 4 */
     default: {
       const unreachable = form
       throw new Error(`unreachable context form: ${String(unreachable)}`)
