@@ -49,6 +49,15 @@ function isENOENT(error) {
   return error?.code === 'ENOENT'
 }
 
+async function processStartTicks(pid) {
+  try {
+    const stat = await readFile(`/proc/${pid}/stat`, 'utf8')
+    return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19]
+  } catch {
+    return undefined
+  }
+}
+
 export class JsonlSessionPersistence extends SessionPersistence {
   supportsRawArtifacts = true
 
@@ -701,13 +710,17 @@ export class JsonlSessionPersistence extends SessionPersistence {
 
   async claimWriterLock() {
     const lockPath = join(this.root, '.writer.lock')
-    const record = () => JSON.stringify({ pid: process.pid, since: Date.now() })
+    const record = async () => JSON.stringify({
+      pid: process.pid,
+      since: Date.now(),
+      start: await processStartTicks(process.pid),
+    })
     await mkdir(this.root, { recursive: true })
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const handle = await open(lockPath, 'wx')
         try {
-          await handle.writeFile(record())
+          await handle.writeFile(await record())
         } finally {
           await handle.close()
         }
@@ -716,7 +729,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
       } catch (error) {
         if (error.code !== 'EEXIST') throw error
         const holder = await this.readWriterLock(lockPath)
-        if (holder !== undefined && this.processAlive(holder.pid)) {
+        if (holder !== undefined && await this.holderIsLive(holder)) {
           throw new Error(
             `session store at "${this.root}" is already held by pid ${holder.pid}. `
             + 'Two processes writing one store corrupt its session logs; stop the other one first.',
@@ -744,6 +757,13 @@ export class JsonlSessionPersistence extends SessionPersistence {
     } catch (error) {
       return error.code === 'EPERM'
     }
+  }
+
+  async holderIsLive(holder) {
+    if (!this.processAlive(holder.pid)) return false
+    if (holder.start === undefined) return true
+    const start = await processStartTicks(holder.pid)
+    return start === undefined || start === holder.start
   }
 
   async rejectLegacyFlatArtifact(project, id, signal) {
