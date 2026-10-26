@@ -87,7 +87,7 @@ export class FreddieModelRetryItem extends HTMLElement {
 
   #clearTimer() {
     if (this.#timer !== null) {
-      clearInterval(this.#timer)
+      clearTimeout(this.#timer)
       this.#timer = null
     }
   }
@@ -95,13 +95,14 @@ export class FreddieModelRetryItem extends HTMLElement {
   #syncTimer() {
     this.#clearTimer()
     if (!this.#props.active) return
+    const remaining = this.#deadline - Date.now()
+    if (retrySeconds(remaining) === 1) return
     const tick = () => {
-      const next = retrySeconds(this.#deadline - Date.now())
+      this.#timer = null
       this.#render()
-      if (next === 1) this.#clearTimer()
+      this.#syncTimer()
     }
-    if (retrySeconds(this.#deadline - Date.now()) === 1) return
-    this.#timer = setInterval(tick, 250)
+    this.#timer = setTimeout(tick, remaining % 1_000 || 1_000)
   }
 
   #render() {
