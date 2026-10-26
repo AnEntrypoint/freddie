@@ -4,6 +4,7 @@ import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './DiffBlock.css.js'
 import { defineElement } from './define-element.js'
 import { assertNever } from './assert-never.js'
+import { headTailCap } from './head-tail-cap.js'
 
 export const DEFAULT_DIFF_MAX_LINES = 16
 
@@ -99,10 +100,7 @@ export class FreddieDiffBlock extends HTMLElement {
     }
 
     const copied = this.#copyFeedback?.copied ?? false
-    const hidden = rows.length - maxLines
-    const capped = hidden > 0 && !this.#expanded
-    const headLines = Math.ceil(maxLines / 2)
-    const tailLines = maxLines - headLines
+    const { hidden, capped, headLines, tailLines } = headTailCap(rows.length, maxLines, this.#expanded)
     const head = capped ? rows.slice(0, headLines) : rows
     const tail = capped ? rows.slice(rows.length - tailLines) : []
 
