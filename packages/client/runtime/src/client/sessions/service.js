@@ -82,7 +82,7 @@ export class SessionRuntime {
     this.rootCtx = rootCtx
     this.selection = createSnapshotStore(
       {},
-      { persist: { name: 'dsh.sessions.current' } })
+      { persist: { name: 'dsh.sessions.current.v1' } })
     const restored = this.selection.getSnapshot()
     const conversationEvents = rootCtx.get('conversationEvents')
     const conversationViews = rootCtx.get('conversationViews')

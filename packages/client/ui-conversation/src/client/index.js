@@ -6,3 +6,4 @@ export const Config = z.object({
 
 export { apply, inject } from './apply.js'
 export { ConversationController } from './service.js'
+export { formatTokens } from './chat/StatsLine.js'

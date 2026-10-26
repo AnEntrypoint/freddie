@@ -125,7 +125,7 @@ export const en = {
   'message.retry.failure': 'Failure reason: ',
   'message.turnError': 'This turn failed',
   'message.maxTokens': 'Output token limit reached',
-  'message.maxTokens.hint': 'Send "continue" to let the model pick up where it stopped. The reply was cut off; earlier output is preserved in the conversation.',
+  'message.maxTokens.hint': 'The reply was cut off; earlier output is preserved in the conversation. Send "continue" to let the model pick up where it stopped.',
   'message.ranFor': 'Ran for {duration}',
   'message.ttft': 'TTFT {seconds}s',
   'message.tokensPerSecond': '{tps} tok/s',

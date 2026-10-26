@@ -4,7 +4,7 @@ import {
   IconArchiveOutline20, IconBranchOutline16, IconEditOutline16,
   IconEllipsisOutline16, IconFolderClose16, IconFolderOpen16, IconPlusOutline16,
   IconTrashOutline16, IconTriangleRightFill14, StateDot, renderHoverCard, renderMenu,
-  defineElement,
+  assertNever, defineElement,
 } from '@freddie/freddie-client-ui-primitives'
 import { abbreviateHomePath } from '@freddie/freddie-client-runtime/client'
 import { relativeTime } from '../tree.js'
@@ -185,10 +185,6 @@ export class FreddieProjectRowItem extends HTMLElement {
 
 defineElement('freddie-project-row-item', FreddieProjectRowItem)
 
-function assertNever(value) {
-  throw new Error(`unknown pending interaction: ${String(value)}`)
-}
-
 function sessionStatuses(node, t) {
   const subagents = node.runningSubagentCount === 0
     ? undefined
@@ -213,7 +209,7 @@ function sessionStatuses(node, t) {
       pending = { state: 'warning', label: t('status.waitingAnswer') }
       break
     case undefined: break
-    default: return assertNever(node.pendingInteraction)
+    default: return assertNever(node.pendingInteraction, 'pending interaction')
   }
   if (pending !== undefined) return subagents === undefined ? [pending] : [pending, subagents]
   if (node.running) {

@@ -4,6 +4,6 @@ import {
 
 export function createTrajectoryDurationStore() {
   return createSnapshotStore(false, {
-    persist: { name: 'dsh.trajectory.duration' },
+    persist: { name: 'dsh.trajectory.duration.v1' },
   })
 }

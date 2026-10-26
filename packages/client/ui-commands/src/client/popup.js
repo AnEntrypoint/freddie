@@ -47,70 +47,70 @@ export class PopupSelectController {
 
   retry() {
     const binding = this.binding
-    const s = this.state.getSnapshot()
-    if (binding === null || !s.open || s.status !== 'failed') return
-    this.state.set({ ...s, status: 'pending', error: null })
+    const snapshot = this.state.getSnapshot()
+    if (binding === null || !snapshot.open || snapshot.status !== 'failed') return
+    this.state.set({ ...snapshot, status: 'pending', error: null })
     this.load(binding)
   }
 
   setSearch(search) {
-    const s = this.state.getSnapshot()
-    if (!s.open || s.submitting || s.confirming !== null || search === s.search) return
-    this.state.set({ ...s, search, active: 0 })
+    const snapshot = this.state.getSnapshot()
+    if (!snapshot.open || snapshot.submitting || snapshot.confirming !== null || search === snapshot.search) return
+    this.state.set({ ...snapshot, search, active: 0 })
   }
 
   move(dir) {
-    const s = this.state.getSnapshot()
-    if (!s.open || s.status !== 'ready' || s.submitting || s.confirming !== null) return
-    const rows = filterOptions(s.options, s.search)
+    const snapshot = this.state.getSnapshot()
+    if (!snapshot.open || snapshot.status !== 'ready' || snapshot.submitting || snapshot.confirming !== null) return
+    const rows = filterOptions(snapshot.options, snapshot.search)
     if (rows.length === 0) return
-    const active = (s.active + dir + rows.length) % rows.length
-    this.state.set({ ...s, active })
+    const active = (snapshot.active + dir + rows.length) % rows.length
+    this.state.set({ ...snapshot, active })
   }
 
   highlight(index) {
-    const s = this.state.getSnapshot()
-    if (!s.open || s.status !== 'ready' || s.submitting || s.confirming !== null) return
-    if (index < 0 || index >= filterOptions(s.options, s.search).length || index === s.active) return
-    this.state.set({ ...s, active: index })
+    const snapshot = this.state.getSnapshot()
+    if (!snapshot.open || snapshot.status !== 'ready' || snapshot.submitting || snapshot.confirming !== null) return
+    if (index < 0 || index >= filterOptions(snapshot.options, snapshot.search).length || index === snapshot.active) return
+    this.state.set({ ...snapshot, active: index })
   }
 
   async select(index) {
     const binding = this.binding
-    const s = this.state.getSnapshot()
-    if (binding === null || !s.open || s.status !== 'ready' || s.submitting || s.confirming !== null) return
-    const option = filterOptions(s.options, s.search)[index]
+    const snapshot = this.state.getSnapshot()
+    if (binding === null || !snapshot.open || snapshot.status !== 'ready' || snapshot.submitting || snapshot.confirming !== null) return
+    const option = filterOptions(snapshot.options, snapshot.search)[index]
     if (option === undefined) return
     if (option.confirmation !== undefined) {
-      this.state.set({ ...s, confirming: option, acknowledged: false, error: null })
+      this.state.set({ ...snapshot, confirming: option, acknowledged: false, error: null })
       return
     }
     await this.settle(binding, option)
   }
 
   acknowledge(acknowledged) {
-    const s = this.state.getSnapshot()
-    if (!s.open || s.submitting || s.confirming === null || s.acknowledged === acknowledged) return
-    this.state.set({ ...s, acknowledged })
+    const snapshot = this.state.getSnapshot()
+    if (!snapshot.open || snapshot.submitting || snapshot.confirming === null || snapshot.acknowledged === acknowledged) return
+    this.state.set({ ...snapshot, acknowledged })
   }
 
   cancelConfirmation() {
-    const s = this.state.getSnapshot()
-    if (!s.open || s.submitting || s.confirming === null) return
-    this.state.set({ ...s, confirming: null, acknowledged: false })
+    const snapshot = this.state.getSnapshot()
+    if (!snapshot.open || snapshot.submitting || snapshot.confirming === null) return
+    this.state.set({ ...snapshot, confirming: null, acknowledged: false })
   }
 
   async confirm() {
     const binding = this.binding
-    const s = this.state.getSnapshot()
-    if (binding === null || !s.open || s.submitting || s.confirming === null || !s.acknowledged) return
-    await this.settle(binding, s.confirming)
+    const snapshot = this.state.getSnapshot()
+    if (binding === null || !snapshot.open || snapshot.submitting || snapshot.confirming === null || !snapshot.acknowledged) return
+    await this.settle(binding, snapshot.confirming)
   }
 
   async settle(binding, option) {
-    const s = this.state.getSnapshot()
-    if (this.binding !== binding || !s.open || s.submitting) return
-    this.state.set({ ...s, submitting: true, confirming: null, acknowledged: false, error: null })
+    const snapshot = this.state.getSnapshot()
+    if (this.binding !== binding || !snapshot.open || snapshot.submitting) return
+    this.state.set({ ...snapshot, submitting: true, confirming: null, acknowledged: false, error: null })
     try {
       await binding.spec.onSelect(option, binding.context)
     } catch (error) {
