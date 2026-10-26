@@ -6,6 +6,7 @@ import {
   IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14, StateDot,
   defineElement,
 } from '@freddie/freddie-client-ui-primitives'
+import { formatTokens } from '@freddie/freddie-client-ui-conversation/client'
 import css from './SubagentHeaderLineage.css.js'
 
 function diagnosticReason(
@@ -24,16 +25,6 @@ function treeItems(root) {
   return root === null
     ? []
     : Array.from(root.querySelectorAll('[role="treeitem"]:not([aria-disabled="true"])'))
-}
-
-function formatTokens(value) {
-  const scaled = (next) => next >= 100
-    ? Math.round(next)
-    : Math.round(next * 10) / 10
-  if (value < 1_000) return String(value)
-  if (scaled(value / 1_000) < 1_000) return `${scaled(value / 1_000)}K`
-  if (scaled(value / 1_000_000) < 1_000) return `${scaled(value / 1_000_000)}M`
-  return `${scaled(value / 1_000_000_000)}B`
 }
 
 function tokenTotal(
