@@ -40,10 +40,9 @@ function computeContentParts(content) {
   const images = []
   const rest = []
   for (const block of content) {
-    const b = block
-    if (b.type === 'text' && typeof b.text === 'string') texts.push(b.text)
-    else if (b.type === 'image' && b.attachment !== undefined) {
-      images.push({ attachment: b.attachment })
+    if (block.type === 'text' && typeof block.text === 'string') texts.push(block.text)
+    else if (block.type === 'image' && block.attachment !== undefined) {
+      images.push({ attachment: block.attachment })
     }
     else rest.push(block)
   }
