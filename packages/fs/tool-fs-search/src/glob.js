@@ -179,6 +179,7 @@ export function applyGlobTool(ctx, caps) {
         return globSearchMeta({ items: page.items, truncated: page.truncated, seen: value.paths.length }, caps.maxMetaBytes)
       },
     },
+    isConcurrencySafe: () => true,
     async execute(args, exec) {
       const input = parseGlobArgs(args)
       const run = await runRipgrep(ctx, exec, 'glob', buildGlobCommand(input), caps.rawOutputMaxBytes, caps.graceMs, caps.stderrMaxBytes)
