@@ -245,13 +245,33 @@ export function singleFlight(fn) {
 
 const PERSIST_DELAY_MS = 1000
 
+function isRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function matchesShape(template, value) {
+  if (template === null) return true
+  if (Array.isArray(template)) return Array.isArray(value)
+  if (!isRecord(template)) return typeof value === typeof template
+  if (!isRecord(value)) return false
+  if (Object.keys(template).length === 0) return true
+  return Object.keys(value).every(key => (
+    Object.prototype.hasOwnProperty.call(template, key) && matchesShape(template[key], value[key])
+  ))
+}
+
+function restoreSnapshot(initial, stored) {
+  if (!matchesShape(initial, stored)) return initial
+  return isRecord(initial) ? { ...initial, ...stored } : stored
+}
+
 function attachPersistence(api, name) {
   if (typeof localStorage === 'undefined') return () => {}
   const initial = api.getState()
   try {
     const raw = localStorage.getItem(name)
     if (raw !== null) {
-      api.setState(devFreeze({ ...initial, ...JSON.parse(raw) }), true)
+      api.setState(devFreeze(restoreSnapshot(initial, JSON.parse(raw))), true)
     }
   } catch (error) {
     console.error(`snapshot store '${name}' rehydration failed:`, error)

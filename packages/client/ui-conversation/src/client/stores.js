@@ -3,7 +3,7 @@ import { createSnapshotStore, defineStore } from '@freddie/freddie-client-runtim
 export function createChatStore() {
   const backing = defineStore({
     init: () => ({ selection: null, draft: '', view: null, inspect: null }),
-    persist: 'dsh.conversation.chat',
+    persist: 'dsh.conversation.chat.v1',
     actions: {
       select: (d, target) => { d.selection = target },
       setDraft: (d, text) => { d.draft = text },

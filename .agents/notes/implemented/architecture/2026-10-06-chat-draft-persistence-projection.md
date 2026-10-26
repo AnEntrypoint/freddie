@@ -8,7 +8,7 @@ Each composer edit synchronously persists its draft through the chat store. Rend
 
 ## Decision
 
-One registered chat handle retains the existing persisted backing and its four-field format under `dsh.conversation.chat.<sessionId>`. Each framework-owned instance exposes a separate snapshot containing every chat-render field: `selection`, `view`, and `inspect`. An instance-local subscription copies those fields through the existing snapshot store's structural equality operation. Draft-only writes preserve the render snapshot and notify no render subscriber. All render actions delegate to the backing; pruning retains its existing persistence cleanup.
+One registered chat handle retains the existing persisted backing and its four-field format under `dsh.conversation.chat.v1.<sessionId>`. Each framework-owned instance exposes a separate snapshot containing every chat-render field: `selection`, `view`, and `inspect`. An instance-local subscription copies those fields through the existing snapshot store's structural equality operation. Draft-only writes preserve the render snapshot and notify no render subscriber. All render actions delegate to the backing; pruning retains its existing persistence cleanup.
 
 Draft read and write methods remain private instance operations. The session injection resolves the same instance and input shell, hydrates only an empty live draft, persists its canonical clipboard projection, and binds subsequent writes. Only a connected session body owns that mirror. Detached props still render and collect dependencies, but cannot bind; disconnect clears the mirror and binding sentinel, and reconnect flushes the current draft before rebinding.
 

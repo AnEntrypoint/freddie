@@ -40,7 +40,7 @@ Shared object references inside one state are not preserved across updates. Old 
 
 Persisted stores (`opts.persist`, `defineStore` with `persist`) used to call `JSON.stringify` of the whole state and `localStorage.setItem` on every update. Measured with an 815 KB state: a token append cost 2.42 ms persisted against 0.26 ms unpersisted. Writes are now trailing and throttled: the first update after a write arms a one-second timer, later updates within that second do not re-arm it, and the timer writes the latest state. A `pagehide` flush writes a pending state immediately. `cancelPersistence()` on the store drops a pending write; `clearPersisted()` calls it before removing the key, so a delayed write cannot restore a cleared value. Measured persisted token append after the change: 0.38 ms.
 
-Verification: unit-level exercise through the real `ui-conversation` chat store (`createChatStore(scope).create(scope)`): an action wrote nothing immediately, wrote `dsh.conversation.chat.scope-test` after one second, and `clearPersisted` removed it. The web profile boots and serves the page. A live browser check of the `pagehide` flush was not run because the browser extension was disconnected.
+Verification: unit-level exercise through the real `ui-conversation` chat store (`createChatStore(scope).create(scope)`): an action wrote nothing immediately, wrote `dsh.conversation.chat.v1.scope-test` after one second, and `clearPersisted` removed it. The web profile boots and serves the page. A live browser check of the `pagehide` flush was not run because the browser extension was disconnected.
 
 ## Consequences
 
