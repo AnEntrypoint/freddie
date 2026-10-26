@@ -5,6 +5,7 @@ const COPIED_FEEDBACK_MS = 1000
 export function createCopyFeedback(getText, onChange) {
   let copied = false
   let resetTimer = null
+  let stopped = false
 
   const setCopied = (next) => {
     copied = next
@@ -16,7 +17,7 @@ export function createCopyFeedback(getText, onChange) {
     onCopy() {
       if (copied) return
       void writeClipboard(getText()).then((ok) => {
-        if (!ok) return
+        if (!ok || stopped) return
         setCopied(true)
         resetTimer = window.setTimeout(() => {
           resetTimer = null
@@ -25,6 +26,7 @@ export function createCopyFeedback(getText, onChange) {
       })
     },
     stop() {
+      stopped = true
       if (resetTimer !== null) {
         window.clearTimeout(resetTimer)
         resetTimer = null
