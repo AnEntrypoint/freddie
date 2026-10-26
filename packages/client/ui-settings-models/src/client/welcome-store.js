@@ -2,15 +2,12 @@ import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_VERSION,
 } from '../onboarding-copy.js'
+import { assertNever } from '@freddie/freddie-client-ui-primitives'
 
 export function decodeWelcomeSection(section) {
   return typeof section === 'object' && section !== null && !Array.isArray(section)
     ? section
     : {}
-}
-
-function assertNever(_value) {
-  throw new Error('unexpected welcome settings status')
 }
 
 export class WelcomeNoticeStore {
@@ -92,7 +89,7 @@ export class WelcomeNoticeStore {
         })
         return
       }
-      default: return assertNever(scope.status)
+      default: return assertNever(scope.status, 'welcome settings status')
     }
   }
 }

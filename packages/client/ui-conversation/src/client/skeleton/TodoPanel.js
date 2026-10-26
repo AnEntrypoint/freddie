@@ -1,12 +1,8 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { functionSlot } from '@freddie/freddie-client-ui-slots'
-import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
+import { IconChecklistOutline14, IconChevronDownOutline14, IconChevronUpOutline14, assertNever, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { NS } from '../locales.js'
 import css from './TodoPanel.css.js'
-
-function assertNever(value) {
-  throw new Error(`unreachable todo status: ${String(value)}`)
-}
 
 function CompletedGlyph() {
   return h(
@@ -51,7 +47,7 @@ function StatusGlyph({ status }) {
     case 'completed': return h(CompletedGlyph, null)
     case 'in_progress': return h(ProgressGlyph, null)
     case 'pending': return h(PendingGlyph, null)
-    default: return assertNever(status)
+    default: return assertNever(status, 'todo status')
   }
 }
 

@@ -1,5 +1,5 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
-import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer, defineElement } from '@freddie/freddie-client-ui-primitives'
+import { IconChevronDownOutline14, StateDot, createDismissOnOutsidePointer, assertNever, defineElement } from '@freddie/freddie-client-ui-primitives'
 import { NS } from './locales.js'
 import css from './JobListAction.css.js'
 
@@ -9,10 +9,6 @@ function isLive(job) {
   return job.status === 'running' || job.status === 'stopping'
 }
 
-function assertNever(value) {
-  throw new Error(`unhandled job status: ${JSON.stringify(value)}`)
-}
-
 function dotState(status) {
   switch (status) {
     case 'running': return 'ongoing'
@@ -20,7 +16,7 @@ function dotState(status) {
     case 'completed': return 'done'
     case 'killed': return 'warning'
     case 'failed': return 'error'
-    default: return assertNever(status)
+    default: return assertNever(status, 'job status')
   }
 }
 
@@ -31,7 +27,7 @@ function statusLabel(status, t) {
     case 'completed': return t('status.completed')
     case 'killed': return t('status.killed')
     case 'failed': return t('status.failed')
-    default: return assertNever(status)
+    default: return assertNever(status, 'job status')
   }
 }
 

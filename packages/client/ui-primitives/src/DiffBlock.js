@@ -3,12 +3,9 @@ import clsx from 'clsx'
 import { createCopyFeedback } from './use-copy-feedback.js'
 import css from './DiffBlock.css.js'
 import { defineElement } from './define-element.js'
+import { assertNever } from './assert-never.js'
 
 export const DEFAULT_DIFF_MAX_LINES = 16
-
-function assertNever(value) {
-  throw new Error(`unreachable diff row kind: ${String(value)}`)
-}
 
 const ROW_CLASS = {
   path: css.path,
@@ -55,7 +52,7 @@ function copyText(rows) {
       case 'add': return `+ ${row.text}`
       case 'path': return row.text
       case 'gap': return row.text
-      default: return assertNever(row.kind)
+      default: return assertNever(row.kind, 'diff row kind')
     }
   }).join('\n')
 }
