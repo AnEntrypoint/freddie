@@ -299,7 +299,7 @@ export class FreddiePluginInventorySettingsTab extends HTMLElement {
                           ),
                           entry.enabled ? (
                             h('div', null,
-                              h('dt', null, t('cordis')),
+                              h('dt', null, t('status')),
                               h('dd', null, status),
                             )
                           ) : null,
