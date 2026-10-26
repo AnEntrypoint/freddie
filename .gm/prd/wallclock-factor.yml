@@ -10,3 +10,6 @@ notes:
 - ts: 2026-10-26T06:31:18.537Z
   session_id: orch-fin-1792994560-7712-1
   note: 'No public references: the change is internal to this repo''s tool scheduler (packages/core/tools classifier) and is measured with a repo-local loopback harness; no external source is cited.'
+- ts: 2026-10-26T06:32:59.797Z
+  session_id: orch-fin-1792994560-7712-1
+  note: 'BLOCKER wallclock-factor-blocker-orch-fin-1792994560-7712-1: publish_on_origin fails for every input (gm-mcp 0.2.340, latest channel d8aa3dc6; error_code internal, Cannot read properties of undefined (reading ''toString''); no spool response). prd-resolve and prd-close refuse with close_commit_required: no closing commit in the store''s log. The closing commit a37d72a3 was pushed by the Git API route and then reverted to the open row file by 5575a3f5, because the store did not record it. git_fetch does not make it visible to the store. Clears it: a publish_on_origin that completes a closing publish for wallclock-factor with witness 1792996132867-1664-99dddcf9842c560f and status resolved, then prd-resolve with that witness. Landed: 7a9a4360 on origin/main, CI publint run 40279950217 success, verifier verified.'
