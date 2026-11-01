@@ -40,3 +40,4 @@ verify-v2 gui-perf-next-input-startup-20261006 2026-11-01T15:27:22Z: criteria 1,
 latency-AB gui-perf-next-input-startup-20261006 2026-11-01T16:22:56Z: INCONCLUSIVE (1-min load never <2 in ~40min; no batches). Criterion 3 open; row stays pending. gm told: idle freddie web ~28% CPU on expose-internals child.
 scan_deps node_modules 2026-11-01T16:22:56Z: fail 0 blocked 0 warn 8
 publish 8b439964 2026-11-01T16:29:40Z (462 files, overlap-excluded 18 paths changed on origin since fork c2d0a0a1); vendor-manifest-regeneration-drift RESOLVED stale via close f1f19529, witness 1793550388622-1232-998fc45f8938263
+consolidated 2026-11-01T16:37:16Z: origin/main=local main=c3910a23 (merge 37ce562c + receipts). Killed orphan verifier servers 319265/319266 (w3535 paths). daemon-scan-factor routed to gm (agentplug).
