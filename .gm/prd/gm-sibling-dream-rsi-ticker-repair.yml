@@ -5,3 +5,7 @@ acceptance: When GM sibling worktree ownership permits a change, its ticker emit
 status: pending
 route_family: execution
 session_id: freddie-2359017-1791302765514
+notes:
+- ts: 2026-11-01T14:30:43.292Z
+  session_id: mcp-codemode-3535970-1793542718115-1-7
+  note: 'BLOCKED (blocker id gm-sibling-dream-rsi-ticker-repair-blocker-mcp-codemode-3535970-1793542718115-1-7; session mcp-codemode-3535970-1793542718115-1-7). Eliminate receipt: .gm/receipts/gm-sibling-dream-rsi-ticker-repair/03-eliminate.md. U1 premise not reproduced: 0 runtime dreamrsi-replay and 0 dream-replay-cycle records in /workspace/gm ledger (10301) and freddie ledger (1686); dispatch 1793543420571-4305-b7f68d4a25a41a32. U2 owner not permitting: /workspace/gm/agentplug has uncommitted crates/agentplug-runner/src/daemon.rs and daemon/claim_dispatch.rs; dispatch 1793543397920-4294-f4f48b8a7608e62f and 1793543408973-4298-72ab280d55619460. U3 candidate guest trigger rs-plugkit/crates/plugkit-core/src/orchestrator/dream_cycle.rs:38 (replay_if_due), not named by the row; dispatch 1793543383474-614-5dd0e5ce92a2b081. U4 dream-replay-cycle witness not run: gated on U2, a sibling dispatch would write owner-dirty state. Unblock: the row must name the file to edit, and the sibling owner must clear or publish agentplug-runner daemon changes. blocked_by: gm-sibling-dream-rsi-ticker-repair-blocker-mcp-codemode-3535970-1793542718115-1-7'
