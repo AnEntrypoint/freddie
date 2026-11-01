@@ -1,0 +1,8 @@
+id: gm-inspect-disjoint
+prd_id: gm-graph-ui
+obligation_kind: disjointness
+subject: inspectGraph payload is ids/status/verb/names only; overlay CLI is compact last line; inspector selectedNodeId is local and never written to gmProgress
+text: 'exec_js inspectHasArgsRaw false; ObservabilityDock.js #selectedNodeId is an instance field; projection apply never reads selectedNodeId.'
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789796823909 inspectHasArgsRaw false; inspectKeys nodes/edges/walking/jit/cli; cliLastLineOnly [{label:term}] with no output buffer; selectedLocal true (#selectedNodeId not in projection).

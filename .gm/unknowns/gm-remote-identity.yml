@@ -1,0 +1,8 @@
+id: gm-remote-identity
+prd_id: gm-node-edit-remote
+obligation_kind: identity-authority
+subject: GM remotes take Agent lookup; cwd is session.header.cwd; no ambient process.cwd for edits
+text: Read Gm.prdAdd/dispatchFor; Typert descriptors use agent lookup.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789796898901 agentLookup true; cwdOfSession true; dispatchForCwd true. Typert descriptors lookup agent; Gm.dispatchFor uses agent.session.header.cwd.

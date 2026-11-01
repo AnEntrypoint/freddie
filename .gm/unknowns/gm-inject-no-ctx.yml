@@ -1,0 +1,8 @@
+id: gm-inject-no-ctx
+prd_id: gm-host-plugin-mount
+obligation_kind: invariant
+subject: Client components never see ctx; remotes close over apply inject
+text: Witness ui-observability src/client has no ctx.remote or ctx.gm.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: 'invariant: exec_js 1789794928351 clientHasCtxRemote false for ObservabilityDock.js and client/index.js. Remotes close over apply inject callbacks. Keep that.'

@@ -1,0 +1,6 @@
+SESSION_ID: gm-ce-3847245-1789372444
+id: ce-sibling-reload-exit-state
+subject: At witness time, does packages/client/hmr/src/client/index.js still reload the document on definesCustomElements (line 232 window.location.reload())?
+status: witnessed
+witness: file read at 1789372444 shows the reload at :232; re-read before the hot-swap witness
+witness_evidence: 'Re-read packages/client/hmr/src/client/index.js at 1789374400: the definesCustomElements branch no longer calls window.location.reload(); it records kind plugin-rebuilt-custom-elements and queues the ordinary reload(frame) fiber swap (comment: the shared element registry re-binds re-defined tags). The sibling change has landed, so the hot-swap witness needs no scratch page logic.'

@@ -1,0 +1,8 @@
+id: hmr-watcher-coverage-obligation
+prd_id: hmr-stream-and-watch-resilience
+obligation_kind: resource-bound
+subject: Prove native watch errors cannot suppress fallback observation for any source subtree.
+text: Witness from source invariants and a live source edit producing an HMR frame after the watch chain changes.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'Source witness: packages/client/hmr/src/index.js:175-228 computes native tree coverage from the active watcher count, marks coverage incomplete on enumeration or child watcher failure, marks the root dirty, and re-arms it; :277-290 and :357-375 retain polling whenever watcher.complete is not true. Live GUI source edits caused successive HMR frames and fresh browser plugin fibers before this host-half change, proving the existing route-to-client HMR path.'

@@ -1,0 +1,8 @@
+id: graph-partial-failure
+obligation_kind: type-shape
+prd_id: hmr-all-surfaces
+subject: A failed child does not leave the node running; start without end stays running until end
+text: 'exec_js: start then failed end -> status failed; start without end -> running.'
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: 'exec_js 1789086980311: failed end without prior start -> failed not running. start without end -> running. Failed child does not stay running.'

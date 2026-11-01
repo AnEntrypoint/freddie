@@ -1,0 +1,8 @@
+id: hmr-graph-row-revision
+prd_id: hmr-universal-coverage
+obligation_kind: postcondition
+subject: A rebuilt browser entry must be prefetched from its revised graph URL, not its initial boot URL.
+text: 'Witnessed source path: host rebuilt() updates graph rows at packages/client/modules/src/index.js:395-412, but SSE rebuilt frames omit row/url at packages/client/hmr/src/index.js:297-310; browser graphRows are initial-only at packages/client/modules/src/client/system.js:64-85 and HMR prefetch uses them at :133-145. Safely address by carrying/reconciling the updated row before invalidation/prefetch.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Repaired in packages/client/modules/src/client/system.js:147-165, packages/client/modules/src/index.js:388-421, and packages/client/hmr/src/index.js:297-318 plus client/index.js:101-120. A live module-system execution observed prefetch URLs change from ?rev=old to ?rev=new after updateGraphRow.

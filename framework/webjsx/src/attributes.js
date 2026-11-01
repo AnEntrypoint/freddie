@@ -46,7 +46,8 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
         if (key === "children" ||
             key === "key" ||
             key === "dangerouslySetInnerHTML" ||
-            key === "nodes")
+            key === "nodes" ||
+            key === "ref")
             continue;
         if (key.startsWith("on") && typeof value === "function") {
             const eventName = key.substring(2).toLowerCase();
@@ -74,7 +75,8 @@ function updateAttributesCore(el, newProps, oldProps = {}) {
             key !== "children" &&
             key !== "key" &&
             key !== "dangerouslySetInnerHTML" &&
-            key !== "nodes") {
+            key !== "nodes" &&
+            key !== "ref") {
             if (key.startsWith("on")) {
                 const eventName = key.substring(2).toLowerCase();
                 const existingListener = el

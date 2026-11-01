@@ -1,0 +1,8 @@
+id: stale-out-unlinked
+prd_id: spool-out-watch
+obligation_kind: invariant
+subject: dispatch unlinks leftover out-file before writing the in-file
+text: spool.js still unlinks outPath and readyPath before rename of the in-file; watch cannot observe a leftover as this dispatch.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: packages/gm/gm-client/src/spool.js unlink(outPath) and unlink(readyPath) still run before rename of the in-file (lines ~154-161). Watch cannot treat a leftover as this dispatch.

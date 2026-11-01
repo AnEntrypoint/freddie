@@ -1,0 +1,8 @@
+id: cj-negative-ttl
+prd_id: chatjimmy-negative-cache
+obligation_kind: postcondition
+subject: failed chatjimmy catalog fetch is cached for ~30s so a second listChatJimmyModels in-window does not hit the 2000ms abort
+text: Witness by timing two listChatJimmyModels calls in one process after the cut.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'postcondition spec: listChatJimmyModels on !ok or catch writes _modelsCache=[DEFAULT_MODEL] with a negative TTL (default 30s). Second in-window call returns cache without the 2000ms abort. Success still uses 5-minute TTL.'

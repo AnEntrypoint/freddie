@@ -1,0 +1,8 @@
+id: freddie-gui-hmr-observability-live
+prd_id: freddie-gui-streaming-performance
+obligation_kind: postcondition
+subject: The real browser must retain a connected HMR channel and the operational overview must render its new realtime connection status after the streaming performance changes.
+text: Witness by navigating the existing local Freddie GUI, entering Overview, and reading both window.__FREDDIE_HMR__.status and its visible connection indicator.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: At http://127.0.0.1:3080, the active Overview displayed “Realtime connected” and live subagent activity. Browser evaluation returned __FREDDIE_HMR__.status={connected:true,lastSequence:31,reconnects:0}; after subsequent source updates it advanced to lastSequence:35, proving HMR delivery. The connection state projection is independent of HMR and is sourced by packages/client/connection/src/client/index.js.

@@ -1,0 +1,8 @@
+id: latency-witness-method
+prd_id: claim-latency-numbers
+obligation_kind: precondition
+subject: How 710.7ms / 3.4ms / 57-64ms were measured and whether they can be re-run
+text: Find the live driver or re-execute buildAutoChainLive and GET /v1/models.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'precondition: pinned buildAutoChainLive timed in-process: before 710.7ms vs 3.4ms sync; after skip 57.2-63.8ms, auto pending at 50ms. GET /v1/models via createServer port 0: 2064ms then 2016ms (chatjimmy 2s abort, not HTTP TTFB of :4800).'

@@ -1,0 +1,8 @@
+id: gm-codeinsight-start-path
+prd_id: gm-job-start-codeinsight
+obligation_kind: invariant
+subject: Job-start may be served through more than one instruction/dispatch entry point.
+text: Witness every authoritative entry path and prove no eligible job begins without code-insight gating or a surfaced failure.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Subagent audit traced runner -> dispatch_gated_verb -> orchestrator::dispatch -> instructions/task; rs-plugkit/crates/plugkit-core/src/orchestrator/task.rs:60-93 now enforces fresh code insight before host_task spawn, while instructions/mod.rs exports job-start evidence.

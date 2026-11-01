@@ -1,0 +1,5 @@
+id: vendor-u3-live-generator-run
+value: Can generate-vendor start live in this checkout (needs node_modules install), and does it complete without bypassing writeEmitted?
+status: unknown
+row: vendor-manifest-regeneration-drift
+session_id: mcp-codemode-3535970-1793543177153-118

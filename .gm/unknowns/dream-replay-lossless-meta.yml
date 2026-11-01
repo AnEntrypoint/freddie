@@ -1,0 +1,8 @@
+id: dream-replay-lossless-meta
+prd_id: freddie-dream-replay-metadata-totality
+obligation_kind: postcondition
+subject: The presentation metadata must be losslessly JSON serializable for every replay result shape.
+text: 'Witness: live gm_dream_replay calls at 178976755* and 178976756* failed before dispatch result delivery with `output.presentationMeta returned non-lossless JSON`; source projection at packages/gm/tool-gm/src/verbs.js:386-387 reads missing optional fields as undefined.'
+session_id: freddie-2260524-1789740208025
+status: witnessed
+witness_evidence: 'gm_exec_js 1789768301318 built the current tool definitions and returned JSON-safe Dream-RSI metadata for a failed replay: selectedPolicyId:null and replayWorldIds:[]; packages/gm/tool-gm/src/verbs.js totalizes the projection.'

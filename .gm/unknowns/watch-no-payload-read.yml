@@ -1,0 +1,8 @@
+id: watch-no-payload-read
+prd_id: spool-out-watch
+obligation_kind: invariant
+subject: out/ watch only wakes; takeResponse still parses JSON after unlink of leftover
+text: watch callback calls finish() with no path read; takeResponse readFile+JSON.parse is the only content path.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: spool.js:286 watch callback is () => finish(); takeResponse at 232-235 is the only readFile+JSON.parse. Watch error also finish() with no content.

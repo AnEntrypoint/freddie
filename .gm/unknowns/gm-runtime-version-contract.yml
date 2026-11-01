@@ -1,0 +1,8 @@
+id: gm-runtime-version-contract
+prd_id: gm-dependency-runtime-audit
+obligation_kind: precondition
+subject: Active GM, runner, and update state
+text: Witness the live machine-wide daemon status, runner version, plugin version, sideload marker, and instruction update_available field before any dependency update claim.
+session_id: freddie-1686187-1790937099884
+status: witnessed
+witness_evidence: 'Live exec_js dispatch 1790937238358 reads /config/.agentplug: runner 0.1.158, gm plugin 0.1.1362, no gm.local-dev-sideload marker; daemon-status records clean update polling with no plugin/runner errors. Project .gm/exec-spool/.status.json identifies live gm 0.1.1362 and runner 0.1.158; instruction reports update_available:null.'

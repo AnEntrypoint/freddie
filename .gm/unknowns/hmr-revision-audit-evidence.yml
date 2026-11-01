@@ -1,0 +1,8 @@
+id: hmr-revision-audit-evidence
+prd_id: hmr-revision-propagation
+obligation_kind: postcondition
+subject: Determine whether each host rebuilt notification carries a current graph row before the browser invalidates and prefetches.
+text: 'Witness source edges: ClientModuleRegistry.rebuilt updates record.entry before graph composition; node HMR onRebuilt reads graphRow and emits entry/graphRev; browser reload reconciles with updateGraphRow before invalidate/prefetch. Independent audit pending.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Read-only audit: ClientModuleRegistry.rebuilt() writes record.entry=graphRow(id, rev) then notifies (packages/client/modules/src/index.js:404-421). Node HMR callback reads graphRow and sends entry plus graphRev (packages/client/hmr/src/index.js:297-318). Browser reload validates and invokes updateGraphRow before invalidate/prefetch (packages/client/hmr/src/client/index.js:101-126); updateGraphRow replaces both graphRows and manifest modules (packages/client/modules/src/client/system.js:155-165).'

@@ -1,0 +1,8 @@
+id: poll-boot-or-interval
+prd_id: runner-poll-after-publish
+obligation_kind: postcondition
+subject: A running daemon behind GitHub latest stages without waiting 3600s
+text: Boot first-tick poll when CARGO_PKG_VERSION or marker != latest, or a shorter runner_update_poll_interval. Live last_runner_update_poll_ts advances on that boot.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'postcondition spec: first-tick due poll satisfies a daemon behind latest staging without waiting 3600s. Persisted ts remains for heartbeat display only. Default interval can stay 3600 once boot always polls.'

@@ -1,0 +1,8 @@
+id: custom-element-define-bound
+obligation_kind: type-shape
+prd_id: hmr-custom-element-swap
+subject: customElements.define is document-lifetime so a fiber swap cannot replace the class
+text: Read packages/client/hmr client location.reload on definesCustomElements; witness live or document the honest bound.
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: 'packages/client/hmr/src/client/index.js:242-248 location.reload when frame.definesCustomElements === true. customElements.define binds a tag for the document lifetime; remounting the shell cannot replace the class. WFGY lesson 2026-09-05: a swap would report success while the original class stays. Honest bound: full reload is the only path that observes the edit.'

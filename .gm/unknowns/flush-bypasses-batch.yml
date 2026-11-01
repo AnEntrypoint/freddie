@@ -1,0 +1,8 @@
+id: flush-bypasses-batch
+prd_id: persist-batch-vs-step
+obligation_kind: invariant
+subject: session/flush cancels the 200ms batch wait before LLM
+text: Read agent-loop and persistence checkpoint policy; witness whether flush is awaited on the step path.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: '.agents/notes/implemented/architecture/2026-08-08-bounded-session-persistence-write-batching.md:27: session/flush cancels remaining writeBatchMaxDelayMs wait and is a quiescence barrier; checkpoint policy places mandatory barriers before model requests and top-level tool side effects. persist-batch-vs-step needs no cut if that barrier is on the step path.'

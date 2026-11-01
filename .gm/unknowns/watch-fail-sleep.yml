@@ -1,0 +1,8 @@
+id: watch-fail-sleep
+prd_id: idle-in-dir-wake
+obligation_kind: postcondition
+subject: If FindFirstChangeNotificationW fails or entries is empty, idle wait still sleeps 25ms
+text: IdleInDirWatch::wait sleeps cap when entries empty. INVALID_HANDLE_VALUE skipped at sync. Unix cfg keeps sleep. No busy-spin.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'postcondition: IdleInDirWatch::wait sleeps cap when entries empty. FindFirstChangeNotificationW INVALID_HANDLE_VALUE skipped. Unix cfg sleep 25ms. No busy-spin.'

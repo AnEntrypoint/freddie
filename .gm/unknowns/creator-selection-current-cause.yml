@@ -1,0 +1,5 @@
+id: creator-selection-current-cause
+subject: Identify the current Creator reset cause in the freshly restarted server, distinguishing stale-process behavior from selection-race behavior.
+SESSION_ID: root-ui-liveness
+status: witnessed
+witness_evidence: Live POST /api/agentPreset.select for agentPreset cordis returned ok:true after restarting stale PID 3513999; selection remained Creator after four seconds and browser reload.

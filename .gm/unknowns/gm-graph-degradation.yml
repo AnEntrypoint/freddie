@@ -1,0 +1,8 @@
+id: gm-graph-degradation
+prd_id: gm-graph-progress-fold
+obligation_kind: degradation
+subject: foldGmGraph caps at 80 nodes; inspectGraph is bounded JSON; empty graph is named copy not a hang
+text: exec_js 81-node input yields 80; empty layout does not throw.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789797026225 cap 80 from 90-node input. Empty graph is named copy in ObservabilityDock. inspectGraph is bounded JSON.

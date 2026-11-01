@@ -1,0 +1,8 @@
+id: idle-wait-after-join
+prd_id: idle-in-dir-wake
+obligation_kind: invariant
+subject: Idle in-dir wait happens after dispatch workers join, never overlapping claim
+text: 'run_daemon_body: thread::scope joins before any_work is computed; IdleInDirWatch::wait is only in the !any_work tail. A wake starts the next tick''s claim, not a concurrent claim.'
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'invariant: daemon.rs idle wait is after thread::scope joins and any_work fold. WaitForMultipleObjects only when !any_work. Next tick claims.'

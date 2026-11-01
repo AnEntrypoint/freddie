@@ -1,0 +1,8 @@
+id: rewrite-preserves-latency
+prd_id: rewrite-strip-hiddenspawn
+obligation_kind: invariant
+subject: filter-repo must strip only HiddenSpawn bytes; latency commits cfded9c/9a8cc1b content must survive
+text: After rewrite, lib/auto-chain.js still has pinned skip; chatjimmy still has negative cache.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: Rewritten acptoapi HEAD:index.js still has runClaude and module.exports; lib/auto-chain.js still has targetModel && targetModel !== 'auto'; lib/providers/chatjimmy.js still has CHATJIMMY_NEGATIVE_TTL. Live --scan-deps after rewrite exit 0.

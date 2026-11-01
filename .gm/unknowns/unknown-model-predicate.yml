@@ -1,0 +1,8 @@
+id: unknown-model-predicate
+prd_id: claim-pinned-skip-refresh
+obligation_kind: precondition
+subject: What Auto/unknown still refreshes means in code
+text: Witness the exact predicate at buildAutoChainLive vs handleChat unknown-model path.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'precondition: auto-chain.js:739 skips only when targetModel is truthy and !== ''auto''. handleChat unknown path server.js:877 calls buildAutoChainLive(undefined) which still awaits refreshAll. Named queue 850-851 never calls Live.'

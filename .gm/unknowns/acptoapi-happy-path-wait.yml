@@ -1,0 +1,8 @@
+id: acptoapi-happy-path-wait
+prd_id: acptoapi-first-byte
+obligation_kind: precondition
+subject: Happy-path chat has no extra sleep before first upstream byte
+text: Read waitForLeadLinkPrecheck + handleChat linkTimeout; live TTFB if a local acptoapi is up.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: 'acptoapi/lib/chain-machine.js:308-310 waitForLeadLinkPrecheck: sampler_backoff on lead returns {ok:true} with zero sleep; healthy preCheck returns immediately. SAME_LINK_RETRY_BASE_MS=1000 and MODEL_UNHEALTHY_WAIT_BUDGET_MS=10000 are fail-path only. Dead code after the early return at 310. Happy-path TTFB is not gated on 200ms.'

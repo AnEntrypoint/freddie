@@ -1,0 +1,8 @@
+id: hmr-sse-liveness-obligation
+prd_id: hmr-stream-and-watch-resilience
+obligation_kind: effect-boundary
+subject: Prove that HMR HTTP semantics distinguish finite HEAD metadata from a live GET stream and that client state cannot report connected after liveness is lost.
+text: Witness using a real localhost HEAD request plus live browser EventSource diagnostics after implementation.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'Live restarted server witness: curl HEAD http://127.0.0.1:3080/plugins/events returned 200 text/event-stream in 1.211ms and did not join the connection set. Browser at :3080 mounted with window.__FREDDIE_HMR__.status.connected=true and lastSequence=4. Source ensures data-frame heartbeats at packages/client/hmr/src/index.js:491-493 and a 45s browser watchdog that terminally recovers at packages/client/hmr/src/client/index.js:381-423.'

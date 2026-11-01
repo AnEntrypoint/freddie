@@ -1,0 +1,8 @@
+id: dream-rsi-grounding-authority
+prd_id: review-freddie-dream-rsi
+obligation_kind: invariant
+subject: Whether replay inputs asserted as recorded discovery evidence are authority-bound to a durable recorded source rather than model-provided arbitrary JSON.
+text: Witness by tracing typed tool body to evaluator input and context admission.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Freddie `packages/gm/tool-gm/src/verbs.js:319-324` accepts model-supplied unrestricted object arrays and forwards them unchanged; rs-plugkit `dream_rsi.rs:116-154` evaluates only that JSON and has no session/provenance input; context `index.js:15-29` accepts its successful result. No durable discovery relation is checked.

@@ -1,0 +1,8 @@
+id: menu-grace-not-cancelled-by-list
+prd_id: menu-portal-pointer-region
+obligation_kind: invariant
+subject: Portaled list pointerenter never reaches the wrapper that owns the grace timer
+text: 'Menu.js binds onpointerenter/onpointerleave only on the wrapper span. portal appends the list to document.body. Live page: trigger bottom 250, list top 254, gap 4px. Pointerleave of the wrapper arms 200ms onClose before the pointer can enter the list.'
+session_id: freddie-107108-1790937270938
+status: witnessed
+witness_evidence: 'invariant: Menu.js:280-285 portals the list to document.body and binds pointerleave only on the wrapper span (lines 301-302). Live page: trigger bottom 250, list top 254, 4px gap. Pointerleave of the wrapper armed the 200ms close before the pointer reached the list; the list is not a descendant, so its pointerenter cannot cancel the timer.'

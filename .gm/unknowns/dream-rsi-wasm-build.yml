@@ -1,0 +1,8 @@
+id: dream-rsi-wasm-build
+prd_id: dream-rsi-rust-build
+obligation_kind: precondition
+subject: The current rs-plugkit wasm target must compile before the new dream-replay handler can be live-dispatched.
+text: Witness with cargo check --target wasm32-wasip1 after resolving current scan_universe/code_index compile failures.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: gm_exec_js 1789639740246 completed RUSTC=$HOME/.rustup/toolchains/stable-aarch64-unknown-linux-gnu/bin/rustc cargo check --target wasm32-wasip1 after restoring scan-universe/code-index visibility; dream-replay is compiled in the wasm target.

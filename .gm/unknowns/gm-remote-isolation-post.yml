@@ -1,0 +1,8 @@
+id: gm-remote-isolation-post
+prd_id: gm-remote-boot-isolation
+obligation_kind: postcondition
+subject: GM $mount failure does not throw from apply or dispose prior remotes
+text: Read catch console.error without rethrow; HTTP served remotes JS matches.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: 'exec_js 1789840868832 noRethrow true: catch console.error without rethrow. HTTP served remotes JS REM_DYNAMIC true.'

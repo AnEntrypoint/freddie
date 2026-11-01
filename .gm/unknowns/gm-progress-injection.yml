@@ -1,0 +1,8 @@
+id: gm-progress-injection
+prd_id: gm-graph-ui
+obligation_kind: injection
+subject: Overview labels are webjsx text children; data-gm-graph is JSON.stringify of inspectGraph; no innerHTML of node titles
+text: 'Read ObservabilityDock.js: no innerHTML; titles pass as text children.'
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789796898901 innerHTML false; textChildren true; stringifyInspect true. Node titles are webjsx text children; data-gm-graph is JSON.stringify(inspectGraph).

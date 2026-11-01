@@ -1,0 +1,8 @@
+id: heartbeat-last-wins
+prd_id: heartbeat-clear-update-flag
+obligation_kind: invariant
+subject: Heartbeat rewrite last-wins; removed runner_update keys stay gone without a staged binary
+text: write_project_heartbeat else-remove at daemon.rs:1062-1064 runs every tick when cached_staged_runner is None.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'invariant: daemon.rs:1059-1064 else-remove runner_update keys every heartbeat when cached_staged_runner is None. Last-wins overwrite of existing JSON.'

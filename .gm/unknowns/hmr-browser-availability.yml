@@ -1,0 +1,8 @@
+id: hmr-browser-availability
+prd_id: hmr-live-chain-verification
+obligation_kind: precondition
+subject: A real Chrome/CDP page is available for GUI HMR witness
+text: Use GM browser/cdp session discovery; if absent, inspect the exact local browser runtime limitation and establish a supported live GUI browser path before claiming HMR verification.
+session_id: freddie-1686187-1790937099884
+status: witnessed
+witness_evidence: agent-browser doctor 0.38.1 reports Chromium 152.0.7977.75 at /usr/bin/google-chrome with no failures; its isolated freddie-hmr session opened the real http://127.0.0.1:3080 GUI and reported window.__FREDDIE_SHELL__ and a connected window.__FREDDIE_HMR__.

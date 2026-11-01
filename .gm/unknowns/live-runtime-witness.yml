@@ -1,0 +1,8 @@
+id: live-runtime-witness
+prd_id: hmr-integration-audit
+obligation_kind: postcondition
+subject: Configured runtime behavior under the actual web/CLI composition
+text: Witness via a non-mutating live boot/config dump and an observed source/config change only if the active runtime composition permits it.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Live GUI pid 24860 node --expose-internals C:\dev\freddie\apps\cli\src\bin.js web. GET 3080 200 __FREDDIE_BOOT__. SSE /plugins/events 200 text/event-stream first frame type=graph. Prior pid 24864 CreationDate 09/11/2026 01:21:39: edit ui-layout/src/client/index.js yielded rebuilt id=@freddie/freddie-client-ui-layout rev=12131c29b72d graphRev=992a54f0c219 without process exit. Host never loader.exit(); dump-config --profile web shows system-prompt.toolOrder.'

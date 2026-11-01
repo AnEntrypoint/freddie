@@ -1,0 +1,6 @@
+id: gm-stale-mcp-bundle-restart-U2
+subject: What bundle version does the live gm-mcp server report now, and does it match the installed bundle at /config/.gm-tools/gm-mcp-server.mjs (2304623 bytes)? Answers whether the stale condition holds on this host.
+row: gm-stale-mcp-bundle-restart
+body: What bundle version does the live gm-mcp server report now, and does it match the installed bundle at /config/.gm-tools/gm-mcp-server.mjs (2304623 bytes)? Answers whether the stale condition holds on this host.
+session_id: mcp-codemode-3535970-1793542718115-1-6
+status: unknown

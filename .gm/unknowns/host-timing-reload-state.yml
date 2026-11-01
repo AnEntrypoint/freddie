@@ -1,0 +1,8 @@
+id: host-timing-reload-state
+prd_id: host-hmr-timing-activation
+obligation_kind: precondition
+subject: Determine whether the active host runtime has reloaded the changed agent-loop timing code before expecting live tool events to carry timing.
+text: 'Witness: existing GUI has client revision but no timing in newly completed tool rows; DEEPSEEK_API_KEY is unavailable and model selector empty, so derive host HMR status through runtime behavior/source.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Existing GUI continues to emit new tool rows while client graph revision updates. Direct source execution proves the host scheduling and projection path. Current live tool rows were created by the pre-change runtime and carry no timing; the absent configured model prevents a post-change model-driven tool call.

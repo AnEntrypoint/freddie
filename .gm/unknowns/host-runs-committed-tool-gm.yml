@@ -1,0 +1,7 @@
+prd_id: gm-runtime-host-hmr-activation
+obligation_kind: precondition
+status: unknown
+id: host-runs-committed-tool-gm
+subject: Does the live host's loaded tool-gm carry runtimeStatus (commit f2edb0fc)?
+text: 'Q: a fresh GUI GM tool call publishes runtime JSON with runnerVersion and gmVersion. Answers whether the host reloaded the modified source.'
+session_id: mcp-codemode-3535970-1793543257869-162

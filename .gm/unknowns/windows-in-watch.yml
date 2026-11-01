@@ -1,0 +1,8 @@
+id: windows-in-watch
+prd_id: idle-in-dir-wake
+obligation_kind: type-shape
+subject: Idle wait uses an existing Windows directory-change API already in windows-sys, not a new notify crate
+text: Cargo.toml windows-sys features include the wait/notification APIs used; Unix keeps a short sleep cap. No notify dependency.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'type-shape: crates/agentplug-runner/Cargo.toml:25 already depends on windows-sys 0.59. Idle wait will use FindFirstChangeNotificationW + WaitForSingleObject timeout 25ms via extra Win32_Storage_FileSystem and Win32_System_Threading features. No notify crate. Unix keeps sleep cap after in-dir re-scan.'

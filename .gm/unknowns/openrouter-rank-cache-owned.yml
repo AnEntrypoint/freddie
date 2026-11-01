@@ -1,0 +1,8 @@
+id: openrouter-rank-cache-owned
+prd_id: openrouter-free-fallback
+obligation_kind: invariant
+subject: The free-model ranking cache is process-local and replaced only by a successful refresh
+text: _openrouterFreeRank is a module let. refreshOpenrouterFreeRank assigns a new object only after a non-empty ranked list. A failed refresh leaves the previous ids. A second refresh inside the TTL does not start another fetch.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: 'exec_js 1790929675141: first refreshOpenrouterFreeRank returned a 13-id array; the second call 22ms later returned the same array (sameArray true). lib/auto-chain.js refreshOpenrouterFreeRank returns the cached ids inside TTL and shares one inFlight fetch. A failed fetch throws before the assignment, so the previous ids stay.'

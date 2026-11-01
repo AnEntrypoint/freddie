@@ -1,0 +1,4 @@
+id: gm-runtime-hmr-final-witness-u6-fiber-health
+value: U6 How is 'a healthy active ui-observability fiber' observed after reload (which fiber state read proves it is retained, not disposed)?
+status: unknown
+session_id: mcp-codemode-3535970-1793542718115-1-9

@@ -1,0 +1,6 @@
+id: gui-disclosure-closed-aria-state-20261007-u7
+row: gui-disclosure-closed-aria-state-20261007
+question: Can the closed, open and close states of a real historical ToolRow be produced gpu-free (module-level render into a DOM shim) or does the native check need a browser?
+subject: how historical rows are loaded (transcript replay entry) and whether a DOM shim can host freddie-tool-row
+session_id: mcp-codemode-3535970-1793542718115-1-3
+status: unknown

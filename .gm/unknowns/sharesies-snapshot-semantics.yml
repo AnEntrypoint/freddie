@@ -1,0 +1,8 @@
+id: sharesies-snapshot-semantics
+prd_id: sharesies-architecture-research
+obligation_kind: type-shape
+subject: Determine whether upstream snapshot means durable terminal-state snapshots or testing-only visual buffer inspection.
+text: 'Witnessed upstream at commit dba45d6e: SharedSession explicitly has no replay/history (src/session.js); browser makes window.__sharesiesTerm available for browser E2E buffer reads (web/src/client.js). Therefore upstream does not provide durable session snapshots.'
+session_id: freddie-37249-1789201746935
+status: witnessed
+witness_evidence: 'Resolved: sharesies uses no durable terminal history or snapshots. src/session.js comments and addClient() behavior establish live-only streams plus a SIGWINCH redraw nudge; web/src/client.js exposes xterm only for rendered-buffer E2E observation.'

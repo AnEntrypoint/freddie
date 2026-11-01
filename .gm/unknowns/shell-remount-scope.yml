@@ -1,0 +1,6 @@
+SESSION_ID: gm-serving-3845994-1789372428
+id: shell-remount-scope
+subject: 'Which static roots can be remounted in-document: apps/web + packages/client/web resolve through relative imports under a /__hmr/<rev>/ prefix (fresh bytes), while ui-slots/ui-primitives are seeded via frozen import-map absolute URLs so a remount cannot refresh them (document reload stays the only path). To witness: shell edit remount keeps window marker; ui-primitives edit must reload.'
+status: witnessed
+route: grounding
+witness_evidence: 'scratchpad/w-shell.json: touch apps/web/src/main.js -> window.__probe survived, navigations 1->1, /__hmr/1/vendor/@freddie/freddie-client-web@0.1.1-rc.2/src/*.js fetched, new AppWebEntry mounted 59 custom elements. scratchpad/w-prim.json: touch ui-primitives/src/Pill.js -> navigations 1->2 (document reload), 845 responses.'

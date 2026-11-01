@@ -1,0 +1,8 @@
+id: terminal-browser-command-transport
+prd_id: observability-terminal-plane
+obligation_kind: type-shape
+subject: Browser terminal input and snapshot RPC must preserve exact-Agent terminal authority
+text: ApiProxy's unary fetch carrier provides a routed public path, but no terminal domain exists. Define a terminal namespace with sessionId/terminalId validation that resolves the live agent and calls ctx.terminals only through the existing exact-owner methods; determine high-rate output delivery via mux frame extension.
+session_id: freddie-192180-1789217365634
+status: witnessed
+witness_evidence: packages/host/apiproxy/src/api-proxy.js now resolves every terminal request through `agentFor(sessionId)` and calls `ctx.terminals` exact-owner methods; packages/host/apiproxy/src/fetch/handler.js routes terminal.*, and events.mux subscribes through ctx.terminals.subscribe with mux-scoped cleanup.

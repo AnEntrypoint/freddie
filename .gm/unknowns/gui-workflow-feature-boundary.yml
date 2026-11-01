@@ -1,0 +1,8 @@
+id: gui-workflow-feature-boundary
+prd_id: freddie-gui-harness-architecture-assessment
+obligation_kind: precondition
+subject: Desired workflow-state UI and its exact user-facing scope are not specified beyond architectural inspection.
+text: Witness by distinguishing existing capability seams from prospective extension points, and mark any feature-specific choices as product decisions rather than established facts.
+session_id: freddie-37249-1789201746935
+status: witnessed
+witness_evidence: 'Existing UI state channels establish the applicable boundary: durable workflow events feed ui-workflow-run, generic session projections feed ui-goal and ui-plan, and subagent catalogs are remote-refreshed. The requested specific future feature remains unspecified, so the route keeps feature policy decisions explicit.'

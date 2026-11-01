@@ -1,0 +1,8 @@
+id: gm-progress-timing
+prd_id: gm-http-witness-no-client-inspect
+obligation_kind: message-timing
+subject: gm/progress last-wins replay Object.is; malformed type ignored
+text: exec_js projection apply twice plus todo/write.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: exec_js 1789841097284 sameRef true; ignoredSame true. Last-wins replay; malformed type ignored.

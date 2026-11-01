@@ -1,0 +1,8 @@
+id: gm-http-witness-bound
+prd_id: gm-http-witness-no-client-inspect
+obligation_kind: resource-bound
+subject: GUI witness uses HTTP GET with TimeoutSec 5, never Client inspect
+text: This session used Invoke-WebRequest TimeoutSec 5; no cordis_inspect_query platform client after hang.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: HTTP GET TimeoutSec 5 STATUS=200; no Client inspect this cover after hang. loggerClean true.

@@ -1,0 +1,8 @@
+id: trajectory-layout-contract
+prd_id: trajectory-host-layout
+obligation_kind: resource-bound
+subject: Trajectory custom element hosts must contribute non-zero bounded flex geometry to their ledger pane.
+text: Witness live dimensions and exact owning custom element/CSS paths before adding host layout rules.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'resource-bound: TrajectoryView.js:431-455 places freddie-trajectory-table directly in .freddie-views__ledger (views.css:16-24 flex pane); TrajectoryTable.js:2776-2784 defines an unstyled custom-element host, so its default inline geometry cannot fill the pane.'

@@ -1,0 +1,8 @@
+id: hmr-custom-element-source
+prd_id: custom-element-hmr-classification
+obligation_kind: invariant
+subject: Confirm the brand package used in live HMR verification defines a custom element, explaining its automatic full reload.
+text: 'Witness: exact source occurrence and HMR classification behavior.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: The @freddie/freddie-client-ui-brand-official entry imports Brand.js (index.js:2); HMR classifies its served tree for `customElements.define` at packages/client/hmr/src/index.js:90-122 and automatically reloads flagged rows at src/client/index.js:157-169. Live probe observed the intended reload.

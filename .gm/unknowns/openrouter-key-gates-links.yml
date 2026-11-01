@@ -1,0 +1,8 @@
+id: openrouter-key-gates-links
+prd_id: openrouter-free-fallback
+obligation_kind: postcondition
+subject: OpenRouter fallback links exist only while OPENROUTER_API_KEY resolves
+text: openrouterFreeFallbackIds returns [] when hasProvider('openrouter') is false. refreshOpenrouterFreeRank returns [] when keyring.getKey misses. A fresh process without the env var builds a one-link chain.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: 'exec_js 1790929655444 fresh process with OPENROUTER_API_KEY unset: hasProvider(''openrouter'') false, buildAutoChain(''xai-oauth/grok-4.7'') links only that primary. refreshOpenrouterFreeRank returns [] when keyring.getKey misses.'

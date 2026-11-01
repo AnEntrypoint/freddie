@@ -1,0 +1,5 @@
+id: live-text-render-cause
+subject: Identify the event, projection, or render boundary that delays assistant text until refresh.
+SESSION_ID: root-ui-liveness
+status: witnessed
+witness_evidence: packages/client/runtime/src/client/sessions/session.js repairGap performed one history pull; its catch retained liveBuffer and no later event was required to retry, leaving a final assistant event invisible until page reload.

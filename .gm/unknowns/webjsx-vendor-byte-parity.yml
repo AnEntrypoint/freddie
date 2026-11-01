@@ -1,0 +1,8 @@
+id: webjsx-vendor-byte-parity
+prd_id: webjsx-attribute-semantics
+obligation_kind: postcondition
+subject: The browser import map resolves webjsx to a static vendor path, which must contain the same fixed attribute writer as framework source.
+text: Synchronize the vendored webjsx attributes module with the framework source, reload the page, and read the served URL to verify its fixed serialization logic.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'postcondition: browser read of /vendor/@freddie/webjsx@0.0.73/src/attributes.js now shows setAttribute(String(value)) and removeAttribute for false/null/undefined.'

@@ -1,0 +1,8 @@
+id: dream-freddie-gm-tool
+prd_id: dream-rsi-freddie-bridge
+obligation_kind: type-shape
+subject: Freddie must expose dream replay through a typed tool mapped to the exact gm JSON body and preserve it through existing gm/progress durability.
+text: Witness by tool schema inspection and live dispatched response.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Freddie tool mapping at packages/gm/tool-gm/src/verbs.js:315-337 exposes typed gm_dream_replay over exact baseline_policy_id/policies/worlds body; node --check witnessed syntax at gm_exec_js 1789639146220.

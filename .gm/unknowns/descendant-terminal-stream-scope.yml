@@ -1,0 +1,8 @@
+id: descendant-terminal-stream-scope
+prd_id: descendant-live-activity-observation
+obligation_kind: precondition
+subject: A client-only descendant Overview requires terminal/activity mux frames for every active descendant, not merely selected sessions.
+text: 'Witness: TerminalActivityStore is owner-scoped and fed only by mux frames (packages/client/runtime/src/client/sessions/terminal-activity.js:1-55); manager routes terminal frames when received (manager.js:665-667), but subscription scope remains to be confirmed.'
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Implemented treeTerminals from mux-fed terminal stores and filtered them to selected descendant ids; terminal controls remain parent-only.

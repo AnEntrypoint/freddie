@@ -1,0 +1,7 @@
+prd_id: gm-runtime-host-hmr-activation
+obligation_kind: precondition
+status: unknown
+id: overview-renders-runtime-metric
+subject: Does the Overview render the GM runtime metric from the projection?
+text: 'Q: the Overview dock shows GM 0.1.1362, runner 0.1.158 and updater state from the gm/progress projection. Answers the row''s last acceptance clause.'
+session_id: mcp-codemode-3535970-1793543257869-162

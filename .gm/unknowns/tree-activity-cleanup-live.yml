@@ -1,0 +1,8 @@
+id: tree-activity-cleanup-live
+prd_id: tree-activity-retention-bound
+obligation_kind: postcondition
+subject: Removed non-durable sessions release activity and terminal entries without affecting durable subagent lineage.
+text: Witness source branch and live GUI HMR state after client runtime reload; validate cleanup operation only touches the removed session key.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: manager.js:828-850 invokes clearTreeActivity only under !durableSubagent, preserving detached durable child lineage. Fresh browser boot saw window.__FREDDIE_BOOT__ and __FREDDIE_SHELL__ true after the runtime source reload.

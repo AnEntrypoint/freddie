@@ -1,0 +1,8 @@
+id: scan-deps-live-binary-source
+prd_id: gm-scan-deps-workspace-symlink-cycle
+obligation_kind: precondition
+subject: The active runner artifact must be rebuilt or otherwise pointed at the edited rs-plugkit/agentplug source before a scan_deps dispatch can witness the correction.
+text: Witness using a real built artifact and a full scan_deps dispatch rooted at /config/workspace/freddie.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Rebuilt slim real GM WASM artifact installed at /config/.agentplug/plugins/gm.wasm; a fresh full scan_deps against Freddie completed after artifact installation and traversed 115 files with failCount 0 and no symlink recursion. The sole remaining blocked path is unrelated /list-packages.js missing from the scan root.

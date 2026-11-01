@@ -1,0 +1,8 @@
+id: gm-search-current-contract
+prd_id: gm-search-separate-ranked-channels
+obligation_kind: type-shape
+subject: The exact codesearch result contract and query mode semantics are not yet fully established.
+text: Witness with handler definitions and a real dual-mode dispatch that returns exact response fields.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: rs-plugkit/crates/plugkit-core/src/wasm_dispatch/verbs.rs:1452-1481 and :1660-1749 plus live root-scoped dual response established the prior contract gap; repair now adds independently labeled BM25/vector/commit channels.

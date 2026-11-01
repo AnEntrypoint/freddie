@@ -1,0 +1,8 @@
+id: gm-remote-vs-apiproxy
+prd_id: gm-node-edit-remote
+obligation_kind: type-shape
+subject: Whether Gm should extend TypertRemoteService, bindTypertRemote, or expose a sibling gm-remote plugin; ApiProxyService has no gm namespace today
+text: Witness chosen shape against docs/api-gateway.md and a live client call.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: 'type-shape: Gm already extends Service (gm-client/src/index.js:28). docs/api-gateway.md:13 bindTypertRemote when another base class owns inheritance. api-remotes/src/client/index.js mounts goalsRemote etc, no gm. Chosen representation: bindTypertRemote(this, ''gm'') on Gm; @Remote methods prdAdd/prdResolve/mutableAdd/mutableResolve/transition taking Agent so session.header.cwd is available; ./remote export mounted in api-remotes. Invalid: ApiProxy namespace (createApiProxy has no gm) or a second ctx key.'

@@ -1,0 +1,8 @@
+id: agent-activity-timeline-shape
+prd_id: agent-activity-observability
+obligation_kind: type-shape
+subject: The observability tabs need a concrete session snapshot or projection history source for agent activity entries, rather than a fabricated timeline.
+text: Witness live session snapshot keys and source fold contracts before adding activity list rendering.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Live view rendered snapshot.chat.nodes as an agent activity ledger and retained session summary lineage as an agent-tree panel.

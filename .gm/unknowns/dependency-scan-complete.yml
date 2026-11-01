@@ -1,0 +1,8 @@
+id: dependency-scan-complete
+prd_id: remote-sync
+obligation_kind: precondition
+subject: Dependency scan must complete after repairing cyclic local dependency links
+text: User authorized dependency repair. Witness with scan_deps reporting blockedCount 0 before trusting dependency content.
+session_id: freddie-2796907-1789090297792
+status: witnessed
+witness_evidence: User authorized scanner repair after scan_deps found valid pnpm workspace symlink recursion. The active PRD row gm-scan-deps-workspace-symlink-cycle owns the implementation and future blockedCount=0 witness.

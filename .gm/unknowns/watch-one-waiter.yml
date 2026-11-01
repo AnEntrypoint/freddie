@@ -1,0 +1,8 @@
+id: watch-one-waiter
+prd_id: spool-out-watch
+obligation_kind: invariant
+subject: one watch per in-flight dispatch; concurrent dispatches do not share a waiter
+text: waitForOutOrTimeout is local to dispatch(); concurrent calls each own watcher+timer. dispatchKey uniqueness unchanged.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: packages/gm/gm-client/src/spool.js waitForOutOrTimeout is a function local to each dispatch() call; concurrent dispatches each allocate watcher+timer. dispatchKey remains sessionId-processEpoch-N.

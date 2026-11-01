@@ -1,0 +1,8 @@
+id: gm-search-route-closure
+prd_id: gm-search-insight
+obligation_kind: invariant
+subject: Every model-accessible code-discovery mechanism must resolve to GM while exact known-path retrieval remains available.
+text: Map all tool/prompt registrations and verify the retained capability route through actual tool schemas and runtime dispatches.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: invariant witnessed by packages/gm/tool-gm/src/verbs.js:128-151 exposing gm_codesearch over the incremental index and the loaded gm instruction requiring codesearch as the only discovery surface; known paths remain retrieved with Read.

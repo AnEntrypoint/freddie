@@ -1,0 +1,8 @@
+id: dream-rsi-plugkit-commit-state
+prd_id: review-rs-plugkit-dream-rsi
+obligation_kind: precondition
+subject: Whether Dream-RSI handler is actually landed in rs-plugkit history rather than only present as local worktree state.
+text: Witness via sanctioned git history/status plus exact current source path.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: 'gm_exec_js 1789640528028: rs-plugkit status reports `?? crates/plugkit-core/src/orchestrator/dream_rsi.rs`; `git log --all -- .../dream_rsi.rs` has no commits. The current handler is untracked, while HEAD''s mod.rs dispatcher does not contain it.'

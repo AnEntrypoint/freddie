@@ -1,0 +1,8 @@
+id: goal-terminal-driver-contract
+prd_id: goal-terminal-continuation
+obligation_kind: precondition
+subject: Exact caller and turn lifecycle for renderWrapupContext
+text: Witness every call site and the deferContext lifecycle to establish whether deleting the tool prohibition preserves terminal reporting and permits same-turn recovery.
+session_id: freddie-327824-1790173650242
+status: witnessed
+witness_evidence: packages/goal/tool-goal/src/index.js:274-293 calls renderWrapupContext only after the goal mutation and only for goal-round authority; packages/core/tools/src/index.js:875-908 exposes deferred context independently of concludeTurn, and current source has no concludeTurn call in tool-goal.

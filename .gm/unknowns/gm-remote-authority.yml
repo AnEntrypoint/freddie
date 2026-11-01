@@ -1,0 +1,8 @@
+id: gm-remote-authority
+prd_id: gm-consolidate-remotes
+obligation_kind: precondition
+subject: The sibling GM repository contains independently-owned repositories and upstream push semantics.
+text: Witness repository topology and remote state before staging or finalizing; preserve unrelated work and use the authorized non-destructive integration path.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: 'precondition witnessed by /config/workspace/gm/agentplug/AGENTS.md:3: direct main pushes publish releases; AgentPlug, rs-plugkit, and gm are separately rooted repositories, so owned paths must be committed independently.'

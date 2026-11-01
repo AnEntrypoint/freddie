@@ -1,0 +1,6 @@
+id: gm-stale-mcp-bundle-restart-U1
+subject: Is there a local checkout of the gm-mcp source (AnEntrypoint/gm-mcp) on this host, and does it contain a bundle-version check at tool-call startup? Answers whether an edit target exists outside this repo.
+row: gm-stale-mcp-bundle-restart
+body: Is there a local checkout of the gm-mcp source (AnEntrypoint/gm-mcp) on this host, and does it contain a bundle-version check at tool-call startup? Answers whether an edit target exists outside this repo.
+session_id: mcp-codemode-3535970-1793542718115-1-6
+status: unknown

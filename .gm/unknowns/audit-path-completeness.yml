@@ -1,0 +1,8 @@
+id: audit-path-completeness
+prd_id: independent-tool-dispatch-audit
+obligation_kind: precondition
+subject: Exact tool registration, agent-loop execution, async polling, timeout, and persistence paths may be distributed across core and gm packages.
+text: Resolve through exhaustive gm codesearch and direct exact-source reads; distinguish source evidence from a live timing witness.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Exhaustive source trace read: packages/core/agent-loop/src/tool-calls.js:36-266; packages/core/tools/src/index.js:500-1324; packages/jobs/tool-jobs/src/index.js:160-357; packages/jobs/jobs-local/src/index.js:90-238,375-399; packages/gm/gm-client/src/spool.js:117-238; packages/session/session-checkpoint-policy/src/index.js:54-73; packages/session/session-persistence/src/write-behind.js:37-149 and coordinator.js:919-1017. Findings distinguish normal ordered barriers from improvement candidates.'

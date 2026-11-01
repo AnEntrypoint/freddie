@@ -1,0 +1,8 @@
+id: gm-update-observability-owner
+prd_id: gm-update-observability
+obligation_kind: invariant
+subject: Host service owns update inspection while UI consumes projection
+text: Witness the host Gm service, tool dispatch lifecycle, projection registration, client remote/slot chain, and select exact field owner before emitting.
+session_id: freddie-2128598-1790941468204
+status: witnessed
+witness_evidence: Gm owns daemon inspection because daemon.js is its provider-local integration; tool-gm owns the durable gm/progress producer; gm-progress owns the projection fold; ui-observability owns its projection rendering. The client remains a pure projection consumer and needs no direct Remote method or daemon access.

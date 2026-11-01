@@ -1,0 +1,8 @@
+id: trajectory-virtualizer-reentrancy
+prd_id: trajectory-live-verification
+obligation_kind: invariant
+subject: The now-measurable trajectory host lets Virtualizer onChange re-enter TrajectoryTable rendering before the current render completes.
+text: Repair the real synchronous Virtualizer measure/onChange recursion so visibility fixes do not expose a slot crash.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'invariant: TrajectoryTable now assigns #virtual.virtualizer and cleanup before Virtualizer.measure(); synchronous onChange re-render observes the same instance instead of recursively constructing a new one.'

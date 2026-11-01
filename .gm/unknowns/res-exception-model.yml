@@ -1,0 +1,8 @@
+id: res-exception-model
+obligation_kind: exception-model
+prd_id: token-delivery-austerity
+subject: timestamp rewrite has no swallowed error or panic
+text: diff is an integer overwrite of .gm/.last-scan-deps-ts; no unwrap, catch, or fallback.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: git_diff 1790930967927 is one integer line in .gm/.last-scan-deps-ts. No unwrap, catch, or fallback.

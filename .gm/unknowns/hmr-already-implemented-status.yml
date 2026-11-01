@@ -1,0 +1,8 @@
+id: hmr-already-implemented-status
+prd_id: hmr-revision-propagation
+obligation_kind: postcondition
+subject: Determine whether the checked-out code already implements graph-row revision propagation and whether it remains live-effective.
+text: 'Witness: source and real GUI must agree before any redundant HMR edit.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Source chain is complete: packages/client/modules/src/index.js:404-421 replaces entry before notification; packages/client/hmr/src/index.js:297-318 emits entry and graphRev; packages/client/hmr/src/client/index.js:101-126 reconciles before invalidate/prefetch; client system updates graph rows at lines 155-165. Independent HMR audit agrees.'

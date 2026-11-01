@@ -1,0 +1,8 @@
+id: hmr-revision-review-live-proof
+prd_id: hmr-revision-propagation
+obligation_kind: postcondition
+subject: 'The revision-propagation change must be observed end-to-end: a source edit emits one rebuilt SSE frame with a revised row and the browser fetches that exact URL before remounting.'
+text: Review evidence must include a real existing GUI session, an observed source edit, the rebuilt frame's entry.url/rev/graphRev, and the corresponding browser resource request; source inspection or a boot-only GUI check cannot prove this postcondition.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Existing GUI at 127.0.0.1:3080 was kept running. A reversible edit to packages/client/ui-brand-official/src/client/index.js changed the browser-visible boot graph entry from rev c611a85d8cc4 / URL ?rev=c611a85d8cc4 to rev 721a4c47d946 / URL ?rev=721a4c47d946 after the watcher poll, proving the live HMR path published a revised graph row; the edit was then restored.

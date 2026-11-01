@@ -1,0 +1,8 @@
+id: audit-scan-blocks
+prd_id: audit-tool-dispatch
+obligation_kind: resource-bound
+subject: Three scan_deps node_modules reads are blocked by deeply recursive workspace symlink paths, so dependency scan cannot attest a fully clean dependency tree.
+text: 'Witness scan result 1789051240632-242-2a54433d133d26b8: blockedCount=3, failCount=0, nodeModulesTruncated=false; do not treat scan as a security finding for this read-only efficiency audit.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Repeated frozen-lockfile installs completed, but scan_deps still reports 3 blocked reads only on an absurdly recursive node_modules @freddie/Cordis path, with failCount 0 and nodeModulesTruncated false; this remains an environment graph integrity defect, not evidence of malicious code.

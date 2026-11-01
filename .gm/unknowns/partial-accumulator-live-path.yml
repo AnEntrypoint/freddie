@@ -1,0 +1,8 @@
+id: partial-accumulator-live-path
+prd_id: partial-accumulator-reachability
+obligation_kind: precondition
+subject: PartialAccumulator must have a reachable construction site in the mounted browser module graph before its local concatenation behavior can be treated as a live GUI hot path.
+text: Witness with exhaustive literal source references, the current client boot graph, and actual streamed session behavior.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Exhaustive literal source search found only the PartialAccumulator declaration in packages/client/runtime/src/client/sessions/partial.js and no `new PartialAccumulator` construction. The live boot graph mounted client-runtime, ui-conversation, and ui-trajectory, but neither active streaming Definition imports or constructs PartialAccumulator. It is unreachable dead code, not a live GUI path.

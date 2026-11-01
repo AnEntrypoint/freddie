@@ -1,0 +1,8 @@
+id: mux-overflow-wire-contract
+prd_id: mux-baseline-overflow-recovery
+obligation_kind: type-shape
+subject: Need identify the existing mux wire frame vocabulary and client reconnect semantics appropriate for an initial-baseline overflow without inventing an incompatible error frame.
+text: Witness api-proxy events.mux producer, frame schemas, and client consumer switch before implementation.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: The existing wire frame `stream/error` is defined by packages/client/connection/src/websocket-downlink.js:29-37 and ConnectionController treats it as stream loss/reconnect at connection.js:159-172. Reusing it with code mux-baseline-overflow preserves the client contract.

@@ -1,0 +1,8 @@
+id: dependency-scan-blocked-paths
+prd_id: dependency-integrity
+obligation_kind: resource-bound
+subject: Dependency scan reported 13 unreadable paths under a recursively nested node_modules symlink chain.
+text: 'Witness: gm_scan_deps dispatch 1789053808988 reported blockedCount=13, failCount=0, nodeModulesTruncated=false; determine whether the nested installation graph is corrupt before trusting dependency scan.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: The blocked paths are repeated nested node_modules resolution paths, not a HiddenSpawn detection (failCount=0). User authorized local dependency repair if needed; defer reinstall until HMR verification requires dependency execution.

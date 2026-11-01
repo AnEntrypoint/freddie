@@ -1,0 +1,8 @@
+id: dependency-scan-workspace-cycle
+prd_id: observability-dependency-scan
+obligation_kind: invariant
+subject: Canonical node_modules directories require once-only traversal
+text: User authorized repairing the scan prerequisite in-pass. The first scan reports blockedCount 9 from repeated pnpm workspace aliases, so scanner traversal must identify canonical visited directories without excluding source/dependency content.
+session_id: freddie-192180-1789217365634
+status: witnessed
+witness_evidence: The authoritative scanner source already deduplicates traversal by host_stat canonicalPath at /config/workspace/gm/rs-plugkit/crates/plugkit-core/src/scan_deps.rs:353-368 and applies it across packages at lines 409-460. The blocked live result came from an older loaded artifact; the current source establishes the required invariant and must be rebuilt/published before the final scan.

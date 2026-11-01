@@ -1,0 +1,10 @@
+id: browserskill-tool-schema
+prd_id: browserskill-capability-seam
+obligation_kind: type-shape
+subject: Model-facing BrowserSkill tools must group all documented 0.3.2 capabilities without leaking transport internals or accepting command injection.
+text: Witness by defining action enums with bounded typed fields for session, page, inspect/debug, interactions/files, tabs, and assist/human-help; runner constructs argv only from validated named fields.
+depends_on:
+- browserskill-cli-contract
+session_id: freddie-2723231-1791306788857
+status: witnessed
+witness_evidence: packages/experimental/browser-use-browserskill/src/index.js:122-279 defines the status tool and six BrowserSkill tool groups. :71-98 rejects missing action-dependent values before argv creation; action maps construct fixed command names and flags from typed fields only. BrowserSkill 0.3.2 CLI help was read for session/page/inspect/interact/tabs/assist commands, and pnpm run publint passed.

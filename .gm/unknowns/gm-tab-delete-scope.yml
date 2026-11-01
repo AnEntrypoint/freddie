@@ -1,0 +1,8 @@
+id: gm-tab-delete-scope
+prd_id: gm-gui-delete-noise
+obligation_kind: invariant
+subject: Workflows/Subagents/Terminals tabs must leave the GM view; workflow chat nodes and subagent header remain elsewhere
+text: Witness live conversation.view observability has no those panels; ui-workflow-run and ui-subagent still mounted.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: 'invariant: ObservabilityDock.js:5-11 SECTIONS overview/workflows/gm/subagents/terminals. ui-workflow-run and ui-subagent remain web-app cordis.patch.yml:260-276. Delete dock tabs only; do not unmount those plugins.'

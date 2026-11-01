@@ -1,0 +1,8 @@
+id: feed-replay
+obligation_kind: message-timing
+prd_id: feed-element-cache
+subject: A repeated render of the same block reuses the cached element instead of applying a second copy.
+text: Live GUI showed the same assistant text painted once, with no console error, after the session kept receiving chunks.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: 'Live page 2: tail seq advanced while painted text matched the latest assistant block once. Console error list stayed empty across repeated renders.'

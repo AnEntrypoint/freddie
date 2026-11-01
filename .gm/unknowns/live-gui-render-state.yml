@@ -1,0 +1,8 @@
+id: live-gui-render-state
+prd_id: gui-runtime-audit
+obligation_kind: precondition
+subject: The connected browser must retain a single live Freddie page instead of a transient blank tab.
+text: Witness with fixed named browser session, exact origin, live document state, and shell/HMR runtime facts before interpreting UI behavior.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'precondition: agent-browser fixed session reached http://127.0.0.1:3080 with title "FREDDIE Local Build"; subagent live probe confirmed window.__FREDDIE_BOOT__ true and no browser resource resolves from node_modules.'

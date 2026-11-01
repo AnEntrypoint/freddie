@@ -1,0 +1,8 @@
+id: webjsx-removal-semantics
+prd_id: webjsx-attribute-semantics
+obligation_kind: postcondition
+subject: An absent data or ARIA value must remove the serialized DOM attribute without assigning an expando.
+text: After the framework change, live trajectory state must present true/number attributes and omit false/undefined values through the same update path.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'postcondition: the intended branch preserves real HTMLElement property assignments (for example disabled) but attributes non-property data/ARIA values; null/undefined/false remove only the attribute, matching TrajectoryTable''s undefined absence contract.'

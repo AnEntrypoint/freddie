@@ -1,0 +1,8 @@
+id: inventory-method
+prd_id: repo-inventory
+obligation_kind: precondition
+subject: Which C:/dev directories are AnEntrypoint git repos and how far they lag origin is unknown.
+text: Witness by reading each .git origin URL and status -sb without fetch or checkout.
+session_id: freddie-107108-1791049571843
+status: witnessed
+witness_evidence: exec_js 1791229530502 listed 182 AnEntrypoint origin checkouts from C:/dev with branch, HEAD, dirty, and tracking. 32 were clean and behind; 20 were clean and diverged.

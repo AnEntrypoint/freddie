@@ -5,3 +5,7 @@ acceptance: The active HMR journal records reload after idle, then a fresh GUI G
 status: in-progress
 route_family: execution
 session_id: freddie-2128598-1790941468204
+notes:
+- ts: 2026-11-01T14:30:23.240Z
+  session_id: mcp-codemode-3535970-1793543423142-327
+  note: 'blocked_by: gm-runtime-host-hmr-activation-blocker-mcp-codemode-3535970-1793542718115-1-8 (external). Eliminate found no live Freddie Web Host (proc_list 1793543325753-465-97631920571b6bb5; exec_js 1793543376328-595-f0cd3e66733ad9a2; port 3000 is nginx 401, 1793543391534-632-edc7a47cd6b389d2). HMR journal, reload-on-idle and Overview witness need the host. Booting one here would bypass HMR, which the row forbids. Owner starts the host through the official path, waits for agent-loop idle, then runs the GUI witness. Receipts: .gm/receipts/gm-runtime-host-hmr-activation/01-orient.md to 03-eliminate.md.'
