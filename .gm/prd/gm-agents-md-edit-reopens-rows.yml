@@ -2,3 +2,7 @@ id: gm-agents-md-edit-reopens-rows
 subject: 'Editing AGENTS.md reopens unrelated witnessed PRD rows (publish of commit 8f254509 reopened token-delivery-history and empty-verb-dir-skip as not rerunnable: ''module AGENTS.md changed after this row was witnessed''). Doc compaction is therefore expensive and blocks unrelated work. Bind a witness to the rule-relevant content, not to the whole AGENTS.md file, so a documentation edit that leaves the witnessed rule intact does not reopen rows. Witness: edit an unrelated AGENTS.md line and confirm no row reopens; edit the witnessed rule and confirm the row reopens.'
 status: pending
 session_id: gm-freddie-eff-20261012
+notes:
+- ts: 2026-11-01T14:33:44.164Z
+  session_id: mcp-codemode-3535970-1793543624100-447
+  note: 'blocked_by: external: restart the gm MCP client so the served daemon loads a build containing rs-plugkit 163f44fe (gm-stale-mcp-bundle-restart). Orient: 163f44fe (2026-10-12 18:54 +0200) already excludes markdown from row_referenced_paths and adds rule_bindings, so the module-level "module AGENTS.md changed" reason is unreachable at rs-plugkit HEAD. Open: served daemon build (bundle_stale true, bundle_action none). Only live probe is an AGENTS.md commit through the served daemon, which reopens completed rows if the daemon predates 163f44fe. Receipts: .gm/receipts/gm-agents-md-edit-reopens-rows/01-orient.md, 02-unknowns.md, 03-eliminate.md.'

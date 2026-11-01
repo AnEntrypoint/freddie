@@ -1,0 +1,5 @@
+row: gm-agents-md-edit-reopens-rows
+id: gm-agents-md-edit-reopens-rows-u1
+question: Does the served gm daemon for /workspace/freddie run code containing rs-plugkit commit 163f44fe (AGENTS.md module reopen fix)?
+session_id: mcp-codemode-3535970-1793543562949-425
+status: unknown
