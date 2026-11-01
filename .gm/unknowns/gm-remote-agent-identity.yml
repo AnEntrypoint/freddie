@@ -1,0 +1,8 @@
+id: gm-remote-agent-identity
+prd_id: gm-overview-optional-remote
+obligation_kind: identity-authority
+subject: GM remotes look up Agent; cwd is session.header.cwd
+text: Read typert.remote-client.js lookup agent; gm-client cwdOf.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: exec_js 1789841097284 agentLookup true; cwdOfSession true. Typert lookup agent; Gm uses session.header.cwd.

@@ -1,0 +1,8 @@
+id: hovercard-card-has-no-pointer-handlers
+prd_id: hovercard-portal-pointer-region
+obligation_kind: invariant
+subject: Hover card element has no pointerenter that cancels the close timer
+text: 'HoverCard.js card VNode has no onpointerenter. Placement is r.right + 8. Wrapper pointerleave arms #armClose at 200ms. Same portal split as Menu.'
+session_id: freddie-107108-1790937270938
+status: witnessed
+witness_evidence: 'invariant: HoverCard.js:136-164 builds the card VNode with no onpointerenter. Placement is r.right + 8 (line 89). Wrapper pointerleave (line 192-194) arms #armClose at 200ms (line 69-74). The card is appended to document.body (line 170), so resting on it never cancels the wrapper timer.'

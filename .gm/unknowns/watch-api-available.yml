@@ -1,0 +1,8 @@
+id: watch-api-available
+prd_id: spool-out-watch
+obligation_kind: precondition
+subject: Which watch primitive exists in-process without a new dep
+text: codesearch fs.watch / notify crate in freddie and gm; pick one that works on this Windows host.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: Freddie already uses non-recursive fs.watch per directory in packages/client/hmr/src/index.js:175 nativeWatch (Windows-safe, re-armed on rename). Daemon has no notify crate (codesearch notify= exhaustive 0 in C:\dev\gm); only Condvar notify_all in agentplug-host registry.rs:322/422/1112 for slot/step. Spool-out-watch can use Node fs.watch with poll fallback; daemon-in-watch needs shorter idle sleep or a new notify watch.

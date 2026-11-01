@@ -1,0 +1,8 @@
+id: gm-edit-session-cwd
+prd_id: gm-node-edit-remote
+obligation_kind: precondition
+subject: Host remotes must dispatch against the selected session workspace cwd, not the GUI host process.cwd
+text: Witness remote handler passes session.header.cwd into Gm.call.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: 'precondition: verbs.js execute already passes cwd: exec.agent.session.header.cwd into gm.call. Remote methods take Agent and use agent.session.header.cwd the same way; never process.cwd() of the GUI host.'

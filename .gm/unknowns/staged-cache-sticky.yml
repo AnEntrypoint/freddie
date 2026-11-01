@@ -1,0 +1,8 @@
+id: staged-cache-sticky
+prd_id: heartbeat-clear-update-flag
+obligation_kind: precondition
+subject: Whether write_project_heartbeat removes runner_update_* keys when cached_staged_runner is None
+text: Read daemon.rs write_project_heartbeat around the cached_staged_runner branch. Witness live .status.json still carrying the keys after staged_runner_awaiting_handoff false.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: daemon.rs:1059-1062 sets runner_update_in_progress only when cached_staged_runner is Some; no m.remove unlike busy_until at 1043. Live .status.json after 0.1.143 swap still has runner_update_in_progress true while daemon-status.json staged_runner_awaiting_handoff false.

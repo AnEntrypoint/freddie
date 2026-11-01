@@ -1,0 +1,8 @@
+id: gm-graph-authoring-wire-shape
+prd_id: gm-graph-dependency-authoring
+obligation_kind: type-shape
+subject: Every GM authoring path must preserve a dependency-id list losslessly from model schema or UI draft through the Remote to GM.
+text: Witness the tool schemas, Typert request schemas, UI payload, and live GM progress graph edge after adding a dependent PRD or mutable.
+session_id: freddie-2359017-1791302765514
+status: witnessed
+witness_evidence: 'Live imports: buildGmTools emitted depends_on array properties for gm_prd_add and gm_mutable_add; Typert Remote schemas accepted {id:''child'',depends_on:[''root'']}; foldGmGraph emitted root->child depends edge; browser component import verified draft-to-request dependency handling.'

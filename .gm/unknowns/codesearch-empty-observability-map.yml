@@ -1,0 +1,8 @@
+id: codesearch-empty-observability-map
+prd_id: workflow-observability
+obligation_kind: precondition
+subject: GM codesearch returned no hits for known Freddie frontend and terminal terms, so exact source locations for the requested observation map cannot yet be derived through the mandated discovery mechanism.
+text: 'Witness: eight root-scoped gm_codesearch queries at dispatches 1789240581088 through 1789240587161 all returned vector_hits: [] with no file locations.'
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Direct source reads and live runtime inspection established the frontend and terminal map after GM codesearch returned no locations; the failure remains recorded by the GM code-insight PRD row.

@@ -1,0 +1,7 @@
+prd_id: gm-runtime-host-hmr-activation
+obligation_kind: precondition
+status: unknown
+id: agent-loop-idle-edge
+subject: Did a busy-to-idle edge (hmr/idle) occur after the deferral, and did the reload run?
+text: 'Q: find an hmr/idle emit or a journal row kind reloaded after the deferred row. Answers whether the stashed reload resumed on idle.'
+session_id: mcp-codemode-3535970-1793543257869-162

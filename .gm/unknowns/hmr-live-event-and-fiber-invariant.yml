@@ -1,0 +1,8 @@
+id: hmr-live-event-and-fiber-invariant
+prd_id: hmr-live-chain-verification
+obligation_kind: invariant
+subject: A real dynamic client edit produces a serialized HMR event and preserves a healthy full client fiber tree
+text: Trigger a source change in a mounted dynamic UI plugin, then read window.__FREDDIE_HMR__ plus every fiber under window.__FREDDIE_SHELL__.ctx after the event.
+session_id: freddie-1686187-1790937099884
+status: witnessed
+witness_evidence: 'Live Chrome agent-browser witness: saving packages/client/ui-observability/src/client/ObservabilityDock.js twice produced window.__FREDDIE_HMR__.events plugin-rebuilt rows for @freddie/freddie-client-ui-observability (revs 79947d75cdd0 and 02cea0ac62bb). The live loader entry inventory after the second rebuild contained 53 client entries, including client-hmr and ui-observability, all at Cordis Fiber state 2 (ACTIVE).'

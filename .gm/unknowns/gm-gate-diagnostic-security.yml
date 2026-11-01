@@ -1,0 +1,8 @@
+id: gm-gate-diagnostic-security
+prd_id: gm-gate-detail-propagation
+obligation_kind: authority
+subject: Gate diagnostic lines derive only from the local git diff and are returned to the requesting local agent.
+text: Witness added_lines_in_diff uses local git diff and the diagnostic carries no secret or external authority.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: transitions.rs:208-234 requests only `git diff --unified=0 HEAD` from the current local project and formats changed path/line/text; no remote request, credential, or secret-bearing environment access is used. The exact local requester receives ordinary gate denial text.

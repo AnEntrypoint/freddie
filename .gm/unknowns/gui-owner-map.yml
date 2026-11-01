@@ -1,0 +1,8 @@
+id: gui-owner-map
+prd_id: live-gui-baseline
+obligation_kind: precondition
+subject: Unknown which package owns the currently rendered realtime dashboard and its server event projection.
+text: Witness with exhaustive codesearch plus a live browser document inspection.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Live browser opened active session and exposed Chat, Overview, and Trajectory tabs; exact owner is packages/client/ui-observability/src/client/ObservabilityDock.js:324-482 with injection in index.js:29-53. SSE endpoint returned 200 text/event-stream via exec_js.

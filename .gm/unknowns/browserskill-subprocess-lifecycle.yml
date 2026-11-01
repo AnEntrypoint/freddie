@@ -1,0 +1,10 @@
+id: browserskill-subprocess-lifecycle
+prd_id: browserskill-capability-seam
+obligation_kind: resource-bound
+subject: Every bsk invocation must use the Freddie subprocess seam, inherit its credential scrubbing, be abortable, and have bounded output and termination grace.
+text: Witness by implementing one runner over ctx.subprocess.spawn with explicit stdout/stderr byte caps, AbortSignal propagation, and bounded graceMs; live execution will show a real CLI result.
+depends_on:
+- browserskill-cli-contract
+session_id: freddie-2723231-1791306788857
+status: witnessed
+witness_evidence: packages/experimental/browser-use-browserskill/src/runner.js:22-48 invokes every command through ctx.subprocess.resolveExecutable/spawn without a shell, sets 512 KiB stdout/stderr bounds and 3 s teardown grace, forwards AbortSignal, parses bsk JSON errors, and exposes nonzero `doctor` diagnostic JSON. `bsk doctor --json` ran live with the installed 0.3.2 CLI and confirmed a reachable daemon plus a truthful disconnected-extension failure; pnpm run publint passed.

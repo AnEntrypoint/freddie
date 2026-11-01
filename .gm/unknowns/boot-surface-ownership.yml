@@ -1,0 +1,8 @@
+id: boot-surface-ownership
+prd_id: gui-productivity-realtime
+obligation_kind: type-shape
+subject: The improvement must attach to the framework-free BootPage when the client plugin tree cannot activate.
+text: Witness the exact AppWebEntry-to-BootPage mount path and use a standalone DOM presentation that has no React/slot dependency.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'type-shape: packages/client/web/src/boot.js:30 constructs BootPage before loader creation; lines 59-67 retain it as the failure renderer, and BootPage imports only DOM/CSS helpers (boot-page.js:6-151).'

@@ -1,0 +1,5 @@
+id: gui-dada-browser-render-path
+value: A browser can render both branches once source exists
+status: unknown
+notes: OPEN, not binding alone. browser_lease_status held false, alive false, dispatch 1793543093581-454-2249e1836c21ffa8. Blocked upstream by gui-dada-m5-source-unlocated.
+session_id: mcp-codemode-3535970-1793542718115-1-4

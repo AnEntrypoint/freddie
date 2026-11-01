@@ -1,0 +1,6 @@
+SESSION_ID: gm-ce-3847245-1789372444
+id: ce-vendor-serves-live-ui-primitives
+subject: Does /vendor/@freddie/freddie-client-ui-primitives@0.1.1-rc.2/src/define-element.js serve the workspace file (vendor-modules resolveLiveWorkspaceFile) rather than the frozen vendor/ snapshot, which lacks it?
+status: witnessed
+witness: packages/client/vendor-modules/src/index.js:42-61 LIVE_WORKSPACE_PACKAGES; unversioned URL answered 404; to be witnessed by curl after the file exists
+witness_evidence: curl http://127.0.0.1:3080/vendor/@freddie/freddie-client-ui-primitives@0.1.1-rc.2/src/define-element.js answered 200 text/javascript content-length 3366 last-modified 08:07:34 seconds after the file was created; the frozen vendor/ snapshot has no such file, so the route resolves the live workspace package.

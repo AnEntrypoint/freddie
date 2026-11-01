@@ -1,0 +1,8 @@
+id: gm-remote-replay
+prd_id: gm-remote-boot-isolation
+obligation_kind: replay
+subject: Re-reading remotes source is identical to served HTTP body isolation markers
+text: exec_js plus HTTP REM_DYNAMIC true.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: Source remotes isolation matches HTTP served body REM_DYNAMIC true at 3080 /plugins/@freddie/freddie-api-remotes/~7ac66a0cc951/client/index.js.

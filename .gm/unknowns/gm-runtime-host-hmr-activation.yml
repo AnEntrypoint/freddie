@@ -1,0 +1,8 @@
+id: gm-runtime-host-hmr-activation
+prd_id: gm-runtime-hmr-final-witness
+obligation_kind: precondition
+subject: The active Web host must load the modified tool-gm source before a real GM tool call can publish runtime status
+text: 'Live evidence: after source edit and two GUI gm_phase_status tool calls, the selected session projection still has runtime null; browser HMR journal has no host-reloaded row. Determine and exercise the official host plugin reload path, then repeat the real tool and UI witness.'
+session_id: freddie-2128598-1790941468204
+status: witnessed
+witness_evidence: 'Dynamic Host probe `inspect_host_hmr` observes the active HMR snapshot: four modified GM sources are stashed as module-change and reload is deferred with reason `agent loop is running 1 turn(s)`. framework/hmr/src/index.js:358-370 establishes this as intentional lifecycle protection: reload awaits hmr/idle before disposing live fibers. The source is already observed and will reload on the current agent loop''s idle edge; no missing watch or duplicate source exists.'

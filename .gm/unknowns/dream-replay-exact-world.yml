@@ -1,0 +1,8 @@
+id: dream-replay-exact-world
+prd_id: dream-rsi-gm-replay
+obligation_kind: invariant
+subject: Offline policy evaluation must consume only supplied recorded nodes and outcomes; missing child references or scores must reject rather than synthesize a result.
+text: Witness by live dream-replay output with observed node ids and rejection of a malformed world.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Live gm_exec_js dispatch 1789639268574 replayed only recorded root/leaf ids and rejected the unobserved unknown node; implementation enforces the same check at rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:76-82,95-96.

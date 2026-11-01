@@ -1,0 +1,8 @@
+id: gm-css-no-library
+prd_id: gm-graph-css
+obligation_kind: invariant
+subject: No dagre/mermaid/vis or SVG path library in ui-observability
+text: Witness package.json dependencies remain webjsx only plus peers.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: 'invariant: exec_js 1789794928351 ui-observability package.json dependencies are only @freddie/webjsx. No dagre/mermaid/vis. Keep that set.'

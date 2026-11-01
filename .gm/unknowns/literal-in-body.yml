@@ -1,0 +1,8 @@
+id: literal-in-body
+prd_id: codesearch-default-literal
+obligation_kind: postcondition
+subject: omitted mode is sent as literal in the spool JSON
+text: 'verbs.js toBody mode: args.mode ?? ''literal'' so daemon never sees omitted mode.'
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: 'packages/gm/tool-gm/src/verbs.js:151 mode: args.mode ?? ''literal'' is always in the spool JSON; daemon never sees omitted mode from this tool.'

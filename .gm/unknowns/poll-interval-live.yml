@@ -1,0 +1,8 @@
+id: poll-interval-live
+prd_id: runner-poll-after-publish
+obligation_kind: precondition
+subject: Live runner_update_poll_interval_secs and when 0.1.143 actually staged
+text: Witness daemon-config.json, last_runner_update_poll_ts vs last_completed_runner_swap, and code default unwrap_or(3600).
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: daemon-config.json runner_update_poll_interval_secs=3600; daemon.rs:221 unwrap_or(3600); seed_poll_timer_from_persisted_ts:1294-1298 backdates from last-runner-update-poll-ts so a recycle inside the hour skips GitHub. Live last_completed_runner_swap 0.1.143 at 1789887057877 after idle self-recycle, not a mid-hour poll.

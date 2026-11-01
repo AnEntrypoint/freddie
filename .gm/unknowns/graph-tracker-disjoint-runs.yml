@@ -1,0 +1,8 @@
+id: graph-tracker-disjoint-runs
+prd_id: hmr-all-surfaces
+obligation_kind: type-shape
+subject: Two WorkflowGraphTracker instances recording interleaved events never share nodes
+text: 'exec_js: drive two trackers with overlapping seq numbers; each list()/get() stays isolated.'
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: 'exec_js 1789086723757: one WorkflowGraphTracker drove run-1 (a-c1,a-c2) and run-2 (b-c1,b-c2) with overlapping seq=1. run1hasB=false run2hasA=false listed=[run-2,run-1]. Graphs are keyed by run id; nodes do not leak across runs.'

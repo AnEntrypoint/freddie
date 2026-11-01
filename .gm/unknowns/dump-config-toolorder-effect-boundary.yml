@@ -1,0 +1,8 @@
+id: dump-config-toolorder-effect-boundary
+prd_id: agent-tool-efficiency
+obligation_kind: type-shape
+subject: '--dump-config is a query: it does not mutate the live GUI process'
+text: 'exec_js or live: dump-config --profile web shows toolOrder; pid 24860 CreationDate unchanged.'
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: node apps/cli/src/bin.js --profile web --dump-config shows toolOrder read/edit/write/.../workflow/ralph/gm_*/<unlisted-tools>. pid 24860 CreationDate 09/11/2026 02:25:05 unchanged; GET 3080 200. Dump-config is a query.

@@ -1,0 +1,8 @@
+id: booted-cwd-set
+prd_id: booted-per-cwd
+obligation_kind: invariant
+subject: bootedCwds is a Set of project cwd strings
+text: index.js bootedCwds.has/add/delete keyed by resolveProjectCwd. Died deletes that cwd only.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: packages/gm/gm-client/src/index.js:36 Set; :155 has(projectCwd); :172 delete that cwd on GM_DAEMON_DIED. Other cwds stay booted.

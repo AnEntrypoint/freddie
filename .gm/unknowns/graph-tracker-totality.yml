@@ -1,0 +1,8 @@
+id: graph-tracker-totality
+prd_id: hmr-all-surfaces
+obligation_kind: type-shape
+subject: WorkflowGraphTracker.recordAgentStart/End returns a defined graph for childId, seq-only, missing id, failed/cancelled/completed outcomes
+text: 'exec_js: feed live payloads including missing ids and failed outcome; every call returns nodes with status and edges.to set or omitted only when id is undefined.'
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: 'exec_js 1789086590899: agentNodeId childId=c1, id=legacy, seq=seq:3, empty=undefined. agentStopReason failed/cancelled/completed/error/completed. drive: 3 nodes c-ok completed, c-bad failed, seq:3 cancelled; edgesTo all set.'

@@ -1,0 +1,8 @@
+id: dream-replay-baseline
+prd_id: dream-rsi-gm-replay
+obligation_kind: postcondition
+subject: The deployed baseline policy is scored with every candidate set and selected when no challenger has a strictly higher replay score.
+text: Witness by live dream-replay output whose selected policy is baseline under tied or lower challenger scores.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Live gm_exec_js dispatch 1789639268574 selected baseline at score 5 over weaker score 3 and selected better only at score 5 over baseline score 2; implementation uses strict greater-than at dream_rsi.rs:143-145.

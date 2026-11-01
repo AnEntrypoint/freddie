@@ -1,0 +1,8 @@
+id: tool-timing-durable-model
+prd_id: tool-call-timing-observability
+obligation_kind: type-shape
+subject: Determine whether current durable tool/result event schema can record physical completion and ordered commit timing without breaking replay or presentation.
+text: 'Witness: exact event type declaration and appendToolResult payload must establish the smallest backward-compatible timing record.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: appendToolResult persists UI-only `result.meta` at packages/core/agent-loop/src/tool-calls.js:258-265, and rootResult projects it at packages/client/ui-conversation/src/client/conversation-nodes/tool.js:26-43. A `meta.timing.settledAt` record can preserve physical completion without changing model-visible result content.

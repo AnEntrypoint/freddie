@@ -1,0 +1,8 @@
+id: gm-remote-isolation-pre
+prd_id: gm-remote-boot-isolation
+obligation_kind: precondition
+subject: Core remotes mount before GM; GM import is dynamic
+text: 'Read packages/api/remotes/src/client/index.js: first loop excludes gmRemote; second try imports @freddie/freddie-gm-client/remote.'
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: 'exec_js 1789840868832 coreFirst true: remotes.js mounts commands/goals first; GM is import(''@freddie/freddie-gm-client/remote''); no static import gmRemote from.'

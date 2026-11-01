@@ -1,0 +1,8 @@
+id: hmr-live-witness
+prd_id: hmr-universal-coverage
+obligation_kind: postcondition
+subject: Actual running GUI must observe a buildless shell or client source update and reload without a separate server.
+text: Witness by interacting with the existing Freddie GUI and inducing a reversible source edit, then observe its reload path.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Existing GUI at http://127.0.0.1:3080 was opened without starting a replacement server. A reversible newline edit to apps/web/index.html triggered the shell watcher and was restored with no residual diff; the browser remained reachable and rendered the populated workspace. A reversible client-source edit to packages/client/ui-brand-official/src/client/index.js was likewise restored; the GUI remained populated and the live EventSource route was observed at /plugins/events.

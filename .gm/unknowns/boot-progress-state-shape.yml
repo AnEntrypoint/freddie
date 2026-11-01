@@ -1,0 +1,8 @@
+id: boot-progress-state-shape
+prd_id: boot-progress-completion-clarity
+obligation_kind: type-shape
+subject: Establish that a boot summary can accurately distinguish total roster entries from entries reported by the Loader without fabricating readiness.
+text: Witness with the AppWebEntry loader-status bridge and a live browser startup snapshot; resolve with source and browser evidence.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'Source witness: packages/client/web/src/boot.js:111-127 only calls BootPage.setState after an authoritative Loader status or per-entry create attempt; packages/client/web/src/boot-page.js:150-177 now computes progress from states.size and active+failed rather than the roster total. Live GUI rebuild completed through six shell-rebuilt SSE frames, then reached window.__FREDDIE_SHELL__ with no boot page and HMR status connected at sequence 6.'

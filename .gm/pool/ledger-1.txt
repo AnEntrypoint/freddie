@@ -1,0 +1,41 @@
+launch vendor-manifest-regeneration-drift
+launch gui-sticky-composer-focus-clearance-20261007
+launch gui-disclosure-closed-aria-state-20261007
+launch gui-dada-m5-break-comparison-20261007
+launch gui-dada-design-closure-20261007
+launch gm-stale-mcp-bundle-restart
+launch gm-sibling-dream-rsi-ticker-repair
+launch gm-runtime-host-hmr-activation
+launch gm-runtime-hmr-final-witness
+launch gm-agents-md-edit-reopens-rows
+launch freddie-deleted-tracked-memories
+launch ecab108-origin-and-remediation
+launch daemon-scan-factor
+launch comment-sweep-lint-directives
+launch comment-sweep-jsdoc-contracts
+launch gui-perf-next-input-startup-20261006
+blocked gui-dada-m5-break-comparison-20261007 2026-11-01T14:29:48Z
+launch traversal-node-supply 2026-11-01T14:29:48Z
+blocked daemon-scan-factor 2026-11-01T14:30:02Z
+blocked vendor-manifest-regeneration-drift 2026-11-01T14:30:15Z (root node_modules absent)
+traversal refused pool-gate (pending>=20) 2026-11-01T14:30:33Z
+blocked gui-dada-design-closure-20261007 2026-11-01T14:31:02Z sha=c2d0a0a126 (receipts only, pushed)
+blocked gm-runtime-host-hmr-activation 2026-11-01T14:31:14Z (needs live host; publish refused: scripts/check-staged-secrets.mjs missing; receipts+mutables.yml uncommitted)
+wait gui-perf-next-input-startup-20261006 2026-11-01T14:31:53Z (lane running pnpm install; scan_deps required before trusting node_modules)
+blocked comment-sweep-lint-directives 2026-11-01T14:32:15Z (premise resolved: row closed in prd-log; stale pending yml; residual: packages/schedule/schedule/AGENTS.md:5 false v8 claim)
+blocked gm-stale-mcp-bundle-restart 2026-11-01T14:32:18Z (row targets installed artifact; real source is sibling /workspace/gm, needs upstream reconcile)
+blocked gm-sibling-dream-rsi-ticker-repair 2026-11-01T14:32:29Z (premise not reproduced; sibling owner dirty). RESIDUAL: local main stranded 8c1ee9c7 (1ahead/1behind origin 69adec98); consolidate after wave, no reset
+blocked comment-sweep-jsdoc-contracts 2026-11-01T14:32:46Z (publish checker_missing; premise stale: string jsDoc data, vendor only)
+blocked freddie-deleted-tracked-memories 2026-11-01T14:32:46Z (premise stale: 0 deleted; publish checker_missing)
+SYSTEMIC: scripts/check-staged-secrets.mjs never tracked in freddie (git log empty); publish_on_origin refuses; reported to gm
+handoff ecab108-origin-and-remediation 2026-11-01T14:33:11Z be18e5ca (receipts; premise refuted: no ecab108 commit; verifier to close as stale)
+blocked gm-runtime-hmr-final-witness 2026-11-01T14:33:11Z (needs live host; local commit 533c8059 UNPUSHED: consolidate)
+blocked gui-disclosure-closed-aria-state-20261007 2026-11-01T14:34:25Z (symptom not reproduced; native DOM check unavailable: no session store, node_modules absent, no API key)
+blocked gui-sticky-composer-focus-clearance-20261007 2026-11-01T14:34:35Z (needs node_modules for live headful witness; publish checker_missing)
+blocked gm-agents-md-edit-reopens-rows 2026-11-01T14:34:38Z (fix already in gm source 163f44fe; live probe needs daemon restart). RESIDUAL: local main commit 66b4cd3ff7 unpushed; consolidate
+handoff gui-perf-next-input-startup-20261006 2026-11-01T14:51:16Z a4cd7c5c; verifier launched; CI run 41318126870 pending
+verified gui-perf-next-input-startup-20261006 2026-11-01T15:05:27Z; ci-green run 41318126870. Awaiting verifier witness dispatch id to bind prd-resolve. Shared checkout has uncommitted attributes.js (not ours) - do not touch
+verify-v1 gui-perf-next-input-startup-20261006 2026-11-01T15:05:48Z: no gm dispatch id (direct node via Bash); row not bound. Relaunched witness v2 via gm verbs, session -v2
+verify-v2 gui-perf-next-input-startup-20261006 2026-11-01T15:27:22Z: criteria 1,2,4 PASS (dispatch 1793546633269-22-eb9931e744e63a96); criterion 3 latency inconclusive under load. Row stays pending; quiet-machine latency A/B launched (session -v3)
+latency-AB gui-perf-next-input-startup-20261006 2026-11-01T16:22:56Z: INCONCLUSIVE (1-min load never <2 in ~40min; no batches). Criterion 3 open; row stays pending. gm told: idle freddie web ~28% CPU on expose-internals child.
+scan_deps node_modules 2026-11-01T16:22:56Z: fail 0 blocked 0 warn 8

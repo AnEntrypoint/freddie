@@ -1,0 +1,8 @@
+id: gm-inspect-effect-boundary
+prd_id: gm-graph-ui
+obligation_kind: effect-boundary
+subject: 'inspectGraph and layoutGraph are queries: they do not mutate gm or overlay maps'
+text: 'exec_js freeze-ish: call inspectGraph twice and compare JSON; overlayWalk byNode is a new Map.'
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789796744481 inspectEqual true across two inspectGraph calls; overlayMapsDistinct true; gmUnchanged true. layoutGraph/inspectGraph are queries.

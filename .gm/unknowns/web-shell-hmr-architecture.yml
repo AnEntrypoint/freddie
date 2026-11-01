@@ -1,0 +1,8 @@
+id: web-shell-hmr-architecture
+prd_id: shell-live-update-path
+obligation_kind: type-shape
+subject: Determine the exact boot ownership, browser transport, module revision protocol, and lifecycle constraints required for shell source changes to update safely without a full browser refresh.
+text: 'Witness required: exhaustive source references plus a live GUI transport/boot observation; audit-only task will not edit source.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Source and live witness establish ownership: apps/web/src/main.js instantiates AppWebEntry once; packages/client/web/src/boot.js owns shell bootstrap and Cordis loader creation; packages/client/hmr node half watches shell root and sends shell-rebuilt; browser half necessarily full-reloads it. Safe automatic update should preserve the existing full reload as the first reliable shell update, while extending plugin-fiber swaps only for rows with a published revision and explicitly safe lifetime classification.'

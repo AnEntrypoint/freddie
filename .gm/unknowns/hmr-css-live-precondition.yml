@@ -1,0 +1,8 @@
+id: hmr-css-live-precondition
+prd_id: hmr-css-live-chain-verification
+obligation_kind: precondition
+subject: Mounted css-manifest link is reachable in the real GUI
+text: Open the current GUI page and record the CSS manifest link plus HMR status before the stylesheet probe.
+session_id: freddie-2128598-1790941468204
+status: witnessed
+witness_evidence: agent-browser opened the real GUI and read link[data-css-manifest].href as http://127.0.0.1:3080/styles/app.css?rev=b9df0728d874 before the probe. The page rendered the real FREDDIE workspace.

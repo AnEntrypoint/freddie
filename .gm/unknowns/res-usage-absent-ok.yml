@@ -1,0 +1,8 @@
+id: res-usage-absent-ok
+prd_id: token-usage-forward
+obligation_kind: postcondition
+subject: A stream with no usage chunk still finishes
+text: server.js writes the finish chunk, then the usage chunk only when ev.usage is present, then [DONE]. An upstream that omits usage keeps the previous finish path.
+session_id: freddie-107108-1791049571843
+status: witnessed
+witness_evidence: server.js writes the finish SSE chunk unconditionally, then writes the usage chunk only inside if (usage), then writes [DONE]. A missing upstream usage object leaves the prior finish path.

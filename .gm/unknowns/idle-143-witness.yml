@@ -1,0 +1,8 @@
+id: idle-143-witness
+prd_id: live-idle-claim-143
+obligation_kind: postcondition
+subject: Live first-verb after idle on runner 0.1.143
+text: exec_js duration_ms and queue_wait_ms with runner_version 0.1.143 after a quiet claimed_step_count=0 tick.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'postcondition: exec_js 1789887645215 duration_ms=84 queue_wait_ms=10 runner_version=0.1.143 claimed=1 queued=0. Idle 200ms floor is gone on live 0.1.143; queue wait is 10ms.'

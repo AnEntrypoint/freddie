@@ -1,0 +1,6 @@
+SESSION_ID: gm-freddie-eff-20261012-sub1
+id: gm-writer-witness-m-1791818387740
+text: Writer witness mutable for the mutables.yml trailing-marker check; resolved in the same run.
+status: witnessed
+session_id: gm-freddie-eff-20261012-sub1
+witness_evidence: 'Live round trip: mutable-add then mutable-list parsed the row by id; the store was checked for a dangling > line after the write, and this row is closed with that check.'

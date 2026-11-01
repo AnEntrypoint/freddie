@@ -1,0 +1,8 @@
+id: claim-race-rename
+prd_id: spool-write-settle-cut
+obligation_kind: invariant
+subject: claim is still rename of the in-file
+text: claim_spool_request_in_place still fs::rename txt to .inflight. Two sweepers cannot both claim the same file.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: daemon.rs:1617-1622 claim_spool_request_in_place still rename to .inflight. Empty skip happens before rename. Two sweepers still serialize on rename.

@@ -1,0 +1,8 @@
+id: shell-remount-bound
+obligation_kind: type-shape
+prd_id: hmr-shell-hot-swap
+subject: Whether apps/web can hot-swap on graph-rev without /__hmr remount
+text: Read packages/client/hmr client remount path and apps/web boot; witness live or document the honest bound.
+session_id: freddie-24860-1789086308555
+status: witnessed
+witness_evidence: 'packages/client/hmr/src/client/index.js:92-158 transactRemount installs /__hmr/<rev>/ base because import maps cannot be rewritten after first module load (line 114). Shell apps/web + packages/client/web is not a loader entry (line 268). graph-mismatch and shell-rebuilt both remountShell. Honest bound: window and EventSource origin stay put; a fiber swap of the shell is unreachable without a rewriteable import map.'

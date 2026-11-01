@@ -1,0 +1,8 @@
+id: full-consumer-closure
+prd_id: hmr-integration-audit
+obligation_kind: precondition
+subject: All repository consumers and integrations of the HMR/watcher/loader surfaces
+text: Witness via exhaustive gm codesearch literal queries for HMR service names, events, imports, config rows, and watch registrations.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'Consumers: packages/bundle/base/cordis.patch.yml id hmr root [''.'']; apps/cli/src/profile-boot.js HMR roots include framework/ if present; framework/hmr/src/index.js Hmr.partialReload + snapshot + hmr/before-reload; packages/client/hmr/src/index.js SSE /plugins/events rebuilt/shell-rebuilt/graph; packages/client/hmr/src/client/index.js updateGraphRow then invalidate/prefetch; packages/boot/app-boot watchUserPatches. Live GET 3080/plugins/events type=graph then type=rebuilt for @freddie/freddie-client-ui-layout.'

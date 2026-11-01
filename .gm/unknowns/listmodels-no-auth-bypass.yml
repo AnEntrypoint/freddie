@@ -1,0 +1,8 @@
+id: listmodels-no-auth-bypass
+prd_id: listmodels-serial-probes
+obligation_kind: invariant
+subject: listModels still sits behind createServer auth for /v1/models; probe parallelism does not skip requireAuth
+text: Witness createServer pathname /v1/models after the requireAuth check.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'invariant: createServer requireAuth runs before pathname /v1/models at server.js ~1680. listModels parallelism is inside the handler, not a new public route.'

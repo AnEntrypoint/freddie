@@ -1,0 +1,8 @@
+id: tooling-bottleneck
+prd_id: agent-tooling-efficiency
+obligation_kind: precondition
+subject: Unknown highest-impact tooling latency/work bottleneck.
+text: Resolve with source inspection, independent tooling audit, and a live path measurement.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: packages/gm/gm-client/src/spool.js:152-169 wrote directly to the daemon-visible `.txt` path; the new same-directory temporary write plus rename atomically publishes each complete body. Live dispatch through the real gm daemon returned {ok:true, verb:'instruction', hasData:true}.

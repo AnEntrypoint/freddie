@@ -1,0 +1,8 @@
+id: gm-progress-session-log-api
+prd_id: gm-progress-bridge
+obligation_kind: type-shape
+subject: Exact session event declaration and append API available to the model-tool plugin
+text: Inspect the session package and mounted GM composition, then use the documented event envelope and session append call.
+session_id: freddie-37249-1789201746935
+status: witnessed
+witness_evidence: 'packages/core/session/README.md documents Session.append; packages/gm/tool-gm/src/index.js:47-56 uses exec.agent.session.append(''gm/progress'', snapshot, { ignorable: true }) only after gm.call resolves successfully.'

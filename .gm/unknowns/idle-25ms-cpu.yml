@@ -1,0 +1,8 @@
+id: idle-25ms-cpu
+prd_id: prefer-short-idle-over-watch
+obligation_kind: resource-bound
+subject: 25ms idle sleep does not peg shared daemon CPU
+text: Same as idle-sleep-cpu-bound; live sample after cut.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: Duplicate of PRD idle-sleep-cpu-bound; live CPU sample is that row's postcondition after the idle-sleep cut, not an unknown. Current 200ms idle is the baseline.

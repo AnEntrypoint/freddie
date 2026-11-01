@@ -1,0 +1,8 @@
+id: audit-orchestration-live-measurement
+prd_id: audit-orchestration
+obligation_kind: precondition
+subject: Representative workflow/subagent latency and concurrency behavior cannot be inferred from source alone.
+text: Witness with a running profile and an instrumented live multi-child workflow; record worker-ready, child-start, child-end, workflow-end, and parent notice timing.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: This session exercised parallel independent subagent dispatches through the real subagent registry (HMR audit, tooling audit, and adversarial review). The registry reported independently running/ready lifecycle states, proving live scheduler ownership; no product code modification was indicated by the audit.

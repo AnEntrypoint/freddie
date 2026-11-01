@@ -1,0 +1,4 @@
+id: gm-runtime-hmr-final-witness-u4-leaf-values
+value: U4 Does a live GUI GM tool call on the active daemon yield runtime JSON whose gmVersion and runnerVersion equal readStatus/readDaemonStatus for the active daemon, and does the Overview GM runtime metric render them?
+status: unknown
+session_id: mcp-codemode-3535970-1793542718115-1-9

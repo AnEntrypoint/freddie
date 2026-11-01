@@ -1,0 +1,8 @@
+id: gm-codesearch-live-artifact
+prd_id: gm-codesearch-literal-repair
+obligation_kind: precondition
+subject: The currently served GM codesearch path may use an installed artifact distinct from the source checkout.
+text: Witness the source-to-live execution relationship by locating the active handler and driving it manually after any safe source correction.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: Live spool request freddie-422260-1789231886668-manual-literal-1789284650 returned data.mode=root_scoped for {mode:literal,root:/config/workspace/gm}; source code_index.rs routes literal before root at verbs.rs:1601-1603. The active artifact is stale relative to source. A release build failed because wasm32-wasip1 target is not installed (cargo E0463).

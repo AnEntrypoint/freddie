@@ -1,0 +1,4 @@
+id: gm-runtime-hmr-final-witness-u1-journal-reach
+value: U1 Does the Hmr journal (Hmr.snapshot events, framework/hmr/src/index.js:510-515) reach the GUI-observable side after a host HMR reload, and through which service or projection field?
+status: unknown
+session_id: mcp-codemode-3535970-1793542718115-1-9

@@ -1,0 +1,8 @@
+id: audit-live-run-skipped
+prd_id: hmr-coverage-audit
+obligation_kind: precondition
+subject: The user prohibits running live verification commands during this audit.
+text: 'Witnessed from direct request: provide commands, but do not execute tests or live verification. Static source evidence is therefore the audit basis; commands are recommendations only.'
+session_id: freddie-2075880-1789046559707
+status: witnessed
+witness_evidence: Superseded by the direct goal instruction to make concrete progress and verify results. Live verification was performed with pnpm install, JavaScript syntax checks, profile configuration output, and the existing GUI.

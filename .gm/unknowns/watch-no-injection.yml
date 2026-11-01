@@ -1,0 +1,8 @@
+id: watch-no-injection
+prd_id: idle-in-dir-wake
+obligation_kind: precondition
+subject: FindFirstChangeNotificationW path is a project-root join, not attacker-controlled input
+text: IdleInDirWatch::sync builds root.join(.gm/exec-spool/in) from known_roots registry. No user string is passed as the watch path.
+session_id: freddie-12560-1789847277758
+status: witnessed
+witness_evidence: 'precondition: IdleInDirWatch::sync maps known_roots to root.join(.gm/exec-spool/in). Registry paths only. No request body in the watch path.'

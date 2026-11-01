@@ -1,0 +1,8 @@
+id: gui-performance-baseline
+prd_id: gui-performance-witness
+obligation_kind: resource-bound
+subject: Unknown browser-derived baseline for current GUI load and realtime update work.
+text: Witness via browser Performance APIs on the actual :3080 page before choosing optimization.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: Live browser navigation reported DOMContentLoaded 2892.3ms, load 2896.3ms, 42,658 transfer bytes, and 250 resource entries. HMR journal was connected at sequence 782 with zero reconnects; baseline establishes transport and boot measure.

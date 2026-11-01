@@ -1,0 +1,5 @@
+SESSION_ID: gm-ce-3847245-1789372444
+id: ce-git-diff-verb-hangs
+subject: 'The gm git_diff verb hangs indefinitely on this working tree (child ''git diff --no-color'' ran 151 s and blocked the plugin FIFO for every other verb; the reviewer''s dispatch hung the same way): the daemon does not drain the child''s stdout on a 120-file diff, so the pipe fills. Killing the git child unblocks the queue; use exec_js-side comparisons or scoped diffs until the verb is fixed.'
+status: witnessed
+witness: 'ps: pid 3890348 ''git diff --no-color'' ppid 3805549 etimes 151; .status.json queued_step_count 4 claimed 1 until kill; out-file answered ok:false afterwards'

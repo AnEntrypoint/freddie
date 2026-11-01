@@ -1,0 +1,8 @@
+id: boot-scheduled-render-lifecycle
+prd_id: gui-productivity-realtime
+obligation_kind: postcondition
+subject: A pending animation-frame callback must not outlive the boot page when the UI mounts or HMR remounts.
+text: Live-drive initial startup and shell HMR after the scheduler change; confirm disposal cancels the callback and no stale boot page survives.
+session_id: freddie-422260-1789231886668
+status: witnessed
+witness_evidence: 'postcondition: live reload reached settled client state with boot=false, shell ctx=true, 43 graph entries, HMR connected=true lastSequence=31; BootPage.dispose cancels renderFrame at packages/client/web/src/boot-page.js:118-122.'

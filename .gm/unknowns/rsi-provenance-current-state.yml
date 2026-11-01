@@ -1,0 +1,8 @@
+id: rsi-provenance-current-state
+prd_id: gm-rsi-live-contract
+obligation_kind: invariant
+subject: Replay worlds must only use authenticated recorded discovery receipts, not model-supplied arbitrary observations.
+text: 'Witness: gm_recall hit mem-cde1f1a909b9c179-376 identifies a prior source-level gap; revalidate source and live contracts before repair.'
+session_id: freddie-2260524-1789740208025
+status: witnessed
+witness_evidence: Current dream_rsi.rs persists only session-owned registered policies, evaluator receipts tied to ledger dispatches, discovery records, and sealed worlds; replay reads only stored world_ids. gm_exec_js 1789768301781 confirmed receipt admission now checks policy registration before persistence.

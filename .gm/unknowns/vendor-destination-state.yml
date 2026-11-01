@@ -1,0 +1,8 @@
+id: vendor-destination-state
+prd_id: vendor-upstream-gm
+obligation_kind: precondition
+subject: The intended vendor destination is not occupied by user data.
+text: Witness with an existence check immediately before clone; select a fresh gitignored path if occupied.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: 'bash output: `DESTINATION_ABSENT` immediately before `git clone`.'

@@ -1,0 +1,8 @@
+id: fifo-after-faster-tick
+prd_id: concurrent-dispatch-fair
+obligation_kind: invariant
+subject: faster idle tick does not change fifo-per-plugin serialization
+text: daemon tool_serialization fifo per plugin and verb; 25ms sleep only when !any_work.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: daemon.rs:2935-2936 25ms sleep only when !any_work. .status.json tool_serialization fifo per plugin and verb unchanged. Faster idle tick does not reorder claim.

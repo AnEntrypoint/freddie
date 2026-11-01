@@ -1,0 +1,8 @@
+id: tool-timing-ui-owner
+prd_id: tool-call-timing-observability
+obligation_kind: precondition
+subject: Determine the exact UI component and model ownership for per-tool elapsed timing and queue delay.
+text: 'Witness: row model, component, and conversation node data flow must be read before source edits.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: ToolCallTree passes frozen blocks to GenericToolCard (packages/client/ui-tool/src/client/tool/ToolCallTree.js:12-38); GenericToolCard derives the pure toolRowModel and passes props to ToolRow (lines 30-70). The row model and ToolRow own concise timing presentation.

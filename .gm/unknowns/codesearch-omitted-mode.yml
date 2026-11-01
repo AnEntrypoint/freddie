@@ -1,0 +1,8 @@
+id: codesearch-omitted-mode
+prd_id: codesearch-default-literal
+obligation_kind: precondition
+subject: Daemon default when gm_codesearch omits mode
+text: 'codesearch verb contract: omitted mode is dual; Freddie verbs.js:147-152 only forwards args.mode when set.'
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: packages/gm/tool-gm/src/verbs.js:144-152 mode is optional; toBody only spreads args.mode when set. Live dual searches this session elapsed 1-45s (budget_exhausted); skill says omitted/unrecognized mode is dual and costs minutes vs literal ~1s.

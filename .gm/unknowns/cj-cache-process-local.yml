@@ -1,0 +1,8 @@
+id: cj-cache-process-local
+prd_id: chatjimmy-negative-cache
+obligation_kind: invariant
+subject: _modelsCache is process-local; success uses 5min TTL, failure 30s; concurrent last-write-wins
+text: Witness chatjimmy.js rememberChatJimmyModels.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'invariant: chatjimmy.js rememberChatJimmyModels writes process-local _modelsCache/_modelsCacheTs/_modelsCacheTtlMs. Success 5min, failure 30s. Concurrent last-write-wins.'

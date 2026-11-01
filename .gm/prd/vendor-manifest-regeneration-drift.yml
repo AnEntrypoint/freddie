@@ -3,3 +3,7 @@ id: vendor-manifest-regeneration-drift
 route_family: execution
 subject: 'Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/src/index.js. Invariant: immutable version URLs are never silently overwritten. Post: vendor resolution and checked-in payload have deliberate matching provenance, and generate-vendor completes without bypassing its drift guard.'
 status: pending
+notes:
+- ts: 2026-11-01T14:29:04.783Z
+  session_id: mcp-codemode-3535970-1793543344713-252
+  note: 'blocked_by: live generate-vendor cannot start in this checkout: root node_modules is absent; first resolve of ''zod'' from packages/goal/goal throws MODULE_NOT_FOUND before any write (dispatch 1793543288432-373-bea31604e155b27c; resolution probe 1793543277686-359-fc3932ede145f0f6). Needs pnpm install before the live witness. Static premise evidence closed in .gm/receipts/vendor-manifest-regeneration-drift/03-eliminate.md: framework/cordis 4.0.2, manifest pins 4.0.2/1.0.3/1.8.3, 22/22 payload files byte-equal source (dispatch 1793543234660-315-ce72164664f42dc8), pnpm-lock only link: refs for @freddie/cordis (dispatch 1793543247953-337-71685d37797a52a1). No tracked edit needed: fix landed in 883bdfbd.'

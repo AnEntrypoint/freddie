@@ -1,0 +1,8 @@
+id: gm-dock-injection
+prd_id: gm-overview-served-graph
+obligation_kind: injection
+subject: ObservabilityDock never uses innerHTML; titles are text children; data-gm-graph is JSON.stringify(inspectGraph)
+text: Read ObservabilityDock.js innerHTML and stringifyInspect.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: exec_js 1789841097284 innerHTML false; textChildren true; stringifyInspect true.

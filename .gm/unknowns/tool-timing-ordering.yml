@@ -1,0 +1,8 @@
+id: tool-timing-ordering
+prd_id: tool-timing-schema-projection
+obligation_kind: invariant
+subject: Settled time is captured immediately when dispatch resolves, before ordered result finalization and durable append.
+text: 'Witness source: runGroup dispatch promise continuation assigns slot before commitReady; result event time remains ordered commit time.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: runGroup's dispatch continuation sets a slot at tool promise resolution (packages/core/agent-loop/src/tool-calls.js:150-159), and commitReady appends results only in contiguous model order (123-136). Capture `settledAt` in that continuation and pass it to appendToolResult so it is immutable before ordered commit.

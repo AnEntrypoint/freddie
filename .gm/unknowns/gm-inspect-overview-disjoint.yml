@@ -1,0 +1,8 @@
+id: gm-inspect-overview-disjoint
+prd_id: gm-overview-optional-remote
+obligation_kind: disjointness
+subject: 'Overview inject callbacks and inspectGraph payload are disjoint: edits never serialize live ctx; inspect has id/kind/status only'
+text: 'exec_js inspect keys vs dock #selectedNodeId not in projection.'
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: exec_js 1789841051410 overlayUnchanged true; inspectKeys nodes/edges/walking/jit/cli; inspectHasTitle false; selectedLocal true.

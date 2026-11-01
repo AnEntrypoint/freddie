@@ -3,3 +3,7 @@ id: comment-sweep-lint-directives
 route_family: state
 subject: 'Pre: exhaustive first-party JS scan found 59 lint-suppression comments across 38 files. Invariant: each directive is either eliminated by an equivalent self-explanatory code shape or retained only where tool syntax is semantically required and documented as a verified exception. Post: no redundant lint comments remain and any necessary directives have a live lint/runtime witness.'
 status: pending
+notes:
+- ts: 2026-11-01T14:31:30.375Z
+  session_id: mcp-codemode-3535970-1793542718115-1-14
+  note: 'blocked_by: comment-sweep-lint-directives-blocker-mcp-codemode-3535970-1793542718115-1-14. Edit stage cannot run: row closed in prd-log (completed 2026-10-13) and names no file; prd-add re-scope refused (dispatch 1793543410607-662-3cc172c7dc32f1d5). First-party JS lint directives = 0 (receipts .gm/receipts/comment-sweep-lint-directives/01-04). Residual false claim: packages/schedule/schedule/AGENTS.md:5 says src/domain.js carries v8 ignore directives; it has none. Successor: row naming that file deletes line 5; delete stale .gm/prd/comment-sweep-lint-directives.yml.'

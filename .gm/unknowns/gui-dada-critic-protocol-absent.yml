@@ -1,0 +1,5 @@
+id: gui-dada-critic-protocol-absent
+value: Adaptive critic protocol (staged CRP) is locatable as a skill
+status: unknown
+notes: 'ELIMINATED absent: fs_stat /config/workspace/gdaa/skills/dada/SKILL.md not found, dispatch 1793543092877-172-77ee6bba3d4cddf6; no dada skill in this session''s skill list.'
+session_id: mcp-codemode-3535970-1793542718115-1-4

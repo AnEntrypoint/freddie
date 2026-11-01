@@ -1,0 +1,8 @@
+id: goal-terminal-report-invariant
+prd_id: goal-terminal-continuation
+obligation_kind: invariant
+subject: Terminal goal report stays grounded and user-facing
+text: Witness the rendered prompt and live tool outcome after terminal goal update; no claim beyond session tool results is allowed.
+session_id: freddie-327824-1790173650242
+status: witnessed
+witness_evidence: packages/goal/tool-goal/src/wrapup.js:15-38 owns the complete plugin-sourced grounded terminal report. It can retain objective, outcome, evidence, artifacts, next-step, and direct-address requirements while removing only the directive forbidding tool calls.

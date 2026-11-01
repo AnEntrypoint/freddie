@@ -1,0 +1,8 @@
+id: pinned-refresh-scope
+prd_id: pinned-chat-skip-live-refresh
+obligation_kind: precondition
+subject: handleChat only needs live refresh when the chain is auto/unknown, not when body.model is a single directly-routable id
+text: Witness by reading handleChat autoLinks construction vs buildAutoChain early return for targetModel !== auto.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: handleChat server.js:850-851 awaits buildAutoChainLive for every directlyRoutable pinned model. auto-chain.js:397-404 then addLink(targetModel) and return that single link. refreshAll+refreshAcpModels at 738-741 therefore run on Freddie xai-oauth/grok-4.6 TTFB and throw their results away.

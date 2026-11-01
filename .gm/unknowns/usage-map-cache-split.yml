@@ -1,0 +1,8 @@
+id: usage-map-cache-split
+prd_id: token-usage-forward
+obligation_kind: postcondition
+subject: mapUsage splits xAI prompt_tokens_details.cached_tokens out of inputTokens
+text: packages/llm/llm-deepseek/src/translate.js:17-25 subtracts prompt_tokens_details.cached_tokens from prompt_tokens and records cacheReadTokens plus reasoningTokens.
+session_id: freddie-107108-1791049571843
+status: witnessed
+witness_evidence: translate.js:18-23 reads prompt_tokens_details.cached_tokens and completion_tokens_details.reasoning_tokens. Live chunk prompt_tokens 1250 minus cached_tokens 1152 becomes inputTokens 98, outputTokens 1, cacheReadTokens 1152, reasoningTokens 50.

@@ -1,0 +1,8 @@
+id: gm-update-observability-shape
+prd_id: gm-update-observability
+obligation_kind: type-shape
+subject: JSON-safe status fields and existing gm/progress event boundary
+text: Derive a minimal stable JSON shape from readDaemonStatus/readStatus and gmProgressSnapshot/projection fold before implementation; no Service or raw status object crosses the session event.
+session_id: freddie-2128598-1790941468204
+status: witnessed
+witness_evidence: 'Current boundaries: gm-client/daemon.js:16-61 already returns parsed per-project and machine daemon JSON; tool-gm/src/index.js:7-37 owns complete ignorable gm/progress values; gm-progress/projection.js:1-34 preserves complete JSON; ObservabilityDock.js:157-168 owns GM visual metrics. The minimal new owned status is `{runnerVersion, gmVersion, updateState, updateError}` with null values for absent status and no raw daemon objects.'

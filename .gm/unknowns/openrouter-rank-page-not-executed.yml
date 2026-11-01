@@ -1,0 +1,8 @@
+id: openrouter-rank-page-not-executed
+prd_id: openrouter-free-fallback
+obligation_kind: injection
+subject: The free-models page is parsed as data, not evaluated
+text: The ItemList script is JSON.parse'd. Model ids are taken from item URLs and filtered against the priced catalog before they become chain links.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: lib/auto-chain.js fetchOpenrouterFreeRank JSON.parse's the ItemList script and takes ids from item.url/item.item. exec_js 1790929125065 dropped voyageai rerankers and respan/span-01-lite because they were absent from the priced catalog; kept ids were zero-price text chat models. No eval or script execution of the page.

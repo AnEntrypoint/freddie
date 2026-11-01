@@ -1,0 +1,8 @@
+id: sharesies-upstream-availability
+prd_id: sharesies-tty-evidence
+obligation_kind: precondition
+subject: Exact upstream sources and repository default branch contents must be accessible via GitHub.
+text: Witness with GitHub repository and raw source URLs, then distinguish direct source facts from unverified claims.
+session_id: freddie-37249-1789201746935
+status: witnessed
+witness_evidence: 'GitHub repository page and default-main recursive tree were read directly: https://github.com/AnEntrypoint/sharesies and https://api.github.com/repos/AnEntrypoint/sharesies/git/trees/main?recursive=1; relevant raw sources were then retrieved.'

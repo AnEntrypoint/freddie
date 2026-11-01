@@ -1,0 +1,8 @@
+id: host-hmr-source-change-unobserved
+prd_id: gm-runtime-host-hmr-activation
+obligation_kind: postcondition
+subject: The real web host HMR must observe and reload source package changes
+text: 'Witness: packages/gm/tool-gm/src/index.js changed at mtime 1790942567484.9404 while the active web process runs with --expose-internals and the browser SSE sequence advanced, but no host-reloaded journal row appeared and fresh GUI GM calls projected runtime null. Diagnose the HMR watch/reload relation through the active composition before claiming host HMR works.'
+session_id: freddie-2128598-1790941468204
+status: witnessed
+witness_evidence: Live diagnosis proves source/package identity is correct (active cli require resolves @freddie/freddie-tool-gm directly to /config/workspace/freddie/packages/gm/tool-gm/src/index.js), while browser host journal did not reload on the edit. apps/cli/src/profile-boot.js:111-124 composes explicit src roots and framework/hmr/src/index.js:203-227 only reacts when chokidar delivers a change. The real cause remains the unchanged active loaded module, not a second package copy; the activation row owns applying a supported host HMR lifecycle witness.

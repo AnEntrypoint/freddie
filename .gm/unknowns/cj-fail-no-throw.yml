@@ -1,0 +1,8 @@
+id: cj-fail-no-throw
+prd_id: chatjimmy-negative-cache
+obligation_kind: postcondition
+subject: '!ok and catch return [DEFAULT_MODEL] and never throw'
+text: Witness listChatJimmyModels catch path.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: 'postcondition: !ok and catch both rememberChatJimmyModels([DEFAULT_MODEL], CHATJIMMY_NEGATIVE_TTL_MS). Live aMs=1630 bMs=0 no throw.'

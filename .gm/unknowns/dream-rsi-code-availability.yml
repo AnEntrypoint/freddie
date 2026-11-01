@@ -1,0 +1,8 @@
+id: dream-rsi-code-availability
+prd_id: dream-rsi-integration-design
+obligation_kind: precondition
+subject: Whether the official Dream-RSI repository provides a reference implementation or executable trace schema sufficient to adopt verbatim.
+text: 'Witnessed by GitHub README release plan: full codebase and reproduction scripts are still being prepared; therefore design must implement an adapter from gm''s own recorded execution evidence rather than rely on unavailable upstream code.'
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: 'Resolved with browser evidence: https://github.com/zhengkid/Dream-RSI README declares full codebase and reproduction scripts being prepared; use the project documentation as architecture authority only, not as an importable implementation.'

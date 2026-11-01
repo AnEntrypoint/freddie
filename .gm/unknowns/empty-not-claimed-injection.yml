@@ -1,0 +1,8 @@
+id: empty-not-claimed-injection
+prd_id: spool-write-settle-cut
+obligation_kind: invariant
+subject: empty in-file cannot inject a torn body
+text: len==0 still unclaimed. Atomic rename publishers still the complete-body path.
+session_id: freddie-12560-1789843658515
+status: witnessed
+witness_evidence: daemon.rs:1612-1614 len==0 unclaimed. Publishers rename complete sibling (spool.js:164-173). Torn > redirect still refused.

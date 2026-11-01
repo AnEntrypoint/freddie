@@ -1,0 +1,8 @@
+id: gm-progress-contention
+prd_id: gm-graph-progress-fold
+obligation_kind: contention
+subject: foldGmGraph copies previous.nodes into a new Map and does not mutate the prior snapshot; last-wins append is the only shared write
+text: exec_js freeze previous.nodes, fold, assert previous unchanged; two sequential applies last-wins.
+session_id: freddie-6364-1789774010516
+status: witnessed
+witness_evidence: exec_js 1789796823909 previousUnchanged true after freeze; nextIsNewArray true; nextIds [keep,n]. Fold copies into a new Map; last-wins apply is the only shared write.

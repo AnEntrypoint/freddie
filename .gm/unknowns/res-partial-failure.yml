@@ -1,0 +1,8 @@
+id: res-partial-failure
+obligation_kind: partial-failure
+prd_id: token-delivery-austerity
+subject: timestamp rewrite is a single last-wins write
+text: one integer line; a torn write is overwritten by the next scan stamp.
+session_id: freddie-27264-1790927965849
+status: witnessed
+witness_evidence: single last-wins integer overwrite; next scan stamp replaces any torn value.

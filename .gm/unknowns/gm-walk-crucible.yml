@@ -1,0 +1,8 @@
+id: gm-walk-crucible
+prd_id: gm-overview-served-graph
+obligation_kind: crucible
+subject: Malformed overlay/inspect/layout inputs do not throw
+text: exec_js overlayWalk/layoutGraph/inspectGraph on undefined and null roots.
+session_id: freddie-7564-1789830375891
+status: witnessed
+witness_evidence: exec_js 1789841131913 overlayOk/layoutOk/inspectOk true on malformed inputs.

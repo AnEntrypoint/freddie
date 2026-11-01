@@ -1,0 +1,8 @@
+id: detector-catches-index-and-woff2
+prd_id: goofedup-early-warning
+obligation_kind: postcondition
+subject: scan_deps flags acptoapi index.js IIFE and JS-magic woff2 before those files are stripped
+text: cargo run -- --scan-deps C:\dev\acptoapi exits 1 and names both shapes.
+session_id: freddie-12560-1789889089950
+status: witnessed
+witness_evidence: After last-line-any-line fix, cargo run --release --scan-deps C:\dev\acptoapi flagged index.js line 224 (39234 bytes) and fa-solid-400.woff2 before strip. Planted fixture also flagged both. Post-rewrite both trees exit 0.

@@ -1,0 +1,5 @@
+id: gui-dada-m5-renders-absent
+value: Pre-recorded M5A/M5B renders exist for critics to inspect (.gm/witness/m5a-chat-*.png)
+status: unknown
+notes: 'ELIMINATED absent: fs_stat .gm/witness/m5a-chat-desktop-full.png not found, dispatch 1793543093222-173-6b430f7e4278e498; fs_readdir .gm/witness not found, dispatch 1793543086990-161-be60310caff4dc11; no M5B render in tree, grep dispatch 1793543100670-185-b03d9923680e46b5.'
+session_id: mcp-codemode-3535970-1793542718115-1-4

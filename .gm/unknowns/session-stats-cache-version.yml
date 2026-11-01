@@ -1,0 +1,8 @@
+id: session-stats-cache-version
+prd_id: tool-timing-schema-projection
+obligation_kind: invariant
+subject: Cached sessionStats projections computed under the old commit-time timing fold must not survive the settlement-time fold.
+text: Independent adversarial review found sessionStats stateVersion remains 1 despite changed toolMs semantics; projection cache accepts matching version and preserves stale totals. Update version so cache invalidates/rebuilds.
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Bumped sessionStats stateVersion from 1 to 2. Direct real projection execution rejected version-1 equivalence and recomputed toolMs=20 for call=1000, settled=1020, commit=1100.

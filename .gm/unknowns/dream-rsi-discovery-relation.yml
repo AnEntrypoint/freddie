@@ -1,0 +1,8 @@
+id: dream-rsi-discovery-relation
+prd_id: dream-rsi-discovery-provenance
+obligation_kind: type-shape
+subject: A sealed discovery node needs a durable relation among target, candidate decision, evaluator result, cost, parent node, and policy revision; an exit code alone is not a discovery outcome.
+text: Witness a new gm-owned append-only discovery record schema and a seal operation that rejects ledger-only unrelated dispatches.
+session_id: freddie-3513999-1789467163370
+status: witnessed
+witness_evidence: rs-plugkit/crates/plugkit-core/src/orchestrator/dream_rsi.rs:185-208 persists a session-owned discovery record with target, policy, successful dispatch, evaluator score, cost, and parent relation; seal consumes only discovery_ids at :213-233.

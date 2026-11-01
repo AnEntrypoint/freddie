@@ -1,0 +1,6 @@
+SESSION_ID: gm-serving-3845994-1789372428
+id: modulepreload-tier-winner
+subject: Whether modulepreload hints for immediately rows only, or for all rows, win on app-mounted at emulated 40ms RTT; baseline cold rtt40 app-mounted 11455ms, FCP 5124ms.
+status: witnessed
+route: execution
+witness_evidence: 'rtt40 app-mounted ms: none 8231/10448/10811, immediately 8320/8521/8882, all rows 16139 + one never-mounted run (438 responses in 16s). Shipped PRELOAD_EVERY_ROW=false.'

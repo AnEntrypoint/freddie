@@ -1,0 +1,8 @@
+id: wallclock-daemon-scan
+prd_id: wallclock-factor
+obligation_kind: precondition
+subject: The dominant wall-clock cost of a read-only GM verb versus the underlying git call is unmeasured.
+text: Witness with isolated spool dispatches against a direct git status, and daemon-status active_projects.
+session_id: freddie-107108-1791049571843
+status: witnessed
+witness_evidence: 'exec_js 1791230479527: five isolated git status --porcelain calls averaged 272ms (145,147,146,437,487); five isolated spool git_status summary calls averaged 1299ms (1307,1385,599,1923,1281), factor 4.78. daemon-status.json active_projects=128. Parallel read-only verbs in exec_js 1791230134606 saved only 1.2x and 1.33x because the daemon is single-writer.'

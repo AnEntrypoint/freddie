@@ -1,0 +1,8 @@
+id: runtime-verification-surface
+prd_id: tool-ui-audit
+obligation_kind: precondition
+subject: The currently running GUI and agent runtime endpoints, telemetry, and tool execution state must be identified without assuming a separate server.
+text: 'Witness required: inspect live runtime and drive a real tool-completion path.'
+session_id: freddie-2075880-1789048712460
+status: witnessed
+witness_evidence: Live browser session opened at http://127.0.0.1:3080. The active session rendered tool rows, 2 background jobs, and StatsLine. Network inspection confirmed an EventSource at /plugins/events plus 200-loaded client runtime, UI conversation, UI tool, and jobs modules.
