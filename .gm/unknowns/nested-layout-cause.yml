@@ -1,8 +1,0 @@
-id: nested-layout-cause
-prd_id: nested-node-modules-diagnosis
-obligation_kind: precondition
-subject: Whether the repeated physical nested chain is intended pnpm linking or an anomalous stale npm-style materialization must be determined from live filesystem/package-manager metadata.
-text: Witness via exec_js filesystem lstat/realpath and package manager configuration/lockfile metadata; do not change state.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'gm_scan_deps full result: failCount=0, nodeModulesTruncated=false; only five heuristic size warnings. exec_js lstat/realpath shows every reported nested link is a symlink to a workspace package or .pnpm store. node_modules/.modules.yaml:958-960 declares pnpm isolated layout (layoutVersion 5, pnpm 11.7.0); lockfile uses link: workspace importers. Thus the paths are intended pnpm peer-dependency resolution links, not recursive physical copies.'

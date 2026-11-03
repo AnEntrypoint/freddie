@@ -1,8 +1,0 @@
-id: observability-live-browser-activation
-prd_id: observability-gui
-obligation_kind: precondition
-subject: Running Web composition must activate new host and client plugin rows
-text: The current GUI process was booted before the new composition rows existed. A fresh real Web boot or permitted shell refresh is required to witness the registered projection and HMR dock; do not claim the existing process loaded them.
-session_id: freddie-192180-1789217365634
-status: witnessed
-witness_evidence: Fresh Web process on http://127.0.0.1:3091 loaded @freddie/freddie-client-ui-observability in window.__FREDDIE_BOOT__.entries and rendered [data-observability-dock] with GM, Workflows, Subagents, and Terminal cards; agent-browser page evaluation recorded the dock text.

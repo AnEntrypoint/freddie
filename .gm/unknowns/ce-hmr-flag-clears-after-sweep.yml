@@ -1,6 +1,0 @@
-SESSION_ID: gm-ce-3847245-1789372444
-id: ce-hmr-flag-clears-after-sweep
-subject: Does removing the literal customElements.define from a plugin tree make the hmr node half stop sending definesCustomElements, so the fiber swap runs without the sibling's client change?
-status: witnessed
-witness: packages/client/hmr/src/index.js:120-133 substring test, refreshed on dirty scan at :240-246; to be witnessed on the live /plugins/events frame
-witness_evidence: 'After the sweep the ui-layout rebuilt frame arrived without definesCustomElements: the browser journal recorded kind plugin-rebuilt (the client records plugin-rebuilt-custom-elements when the flag is true) and the ordinary reload(frame) fiber swap ran, producing freddie-app-frame--v2 in the same document. The node half''s substring classification (hmr/src/index.js:120-133, refreshed at :240-246) therefore flips on its own once the literal is gone from the row''s tree.'

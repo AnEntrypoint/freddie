@@ -1,8 +1,0 @@
-id: cj-fail-uncached
-prd_id: chatjimmy-negative-cache
-obligation_kind: precondition
-subject: listChatJimmyModels catch and !ok paths do not set _modelsCache
-text: Witness providers/chatjimmy.js:74-84 return [DEFAULT_MODEL] without assigning _modelsCache on failure.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'precondition: providers/chatjimmy.js:74-84 caches only a successful ids.length body. !ok and catch return [DEFAULT_MODEL] without _modelsCache. Live createServer GET /v1/models 2064ms then 2016ms.'

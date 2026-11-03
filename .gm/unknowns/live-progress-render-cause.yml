@@ -1,5 +1,0 @@
-id: live-progress-render-cause
-subject: Identify why work after early context or skill-loading steps is not rendered until refresh.
-SESSION_ID: root-ui-liveness
-status: witnessed
-witness_evidence: The same single-attempt repair applies to any durable progress/context/tool event after a sequence gap; a transient history failure retained the buffer without autonomous recovery.

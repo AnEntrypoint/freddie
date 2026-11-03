@@ -1,8 +1,0 @@
-id: gm-mcp-env-only
-prd_id: gm-mcp-remove
-obligation_kind: precondition
-subject: mcp-gm is already disabled unless GM_MCP_SERVER_PATH is set; removal still required as the leftover MCP flow
-text: Witness cordis.patch.yml has no mcp-gm row after EMIT.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: packages/bundle/base/cordis.patch.yml:119-137 mcp-gm row disabled when GM_MCP_SERVER_PATH unset. Removal still required as leftover MCP flow. Witness after EMIT: no mcp-gm id in that file.'

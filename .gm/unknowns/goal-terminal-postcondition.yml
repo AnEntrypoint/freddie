@@ -1,8 +1,0 @@
-id: goal-terminal-postcondition
-prd_id: goal-terminal-continuation
-obligation_kind: postcondition
-subject: Terminal goal closure retains tool capability
-text: Live execution must establish that the terminal injection does not tell the model to call no more tools and goal state remains terminal only when appropriate.
-session_id: freddie-327824-1790173650242
-status: witnessed
-witness_evidence: 'gm_codesearch exhaustive results: renderWrapupContext has exactly one caller in tool-goal/src/index.js and <goal_complete> exactly one definition in wrapup.js; a single prompt correction covers every autonomous terminal injection.'

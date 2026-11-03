@@ -1,6 +1,0 @@
-id: gm-stale-mcp-bundle-restart-U4
-subject: Does the gm_codemode reply header expose the server bundle version, so a per-call check can compare without a new field? Answers the witness reply shape.
-row: gm-stale-mcp-bundle-restart
-body: Does the gm_codemode reply header expose the server bundle version, so a per-call check can compare without a new field? Answers the witness reply shape.
-session_id: mcp-codemode-3535970-1793542718115-1-6
-status: unknown

@@ -1,8 +1,0 @@
-id: observe-only-graph-authority
-prd_id: hmr-all-surfaces
-obligation_kind: type-shape
-subject: workflowEngine.graphs is observe-only; it cannot cancel or dispose a live run
-text: docs/subsystems/workflow.md and graph tracker store leaf snapshots only. No cancel/dispose methods on graphs.
-session_id: freddie-24860-1789086308555
-status: witnessed
-witness_evidence: 'packages/workflow/workflow/src/graph.js:1-4 leaf-only snapshot never holds live fibers/workers/Cordis objects. WorkflowGraphTracker list()/get() return that snapshot. docs/subsystems/workflow.md: graphs is process-local observe-only, not a second run owner. No cancel/dispose on graphs.'

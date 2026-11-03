@@ -1,0 +1,6 @@
+id: "prd-mw0is4ow10ce"
+kind: "prd"
+title: "Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/"
+body: "Ported from .gm/prd.yml#vendor-manifest-regeneration-drift.yml (gm queue, old format). Verbatim:\n\n- SESSION_ID: comment-sweep-1790669479148\n  id: vendor-manifest-regeneration-drift\n  route_family: execution\n  subject: 'Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/src/index.js. Invariant: immutable version URLs are never silently overwritten. Post: vendor resolution and checked-in payload have deliberate matching provenance, and generate-vendor completes without bypassing its drift guard.'\n  status: pending"
+status: "open"
+createdAt: "2026-11-03T10:03:10.400Z"

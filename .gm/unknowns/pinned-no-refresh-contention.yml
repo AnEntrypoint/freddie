@@ -1,8 +1,0 @@
-id: pinned-no-refresh-contention
-prd_id: pinned-chat-skip-live-refresh
-obligation_kind: invariant
-subject: pinned chat TTFB does not contend with refreshAll/refreshAcpModels network
-text: Witness auto-chain.js:739 return before Promise.all refresh. Live pinned 57-64ms; auto still pending at 50ms.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'invariant: auto-chain.js:739 returns buildAutoChain before refresh Promise.all. Live pinned 57-64ms vs 710.7ms baseline; auto still pending at 50ms so refresh remains on auto only.'

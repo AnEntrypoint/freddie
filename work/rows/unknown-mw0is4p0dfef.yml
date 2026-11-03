@@ -1,0 +1,6 @@
+id: "unknown-mw0is4p0dfef"
+kind: "unknown"
+title: "Does the live host's loaded tool-gm carry runtimeStatus (commit f2edb0fc)?"
+body: "Ported from .gm/unknowns/host-runs-committed-tool-gm.yml (gm queue, old format). Verbatim:\n\nprd_id: gm-runtime-host-hmr-activation\nobligation_kind: precondition\nstatus: unknown\nid: host-runs-committed-tool-gm\nsubject: Does the live host's loaded tool-gm carry runtimeStatus (commit f2edb0fc)?\ntext: 'Q: a fresh GUI GM tool call publishes runtime JSON with runnerVersion and gmVersion. Answers whether the host reloaded the modified source.'\nsession_id: mcp-codemode-3535970-1793543257869-162\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.404Z"

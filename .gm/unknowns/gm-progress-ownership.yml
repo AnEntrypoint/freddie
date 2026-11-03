@@ -1,8 +1,0 @@
-id: gm-progress-ownership
-prd_id: gm-overview-served-graph
-obligation_kind: ownership
-subject: 'gmProgress is host projection; dock reads useProjection; inspector is local #selectedNodeId'
-text: 'Read ObservabilityDock #selectedNodeId and useProjection(''gmProgress'').'
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: 'exec_js 1789840947521 selectedLocal true: #selectedNodeId local; useProjection(''gmProgress'') for graph.'

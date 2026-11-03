@@ -1,8 +1,0 @@
-id: hmr-runtime-reload-failure
-prd_id: gui-unified-observability
-obligation_kind: postcondition
-subject: Live HMR activation produced a client-modules bootstrap failure after editing the preloaded runtime package.
-text: Reproduce and distinguish expected shell/runtime reload behavior from a client-HMR defect; the final live verification must show the Web GUI survives source updates and reports HMR state without a bootstrap failure.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: The initial client-HMR replacement of preloaded runtime code failed with `createClientModuleSystem must run before plugin boot`; a normal page reload remounted successfully and rendered the updated dock. This is expected shell-reload behavior for static runtime changes; feature client package changes continue to HMR.

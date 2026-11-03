@@ -1,8 +1,0 @@
-id: booted-set-per-instance
-prd_id: booted-per-cwd
-obligation_kind: invariant
-subject: bootedCwds is per Gm instance not process-global
-text: index.js field on the instance. Concurrent sessions with distinct Gm instances do not share the Set.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: packages/gm/gm-client/src/index.js:36 bootedCwds = new Set() on the class instance, not a module global.

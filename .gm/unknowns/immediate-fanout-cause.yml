@@ -1,8 +1,0 @@
-id: immediate-fanout-cause
-prd_id: critical-script-fanout
-obligation_kind: precondition
-subject: Need establish whether critical script preload output is duplicate, over-broad, or needed to preserve mount order.
-text: Witness source path packages/client/modules/src/index.js and a fresh browser resource timeline before changing preload behavior.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: packages/client/modules/src/index.js:404-417 emits a modulepreload for every script in each immediate row. Live cold baseline showed 109 network scripts. Existing measured comment at :227-236 proves preloading every row worsens mount, so no safe transport change is admitted without a narrower measured experiment.

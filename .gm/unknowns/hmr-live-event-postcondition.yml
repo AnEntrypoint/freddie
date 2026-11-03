@@ -1,8 +1,0 @@
-id: hmr-live-event-postcondition
-prd_id: hmr-live-chain-verification
-obligation_kind: postcondition
-subject: The GUI remains interactive after a live dynamic plugin rebuild
-text: Read the rendered GUI and client HMR status after triggering the edit; verify the rebuilt plugin reappears and no HMR tree failure is present.
-session_id: freddie-1686187-1790937099884
-status: witnessed
-witness_evidence: After both live rebuilds, agent-browser read the real GUI successfully and window.__FREDDIE_HMR__.status remained connected:true with lastSequence advancing from 209 to 289 and no treeFailure. The interactive session/sidebar surface remained rendered; the temporary whitespace probe was restored and gm_git_status reports no source modification.

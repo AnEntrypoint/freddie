@@ -1,8 +1,0 @@
-id: pinned-fail-unchanged
-prd_id: pinned-chat-skip-live-refresh
-obligation_kind: invariant
-subject: pinned skip does not change same-link retry or fail-path sleeps
-text: Witness sleep(delay) still only in chain-machine same-link retry.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'invariant: chain-machine.js sleep(delay) at 625/639/775/792 remains same-link retry only. auto-chain.js pinned skip does not touch those paths.'

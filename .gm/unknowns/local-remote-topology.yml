@@ -1,5 +1,0 @@
-id: local-remote-topology
-subject: 'Unknown: configured upstream relation and whether local or remote has unique commits. Resolve only from a git witness before selecting fast-forward or merge.'
-SESSION_ID: root-178993588923673451
-status: witnessed
-witness_evidence: git_pull ff_only reported origin already up to date at 548ab5a; git_stash_pop reported main ahead of origin/main by two commits.

@@ -1,8 +1,0 @@
-id: audit-runtime-metrics
-prd_id: audit-tool-dispatch
-obligation_kind: precondition
-subject: Whether a safe already-running local harness can supply representative live timings without starting a replacement server or requiring credentials.
-text: Witness through existing service/process inspection and, if unavailable, specify instrumentation and benchmark protocol without modifying files.
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: A real local gm spool instruction dispatch after the atomic publisher change completed successfully during live verification; the changed path is direct in-process file publication plus daemon response polling. The system's per-request timing is now observable via the real dispatch measurement rather than a replacement server.

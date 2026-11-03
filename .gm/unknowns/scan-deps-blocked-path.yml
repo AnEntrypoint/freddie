@@ -1,8 +1,0 @@
-id: scan-deps-blocked-path
-prd_id: gm-scan-blocked-read
-obligation_kind: precondition
-subject: The scan_deps response reported blocked `/list-packages.js`, but its relation to the Freddie root is unknown.
-text: 'Witness: gm_scan_deps dispatch 1789767444820 reported blockedCount=1, path=/list-packages.js, reason=stat failed or file missing; trace source and live resolution before treating the scan as clean.'
-session_id: freddie-2260524-1789740208025
-status: witnessed
-witness_evidence: 'Root cause witnessed by subagent: explicit root:"" became `/list-packages.js`; source now normalizes blank root to `.` at scanner and wasm verb boundaries; gm_exec_js 1789767910219 compiled the repair.'

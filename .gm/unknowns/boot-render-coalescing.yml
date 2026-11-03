@@ -1,8 +1,0 @@
-id: boot-render-coalescing
-prd_id: gui-live-performance
-obligation_kind: resource-bound
-subject: Boot loader can emit one state transition per client entry, so presentation must not perform a full DOM reconciliation for each synchronous burst.
-text: Profile/live-witness the loading update burst and ensure BootPage schedules at most one DOM render per animation frame while preserving the latest aggregated state.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'resource-bound: packages/client/web/src/boot.js:111-129 invokes setState for each graph entry while boot-page.js:73-78 calls render synchronously; one animation-frame scheduler bounds DOM reconciliation to one per visual frame while state map writes remain immediate.'

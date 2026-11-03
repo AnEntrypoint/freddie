@@ -1,8 +1,0 @@
-id: graph-payload-injection-fail-closed
-prd_id: hmr-all-surfaces
-obligation_kind: type-shape
-subject: WorkflowGraphTracker treats missing/hostile agent ids as undefined node ids and never interpolates them into code
-text: 'exec_js: agentNodeId with prototype keys, empty strings, and non-strings returns undefined or seq:N; no eval/path join.'
-session_id: freddie-24860-1789086308555
-status: witnessed
-witness_evidence: 'exec_js 1789086783848: empty childId -> seq:1; numeric childId -> seq:9; object childId -> null; unknown outcome -> completed (legacy default). Hostile childId stored as node.id string, not path-joined or evald. Live workflow payloads are JSON clones so object-literal proto is not a wire path.'

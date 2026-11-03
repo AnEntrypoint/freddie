@@ -1,8 +1,0 @@
-id: state-usage-durable
-prd_id: token-usage-forward
-obligation_kind: postcondition
-subject: Provider usage that reaches the assembler is stored on assistant/message
-text: packages/core/agent-loop/src/agent.js:343 spreads assembler.usage onto assistant/message. translate.js mapUsage keeps cache reads disjoint.
-session_id: freddie-107108-1791049571843
-status: witnessed
-witness_evidence: agent.js:343 spreads assembler.usage onto assistant/message. translate.js:18-24 maps prompt_tokens_details.cached_tokens to cacheReadTokens and subtracts it from inputTokens. Live chunk prompt 1250 / cached 1152 becomes inputTokens 98.

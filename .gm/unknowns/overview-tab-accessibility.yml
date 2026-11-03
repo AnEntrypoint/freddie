@@ -1,8 +1,0 @@
-id: overview-tab-accessibility
-prd_id: overview-priority-summary
-obligation_kind: postcondition
-subject: Overview tabs must expose stable tab-to-panel relationships, and terminal input must have an accessible purpose.
-text: 'Bind ids/aria-controls/aria-labelledby to existing #section selection and label terminal input, then run the live Overview audit.'
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'postcondition: Overview tab buttons now get stable id/aria-controls and the active panel gets role=tabpanel/aria-labelledby; terminal input receives an explicit aria-label.'

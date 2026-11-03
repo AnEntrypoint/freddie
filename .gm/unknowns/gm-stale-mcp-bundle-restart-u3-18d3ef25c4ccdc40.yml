@@ -1,6 +1,0 @@
-id: gm-stale-mcp-bundle-restart-U3
-subject: Does the running server re-read its bundle path after an install, or keep the startup image? Answers whether restart-required or hot-swap is the mechanism the row can use.
-row: gm-stale-mcp-bundle-restart
-body: Does the running server re-read its bundle path after an install, or keep the startup image? Answers whether restart-required or hot-swap is the mechanism the row can use.
-session_id: mcp-codemode-3535970-1793542718115-1-6
-status: unknown

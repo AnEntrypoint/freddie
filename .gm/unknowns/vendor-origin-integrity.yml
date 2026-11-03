@@ -1,8 +1,0 @@
-id: vendor-origin-integrity
-prd_id: vendor-upstream-gm
-obligation_kind: postcondition
-subject: The vendored repository resolves to AnEntrypoint/gm.
-text: Witness by reading the clone's configured origin after clone.
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: 'bash output: `git -C vendor/gm remote get-url origin` = https://github.com/AnEntrypoint/gm.git; clone HEAD = 41269a26451b242d1f9ed16e867c7dc494283417.'

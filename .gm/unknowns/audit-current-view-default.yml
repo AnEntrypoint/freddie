@@ -1,8 +1,0 @@
-id: audit-current-view-default
-prd_id: gui-audit-findings
-obligation_kind: precondition
-subject: Whether opening an active session defaults to Chat rather than Overview
-text: Witnessed browser DOM after opening the active session shows the Chat tab selected and the operations strip supplies only compact status; source must establish which package owns default active view before proposing routing.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: packages/client/ui-conversation/src/client/stores.js:16 initializes view:null; packages/client/ui-conversation/src/client/skeleton/ConversationSession.js:15-22 resolves null to DEFAULT_VIEW_ID 'chat'. Live active session browser snapshot showed Chat selected while the active workload was only summarized by the compact strip.

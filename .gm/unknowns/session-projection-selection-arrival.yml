@@ -1,8 +1,0 @@
-id: session-projection-selection-arrival
-prd_id: trace-session-browser-projection
-obligation_kind: precondition
-subject: Whether browser receives session/projected data before a user selection is established.
-text: Witness through exhaustive source trace of snapshot, subscription, projection, and navigation wiring.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'Source trace: SessionManager accepts `session/projection` before Session instantiation at packages/client/runtime/src/client/sessions/manager.js:647-654; session event frames are deliberately dropped uninstantiated at :707-742. Initial history/projection baseline is only requested after selection stages a Session at packages/client/runtime/src/client/sessions/service.js:498-515 and Session.doOpen() at session.js:590-609.'

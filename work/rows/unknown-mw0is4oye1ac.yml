@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oye1ac"
+kind: "unknown"
+title: "U1 Does the Hmr journal (Hmr.snapshot events, framework/hmr/src/index.js:510-515) reach the GUI-observable side after a host HMR reload, and"
+body: "Ported from .gm/unknowns/gm-runtime-hmr-final-witness-u1-journal-reach.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-final-witness-u1-journal-reach\nvalue: U1 Does the Hmr journal (Hmr.snapshot events, framework/hmr/src/index.js:510-515) reach the GUI-observable side after a host HMR reload, and through which service or projection field?\nstatus: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-9\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.402Z"

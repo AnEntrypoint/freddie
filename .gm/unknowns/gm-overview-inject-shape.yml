@@ -1,8 +1,0 @@
-id: gm-overview-inject-shape
-prd_id: gm-overview-optional-remote
-obligation_kind: type-shape
-subject: Overview inject array is connection/sessions/slots only; remote.gm is ctx.get
-text: Read packages/client/ui-observability/src/client/index.js export const inject.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789840868832 inject true export const inject = ['connection', 'sessions', 'slots']. Source uses ctx.get('remote.gm').

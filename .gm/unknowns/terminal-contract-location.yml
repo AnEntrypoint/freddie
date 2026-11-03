@@ -1,8 +1,0 @@
-id: terminal-contract-location
-prd_id: observability-contract
-obligation_kind: precondition
-subject: Exact existing terminal service/API/client protocol and authorized client-control path
-text: Witness by reading the terminal service, tool, API proxy schema, client terminal UI, and web composition contracts before emitting a new seam.
-session_id: freddie-37249-1789201746935
-status: witnessed
-witness_evidence: packages/terminal/terminal/src/index.js:83-254 establishes owner-scoped spawn/send/read/resize/signal/close/list; packages/terminal/terminal-bash/src/session.js:295-406 owns bounded scrollback and decoded PTY output; packages/host/apiproxy/src/index.js:33-89 exposes no terminal remote; packages/client/ui-tool/src/client/tool/toolviews/bash-sample.js:54-214 is transcript-only. The current terminal contract has no browser control plane.

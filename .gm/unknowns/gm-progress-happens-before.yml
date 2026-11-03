@@ -1,8 +1,0 @@
-id: gm-progress-happens-before
-prd_id: gm-graph-progress-fold
-obligation_kind: happens-before
-subject: running gm/progress with walking is appended before gm.call awaits; settled snapshot with walking null is appended after the daemon result
-text: 'Read jsonTool execute: reportProgress running then await gm.call then reportProgress completed. exec_js 1789796608185 runningWalking set, settledWalking null.'
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: exec_js 1789796823909 runningBeforeAwait true; settledAfterAwait true. jsonTool reports running then awaits gm.call then reports completed.

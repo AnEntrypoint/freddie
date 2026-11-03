@@ -1,8 +1,0 @@
-id: gm-progress-running-body
-prd_id: gm-graph-progress-fold
-obligation_kind: precondition
-subject: gmProgressSnapshot running path does not currently pass dispatch.body so foldGmGraph cannot set walking.nodeId from the in-flight args
-text: 'Witness: tool-gm/src/index.js reportProgress running call and foldGmGraph walking assignment after wiring.'
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: packages/gm/tool-gm/src/verbs.js jsonTool running report is reportProgress({ verb, status: ''running'', startedAt }, exec) with no body. exec_js 1789794928351 snapHasGraph false; foldGmGraph walking.nodeId is ''a'' only when dispatch.body.id is passed (runningWalking.verb prd-add). EMIT must pass toBody(args) on running and settled reports.'

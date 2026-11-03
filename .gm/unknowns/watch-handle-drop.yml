@@ -1,8 +1,0 @@
-id: watch-handle-drop
-prd_id: idle-in-dir-wake
-obligation_kind: postcondition
-subject: Idle watch handles close on Drop and on sync replacement
-text: IdleInDirWatch::close_all calls FindCloseChangeNotification; Drop calls close_all. Failed FindFirstChangeNotificationW is skipped.
-session_id: freddie-12560-1789847277758
-status: witnessed
-witness_evidence: 'postcondition: IdleInDirWatch::close_all FindCloseChangeNotification; Drop calls close_all; sync replaces after close_all. INVALID_HANDLE_VALUE skipped.'

@@ -1,8 +1,0 @@
-id: gm-source-adapter
-prd_id: observability-gm-bridge
-obligation_kind: type-shape
-subject: Host adapter translating actual GM disk/runtime state to a session-owned durable projection
-text: No Freddie source hit owns gm_instruction/PRD/mutable state. Establish a generic host adapter around structured GM files/notifications with an explicit workspace-to-session association; client code must not poll .gm.
-session_id: freddie-37249-1789201746935
-status: witnessed
-witness_evidence: packages/gm/tool-gm/src/index.js:47-59 appends a complete ignorable `gm/progress` session event after every successful GM tool response, using the configured GM session id and response counts; session projections/carriers already consume committed events.

@@ -1,8 +1,0 @@
-id: observability-client-render
-prd_id: observability-gui
-obligation_kind: effect-boundary
-subject: Observability dock has no browser filesystem or standalone subscription side effect
-text: Witness the browser plugin only registers a slot and reads projections through the renderer-provided hook.
-session_id: freddie-192180-1789217365634
-status: witnessed
-witness_evidence: gm_exec_js dispatch 1789218691893 returned registersSlot:true, projectionOnly:true, and noFilesystem:true for packages/client/ui-observability/src/client/index.js and ObservabilityDock.js.

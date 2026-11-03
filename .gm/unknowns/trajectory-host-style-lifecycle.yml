@@ -1,8 +1,0 @@
-id: trajectory-host-style-lifecycle
-prd_id: trajectory-host-layout
-obligation_kind: invariant
-subject: Host layout must belong to the trajectory stylesheet that HMR removes and reapplies with the package.
-text: Add host selectors to ui-trajectory views.css, already listed in the CSS manifest; verify HMR preserves the visible ledger after reload.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'invariant: packages/client/css-manifest/src/manifest.js:104 loads ui-trajectory views.css, so host selectors there share the package CSS HMR lifecycle and target freddie-trajectory-view/table.'

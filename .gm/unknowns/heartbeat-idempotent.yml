@@ -1,8 +1,0 @@
-id: heartbeat-idempotent
-prd_id: heartbeat-clear-update-flag
-obligation_kind: invariant
-subject: Heartbeat rewrite is last-wins and must not resurrect runner_update keys from a previous payload after they were removed
-text: write_project_heartbeat reads existing JSON then writes; the else branch removes keys every time cached_staged_runner is None, so a later tick cannot reintroduce them without a staged binary.
-session_id: freddie-12560-1789847277758
-status: witnessed
-witness_evidence: 'invariant: write_project_heartbeat reads existing JSON then overwrites. Else-remove every tick when cached_staged_runner is None prevents resurrecting keys from the previous payload. Same last-wins rewrite as busy_until removal at 1043.'

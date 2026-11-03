@@ -1,8 +1,0 @@
-id: observability-source-of-truth
-prd_id: gui-unified-observability
-obligation_kind: invariant
-subject: The event/source model and its existing ownership boundaries are unknown.
-text: Witness the current host event sources, client data provider, and live GUI subscription path before selecting an implementation; verify every rendered unit derives from the same authoritative projection used by agent operations.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Observed host `gmProgress` projection at packages/gm/gm-progress/src/projection.js:12, durable workflow fold at packages/client/ui-workflow-run/src/client/workflow-definition.js:104, client session projection store at packages/client/runtime/src/client/sessions/projection-store.js:23, and existing terminal mux intake at packages/client/ui-observability/src/client/index.js:27. The current dock duplicates terminal state in globals, so the shared projection store is the correct ownership target.

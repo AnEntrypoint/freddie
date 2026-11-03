@@ -1,8 +1,0 @@
-id: gm-gate-diagnostic-concurrency
-prd_id: gm-gate-detail-propagation
-obligation_kind: happens-before
-subject: Gate rejection recomputes only immutable diff output and never shares diagnostic state between dispatches.
-text: 'Witness transitions.rs recomputation and two sequential live transitions: first names line, second succeeds after the line is removed.'
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: transitions.rs:635-646 recomputes local Vec<String> from the current git diff per rejection, with no shared buffer. Live first transition emitted .gm/prd.yml:3 then subsequent corrected transition advanced to STATE; two concurrent SSE HEAD requests both returned 200 independently.

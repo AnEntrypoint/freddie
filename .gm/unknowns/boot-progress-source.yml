@@ -1,8 +1,0 @@
-id: boot-progress-source
-prd_id: boot-progress-clarity
-obligation_kind: type-shape
-subject: Whether the client loader exposes a stable ready/total progress event suitable for the boot page.
-text: Read loader-status and boot-page implementation, then connect only to existing lifecycle state or add a small explicit bridge.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: packages/client/web/src/boot.js:111-115 listens to Loader internal/status and projects STATE_LABELS into BootPage; the new setCurrent bridge uses the same authoritative event.

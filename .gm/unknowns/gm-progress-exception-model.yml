@@ -1,8 +1,0 @@
-id: gm-progress-exception-model
-prd_id: gm-graph-progress-fold
-obligation_kind: exception-model
-subject: gm.call failures rethrow after reportProgress failed; append errors are contained and never alter the tool result
-text: 'Read jsonTool catch: reportProgress failed then throw. apply try/catch around append.'
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: exec_js 1789797026225 rethrowAfterFailed true; appendContained true. jsonTool reports failed then throws; apply swallows append errors.

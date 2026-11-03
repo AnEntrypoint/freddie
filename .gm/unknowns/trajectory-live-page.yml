@@ -1,8 +1,0 @@
-id: trajectory-live-page
-prd_id: trajectory-live-verification
-obligation_kind: precondition
-subject: The fixed browser session must reach a settled client GUI with the Trajectory tab registered before ledger assertions run.
-text: Recover the local browser page if HMR reload clears it, then inspect actual selected tab, table attributes, dimensions and visible rows without injected styles.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'precondition: agent-browser recovered a settled Freddie GUI after the initial wait timeout; live HMR status was connected at sequence 38 and the active session exposes the Trajectory tab.'

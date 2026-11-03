@@ -1,8 +1,0 @@
-id: prd-rows-ever-existed
-prd_id: review-commit-prd-mutables
-obligation_kind: precondition
-subject: Whether PRD rows pinned-chat-skip-live-refresh and listmodels-serial-probes ever existed in .gm/prd.yml or only as dangling prd_id on mutables
-text: Witness git history of .gm/prd.yml at and before 7e8899dc plus commit message body for Resolved PRD rows.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'precondition: this session prd-add pinned-chat-skip-live-refresh and listmodels-serial-probes, prd-resolve, git_finalize 7e8899dc emptied .gm/prd.yml. Reviewer later re-added refute rows. Original rows existed then were cleared.'

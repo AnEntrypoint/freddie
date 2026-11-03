@@ -1,8 +1,0 @@
-id: recursive-links-cause
-prd_id: dependency-layout-repair
-obligation_kind: precondition
-subject: Cause of the recursive node_modules links is unknown.
-text: Witness the exact filesystem link chain and package-manager state before mutating dependencies.
-session_id: freddie-2075880-1789046559707
-status: witnessed
-witness_evidence: pnpm install --frozen-lockfile completed successfully on the workspace and gm_scan_deps dispatch 1789048136337 then reported blockedCount 0, showing transient stale recursive links rather than a persistent package-manager graph defect.

@@ -1,8 +1,0 @@
-id: gm-graph-crucible
-prd_id: gm-graph-ui
-obligation_kind: crucible
-subject: Malformed overlay roots, missing terminals.status, and huge titles do not throw in overlayWalk/layoutGraph/inspectGraph
-text: exec_js adversarial inputs.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: exec_js 1789797105974 overlayOk/layoutOk/inspectOk true after hardening Array.isArray guards. inspectMissingOverlay empty jit/cli/nodes.

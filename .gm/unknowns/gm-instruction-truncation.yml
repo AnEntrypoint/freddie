@@ -1,8 +1,0 @@
-id: gm-instruction-truncation
-prd_id: gm-upstream-graph-export
-obligation_kind: precondition
-subject: Whether live instruction prd_items/mutables_pending plus add/resolve fold is enough without a C:\dev\gm graph verb
-text: Witness a live instruction JSON truncation flags and node count after fold.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: this session instruction 1789794767538 prd_items_truncated null (14 PRDs inlined); mutables_pending_truncated inlined 5 of 18. Open graph is 14 PRD + 18 mutables = 32 < 80 cap. Fold from add/resolve bodies plus non-truncated instruction lists is sufficient. No C:\dev\gm graph verb.'

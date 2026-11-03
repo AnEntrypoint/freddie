@@ -1,8 +1,0 @@
-id: gm-inspector-local-state
-prd_id: gm-client-graph-inspector
-obligation_kind: type-shape
-subject: Inspector selection is component-local state, not a session projection or store
-text: Witness ObservabilityDock local selectedNodeId and no new projection key.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'type-shape: ui-observability ObservabilityDock already uses instance fields #section/#snapshots (ObservabilityDock.js:237-239). selectedNodeId is the same local field, not a session projection. Client AGENTS.md: live data known only to the component stays local state. No new projection key.'

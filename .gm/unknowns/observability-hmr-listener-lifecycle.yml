@@ -1,8 +1,0 @@
-id: observability-hmr-listener-lifecycle
-prd_id: realtime-productivity-surface
-obligation_kind: invariant
-subject: The observability custom element owns one freddie:hmr listener while connected and removes it on disconnect.
-text: Witness source lifecycle at ObservabilityDock.js:240-253 and a live HMR-updated Overview with current frame state.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: ObservabilityDock.js:240-253 installs freddie:hmr listener only in connectedCallback and removes the same bound listener in disconnectedCallback. Fresh live GUI prior to state sweep showed Overview `Hot reload HMR healthy` at frame 854 with zero reconnects; HEAD endpoint remains 200 text/event-stream.

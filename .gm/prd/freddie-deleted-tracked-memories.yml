@@ -1,8 +1,0 @@
-id: freddie-deleted-tracked-memories
-subject: '13 tracked .gm/memories/*.md files show as deleted in the working tree (git_status deleted list), while .gitignore declares .gm/memories durable and repo-tracked. Determine whether a memorize-prune or gm writer caused the deletion, restore the files from HEAD if the deletion was unintended, and record the reason. Witness: git_status before and after, and recall returning a restored memory.'
-status: pending
-session_id: gm-freddie-eff-20261012
-notes:
-- ts: 2026-11-01T14:32:09.600Z
-  session_id: mcp-codemode-3535970-1793543516984-406
-  note: 'blocked_by freddie-deleted-tracked-memories-blocker-mcp-codemode-3535970-1793542718115-1-11: publish_on_origin checker_missing (scripts/check-staged-secrets.mjs absent in freddie; dispatch 1793543498100-3535970-a7cd3f43dea022cd, nothing pushed). Remedy per verb: copy the checker from AnEntrypoint/gm into this repo, commit it, re-dispatch publish_on_origin for the four receipts under .gm/receipts/freddie-deleted-tracked-memories/. Receipts 01-04 are written locally, not pushed.'

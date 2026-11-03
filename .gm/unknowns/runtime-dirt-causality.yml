@@ -1,8 +1,0 @@
-id: runtime-dirt-causality
-prd_id: audit-dirty-parent-submodules
-obligation_kind: postcondition
-subject: The origin and preventive tooling change for any generated-runtime classification are unknown until the relevant code/config/tooling is inspected.
-text: Witness with exact source/config references and, where available, Git ignore/status evidence that connects each generated path to its producer and prevention mechanism.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: 'No generated-runtime dirty path exists in the current inventory: all four dirty superproject entries are submodule gitlink states, while their nested worktrees are clean (gm_exec_js 1789543458217-500-dd51c90cd891ca1d). Exact preventing mechanism for future runtime outputs is already present: rs-plugkit/.gitignore:4-11 ignores `.gm/exec-spool/`, `.gm/gm.db`, config caches/timestamps, `.agentplug-kv/`, and core `.gm/`; obrowser/.gitignore:1-2 ignores `.gm/` and `/target`; rs-plugkit commit a39a609 is `fix(dev): ignore code insight runtime caches`; obrowser HEAD 4153074 is `chore: gitignore transient runtime and build emission`.'

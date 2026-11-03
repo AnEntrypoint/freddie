@@ -1,8 +1,0 @@
-id: probe-fail-empty
-prd_id: listmodels-serial-probes
-obligation_kind: postcondition
-subject: probe failure degrades to empty catalog entries, not 500
-text: Witness listOllama/listChatJimmy/listAcp catch paths.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []; listAcp ACPTOAPI_ENABLE_ACP!==1 returns []. listModels continues with empty slices, no throw.'

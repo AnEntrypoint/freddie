@@ -1,8 +1,0 @@
-id: rsi-automatic-event-binding
-prd_id: freddie-rsi-automatic-event-validation
-obligation_kind: precondition
-subject: Automatic strategy event evidence must be structurally and session bound before injection.
-text: 'Witness: audit reports packages/context/dream-rsi-context/src/index.js:73-90 injects automatic strategy based on shape/prefix without active session/evidence validation.'
-session_id: freddie-2260524-1789740208025
-status: witnessed
-witness_evidence: packages/context/dream-rsi-context/src/index.js requires structurally valid evidence/replays, matching dispatch IDs/verb/fingerprint, and a same-session configured gm/progress event before automatic context injection.

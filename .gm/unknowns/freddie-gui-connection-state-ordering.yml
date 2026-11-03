@@ -1,8 +1,0 @@
-id: freddie-gui-connection-state-ordering
-prd_id: freddie-gui-live-clarity-realtime
-obligation_kind: happens-before
-subject: The UI connection state must be published before the runtime’s reconnect handling and only notify consumers when its snapshot changes.
-text: Witness by live browser operation with the HMR-connected client and source review of ConnectionController emitState to connection handle publication order.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: packages/client/connection/src/client/connection.js:125 emits connected and :139 emits reconnecting before invoking runtime sink; packages/client/connection/src/client/index.js publishes each changed state before sinks.onStateChange. Live GUI http://127.0.0.1:3080 Overview displayed “Realtime connected” with SSE HMR status connected and live agent activity.

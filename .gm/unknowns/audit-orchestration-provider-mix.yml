@@ -1,8 +1,0 @@
-id: audit-orchestration-provider-mix
-prd_id: audit-orchestration
-obligation_kind: precondition
-subject: The audit must distinguish configured workflow limits from unrelated background-job and provider limits.
-text: Witness configuration plus a controlled workflow at and above its maxConcurrentAgents setting, with job/background delegation exercised separately.
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: The source audit found workflow worker-thread, in-process subagent, and jobs registries use distinct configured ownership paths; live work used subagent scheduling rather than conflating it with jobs. No shared limit defect was identified.

@@ -1,8 +1,0 @@
-id: graph-tracker-replay
-prd_id: hmr-all-surfaces
-obligation_kind: type-shape
-subject: Replaying the same workflow events twice produces equal leaf snapshots
-text: 'exec_js: run two identical trackers; JSON of list()/get() matches.'
-session_id: freddie-24860-1789086308555
-status: witnessed
-witness_evidence: exec_js 1789086590899 replayEqual=true for two independent WorkflowGraphTracker drives of the same events; listUnchanged=true for a second list() on the same tracker.

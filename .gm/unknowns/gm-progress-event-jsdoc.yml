@@ -1,8 +1,0 @@
-id: gm-progress-event-jsdoc
-prd_id: gm-session-event-map
-obligation_kind: type-shape
-subject: SessionEventMap merge for gm/progress needs @mode and payload @param JSDoc; ignorable true
-text: Witness tool-gm types or session types declaration plus known-event-types after catalog regen.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'type-shape: AGENTS.md typed events use declaration merging; JSDoc needs @mode and payload @param. gm/progress is ignorable so unknown readers skip it. EMIT adds a JSDoc SessionEventMap merge on tool-gm (JSDoc-only; workspace is buildless JS). known-event-types.js is generated; ignorable events may stay off that set. Invalid constructor: required-on-read without ignorable.'

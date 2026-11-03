@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oz0a9d"
+kind: "unknown"
+title: "[gm predecessor] Does the gm_codemode reply header expose the server bundle version, so a per-call check can compare without a new field? Answers the witness"
+body: "Ported from .gm/unknowns/gm-stale-mcp-bundle-restart-u4-18d3f625c4cce825.yml (gm queue, old format). Verbatim:\n\nid: gm-stale-mcp-bundle-restart-U4\nsubject: Does the gm_codemode reply header expose the server bundle version, so a per-call check can compare without a new field? Answers the witness reply shape.\nrow: gm-stale-mcp-bundle-restart\nbody: Does the gm_codemode reply header expose the server bundle version, so a per-call check can compare without a new field? Answers the witness reply shape.\nsession_id: mcp-codemode-3535970-1793542718115-1-6\nstatus: unknown\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.403Z"

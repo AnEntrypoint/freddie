@@ -1,8 +1,0 @@
-id: gm-git-verb-set
-prd_id: gm-tool-verb-coverage
-obligation_kind: precondition
-subject: Exact remaining skill-required verbs beyond the git family that tool-gm still omits
-text: Witness a live instruction/skill verb list vs buildGmTools return array.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: exec_js 1789794928351 toolNames has only gm_git_finalize in the git family. Skill-required remaining verbs: git_status, git_log, git_diff, git_show, git_push, git_pull, git_stash, git_stash_pop. serp/browser/cdp/fetch/memorize-fire stay daemon-only; Freddie already has web_search and host tools.'

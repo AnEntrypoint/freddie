@@ -1,5 +1,0 @@
-id: creator-mode-reset-cause
-subject: Identify the authoritative mode state and the later update that resets an explicit Creator selection to Standard, with file-and-line evidence.
-SESSION_ID: root-creator-mode-1789717436574
-status: witnessed
-witness_evidence: packages/client/ui-agent-preset/src/client/seat-store.js:129-157 showed concurrent session-list subscriptions could re-enter apply() before the first select RPC settled; line 142 cleared the shared stage in both attempts, allowing the later response/fallback to overwrite the explicit Creator choice. The applyingSessionId owner guard serializes that boundary.

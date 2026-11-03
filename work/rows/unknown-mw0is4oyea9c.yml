@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oyea9c"
+kind: "unknown"
+title: "[gm predecessor] Does a row whose witness cites AGENTS.md#<heading> reopen when only that section changes, and stay pending when an unrelated AGENTS.md line"
+body: "Ported from .gm/unknowns/gm-agents-md-edit-reopens-rows-u2.yml (gm queue, old format). Verbatim:\n\nrow: gm-agents-md-edit-reopens-rows\nid: gm-agents-md-edit-reopens-rows-u2\nquestion: Does a row whose witness cites AGENTS.md#<heading> reopen when only that section changes, and stay pending when an unrelated AGENTS.md line changes (rule_bindings path, live)?\nsession_id: mcp-codemode-3535970-1793543567153-426\nstatus: unknown\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.402Z"

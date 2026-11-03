@@ -1,8 +1,0 @@
-id: idle-watch-disjoint
-prd_id: idle-in-dir-wake
-obligation_kind: invariant
-subject: Idle FindFirstChangeNotification wait only runs on the daemon loop thread when !any_work
-text: IdleInDirWatch lives in run_daemon_body; wait is after the dispatch scope joins. No other thread waits on those handles.
-session_id: freddie-12560-1789847277758
-status: witnessed
-witness_evidence: 'invariant: IdleInDirWatch is a local in run_daemon_body; wait is after thread::scope joins at the !any_work tail. No other thread waits on those HANDLEs.'

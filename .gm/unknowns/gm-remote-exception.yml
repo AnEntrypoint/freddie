@@ -1,8 +1,0 @@
-id: gm-remote-exception
-prd_id: gm-remote-boot-isolation
-obligation_kind: exception-model
-subject: GM $mount throw is caught, logged, and does not rethrow; core remotes stay mounted
-text: Read remotes apply catch console.error without throw.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841131913 noRethrow true. GM $mount catch logs and does not throw.

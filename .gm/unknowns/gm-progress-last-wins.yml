@@ -1,8 +1,0 @@
-id: gm-progress-last-wins
-prd_id: gm-graph-progress-fold
-obligation_kind: replay
-subject: gm-progress apply is last-wins whole-value; a second identical event keeps the same reference; a later event replaces nodes
-text: exec_js apply eventA then eventA then eventB and witness Object.is plus node ids.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: exec_js 1789796744481 sameRefReplay true; afterAIds [a]; afterBIds [a,b]; ignoredSame true for non-gm/progress event.

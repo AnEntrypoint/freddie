@@ -1,7 +1,0 @@
-prd_id: gm-runtime-host-hmr-activation
-obligation_kind: precondition
-status: unknown
-id: hmr-live-snapshot
-subject: Does the live Web Host still hold deferred=true with the four GM sources stashed?
-text: 'Q: read the active host''s HMR snapshot (deferred, stashed, events) now. Answers whether the reload is still pending.'
-session_id: mcp-codemode-3535970-1793543257869-162

@@ -1,8 +1,0 @@
-id: descendant-delivery-unselected
-prd_id: trace-descendant-observation-protocol
-obligation_kind: precondition
-subject: Determine whether active descendant event and activity frames are retained or discarded when the browser has not selected that child.
-text: Witness in host mux subscription and client SessionManager frame dispatch source with exact line references.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Host publishes every attached session through mux baseline `packages/host/apiproxy/src/api-proxy.js:3422-3493` and host lifecycle frames `3548-3572`; client retains list/projection/job/terminal state without instantiating child at `packages/client/runtime/src/client/sessions/manager.js:626-745`, but drops ordinary session/event payloads when the child Session is uninstantiated (`707-742`).

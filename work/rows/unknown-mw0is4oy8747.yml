@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oy8747"
+kind: "unknown"
+title: "U5 Is the sibling path gm-runtime-host-hmr-activation Post already in the tree at HEAD, or is it the live prerequisite this witness cannot r"
+body: "Ported from .gm/unknowns/gm-runtime-hmr-final-witness-u5-sibling-dependency.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-final-witness-u5-sibling-dependency\nvalue: U5 Is the sibling path gm-runtime-host-hmr-activation Post already in the tree at HEAD, or is it the live prerequisite this witness cannot run without?\nstatus: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-9\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.402Z"

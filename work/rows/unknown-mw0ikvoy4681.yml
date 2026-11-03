@@ -1,0 +1,6 @@
+id: "unknown-mw0ikvoy4681"
+kind: "unknown"
+title: "gui-dada-m5-source-unlocated"
+body: "Ported from .gm/unknowns/gui-dada-m5-source-unlocated.yml (gm queue, old format). Verbatim:\n\nid: gui-dada-m5-source-unlocated\nvalue: Actual source for M5A work rail and M5B work dossier is located in the tree\nstatus: unknown\nnotes: 'OPEN. Literal/regex grep ''work rail|WorkRail|dossier|Dossier|M5A|M5B'' over 4812 scanned files matches only DESIGN-LOG.md, .gm/prd, .gm/mutables.yml, pnpm-lock (dispatch 1793543100670-185-b03d9923680e46b5). DESIGN-LOG.md line 596: ''No M5B emission until resolved''. M5A owner not named in source; ToolRow disclosure is an unverified candidate.'\nsession_id: mcp-codemode-3535970-1793542718115-1-4\n"
+status: "open"
+createdAt: "2026-11-03T09:57:32.146Z"

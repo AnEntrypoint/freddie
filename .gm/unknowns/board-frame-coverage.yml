@@ -1,8 +1,0 @@
-id: board-frame-coverage
-prd_id: activity-board-runtime-feed
-obligation_kind: invariant
-subject: Every mux frame relevant to agent/CLI activity reaches the board even if its Session is instantiated.
-text: 'Witness required: manager frame routing source and live browser observation showing a selected or instantiated child operation remains visible in the board.'
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: packages/client/runtime/src/client/sessions/manager.js:681-715 calls noteActivity for every session/event before the uninstantiated-session return path; :305-311 retains 80 events per session and marks the shared tree source dirty; :327-338 exposes the stable observable source. Live Overview at :3080 rendered two uninstantiated child sessions as board rows, proving retained child activity/state is visible without opening each child.

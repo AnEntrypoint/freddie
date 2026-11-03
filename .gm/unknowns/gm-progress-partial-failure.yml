@@ -1,8 +1,0 @@
-id: gm-progress-partial-failure
-prd_id: gm-graph-progress-fold
-obligation_kind: partial-failure
-subject: 'Daemon death: Gm.call restores daemon once then rethrows GmDaemonUnavailableError; progress snapshot records error text without tearing nodes'
-text: Read gm-client call recovery; exec_js failed snapshot keeps previous nodes.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: exec_js 1789797026225 daemonReplay true; failedKeepsNodes [keep]; failedError daemon died; failedWalking null. Gm.call restores daemon once on GM_DAEMON_DIED then rethrows.

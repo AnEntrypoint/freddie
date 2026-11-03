@@ -1,8 +1,0 @@
-id: listmodels-degrade-empty
-prd_id: listmodels-serial-probes
-obligation_kind: postcondition
-subject: dead ollama or chatjimmy failure yields empty arrays, never throws out of listModels
-text: Witness catch return [] on both listOllama and listChatJimmy.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'postcondition: listOllama catch stores [] and returns []; listChatJimmy catch returns []. listModels never throws from those probes.'

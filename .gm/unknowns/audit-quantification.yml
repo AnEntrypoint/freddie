@@ -1,8 +1,0 @@
-id: audit-quantification
-prd_id: audit-orchestration
-obligation_kind: resource-bound
-subject: Actual workload timings and production volume are not observable from this static read-only checkout.
-text: Use code-level caps, retention bounds, synchronous paths, and tool timeout evidence as observable bottleneck witnesses; propose runtime telemetry verification for workload-dependent claims.
-session_id: freddie-2796907-1789090297792
-status: witnessed
-witness_evidence: Static evidence establishes configured bounds and synchronous paths; live workload timing remains intentionally unclaimed and is included as a verification requirement for each proposal.

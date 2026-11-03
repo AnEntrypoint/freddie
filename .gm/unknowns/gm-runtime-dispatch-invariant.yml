@@ -1,8 +1,0 @@
-id: gm-runtime-dispatch-invariant
-prd_id: gm-dependency-runtime-audit
-obligation_kind: invariant
-subject: GM spool compatibility after active version check
-text: Witness a real GM instruction/codesearch dispatch using the live status-reported GM plugin after version/provenance inspection.
-session_id: freddie-1686187-1790937099884
-status: witnessed
-witness_evidence: Live GM instruction dispatch 1790937178587 and exhaustive codesearch dispatches 1790937191740, 1790937212809 completed through status-reported gm 0.1.1362 with runner 0.1.158, proving current spool compatibility after version inspection.

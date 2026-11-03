@@ -1,8 +1,0 @@
-id: committed-diff-identification
-prd_id: review-instruction-source-dedup
-obligation_kind: precondition
-subject: The exact committed diff under review is not yet identified.
-text: Witness by inspecting repository history/diff and matching the changed daemon lines.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: exec_js git status/diff at 1789365003261 shows the only pending target is crates/agentplug-runner/src/daemon.rs and precisely identifies the HashSet, completion channel, completion drain, guarded admission, and worker send lines.

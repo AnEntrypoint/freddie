@@ -1,8 +1,0 @@
-id: gm-event-channel-shape
-prd_id: gm-gate-detail-propagation
-obligation_kind: type-shape
-subject: Need determine how a predicate-produced diagnostic event can be attached to the synchronous gate rejection response without stale cross-dispatch leakage.
-text: Witness wasm_dispatch events source and transition evaluation flow before changing event propagation.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: wasm_dispatch/events.rs:40-57 emits diagnostics only to host logs, while transitions.rs:629-651 constructs the synchronous denial. The safe design recomputes the same pure offending-line snapshot inside gate_rejection; no shared event buffer or cross-dispatch state is introduced.

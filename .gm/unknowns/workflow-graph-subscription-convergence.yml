@@ -1,8 +1,0 @@
-id: workflow-graph-subscription-convergence
-prd_id: workflow-graph-retention-bound
-obligation_kind: postcondition
-subject: A workflow graph subscriber must converge with bounded tracker state after a terminal graph is pruned.
-text: Subscribe to a low-bound WorkflowGraphTracker, complete multiple runs, and compare the final subscriber list with list() after pruning.
-session_id: freddie-2359017-1791302765514
-status: witnessed
-witness_evidence: Live WorkflowGraphTracker subscription with terminal bound 1 published [two] after pruning one; final subscriber ids equaled list() and mutating a returned list did not alter tracker state.

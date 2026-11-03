@@ -1,8 +1,0 @@
-id: dream-freddie-durable-context
-prd_id: dream-rsi-freddie-context
-obligation_kind: invariant
-subject: The Freddie context plugin must inject only a validated replay selection into an admitted pre-step as a durable sourced user message.
-text: Witness by live plugin drive observing the entered user/message source and content.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: Live gm_exec_js 1789639565485 executed the plugin module receipt/parser/render logic against a durable tool/call to tool/result envelope and yielded one bounded directive for selected policy better; source injection is packages/context/dream-rsi-context/src/index.js:57-70.

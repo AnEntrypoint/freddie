@@ -1,0 +1,6 @@
+id: "unknown-mw0ikvoyd7e0"
+kind: "unknown"
+title: "Which scroller hosts the gm_git_show OUT focus target: ChatView scrollport with the data-composer-seat sibling, or the T"
+body: "Ported from .gm/unknowns/gui-sticky-composer-focus-clearance-20261007-u1.yml (gm queue, old format). Verbatim:\n\nid: gui-sticky-composer-focus-clearance-20261007-u1\nsubject: 'Which scroller hosts the gm_git_show OUT focus target: ChatView scrollport with the data-composer-seat sibling, or the TrajectoryTable pane after Inspect?'\nstatus: unknown\nrow: gui-sticky-composer-focus-clearance-20261007\nsession_id: mcp-codemode-3535970-1793543373412-282\n"
+status: "open"
+createdAt: "2026-11-03T09:57:32.146Z"

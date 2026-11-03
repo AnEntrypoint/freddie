@@ -1,8 +1,0 @@
-id: openrouter-key-header-only
-prd_id: openrouter-free-fallback
-obligation_kind: identity-authority
-subject: The OpenRouter key is sent only on the models request and never written into chain output
-text: refreshOpenrouterFreeRank reads keyring.getKey and puts it only on the models request header. Chain links are model ids. git diff of the four changed files matches no key prefix.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: lib/auto-chain.js refreshOpenrouterFreeRank reads keyring.getKey('OPENROUTER_API_KEY') and places it only on the models request header. Chain links are openrouter/<id>. exec_js 1790929798369 git diff of CHANGELOG.md, lib/auto-chain.js, lib/chain-machine.js, package.json is 8008 bytes and secret=false (no key prefix).

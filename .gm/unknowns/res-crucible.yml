@@ -1,8 +1,0 @@
-id: res-crucible
-obligation_kind: crucible
-prd_id: token-delivery-austerity
-subject: timestamp rewrite has no resource-growth boundary
-text: file holds one integer; no handle or recursion introduced.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: file holds one integer; no handle, recursion, or growth boundary introduced.

@@ -1,9 +1,0 @@
-SESSION_ID: comment-sweep-1790669479148
-id: comment-sweep-jsdoc-contracts
-route_family: representation
-subject: 'Pre: exhaustive first-party JS scan found 281 JSDoc starts across 77 files. Invariant: public contracts remain discoverable and accurate while source carries no explanatory prose. Post: every JSDoc contract is represented in the owning package README/AGENTS.md or eliminated where code states it, with imports/live paths preserved.'
-status: pending
-notes:
-- ts: 2026-11-01T14:32:09.815Z
-  session_id: mcp-codemode-3535970-1793543522083-409
-  note: 'blocked_by: comment-sweep-jsdoc-contracts-blocker-mcp-codemode-3535970-1793542718115-1-15. Publish step 2 refused: publish_on_origin error_code=checker_missing (scripts/check-staged-secrets.mjs absent from /workspace/freddie; dispatch 1793543478876-3535970-396fb982358baf13); nothing pushed. Local checkout 1 ahead / 1 behind origin main (be18e5caf6bd). Uncommitted receipts: .gm/receipts/comment-sweep-jsdoc-contracts/01-orient.md, 02-unknowns.md, 03-eliminate.md, 04-edit.md. Premise stale: 0 first-party non-vendored JSDoc block comments (eliminate dispatches 1793543142385-203-22b620e6cccdb7ab, 1793543399546-648-fa084055112f5ee0); the 145 /** literal hits are contract data; vendor-modules/vendor is preserved third-party source. Resolution: gm owner decides whether publish_on_origin resolves the checker from the gm install or the repo ships it; then re-dispatch publish for the four receipt paths.'

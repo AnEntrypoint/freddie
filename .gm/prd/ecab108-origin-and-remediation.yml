@@ -1,9 +1,0 @@
-SESSION_ID: root-ecab108
-id: ecab108-origin-and-remediation
-subject: 'Pre: commit ecab108 and its push timing are alleged. Invariant: local/remote timestamps and payload provenance are independently witnessed without execution or deletion. Post: origin confidence is bounded and confirmed cleanup targets have recoverable forensic references.'
-route_family: grounding
-status: pending
-notes:
-- ts: 2026-11-01T14:30:00.424Z
-  session_id: mcp-codemode-3535970-1793543400346-307
-  note: 'Premise checked (receipts 01-03 under .gm/receipts/ecab108-origin-and-remediation/). ecab108 is not a commit: no local object or ref has that prefix, and origin answers 422 for it while the 6-char prefix d1a4c8 resolves. origin main = local main = d1a4c802531e, committer 2026-10-26T07:10:22Z, pushed 07:11:08Z. Cleanup targets: 52 tracked .gm/receipts paths deleted in the worktree; all 52 recoverable from HEAD and from their last-touch commits (11 groups, mapping in 01-orient.md).'

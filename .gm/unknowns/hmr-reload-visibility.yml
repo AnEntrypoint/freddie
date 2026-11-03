@@ -1,8 +1,0 @@
-id: hmr-reload-visibility
-prd_id: gui-live-verification
-obligation_kind: postcondition
-subject: Editing the web shell must replace the served page through HMR without a second development server or stale boot view.
-text: Use existing client-hmr EventSource contract and a real shell source edit to witness the live page remains reachable with the revised boot presentation.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'postcondition: packages/client/hmr/src/client/index.js:251-261 subscribes to shell-rebuilt frames and reloads the document; existing HMR ownership supports a real source-edit witness without starting another server.'

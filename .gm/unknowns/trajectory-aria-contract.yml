@@ -1,8 +1,0 @@
-id: trajectory-aria-contract
-prd_id: trajectory-aria-semantics
-obligation_kind: invariant
-subject: Trajectory labels must reach assistive technology through permitted element roles rather than previously dropped attributes.
-text: Identify exact turn-label and timeline elements from live audit, choose semantic role/element ownership, then rerun axe after the repair.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'invariant: TrajectoryTable.js:2077-2094 labels a span whose children are aria-hidden, so the owner needs a permitted named role; TrajectoryTimeline.js:602-622 has interactive keyboard/pointer behavior and accepts role="group" with the existing label.'

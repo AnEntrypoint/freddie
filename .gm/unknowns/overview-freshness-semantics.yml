@@ -1,8 +1,0 @@
-id: overview-freshness-semantics
-prd_id: overview-now-board
-obligation_kind: invariant
-subject: Overview never presents last-observed durable activity as current work without a lifecycle/freshness marker.
-text: 'Witness required: source records lifecycle/timestamp and browser-visible text distinguishes working, waiting, failed, idle, and last observed.'
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: packages/client/ui-observability/src/client/ObservabilityDock.js:126-153 computes relative age from the durable event timestamp and labels rows Working now, GM state retained, or Last observed; :385-388 and :435-447 render that state and detail. Live Overview at :3080 displayed working versus last-observed board rows, with HMR connected at sequence 701.

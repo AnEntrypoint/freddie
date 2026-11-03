@@ -1,8 +1,0 @@
-id: workflow-graph-retention-postcondition
-prd_id: workflow-graph-retention-bound
-obligation_kind: postcondition
-subject: Workflow graph retention prunes only completed terminal records beyond the configured bound while preserving every running graph and snapshot isolation.
-text: Execute WorkflowGraphTracker with a low terminal bound, complete multiple runs, retain a running run, and mutate a returned snapshot before a fresh read.
-session_id: freddie-2359017-1791302765514
-status: witnessed
-witness_evidence: Live imports of WorkflowGraphTracker with terminal bounds retained all active graphs, pruned oldest completed/cancelled/error graphs, and preserved snapshot isolation. WorkerThreadWorkflowEngine.Config exposes maxRetainedTerminalGraphs as number default 20.

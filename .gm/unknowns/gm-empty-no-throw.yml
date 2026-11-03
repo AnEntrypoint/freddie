@@ -1,8 +1,0 @@
-id: gm-empty-no-throw
-prd_id: gm-empty-graph-copy
-obligation_kind: precondition
-subject: graphNodes already treats missing nodes as []; renderer must use that helper
-text: Witness ObservabilityDock calls graphNodes(gm) and shows empty copy when length 0.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: exec_js 1789794928351 graphNodes(undefined).length is 0. Renderer must call graphNodes(gm) and show empty copy when length 0.'

@@ -1,8 +1,0 @@
-id: sec-identity
-obligation_kind: identity-authority
-prd_id: token-delivery-austerity
-subject: working diff adds no authority or auth boundary
-text: no new RPC, route, or auth check in the timestamp-only diff.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: 'same diff: no RPC, route, or authority check added.'

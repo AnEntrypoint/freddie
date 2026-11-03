@@ -1,8 +1,0 @@
-id: interactive-terminal-carrier
-prd_id: observability-terminal-plane
-obligation_kind: type-shape
-subject: Browser-to-host terminal remote protocol and live downlink carrier
-text: The API proxy currently exposes no terminal domain (packages/host/apiproxy/src/index.js:33-89). Establish exact caller/session authorization, snapshot, input, resize, and stream message schemas before implementation.
-session_id: freddie-37249-1789201746935
-status: witnessed
-witness_evidence: packages/terminal/terminal/src/index.js:190-250 already supplies exact-owner subscription, bounded reads, resize, and control; packages/api/remotes/src/client/index.js:19-36 is the existing typed browser-to-host carrier. The bridge will use a new terminal Remote for caller-to-Agent resolution and low-rate `terminalSummary` projection, while high-rate screen/output remains an explicitly bounded live client stream.

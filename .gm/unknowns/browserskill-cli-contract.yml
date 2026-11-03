@@ -1,9 +1,0 @@
-id: browserskill-cli-contract
-prd_id: browserskill-capability-seam
-obligation_kind: precondition
-subject: The BrowserSkill 0.3.2 CLI command names, JSON shapes, cancellation semantics, and ownership rules must be known before Freddie emits a provider.
-text: Witness by inspecting official 0.3.2 CLI help plus upstream DSH BrowserSkill tool routing and exercising bsk doctor/status. The integration will only invoke documented CLI commands and always use plugin-owned session IDs.
-depends_on: []
-session_id: freddie-2723231-1791306788857
-status: witnessed
-witness_evidence: Official BrowserSkill v0.3.2 was installed at /config/.local/bin/bsk. `bsk --version` returned 0.3.2; `bsk --help`, `bsk session/tab/window/debug/network/screenshot/record/request-help/download/upload/browsers --help` provided the concrete command contract; upstream packages/dsh-plugin-browserskill/src/browser-tools.ts and runner.ts confirm the six grouped tool families, JSON mode, and session ownership approach.

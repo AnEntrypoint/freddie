@@ -1,8 +1,0 @@
-id: trajectory-scroll-readiness
-prd_id: trajectory-live-verification
-obligation_kind: postcondition
-subject: The ledger mounts and has rows but its scroll-ready state never commits, leaving the table hidden.
-text: Trace the post-render scroll initialization path and repair readiness publication without forcing CSS visibility.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'postcondition: #syncScrollInit now waits only when history is loading and no tbody row exists; the rendered ledger can publish #tableScrollReady instead of remaining hidden behind a background history request.'

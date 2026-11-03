@@ -1,8 +1,0 @@
-id: gm-commit-index-coverage
-prd_id: gm-commit-relevance-search
-obligation_kind: postcondition
-subject: Commit relevance may currently index messages but not diffs, or may conflate ranked evidence.
-text: Witness index population and response construction using actual message and code-diff evidence for returned commit hashes.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: git_commit_vectors.rs:109-143 and :225-230 proved default embeddings include bounded diff content; code_index.rs git_commit_rank_at now returns explicit log/diff scoring provenance for root-scoped commits.

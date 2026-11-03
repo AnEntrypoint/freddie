@@ -1,8 +1,0 @@
-id: sec-message-timing
-obligation_kind: message-timing
-prd_id: token-delivery-austerity
-subject: working diff adds no network message edge
-text: no wire payload or replay surface in the timestamp-only diff.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: 'same diff: no network message edge, so no replay or timing surface.'

@@ -1,5 +1,0 @@
-row: gm-agents-md-edit-reopens-rows
-id: gm-agents-md-edit-reopens-rows-u2
-question: Does a row whose witness cites AGENTS.md#<heading> reopen when only that section changes, and stay pending when an unrelated AGENTS.md line changes (rule_bindings path, live)?
-session_id: mcp-codemode-3535970-1793543567153-426
-status: unknown

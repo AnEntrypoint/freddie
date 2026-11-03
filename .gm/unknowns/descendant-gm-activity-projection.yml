@@ -1,8 +1,0 @@
-id: descendant-gm-activity-projection
-prd_id: descendant-live-activity-observation
-obligation_kind: type-shape
-subject: The exact host projection key/value needed to summarize GM state for arbitrary active descendants must be identified.
-text: 'Witness: selected Overview reads props.useProjection(''gmProgress'') (packages/client/ui-observability/src/client/ObservabilityDock.js:180-191), but live GM codesearch does not currently return implementation hits; projection transport behavior is documented in docs/subsystems/session-projection.md:1-99.'
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Child GM progress is read from retained list projectionValues.gmProgress when present, and live gm/progress durable events enter the bounded child activity ledger.

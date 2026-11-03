@@ -1,5 +1,0 @@
-id: gui-sticky-composer-focus-clearance-20261007-u4
-subject: Which call issues the scroll on Enter/Tab focus (scrollIntoView block center, rowVirtualizer.scrollToIndex align center, or focus() without preventScroll), and does it ignore the composer height?
-status: unknown
-row: gui-sticky-composer-focus-clearance-20261007
-session_id: mcp-codemode-3535970-1793543373412-282

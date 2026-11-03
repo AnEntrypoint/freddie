@@ -1,8 +1,0 @@
-id: browser-shell-hmr-live-protocol
-prd_id: browser-shell-hmr-readonly-audit
-obligation_kind: type-shape
-subject: The loaded browser's HMR event transport, module update routing, and shell bootstrap ownership must be determined from source and a non-mutating live observation.
-text: 'Witness: exact source line references and browser/event-stream observation; audit remains read-only.'
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: 'Read-only source evidence: client HMR EventSource uses /plugins/events at packages/client/hmr/src/client/index.js:213-227; host registers and emits it at packages/client/hmr/src/index.js:265-331. Non-mutating GUI observation at http://127.0.0.1:3080 confirmed __FREDDIE_BOOT__.rev=796f14b10061 and shell script /src/main.js.'

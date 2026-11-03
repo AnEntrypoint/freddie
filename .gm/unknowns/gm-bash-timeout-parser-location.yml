@@ -1,8 +1,0 @@
-id: gm-bash-timeout-parser-location
-prd_id: gm-bash-timeout-contract
-obligation_kind: precondition
-subject: The exact source modules that serve Bash guidance and parse runtime Bash bodies are unknown.
-text: Witness with exhaustive literal source search and read the identified grammar/parser implementations.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'Read source: `skills/gm/SKILL.md:42-47` documents raw plain-text verbs; `rs-plugkit/.../verbs.rs:1925-1958` serves/executes Bash; `agentplug/.../exec_js.rs:13-28,305-307` enforces timeout and launches bash. The contradiction was shell_exec wording accepting bare commands while its None branch rejected them.'

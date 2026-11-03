@@ -1,8 +1,0 @@
-id: hmr-audit-security-scan
-prd_id: hmr-coverage-audit
-obligation_kind: resource-bound
-subject: Dependency scan reported a blocked recursive node_modules path, so its clean result cannot be claimed.
-text: 'Witness: gm_scan_deps dispatch 1789047411164 returned failCount 0 but blockedCount 1 and 153 size-only warnings; blocked path is recursively linked @freddie cordis/loader tree. Audit report must disclose the limitation and not claim supply-chain cleanliness.'
-session_id: freddie-2075880-1789046559707
-status: witnessed
-witness_evidence: gm_scan_deps dispatch 1789048136337 reports failCount 0, blockedCount 0, nodeModulesTruncated false; the remaining 153 warnings are size-only minified artifacts.

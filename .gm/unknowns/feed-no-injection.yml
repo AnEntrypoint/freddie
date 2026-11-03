@@ -1,8 +1,0 @@
-id: feed-no-injection
-obligation_kind: injection
-prd_id: feed-element-cache
-subject: The feed fix does not interpolate untrusted input into a shell, query, path, or eval.
-text: The new code only builds a cache key and calls replaceChild or insertBefore on existing DOM nodes.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: The new template is a cache key from node.key and a block index. DOM calls receive existing nodes, not a shell, query, path, or eval string.

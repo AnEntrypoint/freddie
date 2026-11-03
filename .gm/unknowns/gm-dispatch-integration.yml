@@ -1,8 +1,0 @@
-id: gm-dispatch-integration
-prd_id: observability-gm-bridge
-obligation_kind: precondition
-subject: Exact package or runtime boundary where GM tool results can safely publish session events
-text: Witness through source search and direct inspection of the active GM tool integration rather than assuming a global hook.
-session_id: freddie-37249-1789201746935
-status: witnessed
-witness_evidence: packages/gm/tool-gm/src/verbs.js:79-87 is the committed successful model-tool result boundary, with exec.agent.session available; packages/gm/tool-gm/src/index.js:46-56 appends the compact GM snapshot after that result.

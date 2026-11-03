@@ -1,8 +1,0 @@
-id: gm-progress-append-ownership
-prd_id: gm-graph-progress-fold
-obligation_kind: ownership
-subject: session.append of gm/progress is contained; fold failure cannot leak into the GM tool result
-text: Read tool-gm apply try/catch around append; exec_js cannot throw from foldGmGraph on empty previous.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: packages/gm/tool-gm/src/index.js:80-90 try/catch around session.append swallows errors (void error). exec_js 1789796744481 foldGmGraph never threw on empty previous.

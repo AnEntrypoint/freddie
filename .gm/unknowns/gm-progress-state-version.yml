@@ -1,8 +1,0 @@
-id: gm-progress-state-version
-prd_id: gm-graph-progress-fold
-obligation_kind: invariant
-subject: gm-progress stateVersion is 2 without nodes/edges; graph fields require a bump so persisted cache rows are discarded
-text: Witness projection.js stateVersion after EMIT.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'invariant: exec_js 1789794928351 gmProgressProjectionDefinition.stateVersion is 2; initKeys are verb/status/phase/prdPendingCount/mutablesPendingCount/sessionId/belongsToConfiguredSession/startedAt/finishedAt/durationMs/error with no nodes/edges/walking. Graph fields require stateVersion 3 so cache rows at 2 are discarded.'

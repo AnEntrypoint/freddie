@@ -1,8 +1,0 @@
-id: poll-error-logged
-prd_id: boot-poll-if-behind
-obligation_kind: postcondition
-subject: stage_runner_self_update Err is logged and does not abort the daemon loop
-text: match at daemon.rs:2930 Err branch eprintln and record_runner_poll_error. Loop continues to idle wait.
-session_id: freddie-12560-1789847277758
-status: witnessed
-witness_evidence: 'postcondition: daemon.rs:2930 match Err eprintln + record_runner_poll_error. Loop continues. cargo check agentplug-runner finished 1.96s.'

@@ -1,8 +1,0 @@
-id: descendant-overview-client-resolution
-prd_id: descendant-live-activity-observation
-obligation_kind: precondition
-subject: A focused client-only overview needs a supported way to retain/open child Session windows and render their current data without changing SessionRuntime selection.
-text: 'Witness: SessionRuntime stages and opens only current selection (packages/client/runtime/src/client/sessions/service.js:491-515); SessionManager drops non-instantiated mux session/event frames (manager.js:626-745), so the client needs explicit background observation/resolution.'
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Implemented a bounded non-navigating manager background activity mirror instead of resolving/opening child Session windows; it observes live mux events without changing selection.

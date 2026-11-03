@@ -1,6 +1,0 @@
-SESSION_ID: gm-ce-3847245-1789372444
-id: ce-webjsx-no-edit-needed
-subject: Does webjsx need any change for aliasing? createDOMElement calls document.createElement (createDOMElement.js:21-26) and canUpdateVNodes compares vnode.tagName derived from the type string (createElement.js:49), never the DOM node's tagName.
-status: witnessed
-witness: 'source lines cited; to be witnessed live: h(''freddie-operations-strip'') after a swap yields an element whose tagName is FREDDIE-OPERATIONS-STRIP--V2'
-witness_evidence: 'Live Chrome eval on http://127.0.0.1:3080: after defineElement(''x-probe'', A/B/C) the unmodified /vendor webjsx applyDiff(host, h(''x-probe'', ...)) produced localName x-probe--v3, instanceof C true, data-ce x-probe, and a second applyDiff with the same tag reused the node (hReused true, text updated); createDOMElement.js:21-26 reaches the patched Document.prototype.createElement and canUpdateVNodes compares vnode.tagName (createElement.js:49).'

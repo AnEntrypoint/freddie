@@ -1,8 +1,0 @@
-id: state-hovercard-ownership
-prd_id: hovercard-portal-pointer-region
-obligation_kind: ownership
-subject: Hover card timer is owned by the element and cleared on leave-to-close
-text: 'Live page: card pointerenter after wrapper leave held the card past 350ms. Card pointerleave removed it after 350ms. disconnectedCallback already clears the timer.'
-session_id: freddie-107108-1790937270938
-status: witnessed
-witness_evidence: 'ownership: live page evaluate. Hover card pointerenter after the row leave held the card at 350ms. Card pointerleave removed it at 350ms. Timer is the element''s own #closeTimer, cleared by #cancelClose on enter and by disconnectedCallback.'

@@ -1,8 +1,0 @@
-id: codesearch-path-glob-fields
-prd_id: codesearch-pass-path-glob
-obligation_kind: precondition
-subject: Daemon accepted fields for path/glob
-text: Skill lists path/glob/path_glob; Freddie tool schema has only query/k/mode/root.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: verbs.js:141-152 parameters are query/k/mode/root only; path/glob/path_glob never reach the spool body. Skill brick wall names path/glob/path_glob as the bound.

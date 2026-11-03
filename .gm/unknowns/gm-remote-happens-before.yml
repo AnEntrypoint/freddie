@@ -1,8 +1,0 @@
-id: gm-remote-happens-before
-prd_id: gm-remote-boot-isolation
-obligation_kind: happens-before
-subject: Core remotes $mount complete before GM dynamic import; GM failure cannot dispose them
-text: 'Read remotes apply: first loop awaits all core mounts; GM try is after that loop.'
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841051410 coreThenGm true; catchAfter true. Core remotes mount loop precedes GM dynamic import; GM catch cannot dispose prior remotes.

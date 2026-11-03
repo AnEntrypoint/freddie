@@ -1,8 +1,0 @@
-id: sec-no-injection
-obligation_kind: injection
-prd_id: token-delivery-austerity
-subject: working diff has no untrusted input reaching a sink
-text: diff is a one-line timestamp rewrite in .gm/.last-scan-deps-ts; no shell, query, eval, template, or path-join sink.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: 'same diff: one timestamp line, no shell/query/eval/template/path-join sink.'

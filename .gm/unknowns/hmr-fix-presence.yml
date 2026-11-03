@@ -1,8 +1,0 @@
-id: hmr-fix-presence
-prd_id: hmr-readonly-audit
-obligation_kind: postcondition
-subject: Whether the repository currently lacks the minimal revision-propagation repair or already contains it.
-text: 'Witness: compare host rebuild/SSE payload and browser updateGraphRow-before-invalidate-prefetch sequence in exact source lines; obtain an independent source-audit result.'
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: 'Source witness: ClientModuleRegistry.rebuilt replaces the host row at packages/client/modules/src/index.js:404-421; SSE serializes that entry and graphRev at packages/client/hmr/src/index.js:297-318; browser reload invokes updateGraphRow before invalidate/prefetch at packages/client/hmr/src/client/index.js:101-126; updateGraphRow replaces graphRows and manifest rows at packages/client/modules/src/client/system.js:155-165.'

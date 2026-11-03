@@ -1,8 +1,0 @@
-id: graph-log-bound
-obligation_kind: type-shape
-prd_id: hmr-all-surfaces
-subject: recordLog is bounded at 200 rows so logs cannot grow without bound
-text: 'exec_js: 250 log lines; logs.length === 200.'
-session_id: freddie-24860-1789086308555
-status: witnessed
-witness_evidence: 'exec_js 1789086980311: 250 recordLog calls; logs.length=200 first=m50 last=m249. Bound is explicit shift at 200.'

@@ -1,8 +1,0 @@
-id: settle-empty-still-refused
-prd_id: spool-write-settle-cut
-obligation_kind: invariant
-subject: empty in-file is still not claimed
-text: spool_in_file_write_has_settled returns false when metadata.len()==0. Torn > redirects stay unclaimed.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: daemon.rs:1612-1614 spool_in_file_write_has_settled returns metadata.len()>0. Empty write still false. selfcheck_spool_claim asserts !empty_claimed.

@@ -1,8 +1,0 @@
-id: listmodels-parallel
-prd_id: listmodels-serial-probes
-obligation_kind: postcondition
-subject: ollama fetch and listChatJimmyModels run concurrently; a dead ollama does not serialize 1500ms before chatjimmy
-text: 'Witness listModels source: both awaits start together. Re-measure GET /v1/models after process restart or cache miss.'
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'postcondition spec: listModels starts ollama /api/tags and listChatJimmyModels in the same Promise.all. Negative ollama TTL so a dead localhost:11434 does not serialize AbortSignal.timeout(1500) ahead of chatjimmy. Cached GET stays ~40ms.'

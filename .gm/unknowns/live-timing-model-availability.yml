@@ -1,8 +1,0 @@
-id: live-timing-model-availability
-prd_id: timing-ui-live-data
-obligation_kind: precondition
-subject: The existing GUI must have a configured selectable model to produce a real completed tool result for timing display verification.
-text: 'Witness: model menu at the active GUI currently exposes only `Select model`; determine a configured session or provider path without synthetic event injection.'
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: Live browser Model menu exposes no configured model and DEEPSEEK_API_KEY presence check returned unavailable. A real post-change model tool run cannot be started from this GUI without configuration/credentials; no synthetic event was introduced.

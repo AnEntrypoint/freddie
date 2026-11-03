@@ -1,8 +1,0 @@
-id: gm-note-supersede
-prd_id: gm-agent-note
-obligation_kind: postcondition
-subject: 2026-04-15-gm-overview-mutable-graph.md claims Overview already renders the DAG; rewrite to shipped reality or supersede
-text: Witness the note matches live UI after EMIT.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'postcondition: .agents/notes/implemented/feature/2026-04-15-gm-overview-mutable-graph.md currently claims Overview already renders the DAG; live ObservabilityDock.js:433-464 still paints metric tiles. EMIT rewrites that note to shipped graph-first GUI plus MCP removal.'

@@ -1,0 +1,6 @@
+id: "unknown-mw0ikvoza58d"
+kind: "unknown"
+title: "vendor-u3-live-generator-run"
+body: "Ported from .gm/unknowns/vendor-u3-live-generator-run.yml (gm queue, old format). Verbatim:\n\nid: vendor-u3-live-generator-run\nvalue: Can generate-vendor start live in this checkout (needs node_modules install), and does it complete without bypassing writeEmitted?\nstatus: unknown\nrow: vendor-manifest-regeneration-drift\nsession_id: mcp-codemode-3535970-1793543177153-118\n"
+status: "open"
+createdAt: "2026-11-03T09:57:32.147Z"

@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oz7f03"
+kind: "unknown"
+title: "[gm predecessor] Is there a local checkout of the gm-mcp source (AnEntrypoint/gm-mcp) on this host, and does it contain a bundle-version check at tool-call s"
+body: "Ported from .gm/unknowns/gm-stale-mcp-bundle-restart-u1-18d3f125c4ccdfa6.yml (gm queue, old format). Verbatim:\n\nid: gm-stale-mcp-bundle-restart-U1\nsubject: Is there a local checkout of the gm-mcp source (AnEntrypoint/gm-mcp) on this host, and does it contain a bundle-version check at tool-call startup? Answers whether an edit target exists outside this repo.\nrow: gm-stale-mcp-bundle-restart\nbody: Is there a local checkout of the gm-mcp source (AnEntrypoint/gm-mcp) on this host, and does it contain a bundle-version check at tool-call startup? Answers whether an edit target exists outside this repo.\nsession_id: mcp-codemode-3535970-1793542718115-1-6\nstatus: unknown\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.403Z"

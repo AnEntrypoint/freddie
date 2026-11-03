@@ -1,8 +1,0 @@
-id: watch-closed-on-settle
-prd_id: spool-out-watch
-obligation_kind: invariant
-subject: fs.watch handle is closed on land, abort, timeout, and watch error
-text: spool.js waitForOutOrTimeout finish() closes watcher and clears timer once; abort and error both call finish.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: packages/gm/gm-client/src/spool.js:264-292 waitForOutOrTimeout finish() is once (settled), clearTimeout(timer), watcher.close() when defined, abort and watch error both call finish.

@@ -1,8 +1,0 @@
-id: gm-remote-apply-totality
-prd_id: gm-remote-boot-isolation
-obligation_kind: totality
-subject: apply always returns a disposer covering every successful $mount including optional GM
-text: 'Read remotes apply: disposers array; GM success pushes; catch does not throw; return disposes all.'
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: 'exec_js 1789840947521 disposerReturn true: GM $mount push plus return async disposer over disposers.'

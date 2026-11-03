@@ -1,8 +1,0 @@
-id: watch-open-fails
-prd_id: watch-fallback-windows
-obligation_kind: invariant
-subject: watch() throw falls back to 25ms timer
-text: spool.js catch { watcher = undefined } after setTimeout; poll still completes.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: packages/gm/gm-client/src/spool.js:284-290 timer is set first; watch() throw sets watcher undefined; 25ms poll still completes.

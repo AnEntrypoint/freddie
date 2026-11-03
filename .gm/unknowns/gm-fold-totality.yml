@@ -1,8 +1,0 @@
-id: gm-fold-totality
-prd_id: gm-overview-served-graph
-obligation_kind: totality
-subject: foldGmGraph and inspectGraph/overlayWalk return defined results on undefined, empty, and oversized inputs
-text: exec_js fold/inspect/overlay on undefined, empty, 90-node, malformed chat.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841010771 emptyNodes 0; previousUnchanged true; nextNew true; nextIds [keep,n]; cap 80; overlayOk/overlay2Ok true; layoutEmpty columns/orphans [].

@@ -1,8 +1,0 @@
-id: line-offset-handlechat
-prd_id: review-commit-prd-mutables
-obligation_kind: invariant
-subject: pinned-refresh-scope witness cites server.js:850-851 as buildAutoChainLive; current source has named-queue assign there and Live call at 870
-text: Read C:\dev\acptoapi\lib\server.js:850-870 against .gm/mutables.yml pinned-refresh-scope witness_evidence.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'invariant: current server.js:850-851 is named-queue assign; buildAutoChainLive for directlyRoutable is 870. Witness 850-851 was pre-offset; the Live call still exists. Claim holds, line numbers drifted.'

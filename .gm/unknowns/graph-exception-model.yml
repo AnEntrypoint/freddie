@@ -1,8 +1,0 @@
-id: graph-exception-model
-obligation_kind: type-shape
-prd_id: hmr-all-surfaces
-subject: WorkflowGraphTracker never throws on missing/hostile payloads; unknown outcomes map to completed
-text: 'exec_js: agentStopReason unknown/empty; onAgentEnd without start still records a node; no throw.'
-session_id: freddie-24860-1789086308555
-status: witnessed
-witness_evidence: 'exec_js 1789086980311: unknown/empty outcome map to completed (named default). onAgentEnd without start records orphan status=failed. No throw.'

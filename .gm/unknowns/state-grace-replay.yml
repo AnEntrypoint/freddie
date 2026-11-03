@@ -1,8 +1,0 @@
-id: state-grace-replay
-prd_id: menu-portal-pointer-region
-obligation_kind: replay
-subject: Grace timer is one timer and a second enter cancels a pending close
-text: 'Live page: list pointerleave then pointerenter within 40ms left role=menu present after 320ms. A second list pointerleave with no re-enter removed the menu after 320ms. Owner close while closed does not re-arm: handlers are bound only while open.'
-session_id: freddie-107108-1790937270938
-status: witnessed
-witness_evidence: 'replay: live page evaluate. Menu list pointerleave then pointerenter 40ms later: role=menu still present at 320ms (close count did not fire). Second pointerleave with no re-enter: role=menu absent at 320ms. One timer, second enter cancels the first arm.'

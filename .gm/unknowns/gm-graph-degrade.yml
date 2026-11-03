@@ -1,8 +1,0 @@
-id: gm-graph-degrade
-prd_id: gm-overview-served-graph
-obligation_kind: degradation
-subject: foldGmGraph caps at 80; empty layout is named copy
-text: exec_js cap 80; layoutGraph(undefined) columns/orphans empty.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841131913 cap 80; layoutEmpty columns/orphans [].

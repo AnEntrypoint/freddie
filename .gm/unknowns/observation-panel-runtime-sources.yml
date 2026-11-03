@@ -1,8 +1,0 @@
-id: observation-panel-runtime-sources
-prd_id: workflow-observability
-obligation_kind: precondition
-subject: Identify the existing Web component files and runtime event payloads that own workflow progress/logs and subagent lifecycle before extending their renderers.
-text: Witness with source reads of the component and event provider registrations.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Source reads identify workflow renderer/registration at packages/client/ui-workflow-run/src/client/{index.js,workflow-definition.js,WorkflowRunPanel.js}; GM durable projection at packages/gm/{tool-gm/src/index.js,gm-progress/src/projection.js}; subagent UI/runtime at packages/client/ui-subagent/src/client/{index.js,SubagentHeaderLineage.js} and packages/client/runtime/src/client/sessions/subagent-lineage.js; terminal runtime and transport foundations at packages/client/runtime/src/client/sessions/{service.js,terminal-activity.js}, packages/terminal/terminal/src/index.js, and packages/host/apiproxy/src/api/terminals.schema.js.

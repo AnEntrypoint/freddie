@@ -1,8 +1,0 @@
-id: question-lifecycle-owner
-prd_id: map-client-realtime-flow
-obligation_kind: type-shape
-subject: The authoritative event/API shape that represents pending user questions and their settlement.
-text: Witness exact definitions and client consumers via source locations plus a live transport observation.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: Live browser session rendered a host-originated pending question through the real model tool; source chain is tool-ask-user/src/index.js:79-97 -> apiproxy/src/api-proxy.js:1186-1212 -> runtime sessions/session.js:476-485 -> ui-user-questions QuestionComposer. The reconnect ordering risk is evidenced by session resync clearing pending at session.js:394-397 after mux frames may arrive.

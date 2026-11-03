@@ -1,8 +1,0 @@
-id: cfded9c-exists
-prd_id: commit-identity
-obligation_kind: precondition
-subject: Whether cfded9c is an acptoapi commit and what it contains
-text: Witness git object in C:\dev\acptoapi, not Freddie HEAD.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'precondition: C:\dev\acptoapi cfded9c is origin/main. git show cfded9c: auto-chain.js skip + server.js Promise.all ollama/chatjimmy/ACP + CHANGELOG 1.0.248. Also mixed max_tokens hunks in the same server.js commit.'

@@ -1,8 +1,0 @@
-id: trajectory-render-failure
-prd_id: trajectory-live-verification
-obligation_kind: postcondition
-subject: After the foundation edit, the selected trajectory slot mounted an error boundary rather than a ledger.
-text: Extract the real browser error and repair the framework incompatibility before claiming the trajectory ledger works.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'postcondition: browser console identified Virtualizer onChange recursion; TrajectoryTable now schedules callback renders and publishes the instance before measurement.'

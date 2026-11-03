@@ -1,0 +1,6 @@
+id: "prd-mw0is4ow0414"
+kind: "prd"
+title: "[gm predecessor] Witness row for the PRD writer stray-marker check; closed in the same run."
+body: "Ported from .gm/prd/gm-writer-witness-1791818356689.yml (gm queue, old format). Verbatim:\n\nid: gm-writer-witness-1791818356689\nSESSION_ID: gm-freddie-eff-20261012-sub1\nsubject: Witness row for the PRD writer stray-marker check; closed in the same run.\nstatus: pending\nsession_id: gm-freddie-eff-20261012-sub1\nblockedBy:\n- external\ndeferReason: Writer witness row created to check the PRD writer's trailing-marker behavior on a live store; removed from the active set after the round trip.\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.400Z"

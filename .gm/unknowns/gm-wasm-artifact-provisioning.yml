@@ -1,8 +1,0 @@
-id: gm-wasm-artifact-provisioning
-prd_id: gm-scan-deps-workspace-symlink-cycle
-obligation_kind: precondition
-subject: Official source configuration or documented artifact provisioning route that permits the real GM plugin WASM to build without missing BGE embedded model weights is unknown.
-text: Witness with authoritative repository documentation/build configuration plus a successful real wasm32-wasip1 build and installed artifact.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Cargo.toml:11-19 documents the slim build’s explicit real host_vec_embed dependency. Successful slim wasm32-wasip1 release build produced target/wasm32-wasip1/release/rs_plugkit.wasm; the installed artifact immediately served GM literal codesearch with mode:literal and exhaustive:true.

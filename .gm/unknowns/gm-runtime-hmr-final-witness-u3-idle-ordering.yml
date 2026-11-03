@@ -1,4 +1,0 @@
-id: gm-runtime-hmr-final-witness-u3-idle-ordering
-value: U3 Does hmr/idle fire (framework/hmr/src/index.js:365) before the next model tool dispatch, so a fresh GUI GM tool dispatch follows the idle boundary rather than racing the reload?
-status: unknown
-session_id: mcp-codemode-3535970-1793542718115-1-9

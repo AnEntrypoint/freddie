@@ -1,8 +1,0 @@
-id: gm-files-graph-js
-prd_id: gm-progress-package-files
-obligation_kind: postcondition
-subject: files array currently lists index/verbs/presentation/invariant only
-text: Witness package.json files after EMIT includes graph.js.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'postcondition: exec_js 1789794928351 tool-gm package.json files is index/verbs/presentation/invariant only. EMIT must add src/graph.js.'

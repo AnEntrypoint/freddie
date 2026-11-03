@@ -1,8 +1,0 @@
-id: boot-readiness-a11y-repair
-prd_id: gui-accessibility-landmarks
-obligation_kind: postcondition
-subject: The initial audit found the new readiness grid was not a semantic region and its detail text failed contrast.
-text: Convert the grid to a labeled semantic region, add boot main/H1 landmarks, raise detail contrast, then rerun axe against the real boot page.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'postcondition: live boot axe audit returned violations: 0 after BootPage renders main/H1 and labeled readiness section; readiness detail contrast now passes.'

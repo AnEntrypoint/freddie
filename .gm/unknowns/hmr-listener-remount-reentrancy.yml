@@ -1,8 +1,0 @@
-id: hmr-listener-remount-reentrancy
-prd_id: ui-hmr-adversarial-audit
-obligation_kind: invariant
-subject: Whether shell remount or plugin swap can invoke ObservabilityDock connectedCallback repeatedly without matched disconnect cleanup.
-text: Witness through HMR driver source, custom-element lifecycle behavior, and affected dock lines.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: packages/client/ui-observability/src/client/ObservabilityDock.js:244 creates one stable handler; :251-254 installs it only on connection; :256-258 removes exactly that handler on disconnection. packages/client/hmr/src/client/index.js:238-259 drains the old fiber before refresh and :417-422 closes the old EventSource during driver effect disposal, so neither a plugin swap nor shell remount retains the old dock listener.

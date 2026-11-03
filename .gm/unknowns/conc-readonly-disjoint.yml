@@ -1,8 +1,0 @@
-id: conc-readonly-disjoint
-prd_id: gm-readonly-parallel
-obligation_kind: invariant
-subject: Read-only GM verbs may overlap; mutating verbs stay exclusive
-text: verbs.js marks only instruction, phase-status, codesearch, recall, exec_js, git_status, git_log, git_diff, git_show concurrency-safe. PRD, mutable, transition, and git write verbs omit the marker, so executionMode stays exclusive.
-session_id: freddie-107108-1791049571843
-status: witnessed
-witness_evidence: codesearch of verbs.js shows isConcurrencySafe only at lines 90, 104, 134, 151, 239, 283, 295, 307, 319. git_finalize, prd, mutable, and transition tools have no marker, so tools.executionMode keeps them exclusive.

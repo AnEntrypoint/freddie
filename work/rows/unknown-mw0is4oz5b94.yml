@@ -1,0 +1,6 @@
+id: "unknown-mw0is4oz5b94"
+kind: "unknown"
+title: "[gm predecessor] Does dream-replay-cycle with a valid session_id return a replayed receipt without policy deployment (live spool witness; only if U2 permits)"
+body: "Ported from .gm/unknowns/gm-sibling-dream-rsi-ticker-repair-u4-39a0b94a595f0e6d.yml (gm queue, old format). Verbatim:\n\nrow: gm-sibling-dream-rsi-ticker-repair\nid: gm-sibling-dream-rsi-ticker-repair:U4\nquestion: Does dream-replay-cycle with a valid session_id return a replayed receipt without policy deployment (live spool witness; only if U2 permits)?\nkind: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-7\nstatus: unknown\n"
+status: "open"
+createdAt: "2026-11-03T10:03:10.403Z"

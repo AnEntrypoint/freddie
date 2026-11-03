@@ -1,8 +1,0 @@
-id: gm-runtime-source-alignment
-prd_id: gm-runtime-repair-and-release
-obligation_kind: precondition
-subject: The live agentplug gm plugin and ../gm source tree version/provenance may differ.
-text: Witness with runtime status, installed plugin metadata, and source artifact/build evidence before changing or claiming runtime behavior.
-session_id: freddie-3513999-1789467163370
-status: witnessed
-witness_evidence: The exact slim artifact was built successfully twice with /config/.cargo/bin/cargo, installed to /config/.agentplug/plugins/gm.wasm, version file set to 0.1.1287, runner restarted, and live dispatches after restart exposed the new fields.

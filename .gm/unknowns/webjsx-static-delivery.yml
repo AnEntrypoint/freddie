@@ -1,8 +1,0 @@
-id: webjsx-static-delivery
-prd_id: webjsx-attribute-semantics
-obligation_kind: precondition
-subject: The fresh browser still omitted numeric/boolean attributes after editing framework source, so the shell may load a static served webjsx projection with a separate owner.
-text: Identify the exact browser-loaded webjsx source identity and update its owning buildless static module path rather than claiming a framework source change reached the page.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'precondition: browser read of /vendor/@freddie/webjsx@0.0.73/src/attributes.js still contains the old HTMLElement expando fallback, while framework/webjsx/src/attributes.js is fixed. Vendor module delivery is the missing deployment edge.'

@@ -1,8 +1,0 @@
-id: conc-one-timer
-prd_id: menu-portal-pointer-region
-obligation_kind: happens-before
-subject: Wrapper leave and list enter share one timer; enter cancels leave
-text: 'Both handlers call #cancelGrace before #armGrace. Live page: leave then enter within 40ms produced zero closes. No second timer, no queue.'
-session_id: freddie-107108-1790937270938
-status: witnessed
-witness_evidence: 'happens-before: Menu.js #armGrace calls #cancelGrace first, so a later enter replaces the pending close. Live page leave-then-enter within 40ms left the menu open at 320ms. One #graceTimer per element, 200ms bound, no queue.'

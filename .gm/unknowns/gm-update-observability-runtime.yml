@@ -1,8 +1,0 @@
-id: gm-update-observability-runtime
-prd_id: gm-update-observability
-obligation_kind: postcondition
-subject: GM runtime update snapshot reaches the active UI
-text: Dispatch a real GM tool after source activation and read the session's gm/progress projection and the live GUI GM runtime metric.
-session_id: freddie-2128598-1790941468204
-status: witnessed
-witness_evidence: Direct live execution of Gm.prototype.runtimeStatus against the active daemon returned JSON-safe `{runnerVersion:"0.1.158",gmVersion:"0.1.1362",updateState:"current",updateError:null}`. tool-gm now captures that leaf snapshot at each existing gm/progress publication; the projection fold and observability view consume only this owned JSON.

@@ -1,8 +1,0 @@
-id: rsi-evaluator-policy-admission
-prd_id: gm-rsi-admission-integrity
-obligation_kind: invariant
-subject: Evaluator receipts must never persist arbitrary policy IDs.
-text: 'Witness: subagent live dispatch 1789767566829 accepted policy_id=not-registered-a91f; dream_rsi.rs:296-316 stores it without registered-policy lookup, while discovery rejects it later.'
-session_id: freddie-2260524-1789740208025
-status: witnessed
-witness_evidence: rs-plugkit dream_rsi.rs now loads the same-session policy store before dispatch-ledger lookup; gm_exec_js 1789768301781 verified unregistered-policy rejection precedes ledger read; the rebuilt 0.1.1326 artifact is installed.

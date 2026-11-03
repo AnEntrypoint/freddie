@@ -1,8 +1,0 @@
-id: overview-data-ownership
-prd_id: overview-priority-summary
-obligation_kind: invariant
-subject: The Overview summary must derive from the same session, projection, connection, and tree snapshots already bound by ui-observability.
-text: Witness ObservabilityDock current activity, attention, todo, descendant, and GM data are already produced from framework hooks before adding a presentation-only summary.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'invariant: ObservabilityDock.js:300-331 reads gm/todos/sessionStats/workflow/connection/session/tree snapshots through existing framework hooks; no new host API or subscription is needed.'

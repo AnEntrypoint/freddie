@@ -1,8 +1,0 @@
-id: gm-projection-replay
-prd_id: gm-remote-boot-isolation
-obligation_kind: replay
-subject: gm/progress last-wins apply of the same event is Object.is; non-gm/progress ignored
-text: exec_js projection apply twice.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841010771 sameRef true; ignoredSame true; stateVersion 3. Last-wins Object.is; todo/write ignored.

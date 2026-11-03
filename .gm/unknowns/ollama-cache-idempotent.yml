@@ -1,8 +1,0 @@
-id: ollama-cache-idempotent
-prd_id: listmodels-serial-probes
-obligation_kind: invariant
-subject: _ollamaListCache is process-local; a miss fetches once then both success and failure store {models, ts}; concurrent listModels last-write-wins
-text: Witness server.js OLLAMA_LIST_TTL_MS and catch path writing empty models with ts.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'invariant: server.js:26-27 OLLAMA_LIST_TTL_MS default 30000 and _ollamaListCache. Miss fetches once; success and catch both store {models, ts}. Concurrent listModels last-write-wins same empty-or-list shape.'

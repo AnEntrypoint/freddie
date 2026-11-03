@@ -1,8 +1,0 @@
-id: gui-runtime-data-contract
-prd_id: workflow-observability
-obligation_kind: type-shape
-subject: The existing web transport contract and the UI node renderers must provide durable workflow, GM, subagent, and terminal data needed by the proposed tabs.
-text: Witness with live app and source reads before changing UI state.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Live GUI exposes session projections through useProjection and terminal snapshots through useTerminals; source reads confirmed their UI bridge and active tab contract.

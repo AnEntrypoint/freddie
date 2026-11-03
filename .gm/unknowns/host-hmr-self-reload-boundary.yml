@@ -1,8 +1,0 @@
-id: host-hmr-self-reload-boundary
-prd_id: host-hmr-self-reload-verification
-obligation_kind: replay
-subject: Determine whether an edit to client-hmr's node half can reapply its own route registration in the currently running host without losing the previously registered route.
-text: Witness by source trace and real route behavior; use the existing running server, never launch a replacement server.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'Live witness: after editing packages/client/hmr/src/index.js, repeated browser client-half rebuilds occurred, but real HEAD /plugins/events still exceeded a 2.5s abort and curl timed out at 3s. Source trace framework/hmr/src/index.js:519-576 shows accepted host plugin reloads replace registered plugin fibers, yet the current running server has not applied the node-half revision. Per active GUI constraints, no replacement server was started and the existing shared GUI process was not restarted.'

@@ -1,8 +1,0 @@
-id: booted-per-instance
-prd_id: skip-ensure-daemon-status-read
-obligation_kind: invariant
-subject: booted skip is per Gm instance; died clears it
-text: index.js this.booted; GM_DAEMON_DIED sets booted false then ensureDaemon. First call still boots.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: packages/gm/gm-client/src/index.js:155-176 this.booted per instance; first call ensureDaemon; GM_DAEMON_DIED sets booted false then ensureDaemon and booted true.

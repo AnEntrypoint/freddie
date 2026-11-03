@@ -1,8 +1,0 @@
-id: trajectory-virtualizer-callback-scheduling
-prd_id: trajectory-live-verification
-obligation_kind: invariant
-subject: Publishing the virtualizer before measure was insufficient because its onChange callback still synchronously re-entered the active render stack.
-text: Schedule and deduplicate Virtualizer-triggered renders into a microtask so measurement and render cannot recurse, then drive the real trajectory tab again.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'invariant: Virtualizer onChange now calls #scheduleVirtualRender(), which uses one microtask and an isConnected guard; measure cannot recursively enter #render on the same stack.'

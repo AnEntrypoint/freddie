@@ -1,8 +1,0 @@
-id: gm-progress-fold-contention
-prd_id: gm-overview-served-graph
-obligation_kind: contention
-subject: foldGmGraph copies previous.nodes into a new array; frozen previous is unchanged
-text: exec_js freeze previous then fold.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841051410 previousUnchanged true; nextNew true. Fold copies into a new array; frozen previous intact.

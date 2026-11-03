@@ -1,8 +1,0 @@
-id: hmr-coverage-map
-prd_id: hmr-universal-coverage
-obligation_kind: precondition
-subject: Unknown HMR update gaps across host, client, browser, and module packages.
-text: Resolve with exhaustive codesearch plus source reads and independent HMR audit.
-session_id: freddie-2075880-1789048712460
-status: witnessed
-witness_evidence: 'Independent HMR review found the remaining revision propagation gap: host updates graph rows in packages/client/modules/src/index.js:395-412 but emits only id/rev in packages/client/hmr/src/index.js:297-310; browser graph rows remain boot-time state in packages/client/modules/src/client/system.js:64-85 and HMR prefetches them. Repair will transmit/reconcile the rebuilt row before invalidation/prefetch.'

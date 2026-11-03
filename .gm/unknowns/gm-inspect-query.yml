@@ -1,8 +1,0 @@
-id: gm-inspect-query
-prd_id: gm-overview-served-graph
-obligation_kind: effect-boundary
-subject: inspectGraph does not mutate overlay.byNode; titles omitted from inspect payload
-text: exec_js overlay size unchanged; inspect JSON has no title/argsRaw.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: exec_js 1789841010771 inspectKeys nodes/edges/walking/jit/cli; hasSk false; hasTitle false. inspectGraph omits titles/secrets. dockLocal true.

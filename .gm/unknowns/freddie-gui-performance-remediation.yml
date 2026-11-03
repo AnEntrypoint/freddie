@@ -1,8 +1,0 @@
-id: freddie-gui-performance-remediation
-prd_id: freddie-gui-live-clarity-realtime
-obligation_kind: resource-bound
-subject: The confirmed streaming accumulator, terminal activity mirror, and WebSocket queue performance findings require a separately scoped implementation before the GUI performance objective can be considered complete.
-text: Witness with source changes and live performance profiling that eliminate quadratic text accumulation, per-frame terminal buffer copying, and unbounded FIFO drain behavior.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Implemented the bounded WebSocket queue and O(1) dequeue in packages/client/connection/src/client/web-api-client.js:7-89 plus pre-trimmed terminal retention in packages/client/runtime/src/client/sessions/terminal-activity.js:7-13. node --check succeeded and the real browser loaded the live client afterward. The separate PartialAccumulator concatenation finding remains a later performance improvement because its output representation is model-visible and requires a dedicated replay-compatible design.

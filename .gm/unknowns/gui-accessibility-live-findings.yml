@@ -1,8 +1,0 @@
-id: gui-accessibility-live-findings
-prd_id: freddie-gui-architecture-audit
-obligation_kind: postcondition
-subject: The audit's proposed clarity changes must resolve the live browser's ARIA required-children and non-focusable scroll-region violations, and validate the reported contrast risks.
-text: Witness with a fresh axe audit at http://127.0.0.1:3080 after implementation; current audit reports `.freddie-workspaceBrowser__list` and `.freddie-detailsPanel__body` violations plus 20 contrast items requiring manual validation.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Fresh axe audit at http://127.0.0.1:3080 after updates reports violations:[] with 22 passes. Workspace tree has only valid tree descendants after packages/client/ui-workspace/src/client/WorkspaceBrowser.js wraps layout groups as presentation and presents the overflow row as a keyboard treeitem; DetailsPanel.js exposes the focusable body as a named region. The remaining 20 color-contrast entries are incomplete due to overlapping elements, not violations.

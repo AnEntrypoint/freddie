@@ -1,8 +1,0 @@
-id: pinned-primary-stays-first
-prd_id: openrouter-free-fallback
-obligation_kind: postcondition
-subject: The requested model remains the first chain link when the key is set
-text: buildAutoChain addLink(targetModel) runs before the openrouter free ids are appended. Live headers keep X-Acptoapi-Requested-Model distinct from the served free model.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: exec_js 1790929675141 buildAutoChain('xai-oauth/grok-4.7') primary is xai-oauth/grok-4.7 and the next link is openrouter/stealth/space-bunny-alpha. Live POST headers kept X-Acptoapi-Requested-Model distinct from the served free model.

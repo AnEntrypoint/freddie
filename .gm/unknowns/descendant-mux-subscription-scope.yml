@@ -1,8 +1,0 @@
-id: descendant-mux-subscription-scope
-prd_id: descendant-live-activity-observation
-obligation_kind: precondition
-subject: The Host mux subscription scope for child session IDs must be established before rendering their terminal activity as live parent-overview data.
-text: Witness the host mux subscription code and browser frame routing; do not represent absent child frames as live observation.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Subagent investigation and live UI confirm host mux routes terminal/activity and session events by sessionId; client runtime now retains non-selected session events and terminal stores in a bounded tree observer.

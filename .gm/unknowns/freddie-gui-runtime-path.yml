@@ -1,8 +1,0 @@
-id: freddie-gui-runtime-path
-prd_id: freddie-gui-live-clarity-realtime
-obligation_kind: precondition
-subject: The running Freddie Web GUI must be identified along with its mounted package source paths before implementing a browser-visible change.
-text: Witness with the GUI’s runtime bootstrap, live browser DOM, and exact source owning the visible components.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: Live page http://127.0.0.1:3080 has the dynamic application mounted (no boot page), __FREDDIE_HMR__.status.connected=true and live manifest entries; apps/web/src/main.js:6 boots packages/client/web/src/boot.js:14, then client ui plugin rows in packages/bundle/web-app/cordis.patch.yml:151.

@@ -1,8 +1,0 @@
-id: feed-authority
-obligation_kind: identity-authority
-prd_id: feed-element-cache
-subject: The feed fix does not add a request path or widen authority.
-text: It changes only client render caching and webjsx child placement.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: Diff touches only AssistantMarkdown.js, AssistantNodeView.js, and applyDiff.js. No new RPC, route, or authority check.

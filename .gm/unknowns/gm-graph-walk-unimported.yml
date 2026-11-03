@@ -1,8 +1,0 @@
-id: gm-graph-walk-unimported
-prd_id: gm-graph-ui
-obligation_kind: precondition
-subject: graph-walk.js is never imported by ObservabilityDock.js so layoutGraph/overlayWalk/inspectGraph cannot render
-text: Witness ObservabilityDock import of graph-walk after EMIT.
-session_id: freddie-6364-1789774010516
-status: witnessed
-witness_evidence: 'precondition: exec_js 1789794928351 dockImportsGraphWalk false. codesearch layoutGraph only definition at graph-walk.js:119. ObservabilityDock.js does not import graph-walk.'

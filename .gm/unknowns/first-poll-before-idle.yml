@@ -1,8 +1,0 @@
-id: first-poll-before-idle
-prd_id: boot-poll-if-behind
-obligation_kind: invariant
-subject: First-tick runner poll runs in the same loop as dispatch, before the idle wait
-text: first_runner_poll_pending is consumed in the poll block above the idle wait. Boot stages without waiting 25ms idle.
-session_id: freddie-12560-1789847277758
-status: witnessed
-witness_evidence: 'invariant: first_runner_poll_pending consumed at daemon.rs:2924 before the !any_work wait at the loop tail. Boot GitHub poll does not wait on in-dir.'

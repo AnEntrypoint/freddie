@@ -1,8 +1,0 @@
-id: tooling-latency-witness
-prd_id: tooling-efficiency-audit
-obligation_kind: precondition
-subject: The highest-impact avoidable agent-tooling latency is unknown.
-text: Witness with source inspection and a real execution measurement before implementation.
-session_id: freddie-2075880-1789046559707
-status: witnessed
-witness_evidence: 'Read-only source evidence established candidate sources, not a live timing measurement: client poll/hash duplication at packages/client/hmr/src/index.js:73-187 and packages/client/modules/src/index.js:124-160; serial preflight at packages/core/agent-loop/src/tool-calls.js:175-206; gm poll metadata work at packages/gm/gm-client/src/spool.js:174-193. User requested audit only with no changes; live measurement is specified as the implementation verification gate.'

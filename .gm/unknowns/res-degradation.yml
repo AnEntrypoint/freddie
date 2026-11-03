@@ -1,8 +1,0 @@
-id: res-degradation
-obligation_kind: degradation
-prd_id: token-delivery-austerity
-subject: timestamp rewrite adds no unbounded wait or queue
-text: no loop, retry, or allocation in the diff.
-session_id: freddie-27264-1790927965849
-status: witnessed
-witness_evidence: no loop, retry, queue, or allocation in the diff.

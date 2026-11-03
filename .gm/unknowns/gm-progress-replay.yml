@@ -1,8 +1,0 @@
-id: gm-progress-replay
-prd_id: observability-gm-bridge
-obligation_kind: invariant
-subject: GM projection updates only from complete committed snapshots
-text: Witness the pure fold preserves identity on unrelated events and replaces state only for the complete gm/progress payload.
-session_id: freddie-192180-1789217365634
-status: witnessed
-witness_evidence: gm_exec_js dispatch 1789218691694 returned sameOnIrrelevant:true and a detached complete gm/progress snapshot from packages/gm/gm-progress/src/projection.js.

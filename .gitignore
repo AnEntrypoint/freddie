@@ -45,12 +45,6 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 
-# gm's own runtime/dispatch state -- pure per-session scratch (spool
-# in/out files, dispatch counters, timestamps, the local codesearch/
-# recall sqlite index and its embed-generation markers). .gm/memories/,
-# .gm/prd.yml, .gm/mutables.yml, .gm/disciplines/, and .gm/instructions/
-# are real, durable, repo-tracked content and are NOT covered by these
-# patterns -- gm's own design keeps memory following the codebase.
 .gm/scratch*/
 .gm/live-*.js
 .gm/rpc-*.json
@@ -75,9 +69,10 @@ worktrees/
 .gm/claim-audit-fired
 .gm/scan-deps-stamp.json
 .agentplug-kv/
+/runs/
+/.playwriter/
+/.gm/locks/
 
-# A gm dispatch whose cwd is a package directory writes that package's own
-# .gm/ (codesearch index, digest). Only the repository root .gm/ is content.
 apps/*/.gm/
 framework/*/.gm/
 packages/*/*/.gm/

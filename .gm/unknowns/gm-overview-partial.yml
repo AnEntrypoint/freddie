@@ -1,8 +1,0 @@
-id: gm-overview-partial
-prd_id: gm-overview-optional-remote
-obligation_kind: partial-failure
-subject: Missing remote.gm returns gm-remote-unavailable JSON; Overview still registers
-text: Read index.js missing() and inject without remote.gm.
-session_id: freddie-7564-1789830375891
-status: witnessed
-witness_evidence: 'exec_js 1789841131913 missingCode true: gm-remote-unavailable and inject connection/sessions/slots.'

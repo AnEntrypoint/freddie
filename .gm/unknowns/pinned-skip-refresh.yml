@@ -1,8 +1,0 @@
-id: pinned-skip-refresh
-prd_id: pinned-chat-skip-live-refresh
-obligation_kind: postcondition
-subject: buildAutoChainLive with a pinned targetModel must not await refreshAll or refreshAcpModels
-text: Witness by reading auto-chain.js after the cut and by timing buildAutoChainLive('xai-oauth/grok-4.6') vs buildAutoChain of the same id.
-session_id: freddie-12560-1789889089950
-status: witnessed
-witness_evidence: 'postcondition spec: buildAutoChainLive(targetModel) with a specific non-auto id returns buildAutoChain without awaiting refreshAll or refreshAcpModels. Live baseline 710.7ms vs 3.4ms sync.'

@@ -1,8 +1,0 @@
-id: hung-after-five-polls
-prd_id: hung-died-still-detected
-obligation_kind: invariant
-subject: HEALTH_CHECK_AFTER_POLLS still 5; queued inflight licenses wait
-text: spool.js HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued.
-session_id: freddie-12560-1789843658515
-status: witnessed
-witness_evidence: packages/gm/gm-client/src/spool.js:16 HEALTH_CHECK_AFTER_POLLS=5; died/hung only after takeResponse miss and !queued (lines 237-251).

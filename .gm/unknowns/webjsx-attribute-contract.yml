@@ -1,8 +1,0 @@
-id: webjsx-attribute-contract
-prd_id: webjsx-attribute-semantics
-obligation_kind: invariant
-subject: DOM attributes used for data selectors and ARIA semantics must serialize non-null non-property values and remove absent values.
-text: Witness exact attribute writer behavior and the live trajectory table's missing data-scroll-ready/aria-rowindex attributes before changing the framework.
-session_id: freddie-422260-1789231886668
-status: witnessed
-witness_evidence: 'invariant: framework/webjsx/src/attributes.js:27-60 assigns non-string unknown HTMLElement props as expandos; TrajectoryTable.js:1897-1901 passes boolean data-scroll-ready and numeric aria-rowcount, and live report confirms selectors/ARIA attributes are absent.'
