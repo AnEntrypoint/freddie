@@ -1,0 +1,6 @@
+id: "prd-mw0m5aat3bb4"
+kind: "prd"
+title: "Complete the workspace dependency install so vendor generation and boot resolve every import"
+body: "In this checkout zod@4.4.3 sits in node_modules/.pnpm but is not linked at the root or in any package, and @freddie/webjsx is unlinked too. packages/client/vendor-modules/scripts/generate-vendor.mjs exits with MODULE_NOT_FOUND on @freddie/webjsx (packages/client/web/noop.js), so it cannot run from a clean tree. Done means the documented install path leaves every workspace import resolvable, verified by running generate-vendor.mjs in a tar copy (exit 0, no drift in the tracked tree) and by a headless boot. Blocks unknown-mw0ikvoza58d."
+status: "open"
+createdAt: "2026-11-03T11:37:23.045Z"
