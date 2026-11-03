@@ -1,0 +1,9 @@
+id: "prd-mw0ixy4uf11f"
+kind: "prd"
+title: "Owner decision: packages/gm wiring and ignored disk state after the gm drain"
+body: "Left open by the freddie gm drain (commit a4fe815b and follow-ups).\n\npackages/gm (tool-gm, gm-client, gm-config, gm-progress; 35 tracked files) is still wired into the runtime: packages/bundle/base/cordis.patch.yml rows, apps/cli/package.json deps, the @freddie/freddie-api-remotes mount of gm-client/remote, the GUI Overview GM metric, and the model-facing gm_* tools.\nIt still reads .gm/instructions (two tracked hook files kept for it) and the gm_prd_add tools write .gm/prd.yml (packages/client/connection/AGENTS.md:14).\nNot booted here: node_modules is absent, so the live path is unverified.\n\nDecide: remove packages/gm and its wiring (then boot the real cordis.yml and run pnpm run publint), or keep it and point its writes at work/rows.\nAlso decide the ignored disk state: .agentplug-kv/ (gitignored runtime, see du output) and vendor/gm/ if present; both are untracked and not deleted by the drain.\n\nOutput of the checks in this run: 33M\t.agentplug-kv\n35\nvendor-gm-absent\n"
+status: "resolved"
+createdAt: "2026-11-03T10:07:41.838Z"
+witnessEvent: 76
+witnessCommit: "cd8c2726bc80393c68781b8b6021a5d1153eeb45"
+resolvedAt: "2026-11-03T10:34:49.760Z"
