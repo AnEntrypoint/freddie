@@ -25,6 +25,17 @@ const jsonValue = { type: 'object', additionalProperties: true }
 const sessionParameter = { type: 'string', description: 'An owned BrowserSkill session id. Defaults to the current owned session.' }
 const tabParameter = { type: 'integer', description: 'An Agent Window tab id. Defaults to the active tab.' }
 
+const STATUS_TITLE = 'Check BrowserSkill readiness'
+
+function sessionTitle(args) {
+  return `BrowserSkill session ${args.action}`
+}
+
+function commandTitle(name, args) {
+  const target = typeof args.outPath === 'string' ? ` to ${args.outPath}` : ''
+  return `BrowserSkill ${name}: ${args.action}${target}`
+}
+
 function normalizeSession(value) {
   if (typeof value !== 'string' || value.trim() === '') throw new Error('browserskill: session must be a non-empty string')
   return value
@@ -131,7 +142,8 @@ export function apply(ctx, config) {
     timeoutMs: config.defaultTimeoutMs,
     output: jsonOutput({ type: 'array', items: jsonValue }),
     execute: (_args, exec) => checkBsk(ctx.subprocess, exec.signal, config),
-    presentCall: () => ({ card: 'generic', title: 'Check BrowserSkill readiness', kind: 'read' }),
+    presentCall: () => ({ card: 'generic', title: STATUS_TITLE, kind: 'read' }),
+    presentResult: () => ({ card: 'generic', title: STATUS_TITLE }),
   })
 
   register({
@@ -179,7 +191,8 @@ export function apply(ctx, config) {
       }
       return reply
     },
-    presentCall: args => ({ card: 'generic', title: `BrowserSkill session ${args.action}`, kind: args.action === 'stop' ? 'delete' : args.action === 'list' ? 'read' : 'execute', rawInput: args }),
+    presentCall: args => ({ card: 'generic', title: sessionTitle(args), kind: args.action === 'stop' ? 'delete' : args.action === 'list' ? 'read' : 'execute', rawInput: args }),
+    presentResult: args => ({ card: 'generic', title: sessionTitle(args) }),
   })
 
   const sessionCommand = (name, description, actions, parameters) => {
@@ -196,7 +209,8 @@ export function apply(ctx, config) {
         const session = owned(ownedSessions, agent, args.session, `${name}(action=${args.action})`)
         return run(command.label, command.build(args, session), exec)
       },
-      presentCall: args => ({ card: 'generic', title: `BrowserSkill ${name}: ${args.action}`, kind: 'execute', rawInput: args }),
+      presentCall: args => ({ card: 'generic', title: commandTitle(name, args), kind: 'execute', rawInput: args }),
+      presentResult: args => ({ card: 'generic', title: commandTitle(name, args) }),
     })
   }
 

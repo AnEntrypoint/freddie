@@ -46,9 +46,13 @@ The fixed tool schemas enter the model tool catalog. Browser observations, diagn
 
 An unchanged BrowserSkill tool catalog preserves the request prefix. Tool results append after the reusable prefix; changing the provider configuration or enabling/disabling the row changes the catalog and can invalidate reuse.
 
+### Client presentation
+
+Every BrowserSkill call renders as a generic tool card. The title names the tool and action, and adds ` to <outPath>` when the call supplies `outPath` (screenshot and download). Both the pending call and the completed result carry that title, and a Freddie Web row shows it once the call succeeds. The title derives only from the call arguments, so session replay reproduces it. Session ids, URLs, `fill` values, and browser labels stay out of the title; the card body shows the arguments and result as it does for every tool. When `outPath` is omitted, the path BrowserSkill chose appears only in the result text. Presentation runs outside the model request and has no token or KV-cache effect.
+
 ## Known Limitations and Deferred Work
 
 - **External extension**: BrowserSkill requires the separately installed `bsk` CLI and Chrome or Edge extension. The provider reports readiness but cannot install, enable, or pair the extension for the user.
 - **BrowserSkill protocol scope**: The integration targets BrowserSkill CLI 0.3.2. New CLI flags or result shapes need re-verification before the provider expands its model-visible contract.
-- **Screenshot attachments**: Screenshots use BrowserSkill's output path. Inline image admission and a live BrowserSkill pane in Freddie Web remain separate client integration work.
+- **Screenshot attachments**: Screenshots use BrowserSkill's output path and appear as tool-card titles and result text in Freddie Web. Inline image admission and a dedicated BrowserSkill pane remain separate client integration work.
 - **User-account authority**: Agent Windows share the selected browser profile's logged-in state. BrowserSkill extension prompts remain the authority for borrowing an existing tab and requesting human help.
