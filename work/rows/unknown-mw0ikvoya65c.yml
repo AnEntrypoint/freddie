@@ -1,6 +1,6 @@
 id: "unknown-mw0ikvoya65c"
 kind: "unknown"
 title: "M5A Evidence critic Andon: 390px collapsed Tool call GM failed unknown ... hides operation and offending field; expanded"
-body: "Ported from .gm/unknowns/gui-dada-narrow-outcome-andon-20261007.yml (gm queue, old format). Verbatim:\n\nid: gui-dada-narrow-outcome-andon-20261007\nsubject: 'M5A Evidence critic Andon: 390px collapsed Tool call GM failed unknown ... hides operation and offending field; expanded screenshot only shows raw tail. Invariant: owner-supplied result diagnostics readable with operation/reason at320/390, unchanged raw payload and authoritative isError; postcondition independent native disclosure and visible summary proof.'\nsession_id: gui-dada-root-20261007\nstatus: unknown\n"
+body: "At 390px, does the collapsed Tool call GM failed unknown row hide the operation and the offending field, and does expanding it show them? Status: open. Needs a live narrow-viewport run. The gm tool that produced the row was removed with gm, so the repro needs a surviving tool. Invariant to preserve: readable operation and reason at 320 and 390 px, unchanged raw payload, authoritative isError."
 status: "open"
 createdAt: "2026-11-03T09:57:32.146Z"

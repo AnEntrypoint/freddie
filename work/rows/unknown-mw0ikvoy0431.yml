@@ -1,6 +1,9 @@
 id: "unknown-mw0ikvoy0431"
 kind: "unknown"
 title: "gui-dada-m5-renders-absent"
-body: "Ported from .gm/unknowns/gui-dada-m5-renders-absent.yml (gm queue, old format). Verbatim:\n\nid: gui-dada-m5-renders-absent\nvalue: Pre-recorded M5A/M5B renders exist for critics to inspect (.gm/witness/m5a-chat-*.png)\nstatus: unknown\nnotes: 'ELIMINATED absent: fs_stat .gm/witness/m5a-chat-desktop-full.png not found, dispatch 1793543093222-173-6b430f7e4278e498; fs_readdir .gm/witness not found, dispatch 1793543086990-161-be60310caff4dc11; no M5B render in tree, grep dispatch 1793543100670-185-b03d9923680e46b5.'\nsession_id: mcp-codemode-3535970-1793542718115-1-4\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T09:57:32.146Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.791Z"

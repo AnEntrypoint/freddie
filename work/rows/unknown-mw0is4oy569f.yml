@@ -1,6 +1,6 @@
 id: "unknown-mw0is4oy569f"
 kind: "unknown"
 title: "U3 Does hmr/idle fire (framework/hmr/src/index.js:365) before the next model tool dispatch, so a fresh GUI GM tool dispatch follows the idle"
-body: "Ported from .gm/unknowns/gm-runtime-hmr-final-witness-u3-idle-ordering.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-final-witness-u3-idle-ordering\nvalue: U3 Does hmr/idle fire (framework/hmr/src/index.js:365) before the next model tool dispatch, so a fresh GUI GM tool dispatch follows the idle boundary rather than racing the reload?\nstatus: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-9\n"
+body: "Does hmr/idle fire at framework/hmr/src/index.js line 365 before the next model tool dispatch, so a fresh tool dispatch follows the idle boundary rather than racing the reload? Status: open. Needs a test of the HMR deferral order against the current framework. The GUI GM tool named in the original question was removed with gm."
 status: "open"
 createdAt: "2026-11-03T10:03:10.402Z"

@@ -1,6 +1,0 @@
-id: "prd-mw0is4ow8c98"
-kind: "prd"
-title: "Real populated GUI historic GM calls repeatedly failed because registered Freddie tool-gm schemas still expose max_count/git_show object; li"
-body: "Ported from .gm/prd.yml#gm-freddie-adapter-canonical-fields-20261007.yml (gm queue, old format). Verbatim:\n\n- id: gm-freddie-adapter-canonical-fields-20261007\n  subject: Real populated GUI historic GM calls repeatedly failed because registered Freddie tool-gm schemas still expose max_count/git_show object; live daemon accepts limit/rev. Update owner-adapter schema, current references and README from actual accepted_fields; preserve historical raw logs, verify real registration and daemon dispatch. This is witnessed product workflow friction, complements diagnostic GUI presentation.\n  session_id: gui-dada-root-20261007\n  status: pending"
-status: "open"
-createdAt: "2026-11-03T10:03:10.400Z"

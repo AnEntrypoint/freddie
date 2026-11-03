@@ -1,6 +1,9 @@
 id: "unknown-mw0is4oy660f"
 kind: "unknown"
 title: "U4 Does a live GUI GM tool call on the active daemon yield runtime JSON whose gmVersion and runnerVersion equal readStatus/readDaemonStatus"
-body: "Ported from .gm/unknowns/gm-runtime-hmr-final-witness-u4-leaf-values.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-final-witness-u4-leaf-values\nvalue: U4 Does a live GUI GM tool call on the active daemon yield runtime JSON whose gmVersion and runnerVersion equal readStatus/readDaemonStatus for the active daemon, and does the Overview GM runtime metric render them?\nstatus: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-9\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T10:03:10.402Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.792Z"

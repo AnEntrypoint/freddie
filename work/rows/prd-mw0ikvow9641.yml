@@ -1,6 +1,6 @@
 id: "prd-mw0ikvow9641"
 kind: "prd"
 title: "Integrate BrowserSkill state into Freddie Web"
-body: "Ported from .gm/prd/browserskill-web-observability.yml (gm queue, old format). Verbatim:\n\nid: browserskill-web-observability\ntitle: Integrate BrowserSkill state into Freddie Web\nsubject: 'Pre: BrowserSkill provider produces tool calls and screenshot paths but Freddie Web has no first-class BrowserSkill session pane or screenshot attachment integration. Invariant: visual browser-task observation is derived from durable tool/session facts and does not leak foreign session or browser-profile data. Post: the Web UI shows owned BrowserSkill activity with correctly bounded, model-visible state.'\nacceptance: Design and implement any client/host projection required for a BrowserSkill activity panel or tool presentation, verify it in the actual Web GUI, and retain session ownership boundaries.\nstatus: pending\nroute_family: observability\ndepends_on:\n- browserskill-capability-seam\nsession_id: freddie-2723231-1791306788857\n"
+body: "Show owned BrowserSkill activity in the Freddie Web UI, as a session pane or screenshot attachment, derived only from durable tool and session facts and without leaking foreign session or browser-profile data. Status: open, not started. The provider exists at packages/experimental/browser-use-browserskill. The row depends on browserskill-capability-seam, which this run did not check. Done means a verified Web GUI run shows the owned activity."
 status: "open"
 createdAt: "2026-11-03T09:57:32.144Z"

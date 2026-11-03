@@ -1,6 +1,6 @@
 id: "unknown-mw0ikvozb6e5"
 kind: "unknown"
 title: "At native320 center-start with a nonempty draft, what are the live rects of the OUT block and the composer seat after En"
-body: "Ported from .gm/unknowns/gui-sticky-composer-focus-clearance-20261007-u3.yml (gm queue, old format). Verbatim:\n\nid: gui-sticky-composer-focus-clearance-20261007-u3\nsubject: At native320 center-start with a nonempty draft, what are the live rects of the OUT block and the composer seat after Enter/Tab (does the OUT block fall inside y604-844)?\nstatus: unknown\nrow: gui-sticky-composer-focus-clearance-20261007\nsession_id: mcp-codemode-3535970-1793543373412-282\n"
+body: "At native320 center start with a nonempty draft, what are the live rects of the OUT block and the composer seat after Enter or Tab, and does the OUT block fall inside y604 to 844? Status: open. Needs a live headful run on an installed tree. Tied to the sticky row."
 status: "open"
 createdAt: "2026-11-03T09:57:32.147Z"

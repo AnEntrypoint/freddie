@@ -1,6 +1,6 @@
 id: "unknown-mw0ikvox7dc9"
 kind: "unknown"
 title: "gui-dada-browser-render-path"
-body: "Ported from .gm/unknowns/gui-dada-browser-render-path.yml (gm queue, old format). Verbatim:\n\nid: gui-dada-browser-render-path\nvalue: A browser can render both branches once source exists\nstatus: unknown\nnotes: OPEN, not binding alone. browser_lease_status held false, alive false, dispatch 1793543093581-454-2249e1836c21ffa8. Blocked upstream by gui-dada-m5-source-unlocated.\nsession_id: mcp-codemode-3535970-1793542718115-1-4\n"
+body: "Can a browser render both M5 branches once source exists? Status: open. Blocked upstream by the M5 source question, unknown-mw0ikvoy4681. The earlier browser lease was not held and not alive; this run did not check it."
 status: "open"
 createdAt: "2026-11-03T09:57:32.145Z"

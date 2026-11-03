@@ -1,6 +1,9 @@
 id: "unknown-mw0is4p08a8d"
 kind: "unknown"
 title: "Does the Overview render the GM runtime metric from the projection?"
-body: "Ported from .gm/unknowns/overview-renders-runtime-metric.yml (gm queue, old format). Verbatim:\n\nprd_id: gm-runtime-host-hmr-activation\nobligation_kind: precondition\nstatus: unknown\nid: overview-renders-runtime-metric\nsubject: Does the Overview render the GM runtime metric from the projection?\ntext: 'Q: the Overview dock shows GM 0.1.1362, runner 0.1.158 and updater state from the gm/progress projection. Answers the row''s last acceptance clause.'\nsession_id: mcp-codemode-3535970-1793543257869-162\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T10:03:10.404Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.792Z"

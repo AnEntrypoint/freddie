@@ -1,6 +1,9 @@
 id: "unknown-mw0is4oza135"
 kind: "unknown"
 title: "[gm predecessor] Does the sibling owner permit a change now (dirty state cleared or published, ticker/dream files touched)?"
-body: "Ported from .gm/unknowns/gm-sibling-dream-rsi-ticker-repair-u2-39a0b34a595f043b.yml (gm queue, old format). Verbatim:\n\nrow: gm-sibling-dream-rsi-ticker-repair\nid: gm-sibling-dream-rsi-ticker-repair:U2\nquestion: Does the sibling owner permit a change now (dirty state cleared or published, ticker/dream files touched)?\nkind: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-7\nstatus: unknown\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T10:03:10.403Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.792Z"

@@ -1,6 +1,9 @@
 id: "unknown-mw0is4oyc281"
 kind: "unknown"
 title: "U6 How is 'a healthy active ui-observability fiber' observed after reload (which fiber state read proves it is retained, not disposed)?"
-body: "Ported from .gm/unknowns/gm-runtime-hmr-final-witness-u6-fiber-health.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-final-witness-u6-fiber-health\nvalue: U6 How is 'a healthy active ui-observability fiber' observed after reload (which fiber state read proves it is retained, not disposed)?\nstatus: unknown\nsession_id: mcp-codemode-3535970-1793542718115-1-9\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T10:03:10.402Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.792Z"

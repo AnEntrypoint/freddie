@@ -1,6 +1,9 @@
 id: "unknown-mw0is4oz5f44"
 kind: "unknown"
 title: "[gm predecessor] Does the running server re-read its bundle path after an install, or keep the startup image? Answers whether restart-required or hot-swap is"
-body: "Ported from .gm/unknowns/gm-stale-mcp-bundle-restart-u3-18d3ef25c4ccdc40.yml (gm queue, old format). Verbatim:\n\nid: gm-stale-mcp-bundle-restart-U3\nsubject: Does the running server re-read its bundle path after an install, or keep the startup image? Answers whether restart-required or hot-swap is the mechanism the row can use.\nrow: gm-stale-mcp-bundle-restart\nbody: Does the running server re-read its bundle path after an install, or keep the startup image? Answers whether restart-required or hot-swap is the mechanism the row can use.\nsession_id: mcp-codemode-3535970-1793542718115-1-6\nstatus: unknown\n"
-status: "open"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
+status: "resolved"
 createdAt: "2026-11-03T10:03:10.403Z"
+witnessEvent: 87
+witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
+resolvedAt: "2026-11-03T10:59:27.792Z"

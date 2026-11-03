@@ -1,6 +1,6 @@
 id: "unknown-mw0ikvoz0e9a"
 kind: "unknown"
 title: "Which call issues the scroll on Enter/Tab focus (scrollIntoView block center, rowVirtualizer.scrollToIndex align center,"
-body: "Ported from .gm/unknowns/gui-sticky-composer-focus-clearance-20261007-u4.yml (gm queue, old format). Verbatim:\n\nid: gui-sticky-composer-focus-clearance-20261007-u4\nsubject: Which call issues the scroll on Enter/Tab focus (scrollIntoView block center, rowVirtualizer.scrollToIndex align center, or focus() without preventScroll), and does it ignore the composer height?\nstatus: unknown\nrow: gui-sticky-composer-focus-clearance-20261007\nsession_id: mcp-codemode-3535970-1793543373412-282\n"
+body: "Which call issues the scroll on Enter or Tab focus: scrollIntoView with block center, rowVirtualizer.scrollToIndex with align center, or focus without preventScroll, and does it ignore the composer height? Status: open. Needs a live focus trace. Earlier receipts note that ConversationRoot.css line 227 sets scroll-padding-block-end on scrollBody, while the trajectory table pane has padding-bottom only."
 status: "open"
 createdAt: "2026-11-03T09:57:32.147Z"

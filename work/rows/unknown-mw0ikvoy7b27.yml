@@ -1,7 +1,7 @@
 id: "unknown-mw0ikvoy7b27"
 kind: "unknown"
 title: "Which consumer creates the historical ToolRow props (renderToolRow/ToolRow call sites) and what body/output/card/filePat"
-body: "Ported from .gm/unknowns/gui-disclosure-closed-aria-state-20261007-u3.yml (gm queue, old format). Verbatim:\n\nid: gui-disclosure-closed-aria-state-20261007-u3\nrow: gui-disclosure-closed-aria-state-20261007\nquestion: Which consumer creates the historical ToolRow props (renderToolRow/ToolRow call sites) and what body/output/card/filePath/onOpenFile values does a historical row carry, so expandable and fileLink are known?\nsubject: callers of renderToolRow and ToolRow outside ToolRow.js; ToolRow.js:70 and :78\nsession_id: mcp-codemode-3535970-1793542718115-1-3\nstatus: unknown\n"
+body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
 status: "resolved"
 createdAt: "2026-11-03T09:57:32.146Z"
 witnessEvent: 18

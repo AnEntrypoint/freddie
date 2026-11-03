@@ -1,6 +1,6 @@
 id: "unknown-mw0is4oy7039"
 kind: "unknown"
 title: "The deferred host reload completes only on agent-loop idle"
-body: "Ported from .gm/unknowns/gm-runtime-hmr-idle-postcondition.yml (gm queue, old format). Verbatim:\n\nid: gm-runtime-hmr-idle-postcondition\nprd_id: gm-runtime-host-hmr-activation\nobligation_kind: postcondition\nsubject: The deferred host reload completes only on agent-loop idle\ntext: After the current active agent loop ends, query the official HMR snapshot and browser journal for reload, then dispatch a fresh GUI GM tool and read its runtime metric.\nsession_id: freddie-2128598-1790941468204\nstatus: unknown\nblockedBy:\n- external\ndeferReason: Inherited historical HMR postcondition belongs freddie-2128598-1790941468204 and gm-runtime-host-hmr-activation. Current new browser journal is bounded to its connection event and cannot witness the prior agent-loop idle reload; no truthful resolution asserted. Original owning HMR investigation must supply original host snapshot/journal and actual GUI GM runtime metric. Keep row unknown/external; current DADA GUI access/presentation work does not depend on the historical reload.\n"
+body: "Does the deferred host reload complete only on agent-loop idle? Status: open, external. The historical postcondition belongs to a removed gm row, and the current browser journal is bounded to its connection event, so it cannot witness the prior reload. The original host snapshot and runtime metric are needed; no resolution is asserted."
 status: "open"
 createdAt: "2026-11-03T10:03:10.403Z"
