@@ -654,24 +654,6 @@ export interface Config {
 
 Source: [`packages/credentials/credentials-local/src/index.js`](../packages/credentials/credentials-local/src/index.js)
 
-<a id="freddie-dream-rsi-context"></a>
-
-## `@freddie/freddie-dream-rsi-context`
-
-Requires: `agents`
-
-```ts config-catalog
-/** Runtime schema for the RSI context slice. */
-export interface DreamRsiContextConfig {
-  /** Serve the slice at all; `false` leaves the system prompt without it. */
-  enabled?: boolean
-  /** Most recently observed nodes retained for the slice. */
-  maxObservedNodes?: number
-}
-```
-
-Source: [`packages/context/dream-rsi-context/src/index.js`](../packages/context/dream-rsi-context/src/index.js)
-
 <a id="freddie-e2b"></a>
 
 ## `@freddie/freddie-e2b`
@@ -3237,22 +3219,6 @@ export interface Config {
 ```
 
 Source: [`packages/web/web-fetch-http/src/index.js`](../packages/web/web-fetch-http/src/index.js)
-
-<a id="freddie-web-search-browser"></a>
-
-## `@freddie/freddie-web-search-browser`
-
-Requires: `web` · `gm`
-
-```ts config-catalog
-/** Runtime schema for the browser-automation search provider. */
-export interface WebSearchBrowserConfig {
-  /** Deadline for one browser-driven search. */
-  timeoutMs?: number
-}
-```
-
-Source: [`packages/web/web-search-browser/src/index.js`](../packages/web/web-search-browser/src/index.js)
 
 <a id="freddie-web-search-deepseek"></a>
 

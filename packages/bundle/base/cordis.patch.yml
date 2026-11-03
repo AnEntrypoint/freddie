@@ -61,15 +61,6 @@
     - id: jobs
       name: '@freddie/freddie-jobs-local'
 
-    - id: gm-client
-      name: '@freddie/freddie-gm-client'
-      config:
-        sessionId: !!js process.env.FREDDIE_SESSION_ID || (`freddie-${process.pid}-${Date.now()}`)
-        cwd: !!js process.cwd()
-
-    - id: tool-gm
-      name: '@freddie/freddie-tool-gm'
-
     - id: llm-retry
       name: '@freddie/freddie-llm-retry'
 
@@ -105,9 +96,6 @@
 
     - id: session-turn-outline
       name: '@freddie/freddie-session-turn-outline'
-
-    - id: gm-progress
-      name: '@freddie/freddie-gm-progress'
 
     - id: session-telemetry-otel
       name: '@freddie/freddie-session-telemetry-otel'
@@ -398,13 +386,7 @@
     - id: web
       name: '@freddie/freddie-web'
       config:
-        searchProvider: browser-google
         fetchProvider: http
-
-    - id: web-search-browser
-      name: '@freddie/freddie-web-search-browser'
-      config:
-        timeoutMs: 60000
 
     - id: web-fetch-http
       name: '@freddie/freddie-web-fetch-http'
@@ -424,7 +406,7 @@
       name: '@freddie/freddie-system-prompt'
       config:
         persona: ''
-        toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', 'gm_instruction', 'gm_codesearch', 'gm_phase_status', '<unlisted-tools>']"
+        toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>']"
 
     - id: agent-loop
       name: '@freddie/freddie-agent-loop'

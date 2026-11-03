@@ -42,7 +42,6 @@
         "@freddie/freddie-message-feedback/remote",
         "@freddie/freddie-session-reference/remote",
         "@freddie/freddie-session-artifacts/remote",
-        "@freddie/freddie-gm-client/remote",
         "@freddie/freddie-job-controller/remote",
         "@freddie/freddie-terminal-controller/remote",
         "@freddie/freddie-api-workspace-files/remote"
@@ -66,7 +65,6 @@
     "@freddie/freddie-cordis-host-runner": "*",
     "@freddie/freddie-credentials": "*",
     "@freddie/freddie-file-reference": "*",
-    "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",
@@ -94,7 +92,6 @@
     "@freddie/freddie-cordis-host-runner": "*",
     "@freddie/freddie-credentials": "*",
     "@freddie/freddie-file-reference": "*",
-    "@freddie/freddie-gm-client": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
     "@freddie/freddie-invariants": "*",

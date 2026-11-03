@@ -24,7 +24,6 @@ export async function apply(ctx) {
     throw error
   }
   for (const spec of [
-    '@freddie/freddie-gm-client/remote',
     '@freddie/freddie-job-controller/remote',
     '@freddie/freddie-terminal-controller/remote',
     '@freddie/freddie-api-workspace-files/remote',

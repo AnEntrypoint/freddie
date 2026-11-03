@@ -19,7 +19,7 @@ export function resolveProfileDir(name, home = resolveFreddieHome()) {
   return join(home, PROFILES_DIR, name)
 }
 
-const DEFAULT_ON_BUNDLES = ['@freddie/freddie-agent-team-profile', '@freddie/freddie-dream-rsi']
+const DEFAULT_ON_BUNDLES = ['@freddie/freddie-agent-team-profile']
 
 export const PROFILE_TEMPLATES = {
   web: ['@freddie/freddie-base', '@freddie/freddie-web-app', ...DEFAULT_ON_BUNDLES],

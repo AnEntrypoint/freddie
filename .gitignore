@@ -8,8 +8,6 @@ pnpm-debug.log
 freddie-web*.log
 freddie-web*.pid
 dev-server*.log
-.gm/web-stdout*.log
-.gm/web-stderr*.log
 *.err.log
 *.out.log
 .pnpm-store/
@@ -25,8 +23,6 @@ coverage/
 .humanize/
 tmp/
 
-# Locally vendored upstream tools; each retains its own Git history.
-vendor/gm/
 .claude/commands/
 .claude/launch.json
 .claude/settings.json
@@ -45,42 +41,9 @@ worktrees/
 .agents/worktrees/
 .typert-*/
 
-.gm/scratch*/
-.gm/live-*.js
-.gm/rpc-*.json
-.gm/gui-*
-.gm/freddie-gui-*
-.gm/browser-chrome-profile-*/
-.gm/witness/
-.gm/exec-spool/
-.gm/gm.db
-.gm/last-dispatch-ts
-.gm/last-instruction-ts
-.gm/last-prompt.txt
-.gm/long-gap-retry-state
-.gm/next-step.md
-.gm/turn-state.json
-.gm/config-source-cache-default/
-.gm/config-source-cache-default.*.sync.json
-.gm/.embed-generation.*
-.gm/.gm-continue-count
-.gm/residual-check-fired
-.gm/dream-rsi/
-.gm/claim-audit-fired
-.gm/scan-deps-stamp.json
-.agentplug-kv/
 /runs/
 /.playwriter/
-/.gm/locks/
-
-apps/*/.gm/
-framework/*/.gm/
-packages/*/*/.gm/
-examples/*/.gm/
-native/*/.gm/
+/.gm/
 
 # Local harness homes used for live verification runs.
 .freddie-home*/
-
-# gm codesearch spill files, one per oversized call, written into the repo root
-.gm/codesearch-result-*.json

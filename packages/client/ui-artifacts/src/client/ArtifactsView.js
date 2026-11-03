@@ -190,7 +190,6 @@ export class FreddieArtifactsView extends HTMLElement {
     const props = this.#props
     if (props === null) return
     const artifacts = this.#artifacts()
-    const gm = props.useProjection?.('gmProgress')
     const workflow = props.useProjection?.('workflow')
     applyDiff(this, h('section', {
       class: css.root ?? '',
@@ -201,7 +200,7 @@ export class FreddieArtifactsView extends HTMLElement {
       h('header', { class: css.header ?? '' },
         h('p', { class: css.eyebrow ?? '' }, 'Durable conversation folder'),
         h('h1', { id: 'freddie-artifacts-title' }, 'Artifacts & memory'),
-        h('p', null, `${artifacts.length} stored item${artifacts.length === 1 ? '' : 's'} · revision ${this.#revision()} · GM ${gm?.phase ?? 'idle'} · workflow ${workflow?.runs?.length ?? 0}`),
+        h('p', null, `${artifacts.length} stored item${artifacts.length === 1 ? '' : 's'} · revision ${this.#revision()} · workflow ${workflow?.runs?.length ?? 0}`),
       ),
       h('div', { class: css.workspace ?? '' },
         h('section', { class: css.list ?? '', 'aria-label': 'Conversation artifacts' },

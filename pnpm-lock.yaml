@@ -105,15 +105,9 @@ importers:
       '@freddie/freddie-cordis-client-runner':
         specifier: '*'
         version: link:../../packages/extensions/cordis-client-runner
-      '@freddie/freddie-dream-rsi':
-        specifier: '*'
-        version: link:../../packages/bundle/dream-rsi
       '@freddie/freddie-fs-local':
         specifier: '*'
         version: link:../../packages/fs/fs-local
-      '@freddie/freddie-gm-client':
-        specifier: '*'
-        version: link:../../packages/gm/gm-client
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../packages/goal/goal
@@ -201,9 +195,6 @@ importers:
       '@freddie/freddie-tool-fs-search':
         specifier: '*'
         version: link:../../packages/fs/tool-fs-search
-      '@freddie/freddie-tool-gm':
-        specifier: '*'
-        version: link:../../packages/gm/tool-gm
       '@freddie/freddie-tool-goal':
         specifier: '*'
         version: link:../../packages/goal/tool-goal
@@ -925,9 +916,6 @@ importers:
       '@freddie/freddie-file-reference':
         specifier: '*'
         version: link:../../context/file-reference
-      '@freddie/freddie-gm-client':
-        specifier: '*'
-        version: link:../../gm/gm-client
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../goal/goal
@@ -1373,12 +1361,6 @@ importers:
       '@freddie/freddie-fs-sandbox':
         specifier: '*'
         version: link:../../fs/fs-sandbox
-      '@freddie/freddie-gm-client':
-        specifier: '*'
-        version: link:../../gm/gm-client
-      '@freddie/freddie-gm-progress':
-        specifier: '*'
-        version: link:../../gm/gm-progress
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../goal/goal
@@ -1514,9 +1496,6 @@ importers:
       '@freddie/freddie-tool-fs-search':
         specifier: '*'
         version: link:../../fs/tool-fs-search
-      '@freddie/freddie-tool-gm':
-        specifier: '*'
-        version: link:../../gm/tool-gm
       '@freddie/freddie-tool-goal':
         specifier: '*'
         version: link:../../goal/tool-goal
@@ -1577,25 +1556,9 @@ importers:
       '@freddie/freddie-web-fetch-http':
         specifier: '*'
         version: link:../../web/web-fetch-http
-      '@freddie/freddie-web-search-browser':
-        specifier: '*'
-        version: link:../../web/web-search-browser
       '@freddie/freddie-workflow-worker-thread':
         specifier: '*'
         version: link:../../workflow/workflow-worker-thread
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-
-  packages/bundle/dream-rsi:
-    dependencies:
-      '@freddie/freddie-dream-rsi-context':
-        specifier: '*'
-        version: link:../../context/dream-rsi-context
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -1767,9 +1730,6 @@ importers:
       '@freddie/freddie-client-ui-model-selection':
         specifier: '*'
         version: link:../../client/ui-model-selection
-      '@freddie/freddie-client-ui-observability':
-        specifier: '*'
-        version: link:../../client/ui-observability
       '@freddie/freddie-client-ui-open-in-app':
         specifier: '*'
         version: link:../../client/ui-open-in-app
@@ -1860,9 +1820,6 @@ importers:
       '@freddie/freddie-file-reference-local':
         specifier: '*'
         version: link:../../context/file-reference-local
-      '@freddie/freddie-gm-progress':
-        specifier: '*'
-        version: link:../../gm/gm-progress
       '@freddie/freddie-host-apiproxy':
         specifier: '*'
         version: link:../../host/apiproxy
@@ -2768,40 +2725,6 @@ importers:
       '@freddie/freddie-client-ui-input-trigger':
         specifier: '*'
         version: link:../ui-input-trigger
-      '@freddie/freddie-client-ui-primitives':
-        specifier: '*'
-        version: link:../ui-primitives
-      '@freddie/freddie-client-ui-slots':
-        specifier: '*'
-        version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-
-  packages/client/ui-observability:
-    dependencies:
-      '@freddie/webjsx':
-        specifier: '*'
-        version: link:../../../framework/webjsx
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-api-remotes':
-        specifier: '*'
-        version: link:../../api/remotes
-      '@freddie/freddie-client-connection':
-        specifier: '*'
-        version: link:../connection
-      '@freddie/freddie-client-locale':
-        specifier: '*'
-        version: link:../locale
-      '@freddie/freddie-client-runtime':
-        specifier: '*'
-        version: link:../runtime
-      '@freddie/freddie-client-ui-conversation':
-        specifier: '*'
-        version: link:../ui-conversation
       '@freddie/freddie-client-ui-primitives':
         specifier: '*'
         version: link:../ui-primitives
@@ -4018,31 +3941,6 @@ importers:
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
-
-  packages/context/dream-rsi-context:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-agent':
-        specifier: '*'
-        version: link:../../core/agent
-      '@freddie/freddie-agent-loop':
-        specifier: '*'
-        version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-llm':
-        specifier: '*'
-        version: link:../../llm/llm
-      '@freddie/freddie-session':
-        specifier: '*'
-        version: link:../../core/session
 
   packages/context/file-reference:
     dependencies:
@@ -5350,71 +5248,6 @@ importers:
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
-      '@freddie/freddie-tools':
-        specifier: '*'
-        version: link:../../core/tools
-
-  packages/gm/gm-client:
-    dependencies:
-      '@freddie/freddie-gm-config':
-        specifier: '*'
-        version: link:../gm-config
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-typert-protocol':
-        specifier: '*'
-        version: link:../../typert/protocol
-
-  packages/gm/gm-config:
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-
-  packages/gm/gm-progress:
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-session-projection':
-        specifier: '*'
-        version: link:../../session/session-projection
-
-  packages/gm/tool-gm:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-gm-client':
-        specifier: '*'
-        version: link:../gm-client
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-session':
-        specifier: '*'
-        version: link:../../core/session
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
@@ -8990,22 +8823,6 @@ importers:
         specifier: '*'
         version: link:../web
 
-  packages/web/web-search-browser:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-gm-client':
-        specifier: '*'
-        version: link:../../gm/gm-client
-      '@freddie/freddie-web':
-        specifier: '*'
-        version: link:../web
-
   packages/web/web-search-deepseek:
     dependencies:
       '@freddie/schemastery':
@@ -10132,6 +9949,7 @@ packages:
   '@smithy/core@3.35.0':
     resolution: {integrity: sha512-zRMhfkByhT2snNdr1si24vJitU6Cr9ix2MikUfWmkAgp4jrNP0GcKSP5YvwQ+TlI8AZXER5QOGJn3JsVtSD9/A==}
     engines: {node: '>=18.0.0'}
+    deprecated: Deprecated due to a bug in custom logger data redaction. See https://github.com/aws/aws-sdk-js-v3/issues/8393.
 
   '@smithy/credential-provider-imds@4.5.2':
     resolution: {integrity: sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==}

@@ -111,14 +111,6 @@ const HOST_CODE_ACTIVATION = [
   'dynamicCordisRunner.undefineFromPanel',
 ]
 
-const WORKFLOW_STATE_WRITES = [
-  'gm.prdAdd',
-  'gm.prdResolve',
-  'gm.mutableAdd',
-  'gm.mutableResolve',
-  'gm.transition',
-]
-
 const DIRECT_HOST_ACTIONS = [
   'commands.execute',
   'job.kill',
@@ -137,7 +129,6 @@ const PRIVILEGED_METHODS = new Set([
   ...HOST_SHELL,
   ...WORKSPACE_FILESYSTEM,
   ...HOST_CODE_ACTIVATION,
-  ...WORKFLOW_STATE_WRITES,
   ...DIRECT_HOST_ACTIONS,
   ...CROSS_SESSION_DISCLOSURE,
 ])

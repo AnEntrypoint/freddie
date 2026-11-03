@@ -37,7 +37,6 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable API |
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit | Product — stable API |
 | [`preset/`](preset/README.md) | Per-session agent composition from preset `cordis.yml` files or plugin declarations | Product — stable API |
-| [`gm/`](gm/README.md) | First-class gm spool client (`ctx.gm`) and model-facing `gm_*` tools | Product — stable API |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders and the `tools/execute` deadline enforcer | Product — stable API |
 | [`bundle/`](bundle/README.md) | Installable `freddie --profile` patch layers | Product — stable API |
 | [`extensions/`](extensions/README.md) | Agent runtime self-modification: live plugin inspection and model-written plugin mount/unmount | Product — stable API |

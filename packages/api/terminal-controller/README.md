@@ -60,7 +60,7 @@ Failures are `TypertLookupFailure`s with `terminal/unavailable`,
 `terminal/limit-reached`; the Gateway preserves them verbatim as
 `{ ok: false, error: { code, message, details } }`.
 
-Registration is buildless, matching `packages/gm/gm-client/src/index.js`:
+Registration is buildless:
 
 ```js
 Remote('shells')(TerminalController.prototype.shells, {
