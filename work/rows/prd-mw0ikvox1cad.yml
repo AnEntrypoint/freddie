@@ -1,6 +1,0 @@
-id: "prd-mw0ikvox1cad"
-kind: "prd"
-title: "Independent native320 center-start gm_git_show Enter/Tab focuses original OUT at y653–819 behindstickycomposer y604–844."
-body: "At native320 with center start, Enter or Tab on the gm_git_show OUT block focuses it at y653 to 819, behind the sticky composer at y604 to 844. Open: which scroller hosts the focus target, which call issues the scroll, and the live rects. Status: open, blocked. The trigger tool gm_git_show was removed with gm in commit cd8c2726, so this exact repro no longer exists; a new repro needs a different tool block and a new row. Earlier receipts report the web entry failing to resolve commander with an empty root node_modules; this run did not re-check that."
-status: "open"
-createdAt: "2026-11-03T09:57:32.145Z"
