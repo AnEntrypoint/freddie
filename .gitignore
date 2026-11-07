@@ -1,5 +1,7 @@
 CLAUDE.local.md
 .env
+.env.*
+!.env.example
 node_modules/
 lib/
 !packages/client/vendor-modules/vendor/**/lib/
@@ -42,8 +44,7 @@ worktrees/
 .typert-*/
 
 /runs/
-/.playwriter/
+.playwriter/
 /.gm/
-
-# Local harness homes used for live verification runs.
+.agentplug-kv/
 .freddie-home*/
