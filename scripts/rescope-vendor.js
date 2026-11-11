@@ -93,7 +93,7 @@ const EXACT_EDITS = [
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
     find: '`framework/` packages keep upstream names and publish alongside the harness (`publishConfig.access: public`). `cordis` is a peerDependency (+ dev) of every harness package.',
-    replace: '`framework/` packages carry the `@freddie` scope too ([mapping](docs/rescope.md)) and publish alongside the harness (`publishConfig.access: public`), which is why the scope matters — under the original names that publication would squat them. `@freddie/cordis` is a peerDependency (+ dev) of every harness package.',
+    replace: '`framework/` packages take the `@freddie` scope too and publish public with the harness (`publishConfig.access: public`; [mapping](docs/rescope.md)). `@freddie/cordis` is a peer and dev dependency of every harness package.',
     expect: 1,
   },
   {
