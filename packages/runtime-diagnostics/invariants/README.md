@@ -28,7 +28,7 @@ Session itself owns immutable, surface-valid log storage in every composition: i
 
 Publication and registration are exhaustive; runtime assertions are deliberately not synthetic. A companion installs a check only when its package owns an observable event relationship or relevant mutable-data relationship. Confirming a required method, plugin name, injection, effect, or fixed pure-function result is a type, load, or unit-test concern rather than a runtime invariant.
 
-When no plausible runtime relationship exists, the companion uses an empty installer with a package-specific leading `No runtime invariant:` comment explaining why. This is common for pure utilities, thin implementations whose behavior is already observed through their interface package, composition-only packages, binaries, persistence adapters whose contracts require crash and round-trip tests, and test-support packages. The explanation must be revisited when the owner gains mutable state or an event protocol.
+When no plausible runtime relationship exists, the companion uses an empty installer with a package-specific leading `No runtime invariant:` comment explaining why. This is common for pure utilities, thin implementations whose behavior is already observed through their interface package, composition-only packages, binaries, and persistence adapters whose contracts require crash and round-trip tests. The explanation must be revisited when the owner gains mutable state or an event protocol.
 
 The current executable companions protect these relationships:
 
@@ -36,7 +36,7 @@ The current executable companions protect these relationships:
 |---|---|
 | `freddie-session`, `freddie-agent`, `freddie-scope`, `freddie-agent-loop` | Session enclosure and call/result trace, agent-status transitions, inbox FIFO conservation, scoped subjects, and model-request reconstruction. |
 | `freddie-llm`, `freddie-llm-retry`, `freddie-tools`, `freddie-system-prompt` | Stream grammar, durable retry position and bounds, tool-pipeline stages and frozen results, and authoritative prompt-assembly data. |
-| `freddie-compaction`, `freddie-hook-protocol`, `freddie-sandbox-policy` | Durable compaction and hook pairing, compaction metadata, and sandbox-mode vocabulary. |
+| `freddie-compaction`, `freddie-sandbox-policy` | Durable compaction pairing, compaction metadata, and sandbox-mode vocabulary. |
 | `freddie-fs`, `freddie-subagent`, `freddie-workflow` | Filesystem event identity, provider/child pairing, and workflow/agent lifecycle identity. |
 | `freddie-goal`, `freddie-goal-round-driver` | Durable goal source/content agreement, revision and lifecycle transitions, timestamps, sequential admitted rounds, and reconstructed continuation prompts. |
 | `freddie-permission-presets`, `freddie-user-approval` | Active-preset references and approval asked/decided audit pairing. |

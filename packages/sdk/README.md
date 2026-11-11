@@ -5,5 +5,4 @@ This group contains the protocol stack for driving a Harness runtime from anothe
 | Package | Role |
 |---|---|
 | [`protocol/`](protocol/README.md) | Defines the SDK runtime wire protocol |
-| [`client/`](client/README.md) | Drives a Harness runtime through the TypeScript client API |
 | [`server/`](server/README.md) | Serves out-of-process SDK clients over stdio JSON-RPC |

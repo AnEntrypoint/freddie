@@ -49,5 +49,5 @@ A capture is appended after the current input and repeats only when the selected
 ## Known Limitations and Deferred Work
 
 - Retrieval selects by recency; semantic ranking is a separate capability.
-- The initial provider is a storage-domain sidecar, so it works with both JSONL and SQLite session persistence without assuming a physical per-session directory. A folder-backed export provider may later materialize the same records under JSONL's reserved session directory.
+- The initial provider is a storage-domain sidecar, so it works without assuming a physical per-session directory. A folder-backed export provider may later materialize the same records under JSONL's reserved session directory.
 - Semantic search, expiry review, and external/team principals require separate retrieval, retention, and authenticated-principal capability seams; the sidecar remains the authoritative local record.

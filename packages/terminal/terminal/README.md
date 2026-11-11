@@ -25,7 +25,7 @@ The seam contains no `node-pty`, sandbox, tool-schema, prompt, task, or terminal
 
 #### What the model sees
 
-Nothing directly. This package registers no prompt or tool; `@freddie/freddie-tool-terminal` owns visible schemas and result text.
+Nothing directly. This package registers no prompt or tool.
 
 #### Token effect
 

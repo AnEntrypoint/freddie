@@ -1,6 +1,6 @@
 # Persistent PTY Sessions
 
-Types shared by PTY backends, `ctx.terminals`, and the model-facing consumer. The [persistent PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) owns the rationale; this page records the cross-package vocabulary from [`packages/terminal/terminal/src/types.js`](../../packages/terminal/terminal/src/types.js).
+Types shared by PTY backends and `ctx.terminals`. The [persistent PTY Agent Note](../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) owns the rationale; this page records the cross-package vocabulary from [`packages/terminal/terminal/src/types.js`](../../packages/terminal/terminal/src/types.js).
 
 ## Identity and readiness
 
@@ -37,7 +37,7 @@ interface TerminalBackend {
 ```ts type-equiv
 /** Backend-owned live session retained by {@link TerminalSessionService}. */
 interface TerminalBackendSession {
-  /** Initial bounded terminal output returned from `terminal_open`. */
+  /** Initial bounded terminal output. */
   readonly motd: string
   /** Top-level process id when one exists. */
   readonly pid?: number

@@ -88,7 +88,7 @@ export function apply(ctx: Context) {
 
 ## Runnable wirings
 
-Runnable leaves load their plugin trees from `examples/*/cordis.yml`; the root `demo:*` scripts and those leaf directories are the authoritative inventory. The product `freddie` launcher owns Web and one-shot headless execution, ACP leaves use [`@freddie/freddie-acp-demo`](../../packages/examples/acp-demo), and JSON-RPC leaves are meant to use `@freddie/freddie-sdk-jsonrpc-demo`, which is not yet built. The headless snapshot leaf mounts [`@freddie/freddie-agent-spine-demo`](../../packages/examples/agent-spine-demo) and JSONL persistence explicitly, then drives them through an example-owned test fixture rather than a shipped app package.
+Runnable leaves load their plugin trees from `examples/*/cordis.yml`; the root `demo:*` scripts and those leaf directories are the authoritative inventory. The product `freddie` launcher owns Web and one-shot headless execution, and ACP leaves use [`@freddie/freddie-acp-demo`](../../packages/examples/acp-demo).
 
 ## The feature → mechanism map
 
@@ -98,7 +98,7 @@ Every product feature maps to a listener on a documented extension point — the
 
 | Product feature | Plugin mechanism |
 |---|---|
-| Hook system (user + project level) | listeners on `agent/session-start`, `agent/pre-step`, `agent/request`, `tools/pre-execute`, `tools/post-execute`, and `agent/turn-stopping`; the waterfalls return typed decisions, while `agent/turn-stopping` may steer another step; the `@freddie/freddie-hooks-claude-code` / `@freddie/freddie-hooks-codex` bridges map hook config files onto these extension points |
+| Hook system (user + project level) | listeners on `agent/session-start`, `agent/pre-step`, `agent/request`, `tools/pre-execute`, `tools/post-execute`, and `agent/turn-stopping`; the waterfalls return typed decisions, while `agent/turn-stopping` may steer another step |
 | `/goal` | `ctx.goals` owns durable state, `@freddie/freddie-goal-round-driver` schedules same-session rounds through the public `Agent`, and separate command/tool producers expose human/model control |
 | `/loop` | on the `turn/end` session event, `followup()` the next iteration; or force-continue |
 | Dynamic workflow | `ctx.workflowEngine` + the worker-thread engine + the `workflow` tool; structured in-process children enforce output with scoped prompt/tool registrations, a monotonic tool guard, final `tools/result` commit (including enclosing `run_code`), and the structured-output execution's monotonic `concludeTurn()` marker |
@@ -115,7 +115,7 @@ Every product feature maps to a listener on a documented extension point — the
 | Subprocess sandbox (landlock / sandbox-exec) | use a `ctx.sandbox` backend through `@freddie/freddie-bash-sandbox`; use `tools/pre-execute` for capability-level denial |
 | Permission system / AskUserQuestion | return `ask` from `tools/pre-execute` and answer through `ctx.approval`; register a separate model-facing ask tool for ordinary user questions |
 | Plan mode | [`@freddie/freddie-plan-mode`](../../packages/plan/plan-mode/README.md) — logged `plan/mode` state, the `plan:policy` guidance section, `/plan [message]` entry, `/plan off` direct exit, and the user-reviewed `exit_plan_mode` exit; enforcement stays on the independent sandbox/approval axes |
-| Sub-agent delegation | the `ctx.subagents` provider registry (`@freddie/freddie-subagent-spawn-in-process`/`-fork`/`-acp`/`-codex`/`-claude-code`/`-freddie-sdk`) + `@freddie/freddie-tool-subagent` exposing one configured provider to the model |
+| Sub-agent delegation | the `ctx.subagents` provider registry (`@freddie/freddie-subagent-spawn-in-process`/`-fork-in-process`) + `@freddie/freddie-tool-subagent` exposing one configured provider to the model |
 | MCP | one plugin per server: discover tools → `ctx.tools.register()` |
 | Skills | section + tool registration; `inject()` skill content on invocation |
 | Memory | section provider + tool |

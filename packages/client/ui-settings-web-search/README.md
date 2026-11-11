@@ -4,7 +4,7 @@ The **Web search** card on the Plugins page's **Plugin configuration** tab: the 
 
 ## What appears here
 
-The card is dispatched by namespace, not by id: the tab reads which namespaces the Host serves and renders the card registered under each. This package ships only the browser half — the namespace is registered by the search provider that owns the configuration (`@freddie/freddie-web-search-deepseek`) — so a deployment that composes no such provider serves no section, and the card renders nothing at all rather than a card the user cannot act on.
+The card is dispatched by namespace, not by id: the tab reads which namespaces the Host serves and renders the card registered under each. This package ships only the browser half — the namespace is registered by the search provider that owns the configuration — so a deployment that composes no such provider serves no section, and the card renders nothing at all rather than a card the user cannot act on.
 
 **API key** is a write-only control. It is never pre-filled, and the card reports only whether one is configured: the literal is written through the credentials domain under the reference the section names (`apiKeyEnv`, defaulting to `DEEPSEEK_API_KEY`), and no read ever carries it back. Leaving the control blank writes nothing, so saving the endpoint cannot clear a key that is already stored.
 

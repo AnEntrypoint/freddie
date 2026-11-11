@@ -57,4 +57,4 @@ The persona is `You are a coding agent powered by the {{model}} model.` followed
 - **A profile can omit the ACP bridge** — a custom ACP launch profile must retain this bundle or another `freddie-acp` row; otherwise no peer answers the client.
 - **User patches can violate stdout purity** — profile and per-launch patches are trusted application composition. This bundle writes no non-protocol stdout, but it cannot contain an arbitrary inserted plugin.
 - **Configuration changes require restart** — `hmr` is disabled so one stdio connection never observes a replacement bridge or agent dependency.
-- **The base layer is the whole product core** — every `freddie-base` row mounts, including Web search and the gm tools. A deployment that wants the smaller tree mounts [`examples/jsonrpc-agent/minimal.cordis.yml`](../../../examples/jsonrpc-agent/minimal.cordis.yml)'s selection instead.
+- **The base layer is the whole product core** — every `freddie-base` row mounts, including Web search and the gm tools.

@@ -55,4 +55,3 @@ The persona is `You are a coding agent powered by the {{model}} model.` followed
 - **A profile can omit the SDK server** — a custom profile selected by a client must retain this bundle or another `freddie-sdk-jsonrpc-server` row; client initialization fails when no peer answers.
 - **User patches can violate stdout purity** — this bundle writes no non-protocol stdout, but it cannot contain an arbitrary inserted plugin.
 - **Configuration changes require restart** — `hmr` is disabled so one stdio connection never observes a replacement server or agent dependency.
-- **The Python SDK carrier uses a different composition** — the bundled single-executable runtime loads [`examples/jsonrpc-agent/cordis.yml`](../../../examples/jsonrpc-agent/cordis.yml) directly rather than a profile bundle; this bundle is the CLI-surface counterpart.

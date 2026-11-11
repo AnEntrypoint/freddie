@@ -1,6 +1,6 @@
 # @freddie/freddie-sdk-jsonrpc-server
 
-The `jsonrpc` plugin serves newline-delimited JSON-RPC over stdio so out-of-process SDK clients can drive harness agents. [`HarnessSdkJsonRpcServer`](src/server.ts) owns the protocol methods and notifications; the transport and the named wire types live in [`freddie-sdk-protocol`](../protocol/README.md), shared with the client SDKs; [`jsonrpc-demo`](../../examples/jsonrpc-demo/README.md) supplies the surrounding `cordis.yml` application.
+The `jsonrpc` plugin serves newline-delimited JSON-RPC over stdio so out-of-process SDK clients can drive harness agents. [`HarnessSdkJsonRpcServer`](src/server.ts) owns the protocol methods and notifications; the transport and the named wire types live in [`freddie-sdk-protocol`](../protocol/README.md); the [`freddie-sdk-app`](../../bundle/sdk-app/README.md) profile bundle supplies the surrounding application.
 
 ## Wiring
 

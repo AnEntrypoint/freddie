@@ -14,8 +14,4 @@ These packages provide small primitives shared by multiple capability families, 
 | [`deque/`](deque/README.md) | Circular deque with O(1) push/pop at both ends |
 | [`time/`](time/README.md) | Validates and canonicalizes IANA time zones at wire boundaries |
 | [`crypto/`](crypto/README.md) | Insecure-context-safe UUID minting and chunked base64 encoding |
-| [`chunked-list/`](chunked-list/README.md) | Persistent append-only lists with bounded-copy appends |
 | [`http-proxy/`](http-proxy/README.md) | Resolves and installs outbound HTTP proxy policy from the launch environment |
-| [`lazy-require/`](lazy-require/README.md) | Caller-relative lazy loading, with success caching, for optional CJS dependencies |
-| [`code-language/`](code-language/README.md) | Maps file extensions to syntax-highlighting language ids and read-tool `lang` hints |
-| [`workspace-path/`](workspace-path/README.md) | Classifies, resolves, and addresses workspace paths across POSIX/Windows/UNC |

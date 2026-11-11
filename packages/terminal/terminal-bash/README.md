@@ -18,7 +18,7 @@ Send cancellation marks queued input as canceled before asking the terminal hand
 
 #### What the model sees
 
-The policy owner contributes capability-neutral `sandbox:policy` context. Through `@freddie/freddie-tool-terminal` or another PTY consumer, the model may also receive bounded MOTD, send deltas, scrollback pages, readiness reasons, and cleanup errors.
+The policy owner contributes capability-neutral `sandbox:policy` context. Through a PTY consumer, the model may also receive bounded MOTD, send deltas, scrollback pages, readiness reasons, and cleanup errors.
 
 #### Token effect
 

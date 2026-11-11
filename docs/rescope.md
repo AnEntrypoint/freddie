@@ -23,7 +23,7 @@ Subpath exports keep their path: `@cordisjs/plugin-loader/repository` becomes `@
 - **Directory names and versions.** `framework/hmr/` stays `framework/hmr/`, and every package continues the version line its table row records.
 - **Dependency ranges.** A dependency entry changes its key, never its range: `"cordis": "^4.0.0-rc.7"` becomes `"@freddie/cordis": "^4.0.0-rc.7"`. `linkWorkspacePackages` resolves those preserved ranges to the pinned workspaces.
 - **The Loader's `cordis:` builtin prefix.** `cordis:include` and `cordis:group` are a protocol prefix, not a package name.
-- **The `cordis.yml` configuration family**, including `*.cordis.yml`, `*.cordis.snapshot.yml`, and `cordis.patch.yml`.
+- **The `cordis.yml` configuration family**, including `*.cordis.yml` and `cordis.patch.yml`.
 - **Harness packages whose own names contain the word**, such as `@freddie/freddie-tool-cordis`.
 - **Inherited runtime identifiers**, such as Schemastery's `Symbol.for('schemastery')` and its `vendor:` metadata field. These are wire identifiers, not package references.
 - **Prose outside `docs/`.** `framework/*/README.md`, package READMEs, and Agent Notes keep the names they were written with; a bare `cordis` there can also be the Python SDK's option name or an agent-preset id. Inside `docs/`, prose and every Markdown fence follow the rename.

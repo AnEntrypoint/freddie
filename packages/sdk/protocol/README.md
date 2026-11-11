@@ -1,6 +1,6 @@
 # @freddie/freddie-sdk-protocol
 
-The shared wire protocol for the Freddie SDK runtime: one newline-delimited JSON-RPC 2.0 transport class plus the named request, result, and notification types both wire ends speak. The package root enumerates the protocol consumer interface; source modules are not exported as deep imports. The server side is the [`freddie-sdk-jsonrpc-server`](../server/README.md) plugin; clients are [`freddie-sdk-client`](../client/README.md) (TypeScript) and the [Python SDK](../../../python/README.md) (which mirrors these shapes but does not import them). A pure library — no plugin, no Config, no registration.
+The shared wire protocol for the Freddie SDK runtime: one newline-delimited JSON-RPC 2.0 transport class plus the named request, result, and notification types both wire ends speak. The package root enumerates the protocol consumer interface; source modules are not exported as deep imports. The server side is the [`freddie-sdk-jsonrpc-server`](../server/README.md) plugin; no client ships in this checkout. A pure library — no plugin, no Config, no registration.
 
 ## Transport
 
@@ -34,4 +34,4 @@ None; this package neither assembles nor sends a provider request.
 
 - **No protocol-version negotiation** — the handshake carries only `serverInfo.version` (`0.0.1`, unvalidated by clients); pre-release stance, no compatibility promise.
 - **No cancel or session-close methods** — a client abandons a turn by closing the runtime process; see the [`freddie-sdk-jsonrpc-server` README](../server/README.md).
-- **Server→client requests are dead capability** — the transport supports them, but the server never sends one; the Python SDK's responder surface exists for future approval flows.
+- **Server→client requests are dead capability** — the transport supports them, but the server never sends one.

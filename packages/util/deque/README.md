@@ -1,6 +1,6 @@
 # freddie-deque
 
-Zero-dependency circular deque for queues that retain entries across asynchronous work. Several packages drain a FIFO with `array.shift()` (`workflow/graph`, `subprocess-local/spawn`, `e2b/subprocess-e2b/output`, `attachment-local/compression-limiter`), which is O(n) per removal because the engine re-indexes every remaining element. `Deque` gives those call sites an O(1) alternative at both ends without adopting a dependency.
+Zero-dependency circular deque for queues that retain entries across asynchronous work. Several packages drain a FIFO with `array.shift()` (`workflow/graph`, `subprocess-local/spawn`, `attachment-local/compression-limiter`), which is O(n) per removal because the engine re-indexes every remaining element. `Deque` gives those call sites an O(1) alternative at both ends without adopting a dependency.
 
 ## Surface
 

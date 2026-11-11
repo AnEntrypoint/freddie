@@ -17,7 +17,7 @@ flowchart TD
   around["<code>tools/execute</code> waterfall<br/>timeout, retry, metrics (around dispatch)"]
   toolBody["Registered tool execute() body"]
   fsGate["<code>fs/write-intent</code> or <code>fs/edit-intent</code><br/>tool-fs mutations only"]
-  owned["Tool-owned session events<br/><code>todo/write</code>, <code>fs/observed</code>, <code>hook/invoked</code>, <code>hook/result</code>, <code>tool/code-dispatch</code>"]
+  owned["Tool-owned session events<br/><code>todo/write</code>, <code>fs/observed</code>, <code>tool/code-dispatch</code>"]
   post["<code>tools/post-execute</code> waterfall<br/>accept, block, replace, add context"]
   normalized["Registry outer normalization<br/>pipeline/result snapshot throws become isError"]
   finalize["ToolDefinition.finalizeContent<br/>last content-only invariant"]

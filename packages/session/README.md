@@ -1,17 +1,16 @@
 # session/ — durable session data plane
 
-The durable family around `core/session`'s live in-memory service: the persistence seam with its storage backends and checkpoint policy, the projection seam that serves whole log-derived values, log-backed titles, and outbound session telemetry. All **product** packages. `session-query/` remains a sibling group: the read/tool surface is consumed independently of persistence internals.
+The durable family around `core/session`'s live in-memory service: the persistence seam with its storage backend and checkpoint policy, the projection seam that serves whole log-derived values, log-backed titles, and outbound session telemetry. All **product** packages. `session-query/` remains a sibling group: the read/tool surface is consumed independently of persistence internals.
 
 ## Persistence
 
-Durable session persistence, semantic checkpoint policy, and the shipped storage backends.
+Durable session persistence, semantic checkpoint policy, and the shipped storage backend.
 
 | Package | Role | ctx key |
 |---|---|---|
 | [`session-persistence/`](session-persistence/README.md) | Defines the persistence service and shared write coordination | `ctx.sessionPersistence` |
 | [`session-checkpoint-policy/`](session-checkpoint-policy/README.md) | Applies semantic durability checkpoints | wraps `ctx.llm` and `ctx.tools` |
 | [`session-persistence-jsonl/`](session-persistence-jsonl/README.md) | Persists sessions in JSONL files | registers on `ctx.sessionPersistence` |
-| [`session-persistence-sqlite/`](session-persistence-sqlite/README.md) | Opt-in SQLite backend with packed physical chunk rows | registers on `ctx.sessionPersistence` |
 
 The [session-persistence decision](../../.agents/notes/implemented/architecture/2026-06-14-session-persistence.md) records the persistence design.
 

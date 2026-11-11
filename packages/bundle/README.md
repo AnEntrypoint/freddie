@@ -2,7 +2,7 @@
 
 Profile bundles: npm packages whose manifest declares `"freddie": { "bundle": { "patch": "./cordis.patch.yml" } }`, making them installable patch layers for `freddie --profile` compositions ([profile contract](../boot/app-boot/README.md#profiles)). A bundle's substance is its patch list; some also ship runtime glue plugins their patch mounts.
 
-The manifest declaration, not this directory, defines Bundle identity. Domain packages can carry their own optional Profile layer; the [Codex and Claude Code subagent packages](../subagent/README.md) are directly installable examples.
+The manifest declaration, not this directory, defines Bundle identity. Domain packages can carry their own optional Profile layer.
 
 | Package | Role | ctx key |
 |---|---|---|

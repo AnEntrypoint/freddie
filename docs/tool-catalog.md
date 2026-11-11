@@ -26,17 +26,15 @@ This table connects model-visible tool names to the plugin package and service s
 | `@freddie/freddie-tool-str-replace-editor` | `str_replace_editor` | `ctx.tools`, `ctx.fs` | `tool/call`, `fs/observed after view presence/absence, edit absence, or successful mutation`, `tool/result` | - | Standalone view/create/unique literal replace/line insert tool over the filesystem seam; it composes with any shell or terminal API. |
 | `@freddie/freddie-tool-fs` | `edit`, `read`, `read_image`, `write` | `ctx.tools`, `ctx.fs`, `ctx.systemPrompt`, `ctx.attachments (image-tool registration)`, `ctx.llm + an image-capable route (image-tool execution)` | `tool/call`, `fs/write-intent or fs/edit-intent for mutations`, `fs/observed after read presence/absence or successful file operation`, `durable attachment (read_image)`, `tool/result` | - | The read-before-write/edit policy is added by `@freddie/freddie-fs-observation-policy` (an `fs/*` event-gate plugin, no schema change); a deployment that loads these tools is expected to also load it. The image tool is not registered without `ctx.attachments`; its schema is route-independent, and execution refuses unless the exact routed model declares image input. |
 | `@freddie/freddie-tool-fs-search` | `glob`, `grep` | `ctx.tools`, `ctx.subprocess`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments. |
-| `@freddie/freddie-tool-terminal` | `terminal_close`, `terminal_list`, `terminal_open`, `terminal_read`, `terminal_send`, `terminal_signal` | `ctx.tools`, `ctx.terminals`, `ctx.systemPrompt`, `ctx.jobs at call time for run_in_background` | `tool/call`, `tool/result` | - | The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema. |
 | `@freddie/freddie-tool-goal` | `create_goal`, `get_goal`, `update_goal` | `ctx.tools`, `ctx.agents`, `ctx.goals`, `ctx.systemPrompt`, `a calling Agent in an authorized open turn` | `tool/call`, `goal/change for mutations`, `tool/result` | - | create, edit, pause, and resume require direct-human root authority; complete and blocked also accept the exact current goal round. The default blocked lower bound is three admitted rounds. |
 | `@freddie/freddie-schedule` | `schedule_create`, `schedule_delete`, `schedule_list` | `ctx.tools`, `ctx.sessions`, `Session persistence`, `a future live root Agent` | `tool/call`, `schedule/change create or delete`, `tool/result` | - | Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, and discloses session-local delivery; management reads and mutations require the shared Session persistence barrier. |
-| `@freddie/freddie-tool-lsp` | `lsp` | `ctx.tools`, `ctx.lsp`, `ctx.systemPrompt` | `tool/call`, `tool/result` | - | The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@freddie/freddie-lsp-stdio`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema. |
 | `@freddie/freddie-tool-ralph` | `ralph` | `ctx.tools`, `ctx.workflowEngine`, `ctx.subagents`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents every fresh round)` | `tool/call`, `tool/result`, `workflow and child session events during execution` | - | A fixed foreground workflow starts one fresh structured child per round; the model selects only the immutable objective and an optional round cap. |
 | `@freddie/freddie-tool-skill` | `skill` | `ctx.tools`, `ctx.agents`, `ctx.skills` | `tool/call`, `tool/result`, `user/message replacement catalogs via agent.inject()` | - | - |
 | `@freddie/freddie-tool-session-query` | `session_event_read`, `session_event_search`, `session_event_trace`, `session_search`, `session_trace` | `ctx.tools`, `ctx.systemPrompt`, `ctx.sessionQuery`, `a calling Agent for workspace authority` | `tool/call`, `tool/result` | - | The five read-only tools hide provider cursors and authorize every result from the immutable calling agent session. The package is mounted by default (base host row; every Web preset except `minimal`) together with the generic timeout and spill policies that enforce deadlines and bound inline output. |
 | `@freddie/freddie-tool-subagent` | `subagent` | `ctx.tools`, `ctx.subagents`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered tool name is the load-time `toolName` config (default `subagent`); the schema above is that default. The shipped compositions load this package once per subagent backend, so the model additionally sees `subagent_fork` bound to the fork backend. Each instance's description, `run_in_background` parameter, and system-prompt policy follow its own `backgroundMode` and `enableRunInBackground`, so the two shipped schemas are not identical: `subagent` is `continuable` and defaults omitted calls to background with automatic settlement delivery, while `subagent_fork` stays `one-shot` and defaults them to foreground — see `packages/bundle/base/cordis.patch.yml` and `examples/acp-agent/cordis.yml`. |
 | `@freddie/freddie-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message` | `ctx.tools`, `ctx.subagents`, `ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries). |
 | `@freddie/freddie-tool-subagent-report` | `report` | `ctx.subagents`, `ctx.systemPrompt`, `a live continuable in-process child Agent` | `tool/call`, `tool/result`, `a user-role message in the direct parent session` | - | Registered per continuable in-process child rather than globally, so this schema is visible only inside such a child and survives its global `toolFilter`. The same contribution installs the child-scoped `tool:report` prompt section, which this catalog does not render. The parent-facing `send_message` tool is installed independently. |
-| `@freddie/freddie-tool-jobs` | `job_kill`, `job_list`, `job_output` | `ctx.tools`, `ctx.jobs`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`. |
+| `@freddie/freddie-tool-jobs` | `job_kill`, `job_list`, `job_output` | `ctx.tools`, `ctx.jobs`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-job controller: background bash commands and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`. |
 | `@freddie/freddie-experimental-tool-agent-team` | `followup_task`, `interrupt_agent`, `list_agents`, `send_message`, `spawn_teammate`, `team_task_create`, `team_task_get`, `team_task_list`, `team_task_update`, `wait_agent` | `ctx.tools`, `ctx.systemPrompt`, `ctx.agentTeams`, `an exact live Team member Agent` | `tool/call`, `team/member`, `team/message/queued`, `team/message/delivered`, `team/task`, `tool/result` | - | All ten tools are scoped to implicit Team Leads and durable teammates. Every profile template except `minimal` applies the Agent Teams profile bundle, which enables the package while disabling the legacy continuable-child control names; `excludePresets` skips agents running a listed preset. |
 | `@freddie/freddie-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@freddie/freddie-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
@@ -802,171 +800,6 @@ Source: [`packages/fs/tool-fs-search/src/index.js`](../packages/fs/tool-fs-searc
 
 glob and grep are unconditional discovery tools that spawn the packaged ripgrep binary (`@vscode/ripgrep`) through ctx.subprocess as ordinary foreground calls (never background jobs) — no host `rg` install and no shell layer. The catalog uses `sampleOverCapGlobResults: true`; deployments must choose that behavior explicitly. Capped results save the complete formatted list through the optional ctx.spillStore backend; returned locators are follow-up-readable/searchable when the backend exposes local paths in co-located deployments.
 
-<a id="freddie-tool-terminal"></a>
-
-## `@freddie/freddie-tool-terminal`
-
-### `terminal_close`
-
-Close one persistent terminal and wait until its captured owned process tree is gone.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "sessionId": {
-      "type": "string",
-      "description": "Terminal session id."
-    }
-  },
-  "required": [
-    "sessionId"
-  ]
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-### `terminal_list`
-
-List persistent terminal sessions owned by the current agent.
-
-```json
-{
-  "type": "object",
-  "properties": {}
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-### `terminal_open`
-
-Create a persistent, owner-isolated terminal session from a registered backend type. Use this for shell or REPL state that must survive across tool calls.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "type": {
-      "type": "string",
-      "description": "Registered terminal backend type, usually \"shell\"."
-    },
-    "name": {
-      "type": "string",
-      "description": "Optional owner-local display name such as \"main\" or \"gdb\"."
-    },
-    "cwd": {
-      "type": "string",
-      "description": "Initial working directory. Defaults to the deployment workspace root."
-    }
-  },
-  "required": [
-    "type"
-  ]
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-### `terminal_read`
-
-Read a bounded page of retained output from a persistent terminal without sending input.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "sessionId": {
-      "type": "string",
-      "description": "Terminal session id."
-    },
-    "offset": {
-      "type": "number",
-      "description": "Newest-relative line offset (default 0)."
-    },
-    "count": {
-      "type": "number",
-      "description": "Requested line count (default 500; backend caps apply)."
-    }
-  },
-  "required": [
-    "sessionId"
-  ]
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-### `terminal_send`
-
-Send text to a persistent terminal. By default Enter is submitted and the call waits for a prompt, stdin wait, output silence, timeout, or session exit. Background mode returns a job id for job_output/job_kill.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "sessionId": {
-      "type": "string",
-      "description": "Terminal session id returned by terminal_open or terminal_list."
-    },
-    "text": {
-      "type": "string",
-      "description": "UTF-8 text to write to the terminal."
-    },
-    "submit": {
-      "type": "boolean",
-      "description": "Submit Enter after text (default true). Set false for control characters or incomplete REPL input."
-    },
-    "run_in_background": {
-      "type": "boolean",
-      "description": "Return a job id immediately; collect with job_output or stop with job_kill."
-    }
-  },
-  "required": [
-    "sessionId",
-    "text"
-  ]
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-### `terminal_signal`
-
-Send an allowed signal to the current foreground process group of a persistent terminal.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "sessionId": {
-      "type": "string",
-      "description": "Terminal session id."
-    },
-    "signal": {
-      "type": "string",
-      "description": "Signal to deliver. Shell-targeted SIGKILL is rejected; use terminal_close.",
-      "enum": [
-        "SIGINT",
-        "SIGTERM",
-        "SIGKILL",
-        "SIGTSTP",
-        "SIGHUP"
-      ]
-    }
-  },
-  "required": [
-    "sessionId",
-    "signal"
-  ]
-}
-```
-
-Source: [`packages/terminal/tool-terminal/src/index.js`](../packages/terminal/tool-terminal/src/index.js)
-
-The six terminal tools are opt-in and complement one-shot shell/filesystem tools. `terminal_send(run_in_background: true)` registers with `ctx.jobs`; TUI, named key sequences, BEL, resize, auto-start, and cross-agent sharing are absent from the schema.
-
 <a id="freddie-tool-goal"></a>
 
 ## `@freddie/freddie-tool-goal`
@@ -1157,54 +990,6 @@ List every active reminder in the current session in creation order, including i
 Source: [`packages/schedule/schedule/src/tools.js`](../packages/schedule/schedule/src/tools.js)
 
 Registered only inside live root Agent scopes created after the opt-in Schedule plugin loads. Version 1 accepts after_seconds, explicit absolute at, and bounded fixed-rate every_seconds, and discloses session-local delivery; management reads and mutations require the shared Session persistence barrier.
-
-<a id="freddie-tool-lsp"></a>
-
-## `@freddie/freddie-tool-lsp`
-
-### `lsp`
-
-Query a language server for precise code navigation. operation is one of goToDefinition, findReferences, goToImplementation, hover. line and character are one-based UTF-16 cursor coordinates. findReferences includes the declaration.
-
-```json
-{
-  "type": "object",
-  "properties": {
-    "operation": {
-      "type": "string",
-      "description": "goToDefinition, findReferences, goToImplementation, or hover.",
-      "enum": [
-        "goToDefinition",
-        "findReferences",
-        "goToImplementation",
-        "hover"
-      ]
-    },
-    "file_path": {
-      "type": "string",
-      "description": "The source file to query, relative to the workspace or absolute."
-    },
-    "line": {
-      "type": "number",
-      "description": "One-based line of the cursor."
-    },
-    "character": {
-      "type": "number",
-      "description": "One-based UTF-16 column of the cursor."
-    }
-  },
-  "required": [
-    "operation",
-    "file_path",
-    "line",
-    "character"
-  ]
-}
-```
-
-Source: `packages/lsp/tool-lsp` (package scaffold only, no `src/` implementation present yet)
-
-The lsp tool keeps provider selection and language-server subprocesses behind ctx.lsp, so its model-visible schema stays stable across providers. Requires a registered provider (e.g. `@freddie/freddie-lsp-stdio`) at runtime; without one, a query returns the structured `LSP_UNAVAILABLE` error rather than changing the schema.
 
 <a id="freddie-tool-ralph"></a>
 
@@ -1706,7 +1491,7 @@ Read a background job. Stream jobs return only output since the previous read; f
 
 Source: [`packages/jobs/tool-jobs/src/index.js`](../packages/jobs/tool-jobs/src/index.js)
 
-The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`.
+The kind-agnostic background-job controller: background bash commands and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`.
 
 <a id="freddie-experimental-tool-agent-team"></a>
 

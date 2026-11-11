@@ -16,14 +16,12 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`feedback/`](feedback/README.md) | Human feedback | Product — stable API |
 | [`identity/`](identity/README.md) | Shared anonymous identity | Product — stable API |
 | [`llm/`](llm/README.md) | LLM capability family: the abstract service + provider adapters | Product — stable API |
-| [`e2b/`](e2b/README.md) | E2B providers | POC |
 | [`subprocess/`](subprocess/README.md) | Subprocess capability family: Service Definition, local process-tree provider | Product — stable API |
 | [`shell/`](shell/README.md) | Bash capability family: executor seam, local impl, model-facing tool | Product — stable API |
-| [`terminal/`](terminal/README.md) | Persistent PTY capability family: owner-scoped sessions and model-facing tools | Product — stable API |
+| [`terminal/`](terminal/README.md) | Persistent PTY capability family: owner-scoped sessions | Product — stable API |
 | [`code-runtime/`](code-runtime/README.md) | Code-execution capability family: Service Definition, worker-thread provider, Code Mode Consumer | Product — stable API |
 | [`sandbox/`](sandbox/README.md) | Process-confinement seam; bwrap/Landlock/Seatbelt backends | Product — stable API |
 | [`fs/`](fs/README.md) | Filesystem capability family: seam, local impl, model-facing file and discovery tools | Product — stable API |
-| [`lsp/`](lsp/README.md) | LSP capability family: seam, generic stdio provider, and the `lsp` tool | Product — stable API |
 | [`skill/`](skill/README.md) | Skill capability family: registry, local provider, model-facing catalog/loader | Product — stable API |
 | [`compaction/`](compaction/README.md) | Compaction capability family: Service Definition, basic provider, command Consumer | Product — stable API |
 | [`context/`](context/README.md) | Model-visible request context, including workspace instructions and time context | Product — stable API |
@@ -31,7 +29,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`jobs/`](jobs/README.md) | Generic background-job runtime and model-facing `job_*` control tools | Product — stable API |
 | [`experimental/`](experimental/README.md) | Private prototypes and internal-only plugins | Unreleased |
 | [`workflow/`](workflow/README.md) | Workflow seam, worker-thread engine, and model-facing `workflow`/`ralph` tools | Product — stable API |
-| [`web/`](web/README.md) | Web capability family: seam, search/fetch providers, model-facing web tools | Product — stable API |
+| [`web/`](web/README.md) | Web capability family: seam, fetch provider, model-facing web tools | Product — stable API |
 | [`attachment/`](attachment/README.md) | Durable attachment identity, validation, local content-addressed storage | Product — stable API |
 | [`spill/`](spill/README.md) | Spill capability family: storage seam, local impl, tool-result spill policy | Product — stable API |
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool | Product — stable API |
@@ -40,25 +38,21 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`guard/`](guard/README.md) | Loop-hygiene guards: repeat-call reminders and the `tools/execute` deadline enforcer | Product — stable API |
 | [`bundle/`](bundle/README.md) | Installable `freddie --profile` patch layers | Product — stable API |
 | [`extensions/`](extensions/README.md) | Agent runtime self-modification: live plugin inspection and model-written plugin mount/unmount | Product — stable API |
-| [`hooks/`](hooks/README.md) | Hook bridges + the shared Claude Code / Codex wire-protocol library | Product — stable API |
 | [`session/`](session/README.md) | Durable session data plane: persistence, projections, titles, reporting | Product — stable API |
 | [`session-query/`](session-query/README.md) | Session retrieval family: bounded reads, lineage, semantic filtering, SQLite full-text search | Product — stable API |
 | [`settings/`](settings/README.md) | User-settings seam, file-backed provider | Product — stable API |
 | [`credentials/`](credentials/README.md) | Credential reference/record seam, env-over-`.env` provider, authorization flows | Product — stable API |
 | [`storage/`](storage/README.md) | Non-session storage hub, backends, domain form | Product — stable API |
 | [`workspace/`](workspace/README.md) | Workspace entity | Product — stable API |
-| [`sdk/`](sdk/README.md) | Out-of-process runtime SDK: JSON-RPC protocol, TypeScript client, and server plugin | Product — stable API |
+| [`sdk/`](sdk/README.md) | Out-of-process runtime SDK: JSON-RPC protocol and server plugin | Product — stable API |
 | [`acp/`](acp/README.md) | Automation-only Agent Client Protocol server | Product — stable API |
 | [`interaction/`](interaction/README.md) | Human-collaboration plane: approvals, permission presets, auto review, commands, ask-user tool | Product — stable API |
 | [`boot/`](boot/README.md) | Shared app-bin boot glue | Product — stable API |
 | [`host/`](host/README.md) | Web-GUI host half: API gateway + HTTP route server | Product — stable API |
 | [`client/`](client/README.md) | Web-GUI browser half: shell, wire, object services, slots, `ui-*` plugins | Product — stable API |
-| [`examples/`](examples/README.md) | Demo bundles (agent-spine and CLI/ACP/JSON-RPC bins) | Support — example infra |
-| [`test-support/`](test-support/README.md) | Reserved support group; currently empty | Support — lower compatibility expectations |
+| [`examples/`](examples/README.md) | Demo bundles (agent-spine and the ACP bin) | Support — example infra |
 | [`util/`](util/README.md) | Zero-dependency utilities shared across groups | Support — small, stable, harness-dep-free |
-| [`webhook/`](webhook/README.md) | Fire-and-forget webhook rule runtime + signed GitHub HTTP adapter | Product — stable API |
 | [`mcp/`](mcp/README.md) | Model Context Protocol client bridge: external MCP tools as native model tools | Product — stable API |
-| [`deliverables/`](deliverables/README.md) | Explicit model-declared file deliveries | Product — stable API |
 | [`browser-use/`](browser-use/README.md) | Exclusive named browser-use provider registration (runtime and Chrome DevTools MCP provider in [experimental/](experimental/README.md)) | Product — stable API |
 | [`computer-use/`](computer-use/README.md) | Exclusive named computer-use provider registration | Product — stable API |
 | [`runtime-diagnostics/`](runtime-diagnostics/README.md) | Runtime observation of a live Host: invariant-check registry + opt-in loopback-only DevTools inspector | Product — stable API |

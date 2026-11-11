@@ -1,6 +1,6 @@
 # Subprocess
 
-The subprocess seam is split across a Service Definition ([@freddie/freddie-subprocess](../../packages/subprocess/subprocess), `ctx.subprocess`) and Service Provider ([@freddie/freddie-subprocess-local](../../packages/subprocess/subprocess-local)); its Consumers are other capability seams and out-of-process backends: the [bash executor family](shell.md) uses collected batch output, LSP uses raw protocol pipes, the PTY backend uses the terminal primitive, and the ACP subagent backend uses piped ndjson plus inherited stderr. This seam owns the managed `FREDDIE_*` environment namespace, the shared credential scrub (`scrubbedParentEnv`), and the `CollectedOutput` shape; [@freddie/freddie-shell](../../packages/shell/shell) re-exports the vocabulary so bash consumers keep one import root.
+The subprocess seam is split across a Service Definition ([@freddie/freddie-subprocess](../../packages/subprocess/subprocess), `ctx.subprocess`) and Service Provider ([@freddie/freddie-subprocess-local](../../packages/subprocess/subprocess-local)); its Consumers are other capability seams: the [bash executor family](shell.md) uses collected batch output, and the PTY backend uses the terminal primitive. This seam owns the managed `FREDDIE_*` environment namespace, the shared credential scrub (`scrubbedParentEnv`), and the `CollectedOutput` shape; [@freddie/freddie-shell](../../packages/shell/shell) re-exports the vocabulary so bash consumers keep one import root.
 
 Source: [`packages/subprocess/subprocess/src/types.js`](../../packages/subprocess/subprocess/src/types.js) and [`packages/subprocess/subprocess/src/index.js`](../../packages/subprocess/subprocess/src/index.js)
 
@@ -36,7 +36,7 @@ interface CollectedOutput {
 
 ## Node-shaped stdio dispositions
 
-Each stream's disposition is explicit, chosen per consumer: raw pipes for protocol framing (LSP JSON-RPC, ACP ndjson), inherit for pass-through diagnostics, and collect mode for bounded batch output — with the spill file optional, so a diagnostic tail (a language server's stderr) buffers without leaving files behind.
+Each stream's disposition is explicit, chosen per consumer: raw pipes for protocol framing, inherit for pass-through diagnostics, and collect mode for bounded batch output — with the spill file optional, so a diagnostic tail (a language server's stderr) buffers without leaving files behind.
 
 ```ts type-equiv
 /**
@@ -253,23 +253,6 @@ The abstract [`SubprocessRuntime`](../../packages/subprocess/subprocess/src/inde
 ## Cordis API
 
 Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
-
-<a id="ctxe2b--e2bruntime"></a>
-
-### `ctx.e2b` — `E2BRuntime`
-
-Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal. Creation begins at plugin construction; adapters await getSandbox before their first operation.
-
-```ts cordis-catalog
-/**
- * Return the shared live SDK handle.
- * @returns the created sandbox after the configured cwd exists.
- * @throws when E2B rejects creation or the service is disposing.
- */
-async getSandbox(): Promise<Sandbox>
-```
-
-Source: [`packages/e2b/e2b/src/index.js`](../../packages/e2b/e2b/src/index.js)
 
 <a id="ctxsubprocess--subprocessruntime-abstract-seam"></a>
 
