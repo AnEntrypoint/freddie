@@ -50,3 +50,49 @@ Whole baseline: 91.6 s. Tree before: 4361 tracked files, 13 554 902 bytes. Depen
 ## Phase A pending lines
 
 Each removal group needs the whole list above rerun on the final tree; a check that passed before must pass after.
+
+| Group (commit) | Witness it needs |
+|---|---|
+| stale root files and work rows (6d02d01c) | whole list |
+| unused scripts, `.github/issue-management` (6bf31bf9, bbab8ff8) | publint, release-verify, demo-cordis-web |
+| example leaves nothing starts (83417305) | demo-acp, demo-cordis-acp, demo-code-mode, demo-cordis-web |
+| 29 unreachable packages (e26b233a) | install, publint, release-verify, four profile dumps identical, all boots, import-smoke |
+| unimported source files (eb1a4691) | web-boot, web-browser, import-smoke |
+| unused dependencies and lockfile (ecfd2b50) | install, third-party-notices, all boots |
+| unlinked notes and pages (4933f3b0), doc repair (7997b37b) | no kept document outside Agent Notes links to a removed file |
+| notices regenerated, rescope check repaired (0ee2ac5f) | third-party-notices, rescope-vendor-check |
+| unreferenced exports (b60cd23b) | publint, all boots, web-browser, import-smoke |
+
+## Phase B on the final tree (commit 7997b37b)
+
+| Check | Before | After | Wall time after |
+|---|---|---|---|
+| install | pass | pass | 4307 ms |
+| publint | pass, 266 packages | pass, 237 packages | 5699 ms |
+| third-party-notices | broken | pass, up to date | 1788 ms |
+| rescope-vendor-check | broken | pass, post-state verified | 6844 ms |
+| release-verify-freddie | pass, 263 members | pass, 234 members | 144 ms |
+| release-verify-vendor | pass, 10 members | pass, 10 members | 66 ms |
+| cli-help | pass | pass | 178 ms |
+| dump-web, dump-headless, dump-acp, dump-sdk | pass | pass, byte-identical to before | 842, 181, 181, 212 ms |
+| headless-no-key | `MISSING_CREDENTIAL` gate | same | 4431 ms |
+| acp-initialize | pass | pass | 1530 ms |
+| sdk-initialize | `paths[0]` error reply | same reply (not caused by the removal; left as found) | 1108 ms |
+| demo-acp, demo-cordis-acp, demo-code-mode | pass | pass | 1146, 3097, 10900 ms |
+| web-boot | 200, 260 assets | 200, 260 assets, 0 bad | 3889 ms |
+| web-browser | 462 nodes, 0 errors | 462 nodes, 0 console errors, 0 failed requests | 10.7 s |
+| demo-cordis-web | broken | pass, 200, 260 assets | 3048 ms |
+| import-smoke | 275 of 277 | 246 of 248, the same two browser-only entries fail | 4913 ms |
+
+Whole Phase B list: 67.6 s. Nothing that passed before fails now; three checks that were broken before pass.
+
+Tree: 4361 files and 13 554 902 bytes before, 3550 files and 6 516 675 bytes after. Dependency set: 510 lockfile packages, 284 importers, 419 store entries and 283 020 191 bytes of `node_modules` before; 429 packages, 255 importers, 375 store entries and 233 169 462 bytes after. No package version was added or changed.
+
+## Recorded, not fixed
+
+- No `DEEPSEEK_API_KEY` on this host: a headless run against a live model was not possible before or after.
+- `packages/client/ui-workflow-run` registers a slot for `freddie-workflow-run-panel`, an element only the unimported `WorkflowRunPanel.js` defined; it never rendered before the removal either.
+- `packages/client/ui-settings-web-search` binds the `web-search-deepseek` settings namespace, which no remaining package reads; the web bundle still mounts the card, so it stays.
+- `packages/core/session/src/known-event-types.js` keeps `hook/invoked`, `hook/result` and `web/deepseek-search-llm-request` so session logs written with them stay readable.
+- Agent Notes are historical records: 11 links in 10 notes point at files this reduction removed, and 160 links in 81 notes were dead before it.
+- Ignored `node_modules` directories remain on disk under 26 removed package directories; they are untracked and were left.
