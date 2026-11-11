@@ -1,9 +1,0 @@
-id: "unknown-mw0ikvox7dc9"
-kind: "unknown"
-title: "gui-dada-browser-render-path"
-body: "Can a browser render both M5 branches once source exists? Status: open. Blocked upstream by the M5 source question, unknown-mw0ikvoy4681. The earlier browser lease was not held and not alive; this run did not check it."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.145Z"
-witnessEvent: 27
-witnessCommit: "124eeebae97c078655bd743f462403d4d90f345e"
-resolvedAt: "2026-11-03T11:26:43.450Z"

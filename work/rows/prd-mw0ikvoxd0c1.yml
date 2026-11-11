@@ -1,9 +1,0 @@
-id: "prd-mw0ikvoxd0c1"
-kind: "prd"
-title: "Find a measured wall-clock factor without degrading output"
-body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.145Z"
-witnessEvent: 7
-witnessCommit: "7a9a4360"
-resolvedAt: "2026-11-03T10:06:53.525Z"

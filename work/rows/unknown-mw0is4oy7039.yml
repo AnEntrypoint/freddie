@@ -1,9 +1,0 @@
-id: "unknown-mw0is4oy7039"
-kind: "unknown"
-title: "The deferred host reload completes only on agent-loop idle"
-body: "Does the deferred host reload complete only on agent-loop idle? Status: open, external. The historical postcondition belongs to a removed gm row, and the current browser journal is bounded to its connection event, so it cannot witness the prior reload. The original host snapshot and runtime metric are needed; no resolution is asserted."
-status: "resolved"
-createdAt: "2026-11-03T10:03:10.403Z"
-witnessEvent: 19
-witnessCommit: "504307e1db61ed037125e1a958c2b9912ac7cf37"
-resolvedAt: "2026-11-03T11:37:23.049Z"

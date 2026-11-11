@@ -1,9 +1,0 @@
-id: "prd-mw0ikvow4996"
-kind: "prd"
-title: "Pre: exhaustive first-party JS scan found 281 JSDoc starts across 77 files. Invariant: public contracts remain discoverable"
-body: "Remove JSDoc contract prose from first-party source, keeping each contract in its owning package README or AGENTS.md, or deleting it where the code already states it. Status: open. The 281-across-77 premise is stale: this run counted 2025 slash-star-star starts across 245 packages and framework files, but the earlier receipts counted 0 first-party block comments and 145 literal hits that are contract data, so the scan must be redone before any edit. Blocked: publish refuses because scripts/check-staged-secrets.mjs is not in this repository; the gm owner must decide whether the checker comes from the gm install or the repo ships it. Earlier receipts are under .gm/receipts/comment-sweep-jsdoc-contracts/ and are untracked."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.144Z"
-witnessEvent: 12
-witnessCommit: "124eeebae97c078655bd743f462403d4d90f345e"
-resolvedAt: "2026-11-03T11:26:03.457Z"

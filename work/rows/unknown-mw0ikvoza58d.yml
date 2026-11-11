@@ -1,9 +1,0 @@
-id: "unknown-mw0ikvoza58d"
-kind: "unknown"
-title: "vendor-u3-live-generator-run"
-body: "Can generate-vendor start live in this checkout, and does it complete without bypassing writeEmitted? Status: open. The script exists at packages/client/vendor-modules/scripts/generate-vendor.mjs. The vendor tree it targets was moved to framework in commit a7db58d9, so the target path must be checked first. A live run needs an installed tree, which this run did not attempt."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.147Z"
-witnessEvent: 5
-witnessCommit: "4ae5ec4a156943fb0984c784b40cd05452579d66"
-resolvedAt: "2026-11-03T11:40:44.501Z"

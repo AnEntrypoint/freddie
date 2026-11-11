@@ -1,9 +1,0 @@
-id: "prd-mw0is4ow10ce"
-kind: "prd"
-title: "Pre: live vendor regeneration aborts because installed @freddie/cordis@4.0.1 differs from checked-in immutable vendor/@freddie/cordis@4.0.1/"
-body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
-status: "resolved"
-createdAt: "2026-11-03T10:03:10.400Z"
-witnessEvent: 87
-witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
-resolvedAt: "2026-11-03T10:59:27.793Z"

@@ -1,9 +1,0 @@
-id: "unknown-mw0ikvoyd7e0"
-kind: "unknown"
-title: "Which scroller hosts the gm_git_show OUT focus target: ChatView scrollport with the data-composer-seat sibling, or the T"
-body: "Which scroller hosts the OUT focus target of the sticky composer repro: the ChatView scrollport with its composer-seat sibling, or the TrajectoryTable pane after Inspect? Status: open. Needs a live focus trace. The gm_git_show repro was removed with gm, so this question stays tied to the open sticky row."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.146Z"
-witnessEvent: 12
-witnessCommit: "124eeebae97c078655bd743f462403d4d90f345e"
-resolvedAt: "2026-11-03T11:26:03.457Z"

@@ -1,9 +1,0 @@
-id: "unknown-mw0is4oy5c25"
-kind: "unknown"
-title: "Did a busy-to-idle edge (hmr/idle) occur after the deferral, and did the reload run?"
-body: "Did a busy-to-idle edge, hmr/idle, occur after the HMR deferral, and did the stashed reload run? Status: open. Answer it by finding an hmr/idle emit or a reloaded journal row after the deferral in a live host log. The gm runtime host activation row this question served was removed with gm."
-status: "resolved"
-createdAt: "2026-11-03T10:03:10.402Z"
-witnessEvent: 149
-witnessCommit: "e3ab4be03c1929392f5d07780a90d7ed435c3b13"
-resolvedAt: "2026-11-03T11:51:59.924Z"

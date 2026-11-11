@@ -1,9 +1,0 @@
-id: "prd-mw0ikvox01c8"
-kind: "prd"
-title: "Full GUI performance goal, next evidence wave after binding reuse published b564: measure actual real-keyboard composer"
-body: "Cut per-keystroke DOM churn in the composer. Baseline in a headless owned Chromium: 37 DOM mutation records per keystroke, 23 of them no-op writes of the ref attribute, because framework/webjsx/src/attributes.js (updateAttributesCore, updatePropOrAttr) treats ref as an HTML attribute although webjsx handles ref through assignRef. Planned fix: exclude the ref key in both attribute loops and record the exclusion as divergence entry 22 in framework/README.md. Acceptance: 0 no-op ref writes per keystroke, the composer textarea still receives focus and its ref callback runs, input p50 and p90 no worse than 10.1 and 17.6 ms, the draft and caret check gives abcXdef with caret 4, and startup still loads 245 modules. Startup baseline: textarea at 932, 1148 and 1039 ms over three cold starts. Status: open, not started. Witness scripts were under /tmp/gui-perf-20261006 and may be gone; the witness needs an installed tree and a browser run."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.145Z"
-witnessEvent: 5
-witnessCommit: "ffeb39f9c8cd1feee07c908495849226e6122660"
-resolvedAt: "2026-11-03T11:39:26.565Z"

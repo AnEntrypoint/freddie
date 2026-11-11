@@ -1,9 +1,0 @@
-id: "unknown-mw0ikvoy7b27"
-kind: "unknown"
-title: "Which consumer creates the historical ToolRow props (renderToolRow/ToolRow call sites) and what body/output/card/filePat"
-body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.146Z"
-witnessEvent: 18
-witnessCommit: "4487cc16"
-resolvedAt: "2026-11-03T10:06:53.509Z"

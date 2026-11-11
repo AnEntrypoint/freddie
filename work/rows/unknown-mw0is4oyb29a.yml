@@ -1,9 +1,0 @@
-id: "unknown-mw0is4oyb29a"
-kind: "unknown"
-title: "[gm predecessor] Does the served gm daemon for /workspace/freddie run code containing rs-plugkit commit 163f44fe (AGENTS.md module reopen fix)?"
-body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
-status: "resolved"
-createdAt: "2026-11-03T10:03:10.402Z"
-witnessEvent: 87
-witnessCommit: "f0c0ad91be6cde75fe9d27734069d2af2fa4d74a"
-resolvedAt: "2026-11-03T10:59:27.792Z"

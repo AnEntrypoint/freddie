@@ -1,9 +1,0 @@
-id: "prd-mw0ikvowf43c"
-kind: "prd"
-title: "Pre: exhaustive first-party JS scan found 59 lint-suppression comments across 38 files. Invariant: each directive is eit"
-body: "Converted to gm-new form on 2026-11-03: the verbatim gm-queue record was removed. It is recoverable from git history at commit a4fe815b, and the resolving witness is in the run log."
-status: "resolved"
-createdAt: "2026-11-03T09:57:32.144Z"
-witnessEvent: 16
-witnessCommit: "4487cc16"
-resolvedAt: "2026-11-03T10:06:53.523Z"
