@@ -64,6 +64,11 @@ export class HarnessSdkJsonRpcServer {
   }
 
   async initialize(params) {
+    for (const key of ['cwd', 'provider', 'model']) {
+      if (typeof params[key] !== 'string' || params[key].length === 0) {
+        throw new TypeError(`initialize ${key} must be a non-empty string`)
+      }
+    }
     if (params.maxTokens !== undefined
       && (!Number.isSafeInteger(params.maxTokens) || params.maxTokens <= 0)) {
       throw new TypeError('initialize maxTokens must be a positive safe integer')

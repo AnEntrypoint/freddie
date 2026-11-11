@@ -35,7 +35,7 @@ Derived from `AGENTS.md`, `README.md`, `docs/development.md`, root `package.json
 | dump-sdk | pass, md5 fe0324ee81713a18fc899c0c1818a508 | 359 ms |
 | headless-no-key | pass, `MISSING_CREDENTIAL` gate reached | 2388 ms |
 | acp-initialize | pass, `agentInfo.name` `freddie-acp` | 1298 ms |
-| sdk-initialize | answers; the reply is the error `paths[0] must be of type string` (broken before for a bare `initialize`) | 1112 ms |
+| sdk-initialize | answers; the reply is the error `paths[0] must be of type string` (the runner sent ACP-shaped params, not the SDK wire fields) | 1112 ms |
 | demo-acp | pass | 652 ms |
 | demo-cordis-acp | pass | 635 ms |
 | demo-code-mode | pass | 715 ms |
@@ -77,7 +77,7 @@ Each removal group needs the whole list above rerun on the final tree; a check t
 | dump-web, dump-headless, dump-acp, dump-sdk | pass | pass, byte-identical to before | 842, 181, 181, 212 ms |
 | headless-no-key | `MISSING_CREDENTIAL` gate | same | 4431 ms |
 | acp-initialize | pass | pass | 1530 ms |
-| sdk-initialize | `paths[0]` error reply | same reply (not caused by the removal; left as found) | 1108 ms |
+| sdk-initialize | `paths[0]` error reply caused by an ACP-shaped probe | pass, `serverInfo.name` `freddie-sdk-runtime`; the server now rejects missing `cwd`/`provider`/`model` with a field-named error | 1753 ms |
 | demo-acp, demo-cordis-acp, demo-code-mode | pass | pass | 1146, 3097, 10900 ms |
 | web-boot | 200, 260 assets | 200, 260 assets, 0 bad | 3889 ms |
 | web-browser | 462 nodes, 0 errors | 462 nodes, 0 console errors, 0 failed requests | 10.7 s |
@@ -87,6 +87,20 @@ Each removal group needs the whole list above rerun on the final tree; a check t
 Whole Phase B list: 67.6 s. Nothing that passed before fails now; three checks that were broken before pass.
 
 Tree: 4361 files and 13 554 902 bytes before, 3550 files and 6 516 675 bytes after. Dependency set: 510 lockfile packages, 284 importers, 419 store entries and 283 020 191 bytes of `node_modules` before; 429 packages, 255 importers, 375 store entries and 233 169 462 bytes after. No package version was added or changed.
+
+## Increment: SDK initialize wire validation
+
+The bare-`initialize` error in the baseline was a check-harness defect: `runs/analysis/baseline.mjs` sent ACP-shaped params (`protocolVersion`, `clientCapabilities`) to the SDK profile, whose wire requires `cwd`, `provider` and `model`. The server also lacked a boundary check, so a malformed peer received Node's opaque `paths[0]` TypeError. Both are fixed.
+
+| Check | Command | Result |
+|---|---|---|
+| SDK handshake | `node runs/analysis/baseline.mjs after-verify sdk-initialize` | pass, `PASS sdk-initialize 1753ms {"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"freddie-sdk-runtime","version":"0.0.1"}}}` |
+| missing-field validation | `node runs/analysis/sdk-negative.mjs` | pass, 3 malformed frames each answer the expected field-named `TypeError` |
+| initialize → prompt | `node runs/analysis/sdk-prompt.mjs` | pass, `messageId=2bd1c793-20d4-41bd-9cdc-0253dd2493f0` |
+| adjacent profiles | `node runs/analysis/baseline.mjs after-verify dump-sdk,acp-initialize,dump-web,dump-headless,dump-acp,headless-no-key` | 6 pass, four dumps byte-identical to the recorded md5 values |
+| publish shape | `pnpm run publint` | pass |
+
+The runner and its two probe scripts are under ignored `runs/`, so only the server, its two READMEs, this document and the Agent Note are tracked changes. The SDK wire contract is unchanged for conforming clients; a malformed `initialize` now fails loudly at the readiness boundary.
 
 ## Recorded, not fixed
 
