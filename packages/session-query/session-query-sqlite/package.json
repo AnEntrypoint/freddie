@@ -50,7 +50,6 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
-    "@freddie/freddie-session-persistence-sqlite": "*",
     "@freddie/freddie-session-query": "*",
     "@freddie/cordis": "*"
   }

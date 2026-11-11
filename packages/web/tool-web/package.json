@@ -54,7 +54,6 @@
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-web": "*",
     "@freddie/freddie-web-fetch-http": "*",
-    "@freddie/freddie-web-search-exa": "*",
     "@freddie/cordis": "*"
   }
 }

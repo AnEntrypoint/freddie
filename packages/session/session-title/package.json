@@ -53,7 +53,6 @@
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence-jsonl": "*",
-    "@freddie/freddie-session-persistence-sqlite": "*",
     "@freddie/freddie-session-projection": "*",
     "@freddie/cordis": "*"
   }
