@@ -19,7 +19,6 @@
   "scripts": {
     "postinstall": "node scripts/patch-if-npm.mjs",
     "change-scope": "node scripts/change-scope.js",
-    "migrate:packed-session-fixtures": "node scripts/migrate-packed-session-fixtures.js",
     "publint": "node scripts/publint-all.js",
     "gen-third-party-notices": "node scripts/gen-third-party-notices.js",
     "verify-third-party-notices": "node scripts/gen-third-party-notices.js --check",

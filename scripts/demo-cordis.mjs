@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process'
 const WEB_DEMO_PORT = 3081
 
 const SURFACES = new Map([
-  ['web', ['apps/cli/src/bin.js', 'web', '--patch', 'examples/web-cordis/cordis.yml']],
+  ['web', ['apps/cli/src/bin.js', '--profile', 'web', '--patch', 'examples/web-cordis/cordis.yml']],
   ['acp', ['packages/examples/acp-demo/src/bin.js', '--config', 'examples/acp-agent/cordis-tools.cordis.yml']],
 ])
 
