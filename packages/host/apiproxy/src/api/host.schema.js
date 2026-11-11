@@ -8,8 +8,6 @@ export const hostPickDirectoryRequestSchema = passthrough()
 
 export const hostPickDirectoryValueSchema = passthrough()
 
-export const directoryEntrySchema = passthrough()
-
 export const hostListDirectoryRequestSchema = passthrough()
 
 export const hostListDirectoryValueSchema = passthrough()

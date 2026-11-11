@@ -19,8 +19,6 @@ export const SessionTitleLlmConfigFields = {
   model: z.string(),
 }
 
-export const SessionTitleLlmConfigSchema = z.object(SessionTitleLlmConfigFields)
-
 const CONFIG_KEYS = new Set([
   'targetWords',
   'maxInputBytes',

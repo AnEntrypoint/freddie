@@ -1,7 +1,5 @@
 const passthrough = () => ({ parse: (x) => x, safeParse: (x) => ({ success: true, data: x }) })
 
-export const agentPresetEntrySchema = passthrough()
-
 export const agentPresetListRequestSchema = passthrough()
 
 export const agentPresetListValueSchema = passthrough()

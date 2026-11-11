@@ -53,7 +53,6 @@ export const ERROR_SUCCESS = 0
 export const ERROR_INSUFFICIENT_BUFFER = 122
 export const ERROR_BROKEN_PIPE = 109
 export const ERROR_NO_DATA = 232
-export const ERROR_LOCK_VIOLATION = 33
 
 export const GENERIC_READ = 0x80000000
 export const GENERIC_WRITE = 0x40000000
@@ -62,7 +61,6 @@ export const FILE_SHARE_WRITE = 0x00000002
 export const FILE_SHARE_DELETE = 0x00000004
 export const OPEN_ALWAYS = 4
 export const LOCKFILE_EXCLUSIVE_LOCK = 0x2
-export const LOCKFILE_FAIL_IMMEDIATELY = 0x1
 
 export const ACCESS_ALLOWED_ACE_TYPE = 0
 
@@ -79,7 +77,5 @@ export const SECURITY_MAX_SID_SIZE = 68
 export const SID_AND_ATTRIBUTES_SIZE = 16
 export const TOKEN_GROUPS_OFFSET = 8
 export const EXPLICIT_ACCESS_W_SIZE = 48
-export const TRUSTEE_W_OFFSET = 16
-export const TRUSTEE_W_PTSTRNAME_OFFSET = 24
 export const STARTUPINFOW_SIZE = 104
 export const PROCESS_INFORMATION_SIZE = 24

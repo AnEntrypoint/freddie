@@ -2,8 +2,6 @@ export { workspaceIdSchema } from './sessions.schema.js'
 
 const passthrough = () => ({ parse: value => value, safeParse: value => ({ success: true, data: value }) })
 
-export const workspaceViewSchema = passthrough()
-
 export const workspaceListRequestSchema = passthrough()
 
 export const workspaceListValueSchema = passthrough()

@@ -1,7 +1,5 @@
 const passthrough = () => ({ parse: value => value, safeParse: value => ({ success: true, data: value }) })
 
-export const goalRefSchema = passthrough()
-
 export const goalCreateRequestSchema = passthrough()
 
 export const goalCreateValueSchema = passthrough()

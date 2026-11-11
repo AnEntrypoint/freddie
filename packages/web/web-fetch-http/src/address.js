@@ -100,7 +100,3 @@ export function classifyAddress(text) {
   }
   return 'unparseable'
 }
-
-export function isPublicAddress(text) {
-  return classifyAddress(text) === undefined
-}

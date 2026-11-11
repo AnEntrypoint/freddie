@@ -1,8 +1,3 @@
-export function presentRuntimeInspectCall(args) {
-  const target = args.name === undefined ? args.what : `${args.what}: ${args.name}`
-  return { card: 'generic', kind: 'read', title: target === undefined ? 'Inspect Cordis runtime' : `Inspect Cordis runtime: ${target}` }
-}
-
 export function presentInspectListCall() {
   return { card: 'generic', kind: 'read', title: 'List Cordis Inspect Providers' }
 }
@@ -16,10 +11,6 @@ export function presentInspectSelfCall(args) {
     ? 'dynamic Cordis Plugins'
     : args.packageId === undefined ? args.pluginId : `${args.pluginId}/${args.packageId}`
   return { card: 'generic', kind: 'read', title: `Inspect ${target}` }
-}
-
-export function presentPackageInspectCall(args) {
-  return { card: 'generic', kind: 'read', title: `Inspect Cordis Package ${args.pluginId}/${args.packageId}` }
 }
 
 export function presentDefineCall(args) {

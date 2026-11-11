@@ -1,12 +1,8 @@
 import { globSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, matchesGlob } from 'node:path'
+import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { releaseFamily } from './families.js'
 import { capture, isEntry } from './process.js'
-
-const ALWAYS_PUBLISHED = ['package.json', 'README*', 'LICENSE*', 'LICENCE*']
-
-const BUILD_INPUTS = ['src/**']
 
 const RELEASE_TYPES = ['major', 'minor', 'patch']
 
@@ -91,16 +87,6 @@ export function nextVendorVersion(
     ? `${String(major)}.${String(minor)}.${String(patch)}`
     : `${String(major)}.${String(minor)}.${String(patch + 1)}`
   return prerelease === undefined ? numbers : `${numbers}-${prerelease}`
-}
-
-export function reachesPayload(member, path) {
-  const relative = path.slice(member.directory.length + 1)
-  const files = member.manifest.files
-  const selected = Array.isArray(files) ? files.filter((entry) => typeof entry === 'string') : []
-  const built = selected.some(pattern => pattern.startsWith('lib'))
-  const patterns = [...ALWAYS_PUBLISHED, ...selected, ...built ? BUILD_INPUTS : []]
-  return patterns.some(pattern =>
-    matchesGlob(relative, pattern) || matchesGlob(relative, `${pattern}/**`) || relative === pattern)
 }
 
 function lastTaggedVersion(family, member) {

@@ -50,10 +50,6 @@ export function renderPrompt(assembly) {
     .join('\n\n')
 }
 
-export function renderContextSnapshot(assembly) {
-  return joinContextSections(renderContextSections(assembly))
-}
-
 export function joinContextSections(sections) {
   const body = sections.map(section => section.text).join('\n\n')
   if (body.length === 0) return ''

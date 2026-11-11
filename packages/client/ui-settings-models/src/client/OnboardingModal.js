@@ -31,10 +31,3 @@ export function OnboardingModal({
   })
   return null
 }
-
-export function closeOnboardingModal() {
-  const appRoot = document.getElementById('root')
-  if (appRoot !== null) appRoot.inert = false
-  cachedModalEl?.remove()
-  cachedModalEl = null
-}

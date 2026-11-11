@@ -1,17 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
-export const SESSION_COMMAND_METHODS = [
-  'create',
-  'rename',
-  'fork',
-  'prompt',
-  'attachment',
-  'updateQueue',
-  'cancel',
-  'selectModel',
-]
-
 export class SessionCommandController {
   constructor(ctx) {
     this.ctx = ctx

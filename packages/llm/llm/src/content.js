@@ -83,14 +83,6 @@ export function projectImagesForTextModel(messages) {
   })
 }
 
-export function offloadRequestImages(messages, maxRequestImageBytes) {
-  return offloadRequestImagesWithPolicy(messages, {
-    representation: 'base64',
-    ...maxRequestImageBytes === undefined ? {} : { maxBytes: maxRequestImageBytes },
-    byteQuantum: 1,
-  })
-}
-
 export function offloadRequestImagesWithPolicy(messages, policy) {
   const lengths = []
   for (const message of messages) collectImageLengths(message.content, lengths, policy)

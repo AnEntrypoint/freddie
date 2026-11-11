@@ -5,10 +5,6 @@ function passThrough() {
   }
 }
 
-export const credentialRefNameSchema = passThrough()
-
-export const credentialViewSchema = passThrough()
-
 export const credentialsDescribeRequestSchema = passThrough()
 
 export const credentialsDescribeValueSchema = passThrough()

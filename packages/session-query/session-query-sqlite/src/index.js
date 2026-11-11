@@ -33,8 +33,6 @@ export {
   SESSION_QUERY_SQLITE_SCHEMA_VERSION,
 } from './schema.js'
 
-export const SESSION_QUERY_SQLITE_PATH_KEY = 'launcherSessionQueryPath'
-
 export const SESSION_QUERY_SQLITE_DEFAULT_LIMIT = 20
 export const SESSION_QUERY_SQLITE_MAX_LIMIT = 100
 export const SESSION_QUERY_SQLITE_SNIPPET_CHARS = 240

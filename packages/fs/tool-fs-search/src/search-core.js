@@ -13,14 +13,12 @@ export const SEARCH_GRACE_MS = 3_000
 
 export const SEARCH_META_MAX_BYTES = 65_536
 
-
 export class SearchError extends HarnessError {
   constructor(message, code, options) {
     super(message, code, options)
     this.code = code
   }
 }
-
 
 function stderrExcerpt(stderrText, truncated) {
   const text = stderrText.trim()
@@ -130,7 +128,6 @@ export function toWorkdirRelative(path, workdir) {
   return rel
 }
 
-
 export function previewLine(line, maxBytes) {
   const retainer = new TextRetainer({ kind: 'head', maxBytes })
   retainer.push(line)
@@ -141,12 +138,6 @@ export function previewLine(line, maxBytes) {
 export function retainGrepMatches(matches, maxMatches, maxLineBytes) {
   const retainer = new ItemRetainer({ kind: 'head', maxItems: maxMatches })
   for (const match of matches) retainer.push({ ...match, line: previewLine(match.line, maxLineBytes) })
-  return retainer.finish()
-}
-
-export function retainGlobPaths(paths, maxResults) {
-  const retainer = new ItemRetainer({ kind: 'head', maxItems: maxResults })
-  for (const path of paths) retainer.push(path)
   return retainer.finish()
 }
 

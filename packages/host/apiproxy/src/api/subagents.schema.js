@@ -5,8 +5,6 @@ function passthroughSchema() {
   }
 }
 
-export const subagentListEntrySchema = passthroughSchema()
-
 export const subagentListRequestSchema = passthroughSchema()
 
 export const subagentListValueSchema = passthroughSchema()
