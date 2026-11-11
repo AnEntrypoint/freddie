@@ -43,8 +43,5 @@
     "@freddie/cosmokit": "*",
     "picomatch": "^4.0.3",
     "@freddie/schemastery": "*"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.1"
   }
 }

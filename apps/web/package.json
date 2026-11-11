@@ -29,7 +29,6 @@
     "@freddie/freddie-client-web": "*",
     "@freddie/freddie-cmdline": "*",
     "@freddie/freddie-pwsh-local": "*",
-    "@freddie/webjsx": "*",
-    "fflate": "^0.8.2"
+    "@freddie/webjsx": "*"
   }
 }

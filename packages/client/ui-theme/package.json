@@ -67,7 +67,6 @@
     "src"
   ],
   "dependencies": {
-    "clsx": "^2.1.1",
     "@freddie/webjsx": "*",
     "@freddie/schemastery": "*"
   }
