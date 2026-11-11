@@ -1,9 +1,0 @@
-- insert:
-    - id: memory-engram
-      name: '@freddie/freddie-mcp-client'
-      config:
-        serverName: engram
-        transport: stdio
-        command: engram
-        args: [mcp]
-        cwd: !!js process.cwd()

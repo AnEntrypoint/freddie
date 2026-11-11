@@ -1,8 +1,0 @@
-- id: base
-  name: '@freddie/cordis-plugin-include'
-  config:
-    path: ./cordis.yml
-    patches:
-      - insert:
-          - id: parent-sandbox-override
-            name: './tests/fixtures/parent-sandbox-override.ts'

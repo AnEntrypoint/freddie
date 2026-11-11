@@ -1,9 +1,0 @@
-- insert:
-    - id: memory-memorix
-      name: '@freddie/freddie-mcp-client'
-      config:
-        serverName: memorix
-        transport: stdio
-        command: memorix
-        args: [serve]
-        cwd: !!js process.cwd()
