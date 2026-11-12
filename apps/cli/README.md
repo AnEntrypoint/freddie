@@ -1,6 +1,6 @@
 # `@freddie/freddie`
 
-The `freddie` command is the product launcher for profiles: ordered stacks of plugin-bundle patch layers under the user's own overrides. [`src/args.ts`](src/args.ts) owns the command grammar, and [`src/bin.ts`](src/bin.ts) loads only the selected runner. Invalid commands, options from another mode, configuration errors, and boot failures exit nonzero.
+The `freddie` command is the product launcher for profiles: ordered stacks of plugin-bundle patch layers under the user's own overrides. [`src/args.js`](src/args.js) owns the command grammar, and [`src/bin.js`](src/bin.js) loads only the selected runner. Invalid commands, options from another mode, configuration errors, and boot failures exit nonzero.
 
 ## Entry modes
 

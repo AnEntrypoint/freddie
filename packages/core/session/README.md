@@ -50,7 +50,7 @@ Session-event import separates ownership from message validation. `snapshotSessi
 
 ### Chunk-row storage codec (`chunk-rows.ts`)
 
-The shared [storage codec](src/chunk-rows.ts) losslessly converts event sequences to compact rows and back. It preserves unrecognized events verbatim and rejects malformed encoded rows; persistence backends decide whether to enable packed writes.
+The shared [storage codec](src/chunk-rows.js) losslessly converts event sequences to compact rows and back. It preserves unrecognized events verbatim and rejects malformed encoded rows; persistence backends decide whether to enable packed writes.
 
 ### Surface types
 

@@ -1,6 +1,6 @@
 # `freddie` CLI behavior reference
 
-This reference defines the profile, web-alias, plugin-management, and config-dump command modes. Argv is parsed once through [`src/args.ts`](../src/args.ts), and [`src/bin.ts`](../src/bin.ts) dynamically imports only the selected runner.
+This reference defines the profile, web-alias, plugin-management, and config-dump command modes. Argv is parsed once through [`../src/args.js`](../src/args.js), and [`../src/bin.js`](../src/bin.js) dynamically imports only the selected runner.
 
 ## Profile boot
 
