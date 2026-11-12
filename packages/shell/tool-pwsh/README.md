@@ -4,7 +4,7 @@ The model-facing `pwsh` tool registered over the `ctx.shell` executor seam. Inte
 
 Requires a loaded executor implementation and the `shell-env` plugin; the tool stays pending until both exist (`inject: ['tools', 'bash', 'systemPrompt', 'bashEnv']`).
 
-The package root exposes only the Cordis plugin contract (`name`, `inject`, `Config`, `apply`); result rendering (`src/render.ts`) and background-job adaptation (`src/background.ts`) mirror the bash tool's structure and stay reachable through the package's `./src/*` export.
+The package root exposes only the Cordis plugin contract (`name`, `inject`, `Config`, `apply`); result rendering (`src/render.js`) and background-job adaptation (`src/background.js`) mirror the bash tool's structure and stay reachable through the package's `./src/*` export.
 
 The plugin also contributes the `tool:pwsh` prompt section (order 105): non-zero exits are reported as `[exit code: N]` markers, and Windows interruption settles as exit 1 without a signal marker.
 

@@ -58,7 +58,7 @@ Turn and step boundaries and the model token stream are durable `session/event` 
 
 `foldConsumedWork(events)` reads that feed back for the one question the turn sequence cannot answer alone: what became of the work a log consumed. It returns the latest `turn/end` that accounts for consumed work — a turn that entered a model step, or one that claimed inbox input and then failed, was stopped, or was rejected before reaching one — plus whether accepted work was later cancelled out of the inbox unrun. Both facts come from the log, so a cancellation reads the same whichever owner issued it. A no-step turn that took nothing, or emptied its claim and completed, describes no work and is skipped; a `blocked` end over claimed input is an account, because rejection discarded that input.
 
-### Agent interface (`types.ts`)
+### Agent interface (`types.js`)
 
 The handle every plugin programs against:
 

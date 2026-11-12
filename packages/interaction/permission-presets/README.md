@@ -8,7 +8,7 @@ The service owns the `permissionPresets` Settings namespace. Its `defaultPreset`
 
 The service requires a confining `ctx.shell` executor and `ctx.approval`. A table entry named `custom` throws at load. When composition defaults match no preset, the plugin requires an explicit `defaultPreset`; an independently constructed zero-event session may still derive `custom`. See the [sandbox switching design](../../../.agents/notes/implemented/feature/2026-07-06-sandbox.md).
 
-Two optional children ship the product surfaces over the same service: a `permissions` session-projection unit (`src/types.ts` declares the key; the unit folds the three whole-value knob events and views the select — table options plus a current-only `custom` — over the composition defaults) and the `/permissionPresets` command (bare invocation reports the current preset and the table; a preset argument switches through `set`). Each child activates only when its registry (`ctx.sessionProjections` / `ctx.commands`) is composed.
+Two optional children ship the product surfaces over the same service: a `permissions` session-projection unit (`src/types.js` declares the key; the unit folds the three whole-value knob events and views the select — table options plus a current-only `custom` — over the composition defaults) and the `/permissionPresets` command (bare invocation reports the current preset and the table; a preset argument switches through `set`). Each child activates only when its registry (`ctx.sessionProjections` / `ctx.commands`) is composed.
 
 ## Model Experience
 

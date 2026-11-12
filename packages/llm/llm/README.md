@@ -49,7 +49,7 @@ Exact-model metadata is a separate correctness query, not a catalog decoration o
 - Subclass `LlmAdapter` and call `ctx.llm.registerAdapter(providers, adapter)` to add one or more provider routes. `GenerateOptions.provider` selects the adapter; `GenerateOptions.model` is adapter-owned and may be resolved dynamically. Override `providerRetryPolicy()` to supply provider-owned recovery configuration, `providerInfo()` and asynchronous `listModels()` to expose selector metadata, then implement `resolveModel()` when exact identity, capacity, an output default, or selectable reasoning efforts are available; an asynchronous resolver must honor its optional cancellation signal. The defaults use bounded normal retry policy, use the route and model ids as names, advertise no models, and return no capacity, output default, or reasoning metadata.
 - Wrap `llm/stream` via `ctx.on()` waterfall listeners for caching, logging, or routing. A wrapper that retries after emitting a chunk has no durable attempt boundary; shipped agent retry policy therefore uses `agent/request-error` instead.
 
-### Messages (`message.ts`) and content blocks (`types.ts`)
+### Messages (`message.js`) and content blocks (`types.js`)
 
 `Message` is the shared immutable value used by delivery, durable history, and model requests. Every message has a required `MessageId`, role, content, and typed source from creation onward. `createMessage(input)` mints the identity and returns a detached deep-frozen value; `createUserMessage({ content, source })` fixes the user role; `createAssistantMessage({ content, source })` fixes the assistant role and model source kind; `createToolResultMessage({ callId, content, isError })` fixes the user role and couples the tool source to its result block; `freezeMessage(message)` imports an identity that already exists and never replaces it. Message rewrites preserve the identity and produce another frozen value. Browser code imports these value constructors from the dependency-minimal `@freddie/freddie-llm/message` entry instead of the service-bearing package root.
 
@@ -59,15 +59,15 @@ Every dispatch uses the exact model modalities captured with its adapter generat
 
 Streaming is a raw chunk protocol (`block-start`, `text-delta`, `reasoning-delta`, `tool-call-delta`, `block-end`, `usage`, `finish`). Every adapter outcome reaches consumers as one terminal `finish`; operational failure uses its `error` or `aborted` reason rather than throwing across the stream API. `BlockAssembler` is the single shared implementation that assembles chunks into blocks/messages. A successful `finish` may carry a `ReplayEnvelope` — opaque response-level replay metadata plus optional per-block entries aligned with the emitted block sequence. Assembly makes one keep/drop decision for content and metadata together: a `max-tokens` finish drops tool calls that may have been truncated, and the envelope loses the entry at each dropped position, so stored metadata always describes stored content.
 
-### Call configuration (`call-config.ts`)
+### Call configuration (`call-config.js`)
 
 `LlmCallConfig` is the provider, model, optional adapter-owned reasoning effort, and sampling scalars of one conversation's requests (`provider`, `model`, `reasoningEffort`, `temperature`, `maxTokens`, `stop` — each mapping 1:1 onto the same-named `GenerateOptions` field). It is per-conversation state recorded in the session log as part of the request header (see the freddie-session `request/header` events), never a silently-adjustable per-call knob: the `agent/request` waterfall proposes a replacement, `prepareCall()` validates it and materializes adapter defaults under the turn signal, and the loop logs the effective value plus markers for fields supplied by adapter defaults before using the prepared call's registration-bound stream. The next proposal omits marked defaults so a changed route resolves its own values; unmarked explicit fields persist. `callConfigEquals(a, b)` is the field-wise real-change detector; `deepFreeze(value)` is the ownership helper the loop applies to every built request before dispatch (`llm/stream` listeners and adapters read, never rewrite). `markAgentLoopRequest()` marks that exact object as created by the process-local agent loop, and `isAgentLoopRequest()` lets observers distinguish it from independently logged auxiliary calls that may also be frozen and session-associated. `GenerateOptions.purpose` classifies logged auxiliary compaction and session-title calls so adapters can apply purpose-specific transport policy without changing ordinary conversation requests.
 
-### App attribution (`attribution.ts`)
+### App attribution (`attribution.js`)
 
 Every product adapter sends application identity on provider HTTP requests. `attributionHeaders(identity?)` builds the standard `User-Agent`, defaulting to public `APP_IDENTITY`; white-label deployments may replace but not suppress it. Adapters verify the wire header directly or through their library hook. See [the attribution Agent Note](../../../.agents/notes/implemented/architecture/2026-06-21-mandatory-app-attribution-headers.md).
 
-### API key validation (`api-key.ts`)
+### API key validation (`api-key.js`)
 
 Every adapter that puts a credential in an HTTP header judges it the same way before use. `normalizeApiKey(raw)` trims surrounding whitespace, then accepts any non-empty printable-ASCII value (`/^[\x21-\x7E]+$/`, space excluded) or reports why not as an `ApiKeyRejection` (`'empty'` | `'illegalCharacters'`), both carried in the `ApiKeyCheck` result. Absence is never judged: a caller decides whether a value was supplied before asking, since a profile naming no credential authenticates through the provider's own ambient discovery or OAuth.
 
@@ -85,7 +85,7 @@ Every adapter that puts a credential in an HTTP header judges it the same way be
 
 ### Real adapters
 
-[`@freddie/freddie-llm-deepseek`](../llm-deepseek) implements `LlmAdapter` with direct fetch and `eventsource-parser` SSE framing for the `deepseek-official` route, following the `StreamChunk` conventions in `types.ts`: usage precedes finish and tool arguments remain raw strings. An adapter implementation may throw or emit a failure finish internally; `LlmRuntime` exposes both as a terminal failure finish. See [the terminal-failure decision](../../../.agents/notes/implemented/architecture/2026-07-29-terminal-llm-stream-failures.md) for the service boundary.
+[`@freddie/freddie-llm-deepseek`](../llm-deepseek) implements `LlmAdapter` with direct fetch and `eventsource-parser` SSE framing for the `deepseek-official` route, following the `StreamChunk` conventions in `types.js`: usage precedes finish and tool arguments remain raw strings. An adapter implementation may throw or emit a failure finish internally; `LlmRuntime` exposes both as a terminal failure finish. See [the terminal-failure decision](../../../.agents/notes/implemented/architecture/2026-07-29-terminal-llm-stream-failures.md) for the service boundary.
 
 ## Model Experience
 

@@ -48,7 +48,7 @@ Durable values need one accepted representation, not a check followed by a secon
 
 Session-event import separates ownership from message validation. `snapshotSessionEvent(event)` clones a borrowed event before validating and freezing its identified message. `adoptSessionEvent(event)` performs the same message work in place and returns the original event; callers may use it only when they transfer an exclusively owned object graph with no mutable child shared with another event.
 
-### Chunk-row storage codec (`chunk-rows.ts`)
+### Chunk-row storage codec (`chunk-rows.js`)
 
 The shared [storage codec](src/chunk-rows.js) losslessly converts event sequences to compact rows and back. It preserves unrecognized events verbatim and rejects malformed encoded rows; persistence backends decide whether to enable packed writes.
 
@@ -56,7 +56,7 @@ The shared [storage codec](src/chunk-rows.js) losslessly converts event sequence
 
 This package owns ordered surface projection, replacement validation, replay, and the type guards that distinguish append-origin from replacement events. The [surface type catalog](../../../docs/subsystems/session.md#surface-types) owns the exact shapes and field semantics. A human transcript must project append-origin events rather than `session.surface`, because landed replacements shadow history the reader already saw; model-facing consumers continue to read `session.surface`.
 
-### Request-header reconstruction (`request-header.ts`)
+### Request-header reconstruction (`request-header.js`)
 
 `request/header` records a full canonical snapshot of the non-history request envelope with reason `initial`, `resume`, or `change`. Its optional `adapterDefaults` map marks effective `reasoningEffort` or `maxTokens` values materialized by exact-model resolution, allowing the next request proposal to distinguish them from explicit conversation settings. `foldRequestHeader()` selects the latest snapshot; legacy delta events and the removed `fallback` reason are rejected. See the [reconstructable-requests Agent Note](../../../.agents/notes/implemented/architecture/2026-07-05-reconstructable-requests.md).
 
@@ -64,7 +64,7 @@ A `user/message` stores the complete `UserMessage` directly, including the ident
 
 `tool/result` persists one identified user-role tool-result message, optional internal failure identity, and optional presentation metadata. A tool's successful canonical `value` and human-readable canonical failure message remain execution-local; rendered error content is the replay-authoritative message.
 
-### Session event vocabulary (`types.ts`)
+### Session event vocabulary (`types.js`)
 
 The generated [persistence log event catalog](../../../docs/persistence-catalog.md) enumerates each append-only event type with its payload, surface badge, and declaration site. Token accounting reads per-step `assistant/chunk { type: 'usage' }` records and treats `assistant/message.usage` as the committed-step fallback when no usage chunk exists; failed model-request attempts have no assistant message. Each `assistant/message` records the provider, model, and optional replay state.
 
@@ -80,7 +80,7 @@ Every `SessionEvent` carries three optional top-level fields (structural metadat
 - `surfaceOp?: SurfaceOp` — how this event entered the surface. Absent for non-surface events (boundaries, chunks, usage, errors).
 - `ignorable?: true` — marks an event a reader may safely skip when it does not recognize the type; absent means required, so an unknown-type event refuses session reconstruction ([mechanism](../../../.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
 
-### Metadata types (`types.ts`)
+### Metadata types (`types.js`)
 
 - `SessionHeader` — session metadata written once when published as `Session.header`, where detachment and deep-freezing enforce immutability at runtime: `{ version, id, createdAt, cwd?, parentSession?, seedLength?, delegationDepth? }`. Persistence loaders may return mutable detached copies of the same data type. Owned here (beside `SessionId`) because `Session.header` is typed by it; persistence backends re-export it rather than own it (which would force a package cycle).
 

@@ -32,9 +32,9 @@ A slot's teaching text is its declaration's JSDoc, so improving what the model r
 
 ## Where the API report comes from
 
-`cordis_inspect what:"api"` / `what:"events"` renders `src/api-catalog.ts`, the generated projection of the workspace's Cordis declarations: rendered method signatures, source JSDoc, harness events with their dispatch modes, and the type shapes those signatures reference, all produced by the same AST walk as `docs/subsystems`, so the data a model reads and the rendered docs cannot diverge. It is a compile-time fact about the REPOSITORY, so `pnpm run gen-cordis-api` regenerates it and `pnpm run verify-cordis-api` gates its freshness.
+`cordis_inspect what:"api"` / `what:"events"` renders `src/api-catalog.js`, the generated projection of the workspace's Cordis declarations: rendered method signatures, source JSDoc, harness events with their dispatch modes, and the type shapes those signatures reference, all produced by the same AST walk as `docs/subsystems`, so the data a model reads and the rendered docs cannot diverge. It is a compile-time fact about the REPOSITORY, so `pnpm run gen-cordis-api` regenerates it and `pnpm run verify-cordis-api` gates its freshness.
 
-`src/inspect.ts` intersects that catalog with the LIVE service store: what is RUNNING comes from the store, what each service CAN DO comes from the catalog, and a live service the catalog does not cover is reported as reachable with no signatures rather than omitted. A package that needs the list in its own code copies it out of a report — the catalog is a compile-time fact about the repository, so a copied list and a freshly read one say the same thing for any one deployment.
+`src/inspect.js` intersects that catalog with the LIVE service store: what is RUNNING comes from the store, what each service CAN DO comes from the catalog, and a live service the catalog does not cover is reported as reachable with no signatures rather than omitted. A package that needs the list in its own code copies it out of a report — the catalog is a compile-time fact about the repository, so a copied list and a freshly read one say the same thing for any one deployment.
 
 Two model-facing judgements live in this package rather than in the artifacts, because reflection data is faithful to the code while a report has to be useful:
 

@@ -30,4 +30,4 @@ No direct invalidation; the named consumers own any request-prefix changes.
 - **The credential scrub is a name heuristic** — `*KEY*`/`*PASSWORD*`/`*SECRET*`/`*TOKEN*` only; differently-named secrets (e.g. `*PASSPHRASE*`) pass through, and a whitelist for over-scrubbed vars is noted future work.
 - **Completed spill files are not deleted** — bounded full-output recovery files (and the private per-process spill dir) accumulate under the OS tmpdir until something external cleans them; oversize incomplete spills are discarded and deletion is attempted immediately, but a cleanup failure can leave a bounded file behind.
 
-The raw process handling lives in `src/spawn.ts`; `src/index.ts` is the service wiring.
+The raw process handling lives in `src/spawn.js`; `src/index.js` is the service wiring.
