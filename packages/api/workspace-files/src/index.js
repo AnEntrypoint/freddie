@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 import z from '@freddie/schemastery'
 import { FsError } from '@freddie/freddie-fs'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'

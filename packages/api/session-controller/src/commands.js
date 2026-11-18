@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
 export class SessionCommandController {

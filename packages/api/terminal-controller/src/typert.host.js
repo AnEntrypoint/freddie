@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { jsonParameter } from './typert-parameter.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const sessionId = z.intersection(z.string(), z.unknown())
 const terminalId = z.intersection(z.string(), z.unknown())

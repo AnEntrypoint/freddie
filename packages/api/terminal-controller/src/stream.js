@@ -1,4 +1,5 @@
 import { Deque } from '@freddie/freddie-deque'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export class TerminalFollower {
   queue = new Deque()

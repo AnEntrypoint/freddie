@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 function profile(path) {
   const name = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1)
   const kind = name.toLowerCase().replace(/\.exe$/u, '')

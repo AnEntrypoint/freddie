@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { Remote, TypertLookupFailure, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 import {
   REMOTE_STREAM_IDLE_TIMEOUT_MS,

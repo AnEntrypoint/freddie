@@ -2,6 +2,7 @@ import z from '@freddie/schemastery'
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 import { discoverShells, resolveShell } from './shells.js'
 import { BrowserTerminal, terminalFailure } from './terminal.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const TERMINAL_ID_PATTERN = /^[\w-]{1,128}$/u
 

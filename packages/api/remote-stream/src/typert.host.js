@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { jsonParameter } from './typert-parameter.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const sourceLocation = {
   file: 'packages/api/remote-stream/src/index.js',

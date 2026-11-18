@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
 import { resolveSessionPreset } from '@freddie/freddie-agent-presets'
 import { SessionQueryError } from '@freddie/freddie-session-query'
 import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'

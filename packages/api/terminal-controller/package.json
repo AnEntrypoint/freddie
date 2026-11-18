@@ -38,6 +38,7 @@
   "dependencies": {
     "@freddie/freddie-crypto": "*",
     "@freddie/freddie-deque": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },

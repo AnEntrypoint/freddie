@@ -38,6 +38,7 @@
   "dependencies": {
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-remote-stream": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-query": "*",
     "zod": "^4.4.3"
