@@ -29,5 +29,8 @@
     "@freddie/freddie-brand": "*",
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

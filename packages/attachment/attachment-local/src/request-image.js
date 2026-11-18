@@ -1,7 +1,7 @@
 
-import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { createHash, randomUUID } from '@freddie/freddie-runtime/crypto'
+import { mkdir, readFile, rename, rm, writeFile } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, join } from '@freddie/freddie-runtime/path'
 import sharp from 'sharp'
 import { AttachmentError, ImageVariantId } from '@freddie/freddie-attachment'
 import { hasLowColourCount } from './normalization.js'

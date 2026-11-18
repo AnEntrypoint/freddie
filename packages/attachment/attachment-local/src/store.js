@@ -1,14 +1,15 @@
 
-import { createHash, randomUUID } from 'node:crypto'
-import { constants } from 'node:fs'
-import { chmod, link, mkdir, open, readFile, unlink } from 'node:fs/promises'
-import { dirname, join, parse, resolve } from 'node:path'
+import { createHash, randomUUID } from '@freddie/freddie-runtime/crypto'
+import { constants } from '@freddie/freddie-runtime/fs'
+import { chmod, link, mkdir, open, readFile, unlink } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, join, parse, resolve } from '@freddie/freddie-runtime/path'
 import {
   AttachmentError,
   AttachmentId,
 } from '@freddie/freddie-attachment'
 import { normalizeImage } from './normalization.js'
 import { detectImage, probeImage } from './image.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const ID_PATTERN = /^sha256:([a-f0-9]{64})$/
 const durableHomes = new Set()

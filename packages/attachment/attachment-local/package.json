@@ -27,6 +27,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "sharp": "^0.35.3"
   },

@@ -1,5 +1,5 @@
 
-import { join, resolve } from 'node:path'
+import { join, resolve } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import { AttachmentStore } from '@freddie/freddie-attachment'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'

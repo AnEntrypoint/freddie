@@ -1,5 +1,5 @@
 
-import { Buffer } from 'node:buffer'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 import { AttachmentError } from './error.js'
 
 function decodeBase64(data) {
