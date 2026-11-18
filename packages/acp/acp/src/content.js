@@ -1,5 +1,6 @@
 
 import { isImageAdmissionError } from '@freddie/freddie-attachment'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const IMAGE_MEDIA_TYPES = [
   'image/png',

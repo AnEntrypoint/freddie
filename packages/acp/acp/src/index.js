@@ -1,7 +1,7 @@
 
-import { randomUUID } from 'node:crypto'
-import { isAbsolute } from 'node:path'
-import { Readable, Writable } from 'node:stream'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { isAbsolute } from '@freddie/freddie-runtime/path'
+import { Readable, Writable } from '@freddie/freddie-runtime/stream'
 import Schema from '@freddie/schemastery'
 import { createUserMessage, errorChain } from '@freddie/freddie-llm'
 import {
@@ -13,6 +13,7 @@ import {
 import { SessionId } from '@freddie/freddie-session'
 import { AcpContentError, admitAcpPrompt, assistantBlockToAcp, supportsAcpImagePrompts } from './content.js'
 import { turnEndToStopReason } from './codec.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'acp'
 export const inject = ['agents']
