@@ -41,6 +41,7 @@
   "dependencies": {
     "@freddie/freddie-cmdline": "*",
     "@freddie/freddie-code-runtime-worker-thread": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "commander": "^15.0.0"
   },

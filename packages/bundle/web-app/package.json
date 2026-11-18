@@ -92,6 +92,7 @@
     "@freddie/freddie-code-runtime-worker-thread": "*",
     "@freddie/freddie-cordis-client-runner": "*",
     "@freddie/freddie-cordis-host-runner": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-web-frontend": "*",
     "@freddie/freddie-host-frontend-static": "*",
     "@freddie/freddie-host-apiproxy": "*",

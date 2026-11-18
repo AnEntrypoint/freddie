@@ -1,9 +1,10 @@
 
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import z from '@freddie/schemastery'
 import { installModelSelection } from '@freddie/freddie-agent'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'headless-runner'
 

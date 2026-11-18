@@ -1,13 +1,14 @@
 
-import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
-import { networkInterfaces } from 'node:os'
-import { fileURLToPath } from 'node:url'
+import { spawn } from '@freddie/freddie-runtime/child-process'
+import { createRequire } from '@freddie/freddie-runtime/module'
+import { networkInterfaces } from '@freddie/freddie-runtime/os'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import z from '@freddie/schemastery'
 import { addHarnessSourceSection } from '@freddie/freddie-app-boot'
 import * as FrontendStatic from '@freddie/freddie-host-frontend-static'
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'web-app'
 
