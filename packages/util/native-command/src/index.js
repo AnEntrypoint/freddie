@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile } from '@freddie/freddie-runtime/child-process'
 
 export const runNativeCommand = (command, args, signal) =>
   new Promise((resolve, reject) => {

@@ -1,6 +1,7 @@
-import { opendir, realpath } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
+import { opendir, realpath } from '@freddie/freddie-runtime/fs-promises'
+import { homedir } from '@freddie/freddie-runtime/os'
+import { basename, dirname, join, resolve } from '@freddie/freddie-runtime/path'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const FREDDIE_HOME_DIR_NAME = '.freddie'
 

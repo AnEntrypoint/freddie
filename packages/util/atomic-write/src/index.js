@@ -1,6 +1,7 @@
-import { randomBytes } from 'node:crypto'
-import { lstat, mkdir, rename, rm, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { randomBytes } from '@freddie/freddie-runtime/crypto'
+import { lstat, mkdir, rename, rm, writeFile } from '@freddie/freddie-runtime/fs-promises'
+import { dirname } from '@freddie/freddie-runtime/path'
+import { process } from '@freddie/freddie-runtime/process'
 
 export async function writeFileAtomic(filename, content, options) {
   await mkdir(dirname(filename), {

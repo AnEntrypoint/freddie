@@ -6,6 +6,7 @@ import {
   proxyForUrl,
   resolveProxyPolicy,
 } from './policy.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 let active
 

@@ -34,5 +34,8 @@
   "devDependencies": {
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
