@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const PROMPT_MARKER_PREFIX = '133;D;'
 

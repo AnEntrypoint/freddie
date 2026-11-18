@@ -1,4 +1,4 @@
-import { Buffer } from 'node:buffer'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 import { TerminalError } from '@freddie/freddie-terminal'
 import { CONTROLLED_PROMPT, TerminalSanitizer } from './sanitize.js'
 

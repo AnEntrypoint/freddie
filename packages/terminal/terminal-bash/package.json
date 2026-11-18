@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@freddie/freddie-pwsh-local": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {
