@@ -1,5 +1,6 @@
 import z from '@freddie/schemastery'
 import { TextRetainer, describeOmitted } from '@freddie/freddie-output-retention'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const name = 'spill-policy'
 

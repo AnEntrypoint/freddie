@@ -1,8 +1,9 @@
-import { createHash, randomBytes } from 'node:crypto'
-import { mkdtempSync } from 'node:fs'
-import { mkdir, open } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
+import { createHash, randomBytes } from '@freddie/freddie-runtime/crypto'
+import { mkdtempSync } from '@freddie/freddie-runtime/fs'
+import { mkdir, open } from '@freddie/freddie-runtime/fs-promises'
+import { join } from '@freddie/freddie-runtime/path'
+import { tmpdir } from '@freddie/freddie-runtime/os'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 let defaultRoot
 

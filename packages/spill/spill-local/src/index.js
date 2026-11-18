@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { resolve } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import { SpillLocator, SpillStore } from '@freddie/freddie-spill'
 import { privateRoot, saveTextFile } from './store.js'
