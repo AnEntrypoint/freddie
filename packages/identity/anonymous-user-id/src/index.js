@@ -1,7 +1,8 @@
-import { randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { mkdirSync, readFileSync, writeFileSync } from '@freddie/freddie-runtime/fs'
+import { dirname, join } from '@freddie/freddie-runtime/path'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const ANONYMOUS_USER_ID_FILE_NAME = '.anonymous-user-id'
 

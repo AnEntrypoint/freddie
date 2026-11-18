@@ -38,5 +38,8 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/freddie-home-paths": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
