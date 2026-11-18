@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { join } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import * as acp from '@freddie/freddie-acp'
 import * as agentCore from '@freddie/freddie-agent-spine-demo'

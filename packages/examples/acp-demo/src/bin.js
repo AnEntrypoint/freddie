@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { parseArgs } from 'node:util'
+import { parseArgs } from '@freddie/freddie-runtime/util'
 import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@freddie/freddie-app-boot'
+import { process } from '@freddie/freddie-runtime/process'
 
 const NAME = 'freddie-acp-demo'
 

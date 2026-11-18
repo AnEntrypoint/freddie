@@ -67,5 +67,8 @@
     "@freddie/freddie-agent-instructions": "*",
     "@freddie/cordis": "*",
     "@freddie/schemastery": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
