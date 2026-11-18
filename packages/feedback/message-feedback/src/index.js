@@ -1,5 +1,5 @@
-import { Buffer } from 'node:buffer'
-import { randomUUID } from 'node:crypto'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { Service } from '@freddie/cordis'
 import s from '@freddie/schemastery'
 import { deriveEventMessage, isAppendSurfaceEvent } from '@freddie/freddie-session/surface'
