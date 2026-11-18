@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { readFileSync } from '@freddie/freddie-runtime/fs'
+import { createRequire } from '@freddie/freddie-runtime/module'
+import { dirname, join } from '@freddie/freddie-runtime/path'
+import { pathToFileURL } from '@freddie/freddie-runtime/url'
 import z from '@freddie/schemastery'
 
 export const TYPERT_HOST_EXPORT = './typert'
