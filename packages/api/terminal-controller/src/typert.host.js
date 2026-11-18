@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { jsonParameter } from './typert-parameter.js'
 
 const sessionId = z.intersection(z.string(), z.unknown())
 const terminalId = z.intersection(z.string(), z.unknown())
@@ -49,10 +50,6 @@ const agentLookup = {
   codec: { mode: 'strict', typeSymbol: SESSION_ID_SYMBOL, schema: sessionId },
 }
 
-function json(name, schema, typeSymbol) {
-  return { name, wire: name, source: 'json', codec: { mode: 'strict', typeSymbol, schema } }
-}
-
 function invocation(method, parameters, result, typeSymbol, cancellation = false) {
   const scoped = parameters.some(parameter => parameter.source === 'lookup')
   return {
@@ -76,27 +73,27 @@ export const TYPERT = {
   invocations: [
     invocation('environment', [agentLookup], environment, `${SYMBOL}#TerminalEnvironment`, true),
     invocation('shells', [agentLookup], z.array(shell), `${SYMBOL}#TerminalShellList`, true),
-    invocation('list', [json('sessionId', sessionId, SESSION_ID_SYMBOL)], terminalInfos, `${SYMBOL}#WebTerminalInfoList`),
+    invocation('list', [jsonParameter('sessionId', sessionId, SESSION_ID_SYMBOL)], terminalInfos, `${SYMBOL}#WebTerminalInfoList`),
     invocation('create', [
       agentLookup,
-      json('request', createRequest, `${SYMBOL}#TerminalCreateRequest`),
+      jsonParameter('request', createRequest, `${SYMBOL}#TerminalCreateRequest`),
     ], terminalInfo, `${SYMBOL}#WebTerminalInfo`, true),
     invocation('write', [
       agentLookup,
-      json('id', terminalId, `${SYMBOL}#WebTerminalId`),
-      json('attachmentId', attachmentId, `${SYMBOL}#TerminalAttachmentId`),
-      json('data', z.string(), `${SYMBOL}#TerminalInput`),
+      jsonParameter('id', terminalId, `${SYMBOL}#WebTerminalId`),
+      jsonParameter('attachmentId', attachmentId, `${SYMBOL}#TerminalAttachmentId`),
+      jsonParameter('data', z.string(), `${SYMBOL}#TerminalInput`),
     ], voidResult, `${SYMBOL}#TerminalVoid`),
     invocation('resize', [
       agentLookup,
-      json('id', terminalId, `${SYMBOL}#WebTerminalId`),
-      json('attachmentId', attachmentId, `${SYMBOL}#TerminalAttachmentId`),
-      json('cols', z.number(), `${SYMBOL}#TerminalCols`),
-      json('rows', z.number(), `${SYMBOL}#TerminalRows`),
+      jsonParameter('id', terminalId, `${SYMBOL}#WebTerminalId`),
+      jsonParameter('attachmentId', attachmentId, `${SYMBOL}#TerminalAttachmentId`),
+      jsonParameter('cols', z.number(), `${SYMBOL}#TerminalCols`),
+      jsonParameter('rows', z.number(), `${SYMBOL}#TerminalRows`),
     ], voidResult, `${SYMBOL}#TerminalVoid`),
     invocation('close', [
       agentLookup,
-      json('id', terminalId, `${SYMBOL}#WebTerminalId`),
+      jsonParameter('id', terminalId, `${SYMBOL}#WebTerminalId`),
     ], voidResult, `${SYMBOL}#TerminalVoid`),
   ],
   model: {

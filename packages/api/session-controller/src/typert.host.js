@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { COMMAND_CODECS } from './command-codecs.js'
 import { projectionValues, sessionListValue } from './list-codecs.js'
+import { jsonParameter } from './typert-parameter.js'
 
 const sessionAddress = z.union([
   z.object({
@@ -78,15 +79,6 @@ function invocation(method, parameters, result, cancellation = undefined) {
     ...cancellation === undefined ? {} : { cancellation },
     result,
     sourceLocation,
-  }
-}
-
-function jsonParameter(name, schema, typeSymbol) {
-  return {
-    name,
-    wire: name,
-    source: 'json',
-    codec: { mode: 'strict', typeSymbol, schema },
   }
 }
 

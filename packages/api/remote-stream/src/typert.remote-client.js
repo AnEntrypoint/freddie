@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { jsonParameter } from './typert-parameter.js'
 
 function descriptor(method, parameters, resultTypeSymbol, resultSchema, cancellation = undefined) {
   return {
@@ -15,15 +16,6 @@ function descriptor(method, parameters, resultTypeSymbol, resultSchema, cancella
       schema: resultSchema,
     },
     sourceLocation: { file: 'packages/api/remote-stream/src/index.js', line: 1, column: 1 },
-  }
-}
-
-function jsonParameter(name, schema, typeSymbol) {
-  return {
-    name,
-    wire: name,
-    source: 'json',
-    codec: { mode: 'strict', typeSymbol, schema },
   }
 }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { jsonParameter } from './typert-parameter.js'
 
 const sourceLocation = {
   file: 'packages/api/remote-stream/src/index.js',
@@ -17,15 +18,6 @@ function invocation(method, parameters, result, cancellation = undefined) {
     ...cancellation === undefined ? {} : { cancellation },
     result,
     sourceLocation,
-  }
-}
-
-function jsonParameter(name, schema, typeSymbol) {
-  return {
-    name,
-    wire: name,
-    source: 'json',
-    codec: { mode: 'strict', typeSymbol, schema },
   }
 }
 
