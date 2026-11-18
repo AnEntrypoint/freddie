@@ -268,3 +268,17 @@ Defect found and fixed in Phase B: txiki's TextDecoder rejects utf-16le, which m
 ## root workspace link for @freddie/freddie-runtime (2026-11-18)
 
 Phase A, local commit as lanmower, not pushed. The root package.json declares "@freddie/freddie-runtime": "*" in dependencies, and pnpm-lock.yaml gains the importer entry importers["."].dependencies pointing at link:packages/util/runtime. The link comes from pnpm, not from a hand-made symlink. Phase B witness: pnpm install, then the literal import '@freddie/freddie-runtime/fs-promises' from /workspace/freddie under Node and under gm's txiki, both resolving to packages/util/runtime/src/fs-promises.js.
+
+## root workspace link: Phase B on the final tree (2026-11-18)
+
+pnpm install exited 0, and node_modules/@freddie/freddie-runtime is a pnpm link to packages/util/runtime. The literal import from /workspace/freddie resolves to packages/util/runtime/src/fs-promises.js.
+
+| Check | Result | Evidence |
+|---|---|---|
+| literal root import, Node | PASS | node: fs-promises readFile is function; resolved file:///workspace/freddie/packages/util/runtime/src/fs-promises.js |
+| literal root import, gm txiki | PASS | install-txiki loaded; fs-promises readFile and stat are functions, 19 names; root-linked path and writeFile, readFile, stat round trip returned "hi from txiki", isFile true, size 13 |
+| contract, Node | PASS | node: 114 names present across 25 subpaths, exit 0 |
+| contract, txiki (gm) | PASS | present 114, missing [] |
+| publint | PASS | pnpm run publint exit 0, All good! |
+
+Needs the rebuilt gm-core: the run_code loader resolves bare imports from the project root (b4f85a4). The gm server running in the session before this rebuild still resolves them from the process directory, so the txiki rows were run through a rebuilt gm-core binary over MCP stdio.
