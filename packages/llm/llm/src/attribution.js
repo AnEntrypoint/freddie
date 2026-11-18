@@ -1,4 +1,4 @@
-import { createRequire } from 'node:module'
+import { createRequire } from '@freddie/freddie-runtime/module'
 
 const { version } = createRequire(import.meta.url)('../package.json')
 

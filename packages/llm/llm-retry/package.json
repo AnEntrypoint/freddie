@@ -38,6 +38,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

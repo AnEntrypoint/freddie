@@ -1,6 +1,6 @@
-import { homedir } from 'node:os'
-import { access } from 'node:fs/promises'
-import { resolve as resolvePath } from 'node:path'
+import { homedir } from '@freddie/freddie-runtime/os'
+import { access } from '@freddie/freddie-runtime/fs-promises'
+import { resolve as resolvePath } from '@freddie/freddie-runtime/path'
 import {
   credentialKey,
   credentialKeyId,

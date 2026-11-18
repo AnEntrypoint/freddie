@@ -4,6 +4,7 @@ import { serializeRequest, serializeRequestWithImages } from './serialize.js'
 import { DeepSeekFileStore } from './file-store.js'
 import { parseSse } from './sse.js'
 import { translate } from './translate.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 export const DEFAULT_CONTEXT_WINDOW = 1_000_000

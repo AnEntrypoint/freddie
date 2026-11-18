@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@earendil-works/pi-ai": "^0.85.1",
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

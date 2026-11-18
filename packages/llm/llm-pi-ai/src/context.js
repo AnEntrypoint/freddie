@@ -6,6 +6,7 @@ import {
 } from '@freddie/freddie-llm'
 import { toPiAssistant } from './replay.js'
 import { DEFAULT_REQUEST_IMAGE_MAX_BYTES, DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET } from './config.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 function flattenText(message) {
   return message.content

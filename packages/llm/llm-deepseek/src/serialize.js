@@ -1,4 +1,5 @@
 import { contentHasImage, LlmError, offloadRequestImagesWithPolicy, requestImageHandleText } from '@freddie/freddie-llm'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const TOOL_RESULT_IMAGE_TEXT = 'Attached image(s) from tool result:'
 
