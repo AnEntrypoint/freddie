@@ -1,5 +1,5 @@
 import { Service } from '@freddie/cordis'
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import z from '@freddie/schemastery'
 import { emitAgentEvent } from '@freddie/freddie-agent'
 import { boundContextSummary, createUserMessage, errorChain } from '@freddie/freddie-llm'
@@ -9,6 +9,7 @@ import { ReactLoopAgent } from './agent.js'
 
 const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, UNLOADING: 5 }
 import { DEFAULT_MAX_PARALLEL_TOOL_CALLS } from './constants.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const INACTIVE_STATES = new Set([
   FiberState.UNLOADING,

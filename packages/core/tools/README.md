@@ -63,7 +63,7 @@ The live registry pipeline has three transformable waterfalls, then the definiti
 First-party plugin authors can use the `defineTool()` helper (exported from this package) for typed tool parameter schemas:
 
 ```ts
-import { readFile } from 'node:fs/promises'
+import { readFile } from '@freddie/freddie-runtime/fs-promises'
 import type { Context } from '@freddie/cordis'
 import { defineTool } from '@freddie/freddie-tools'
 

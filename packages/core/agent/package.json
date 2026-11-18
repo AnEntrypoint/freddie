@@ -54,5 +54,8 @@
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

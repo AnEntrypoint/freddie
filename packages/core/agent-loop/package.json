@@ -43,6 +43,7 @@
     "@freddie/freddie-settings": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

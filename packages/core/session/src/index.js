@@ -1,5 +1,5 @@
 import { Service } from '@freddie/cordis'
-import { isAbsolute } from 'node:path'
+import { isAbsolute } from '@freddie/freddie-runtime/path'
 import { deepFreeze } from '@freddie/freddie-llm'
 import { scopeOf, scopeTarget } from '@freddie/freddie-scope'
 import { SESSION_FORMAT_VERSION, SessionId } from './types.js'

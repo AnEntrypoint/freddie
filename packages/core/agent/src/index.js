@@ -1,6 +1,6 @@
 import { getTraceable, Service, symbols } from '@freddie/cordis'
-import { AsyncLocalStorage } from 'node:async_hooks'
-import { isPromise } from 'node:util/types'
+import { AsyncLocalStorage } from '@freddie/freddie-runtime/async-hooks'
+import { isPromise } from '@freddie/freddie-runtime/util-types'
 import { scopeTarget } from '@freddie/freddie-scope'
 
 const FiberState = { PENDING: 0, LOADING: 1, ACTIVE: 2, FAILED: 3, DISPOSED: 4, UNLOADING: 5 }

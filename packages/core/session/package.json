@@ -50,5 +50,8 @@
     "@freddie/freddie-typert-registry": "*",
     "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
