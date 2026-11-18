@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import z from '@freddie/schemastery'
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 import { defineTool } from '@freddie/freddie-tools'

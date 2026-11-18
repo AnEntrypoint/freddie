@@ -1,4 +1,4 @@
-import { basename, isAbsolute, resolve as resolvePath } from 'node:path'
+import { basename, isAbsolute, resolve as resolvePath } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
 import { HarnessError } from '@freddie/freddie-llm'
@@ -6,6 +6,7 @@ import { ESCALATION_TARGETS, approveEscalation, validateEscalationArgs } from '@
 import { parseExitStatus } from '@freddie/freddie-shell'
 import { processOutcome } from './background.js'
 import { renderPwshProcessRead, renderPwshResult } from './render.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'tool-pwsh'
 export const inject = ['tools', 'shell', 'systemPrompt', 'shellEnv']

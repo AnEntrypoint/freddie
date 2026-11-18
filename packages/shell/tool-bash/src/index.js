@@ -1,5 +1,5 @@
 import z from '@freddie/schemastery'
-import { isAbsolute, resolve as resolvePath } from 'node:path'
+import { isAbsolute, resolve as resolvePath } from '@freddie/freddie-runtime/path'
 import { defineTool, TOOL_ABORTED } from '@freddie/freddie-tools'
 import { HarnessError } from '@freddie/freddie-llm'
 import { ESCALATION_TARGETS, approveEscalation, canonicalPath, validateEscalationArgs } from '@freddie/freddie-sandbox'

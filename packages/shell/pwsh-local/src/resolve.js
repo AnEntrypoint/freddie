@@ -1,5 +1,6 @@
-import { lstatSync } from 'node:fs'
-import { join } from 'node:path'
+import { lstatSync } from '@freddie/freddie-runtime/fs'
+import { join } from '@freddie/freddie-runtime/path'
+import { process } from '@freddie/freddie-runtime/process'
 
 export function candidatePwshPaths(env = process.env) {
   const programFiles = env.ProgramFiles ?? 'C:\\Program Files'

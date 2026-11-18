@@ -3,6 +3,7 @@ import { SHELL_SETTINGS_NAMESPACE, ShellExecutor } from '@freddie/freddie-shell'
 import { installSettingsSection } from '@freddie/freddie-settings'
 import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@freddie/freddie-timeout'
 import { resolvePwshPath } from './resolve.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const ENV_OVERRIDES = {
   NO_COLOR: '1',
