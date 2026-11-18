@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import '@freddie/freddie-runtime/install-node'
 
 import { Context } from '@freddie/cordis'
 import { pathToFileURL } from '@freddie/freddie-runtime/url'

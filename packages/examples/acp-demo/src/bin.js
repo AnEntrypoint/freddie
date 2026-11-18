@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import '@freddie/freddie-runtime/install-node'
 
 import { parseArgs } from '@freddie/freddie-runtime/util'
 import { boot, installFailLoud, loadEnv, resolveConfigPath } from '@freddie/freddie-app-boot'
