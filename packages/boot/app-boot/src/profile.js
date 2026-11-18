@@ -1,8 +1,8 @@
-import { createRequire } from 'node:module'
+import { createRequire } from '@freddie/freddie-runtime/module'
 import {
   existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync,
-} from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+} from '@freddie/freddie-runtime/fs'
+import { basename, dirname, join } from '@freddie/freddie-runtime/path'
 import { applyEntryPatches } from '@freddie/cordis-plugin-include'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'
 import { loadOverlayPatches } from './index.js'

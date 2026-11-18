@@ -1,7 +1,7 @@
-import { pathToFileURL } from 'node:url'
-import { readFileSync } from 'node:fs'
-import { parseEnv } from 'node:util'
-import { basename, dirname, isAbsolute, resolve } from 'node:path'
+import { pathToFileURL } from '@freddie/freddie-runtime/url'
+import { readFileSync } from '@freddie/freddie-runtime/fs'
+import { parseEnv } from '@freddie/freddie-runtime/util'
+import { basename, dirname, isAbsolute, resolve } from '@freddie/freddie-runtime/path'
 import * as yaml from 'js-yaml'
 import { Context } from '@freddie/cordis'
 import Loader from '@freddie/cordis-plugin-loader'
@@ -9,6 +9,7 @@ import Include, { applyEntryPatches, entryListSchema } from '@freddie/cordis-plu
 import Group from '@freddie/cordis-plugin-group'
 import { freddieHomePath, resolveFreddieHome } from '@freddie/freddie-home-paths'
 import { createLaunchEnvironmentSnapshot } from '@freddie/freddie-launch-environment'
+import { process } from '@freddie/freddie-runtime/process'
 
 export {
   composeEntries,

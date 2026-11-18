@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 export function provideCmdline(ctx, host) {
   const snapshot = Object.freeze([...host.args])
   ctx.provide('cmdlineArgs', { get: () => snapshot })
