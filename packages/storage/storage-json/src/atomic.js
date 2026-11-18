@@ -1,6 +1,7 @@
-import { open, rename, rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { randomUUID } from 'node:crypto'
+import { open, rename, rm } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, join } from '@freddie/freddie-runtime/path'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { process } from '@freddie/freddie-runtime/process'
 
 export async function writeAtomic(path, data) {
   const tmp = join(dirname(path), `.${randomUUID()}.tmp`)

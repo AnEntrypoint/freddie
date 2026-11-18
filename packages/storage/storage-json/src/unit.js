@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFile } from '@freddie/freddie-runtime/fs-promises'
 import { StorageError } from '@freddie/freddie-storage'
 import { writeAtomic } from './atomic.js'
 import { parse, serialize } from './format.js'
