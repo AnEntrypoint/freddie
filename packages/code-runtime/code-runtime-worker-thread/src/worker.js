@@ -1,6 +1,8 @@
+import '@freddie/freddie-runtime/install-node'
 
-import { parentPort, workerData } from 'node:worker_threads'
+import { parentPort, workerData } from '@freddie/freddie-runtime/worker-threads'
 import { runWorkerMain } from './bootstrap.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 if (!parentPort) throw new Error('freddie-code-runtime-worker-thread: worker entry loaded outside a worker thread')
 

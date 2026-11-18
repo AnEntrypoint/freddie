@@ -1,5 +1,5 @@
 
-import { inspect } from 'node:util'
+import { inspect } from '@freddie/freddie-runtime/util'
 import { EMPTY_JSON_ARRAY_BYTES, jsonStringBytesUpTo, jsonValueBytesUpTo, truncateJsonStringBytes } from './output-json.js'
 import { decodeWorkerJson, encodeWorkerJson, snapshotCodeJsonValue } from './worker-json.js'
 

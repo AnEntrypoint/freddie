@@ -1,7 +1,7 @@
 
-import { Worker } from 'node:worker_threads'
-import { stripTypeScriptTypes } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { Worker } from '@freddie/freddie-runtime/worker-threads'
+import { stripTypeScriptTypes } from '@freddie/freddie-runtime/module'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { Context } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'

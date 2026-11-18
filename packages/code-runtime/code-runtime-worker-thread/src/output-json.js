@@ -1,3 +1,4 @@
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const intrinsicReflectApply = Reflect.apply
 const intrinsicArrayIsArray = Array.isArray
