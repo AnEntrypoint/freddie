@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "libsql-plugkit-client": "github:AnEntrypoint/libsql-plugkit-client"
   },

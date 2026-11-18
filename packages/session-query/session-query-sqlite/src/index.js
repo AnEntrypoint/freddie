@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from '@freddie/freddie-runtime/crypto'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import SessionQueryEngine, {
@@ -27,6 +27,7 @@ import {
   sanitizeFtsText,
   SQLITE_MAX_PAGE_LIMIT,
 } from './query.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export {
   SESSION_QUERY_SQLITE_APPLICATION_ID,

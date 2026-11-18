@@ -1,5 +1,5 @@
-import { mkdir, open } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { mkdir, open } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, resolve } from '@freddie/freddie-runtime/path'
 
 export const SESSION_QUERY_SQLITE_SCHEMA_VERSION = 8
 
