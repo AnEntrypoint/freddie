@@ -3,6 +3,8 @@ import { BlockAssembler, deepFreeze } from '@freddie/freddie-llm'
 import { effectivePermissionPreset } from '@freddie/freddie-permission-presets'
 import { deadline, MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { RUN_CODE_NAME } from '@freddie/freddie-tools'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const name = 'auto-review'
 

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { Context, Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
