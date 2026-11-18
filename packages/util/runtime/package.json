@@ -19,6 +19,9 @@
     "./install-node": {
       "default": "./src/install-node.js"
     },
+    "./install-txiki": {
+      "default": "./src/install-txiki.js"
+    },
     "./package.json": "./package.json",
     "./*": {
       "default": "./src/*.js"
@@ -29,6 +32,8 @@
     "src/runtime.js",
     "src/node.js",
     "src/install-node.js",
+    "src/txiki.js",
+    "src/install-txiki.js",
     "src/fs.js",
     "src/fs-promises.js",
     "src/path.js",
