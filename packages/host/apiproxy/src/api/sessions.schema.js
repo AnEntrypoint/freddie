@@ -3,14 +3,7 @@ import {
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
   truncateUnicodeCodePoints,
 } from './session-search.js'
-
-function passthrough() {
-  const fn = value => value
-  fn.optional = () => fn
-  fn.parse = value => value
-  fn.safeParse = value => ({ success: true, data: value })
-  return fn
-}
+import { passthrough } from './passthrough.js'
 
 export const workspaceIdSchema = passthrough()
 

@@ -1,10 +1,4 @@
-function passthrough() {
-  const fn = value => value
-  fn.optional = () => fn
-  fn.parse = value => value
-  fn.safeParse = value => ({ success: true, data: value })
-  return fn
-}
+import { passthrough } from './passthrough.js'
 
 export const terminalListRequestSchema = passthrough()
 export const terminalListValueSchema = passthrough()
