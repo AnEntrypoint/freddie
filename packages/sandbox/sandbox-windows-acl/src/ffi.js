@@ -1,6 +1,7 @@
 import koffi from 'koffi'
 import { Win32Error } from './errors.js'
 import * as abi from './win32-abi.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export function isNullPtr(value) {
   return value === null || value === undefined || value === 0n

@@ -1,4 +1,4 @@
-import { accessSync, constants, statSync } from 'node:fs'
+import { accessSync, constants, statSync } from '@freddie/freddie-runtime/fs'
 
 const EXECUTABLE_SPAWN_CODES = new Set(['EACCES', 'ENOENT'])
 

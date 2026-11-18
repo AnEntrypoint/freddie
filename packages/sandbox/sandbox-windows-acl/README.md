@@ -9,9 +9,9 @@ Building directly on the raw ACL mechanism is the recorded design choice: it imp
 ## Usage
 
 ```ts
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { mkdtempSync, rmSync } from '@freddie/freddie-runtime/fs'
+import { tmpdir } from '@freddie/freddie-runtime/os'
+import { join } from '@freddie/freddie-runtime/path'
 import { AclSandbox, tempWriteSid, workspaceWriteSid } from '@freddie/freddie-sandbox-windows-acl'
 
 const workspaceRoot = process.cwd()

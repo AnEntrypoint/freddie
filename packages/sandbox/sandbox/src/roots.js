@@ -1,5 +1,5 @@
-import { realpathSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { realpathSync } from '@freddie/freddie-runtime/fs'
+import { tmpdir } from '@freddie/freddie-runtime/os'
 
 export function canonicalPath(path) {
   try {

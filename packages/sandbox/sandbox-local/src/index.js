@@ -1,8 +1,8 @@
-import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { spawnSync } from '@freddie/freddie-runtime/child-process'
+import { existsSync, mkdtempSync, rmSync } from '@freddie/freddie-runtime/fs'
+import { tmpdir } from '@freddie/freddie-runtime/os'
+import { join } from '@freddie/freddie-runtime/path'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import {
   LAUNCHER_BIN,
   LAUNCHER_FAILURE_EXIT,
@@ -14,6 +14,7 @@ import { assertNever } from '@freddie/freddie-llm'
 import { SandboxProvider, SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { AclWriteGrant, assertTempRootOutsideWorkspace, tempWriteSid, workspaceWriteSid } from '@freddie/freddie-sandbox-windows-acl'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 function defaultProbeBwrap(timeoutMs) {
   const probe = spawnSync('bwrap', [...bwrapProfileArgs({ mode: 'read-only', workspaceRoot: '/' }), '--', 'true'], {

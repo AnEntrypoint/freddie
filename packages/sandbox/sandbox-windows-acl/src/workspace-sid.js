@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash } from '@freddie/freddie-runtime/crypto'
 
 export function workspaceWriteSid(workspaceRoot) {
   const digest = createHash('sha256').update(workspaceRoot, 'utf8').digest()

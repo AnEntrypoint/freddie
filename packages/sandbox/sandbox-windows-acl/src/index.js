@@ -1,5 +1,5 @@
-import { existsSync, statSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, statSync } from '@freddie/freddie-runtime/fs'
+import { resolve } from '@freddie/freddie-runtime/path'
 
 import { grantWrite, revokeWrite } from './acl.js'
 import { Win32Error } from './errors.js'
@@ -8,6 +8,8 @@ import { assertPrivateTempDisjoint } from './path-boundary.js'
 import { drainPipe, spawnSandboxed, spawnSandboxedInherited, waitForExit } from './spawn.js'
 import { createRestrictedToken, findLogonSid, makeWellKnownSid, openCurrentProcessToken, setTokenDefaultDaclGrant } from './token.js'
 import * as abi from './win32-abi.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export { quoteArg } from './spawn.js'
 export { AclWriteGrant } from './grant.js'

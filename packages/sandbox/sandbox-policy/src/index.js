@@ -1,8 +1,9 @@
-import { resolve as resolvePath } from 'node:path'
+import { resolve as resolvePath } from '@freddie/freddie-runtime/path'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { canonicalPath } from '@freddie/freddie-sandbox'
 import { effectiveSandboxMode } from './session-mode.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.js'
 export { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './runner-failure.js'

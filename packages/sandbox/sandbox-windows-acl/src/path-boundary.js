@@ -1,5 +1,5 @@
-import { realpathSync } from 'node:fs'
-import { isAbsolute, relative, sep } from 'node:path'
+import { realpathSync } from '@freddie/freddie-runtime/fs'
+import { isAbsolute, relative, sep } from '@freddie/freddie-runtime/path'
 
 function containsDirectory(root, candidate) {
   const relation = relative(realpathSync.native(root), realpathSync.native(candidate))

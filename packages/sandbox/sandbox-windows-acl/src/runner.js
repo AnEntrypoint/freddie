@@ -1,9 +1,10 @@
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdtempSync, rmSync, statSync } from '@freddie/freddie-runtime/fs'
+import { join } from '@freddie/freddie-runtime/path'
 
 import { win32 } from './ffi.js'
 import { AclSandbox, assertTempRootOutsideWorkspace } from './index.js'
 import { tempWriteSid, workspaceWriteSid } from './workspace-sid.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const RUNNER_SIGNATURE = 'windows-acl-run'
 const RUNNER_FAILURE_EXIT = 127

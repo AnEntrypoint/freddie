@@ -37,5 +37,8 @@
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

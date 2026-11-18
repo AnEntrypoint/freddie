@@ -1,6 +1,8 @@
 import { allocBytes, allocPtrSlot, allocUint32, decodePtr, decodePtrAt, decodeUint32, encodeUint32, isNullPtr, ptrAddress, throwLastError, throwWin32 } from './ffi.js'
 import { buildExplicitAccess } from './acl.js'
 import * as abi from './win32-abi.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export function openCurrentProcessToken(api) {
   const processHandle = api.openProcess(abi.PROCESS_QUERY_INFORMATION, 0, process.pid)

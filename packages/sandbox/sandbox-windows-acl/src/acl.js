@@ -1,9 +1,10 @@
-import { createHash } from 'node:crypto'
-import { mkdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { createHash } from '@freddie/freddie-runtime/crypto'
+import { mkdirSync } from '@freddie/freddie-runtime/fs'
+import { dirname, join } from '@freddie/freddie-runtime/path'
 
 import { allocOverlapped, allocPtrSlot, decodePtr, decodeUint8At, decodeUint16At, decodeUint32At, getTempPath, isInvalidHandle, isNullPtr, ptrAddress, sameSidAt, throwLastError, throwWin32 } from './ffi.js'
 import * as abi from './win32-abi.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export function buildExplicitAccess(sidPtr, mode, permissions) {
   const entry = Buffer.alloc(abi.EXPLICIT_ACCESS_W_SIZE)
