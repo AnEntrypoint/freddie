@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto'
-import { StringDecoder } from 'node:string_decoder'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { StringDecoder } from '@freddie/freddie-runtime/string-decoder'
 
 export class JsonRpcResponseError extends Error {
   constructor(code, message, data) {

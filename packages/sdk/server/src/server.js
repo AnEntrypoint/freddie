@@ -1,9 +1,10 @@
-import { resolve } from 'node:path'
+import { resolve } from '@freddie/freddie-runtime/path'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { carrierKeyOf } from '@freddie/freddie-scope'
 import { SessionId } from '@freddie/freddie-session'
 import * as LlmDeepSeek from '@freddie/freddie-llm-deepseek'
 import { setTurnContext } from './turn-context.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 function subagentParentOf(carrier) {
   return carrierKeyOf(carrier)

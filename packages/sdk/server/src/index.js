@@ -1,6 +1,7 @@
 import Schema from '@freddie/schemastery'
 import { JsonRpcLineTransport } from '@freddie/freddie-sdk-protocol'
 import { HarnessSdkJsonRpcServer } from './server.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export * from './server.js'
 export { turnContextFor } from './turn-context.js'

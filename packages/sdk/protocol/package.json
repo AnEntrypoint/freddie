@@ -40,5 +40,8 @@
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subagent": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
