@@ -1,9 +1,9 @@
 import { EntryGroup, EntryTree, isJsExpr } from '@freddie/cordis-plugin-loader'
 import { Context, Service } from '@freddie/cordis'
-import { extname } from 'node:path'
-import { access, constants, readFile, rename, writeFile } from 'node:fs/promises'
-import { setTimeout as delay } from 'node:timers/promises'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { extname } from '@freddie/freddie-runtime/path'
+import { access, constants, readFile, rename, writeFile } from '@freddie/freddie-runtime/fs-promises'
+import { setTimeout as delay } from '@freddie/freddie-runtime/timers-promises'
+import { fileURLToPath, pathToFileURL } from '@freddie/freddie-runtime/url'
 import * as yaml from 'js-yaml'
 
 const JsExpr = yaml.defineScalarTag('tag:yaml.org,2002:js', {

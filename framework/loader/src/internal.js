@@ -1,4 +1,5 @@
-import { createRequire } from 'node:module'
+import { createRequire } from '@freddie/freddie-runtime/module'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const ModulePhase = {
   Source: 1,

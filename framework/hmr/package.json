@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@babel/code-frame": "^7.29.0",
+    "@freddie/freddie-runtime": "*",
     "chokidar": "^5.0.0",
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/cosmokit": "*",

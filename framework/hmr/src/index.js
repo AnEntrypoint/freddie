@@ -1,14 +1,15 @@
 import { Context, Service } from '@freddie/cordis'
 import { ModuleLoader } from '@freddie/cordis-plugin-loader'
 import { FSWatcher, watch } from 'chokidar'
-import { dirname, relative, resolve } from 'node:path'
-import { realpath, stat } from 'node:fs/promises'
+import { dirname, relative, resolve } from '@freddie/freddie-runtime/path'
+import { realpath, stat } from '@freddie/freddie-runtime/fs-promises'
 import { handleError } from './error.js'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createRequire } from 'node:module'
+import { fileURLToPath, pathToFileURL } from '@freddie/freddie-runtime/url'
+import { createRequire } from '@freddie/freddie-runtime/module'
 import picomatch from 'picomatch'
 import z from '@freddie/schemastery'
-import { AsyncLocalStorage } from 'node:async_hooks'
+import { AsyncLocalStorage } from '@freddie/freddie-runtime/async-hooks'
+import { process } from '@freddie/freddie-runtime/process'
 
 async function loadDependencies(job, ignored = new Set()) {
   const dependencies = new Set()

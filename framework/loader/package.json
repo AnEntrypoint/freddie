@@ -32,6 +32,7 @@
     }
   },
   "dependencies": {
-    "@freddie/cosmokit": "*"
+    "@freddie/cosmokit": "*",
+    "@freddie/freddie-runtime": "*"
   }
 }

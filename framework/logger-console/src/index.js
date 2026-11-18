@@ -1,4 +1,4 @@
-import { inspect } from 'node:util'
+import { inspect } from '@freddie/freddie-runtime/util'
 import supportsColor from 'supports-color'
 import { ConsoleExporter as Base } from './shared.js'
 

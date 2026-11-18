@@ -1,4 +1,5 @@
 import { isNullable } from './misc.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export function is(type, value) {
   if (arguments.length === 1) return (value) => is(type, value)

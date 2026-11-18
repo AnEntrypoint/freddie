@@ -1,5 +1,5 @@
 import { codeFrameColumns } from '@babel/code-frame'
-import { readFileSync } from 'node:fs'
+import { readFileSync } from '@freddie/freddie-runtime/fs'
 
 function isBuildFailure(e) {
   return Array.isArray(e?.errors) && e.errors.every((error) => error.text)

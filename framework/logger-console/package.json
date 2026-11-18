@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@freddie/cosmokit": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "supports-color": "^9.4.0"
   }

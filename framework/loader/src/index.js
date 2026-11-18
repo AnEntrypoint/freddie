@@ -6,6 +6,7 @@ import { EntryGroup } from './config/group.js'
 import isolate from './config/isolate.js'
 import { EntryTree } from './config/tree.js'
 import { interpolate } from './config/utils.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export * from './config/entry.js'
 export * from './config/group.js'

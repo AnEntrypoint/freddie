@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
 import { Context } from '@freddie/cordis'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL } from '@freddie/freddie-runtime/url'
 import Loader from '@freddie/cordis-plugin-loader'
+import { process } from '@freddie/freddie-runtime/process'
 
 const ctx = new Context()
 ctx.baseUrl = pathToFileURL(process.cwd()).href + '/'
