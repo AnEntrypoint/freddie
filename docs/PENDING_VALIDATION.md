@@ -138,3 +138,16 @@ Ten `.ts` tokens remain in package READMEs. `git log --all -- <path>` reports ea
 - Agent Notes are historical records: 11 links in 10 notes point at files this reduction removed, and 160 links in 81 notes were dead before it.
 - Ten `.ts` tokens in package READMEs name dsh-predecessor or removed-test files that never existed in this repository; each sentence needs an editorial decision about its historical claim.
 - Ignored `node_modules` directories remain on disk under 26 removed package directories; they are untracked and were left.
+
+## fx split Phase A: dedup merges (2026-11-18)
+
+Local commits as lanmower. Each row names the files and the Phase B witness it needs. The witnesses run in Phase B, after the fx side is pushed.
+
+| Commit | Change | Files | Phase B witness |
+|---|---|---|---|
+| 94471ada | runner-failure classifier moved into sandbox-policy | packages/sandbox/sandbox-policy/src/index.js, src/runner-failure.js, package.json; packages/shell/bash-sandbox and pwsh-sandbox src/index.js, package.json, AGENTS.md; helpers.js removed from both | import both sandboxes and read classifyRunnerFailure from @freddie/freddie-sandbox-policy; pnpm run publint |
+| de79ae6c | typert json parameter: one typert-parameter.js per package | packages/api/remote-stream, session-controller and terminal-controller: src/typert-parameter.js, typert.host.js, typert.remote-client.js, package.json | boot the web profile and read the remoteStream, session list and terminal list endpoints; pnpm run publint |
+| f4f3664b | passthrough stub shared by sessions and terminals schemas | packages/host/apiproxy/src/api/passthrough.js, sessions.schema.js, terminals.schema.js | import the apiproxy api index and parse one session list and one terminal list request; pnpm run publint |
+| 1e216623 | lastStep shared by turn-error and turn-max-tokens | packages/client/ui-conversation/src/client/conversation-nodes/common.js, turn-error.js, turn-max-tokens.js | boot the web profile and render a turn that ends in error and one that hits max tokens in the browser, with no console errors |
+
+Also see docs/fx-split.md for the inventory and the proposed merges that were not made.
