@@ -1,5 +1,5 @@
-import { readdir, readFile, stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { readdir, readFile, stat } from '@freddie/freddie-runtime/fs-promises'
+import { join, resolve } from '@freddie/freddie-runtime/path'
 import { dump, load } from 'js-yaml'
 import { entryListSchema } from '@freddie/cordis-plugin-include'
 import { expandHomePath } from '@freddie/freddie-home-paths'

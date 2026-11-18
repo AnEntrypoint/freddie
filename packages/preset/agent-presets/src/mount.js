@@ -1,10 +1,11 @@
-import { isAbsolute } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { isAbsolute } from '@freddie/freddie-runtime/path'
+import { pathToFileURL } from '@freddie/freddie-runtime/url'
 import { Context, Service } from '@freddie/cordis'
 import { EntryGroup, EntryTree } from '@freddie/cordis-plugin-loader'
 import { Include } from '@freddie/cordis-plugin-include'
 import { scopeOf, scopeParentOf } from '@freddie/freddie-scope'
 import { PresetMountError } from './preset.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const mounted = new WeakMap()
 

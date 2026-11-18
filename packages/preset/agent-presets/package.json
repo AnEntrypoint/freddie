@@ -43,6 +43,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "js-yaml": "^5.4.1",
     "@freddie/schemastery": "*"
   },

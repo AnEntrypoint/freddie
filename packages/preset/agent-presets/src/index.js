@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { bindScopeParent, createScope, scopeOf } from '@freddie/freddie-scope'

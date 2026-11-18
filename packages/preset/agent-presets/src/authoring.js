@@ -1,5 +1,5 @@
-import { chmod, cp, readdir, readFile, rm, stat } from 'node:fs/promises'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { chmod, cp, readdir, readFile, rm, stat } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, isAbsolute, join, resolve } from '@freddie/freddie-runtime/path'
 import { writeFileAtomic } from '@freddie/freddie-atomic-write'
 import { expandHomePath } from '@freddie/freddie-home-paths'
 import { METADATA_FILE, renderPresetMetadata } from './metadata.js'

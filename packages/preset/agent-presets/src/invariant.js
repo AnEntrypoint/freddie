@@ -1,4 +1,5 @@
 import { leakedServices, livePresetMounts } from '@freddie/freddie-agent-presets'
+import { process } from '@freddie/freddie-runtime/process'
 
 const PACKAGE_NAME = '@freddie/freddie-agent-presets'
 

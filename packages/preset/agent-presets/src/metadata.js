@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readFile } from '@freddie/freddie-runtime/fs-promises'
+import { join } from '@freddie/freddie-runtime/path'
 import { load, dump } from 'js-yaml'
 
 export const METADATA_FILE = 'preset.yml'
