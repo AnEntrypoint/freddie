@@ -29,6 +29,7 @@
   "dependencies": {
     "@freddie/freddie-host-directory-picker": "*",
     "@freddie/freddie-native-command": "*",
+    "@freddie/freddie-runtime": "*",
     "koffi": "^3.1.0"
   },
   "peerDependencies": {

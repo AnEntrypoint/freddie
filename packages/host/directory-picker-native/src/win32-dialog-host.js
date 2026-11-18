@@ -1,5 +1,6 @@
-import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
+import { spawn } from '@freddie/freddie-runtime/child-process'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
+import { process } from '@freddie/freddie-runtime/process'
 
 export function spawnDialogWorker(data) {
   const env = { ...process.env, FREDDIE_DIALOG_TITLE: data.title }

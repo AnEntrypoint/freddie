@@ -7,6 +7,7 @@ import {
 import {
   DEFAULT_SESSION_LOG_COMPRESSION_LEVEL,
 } from './session-export.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export * from './api/index.js'
 export { RpcId } from './api/rpc.js'

@@ -1,6 +1,6 @@
-import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
-import { platform as osPlatform, tmpdir } from 'node:os'
-import { extname, join } from 'node:path'
+import { mkdtemp, readdir, readFile, rm, stat, writeFile } from '@freddie/freddie-runtime/fs-promises'
+import { platform as osPlatform, tmpdir } from '@freddie/freddie-runtime/os'
+import { extname, join } from '@freddie/freddie-runtime/path'
 import { findDesktopEntry, runHostCommand, xdgDataDirectories } from './resolver.js'
 
 

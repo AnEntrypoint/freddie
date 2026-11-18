@@ -47,5 +47,8 @@
     "@freddie/freddie-host-directory-picker-native": "*",
     "@freddie/freddie-host-webserver": "*",
     "@freddie/freddie-invariants": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

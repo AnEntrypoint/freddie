@@ -1,5 +1,6 @@
 import { runNativeCommand } from '@freddie/freddie-native-command'
 import { pickWin32Directory } from './win32-dialog.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 function outputPath(stdout) {
   const path = stdout.replace(/[\r\n]+$/, '')

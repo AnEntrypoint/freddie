@@ -1,5 +1,6 @@
 import { canExecute, hasLinuxChooserBinary } from './probe.js'
 import { resolveDirectoryPickerBackend } from './resolve.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { canExecute, hasLinuxChooserBinary } from './probe.js'
 export { resolveDirectoryPickerBackend } from './resolve.js'

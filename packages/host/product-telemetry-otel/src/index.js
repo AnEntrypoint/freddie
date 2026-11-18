@@ -1,5 +1,5 @@
-import { createRequire } from 'node:module'
-import { validateHeaderValue } from 'node:http'
+import { createRequire } from '@freddie/freddie-runtime/module'
+import { validateHeaderValue } from '@freddie/freddie-runtime/http'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { BatchLogRecordProcessor, LoggerProvider } from '@opentelemetry/sdk-logs'

@@ -1,5 +1,5 @@
-import { accessSync, constants } from 'node:fs'
-import { delimiter, join } from 'node:path'
+import { accessSync, constants } from '@freddie/freddie-runtime/fs'
+import { delimiter, join } from '@freddie/freddie-runtime/path'
 
 const LINUX_CHOOSER_BINARIES = ['zenity', 'kdialog']
 

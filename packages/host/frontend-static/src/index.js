@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
+import { readFile } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, extname, join, normalize, resolve, sep } from '@freddie/freddie-runtime/path'
 import { sendBody, sendFile } from '@freddie/freddie-host-webserver'
 import z from '@freddie/schemastery'
 

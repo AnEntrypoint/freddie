@@ -1,6 +1,7 @@
-import { release as osRelease } from 'node:os'
-import { extname } from 'node:path'
+import { release as osRelease } from '@freddie/freddie-runtime/os'
+import { extname } from '@freddie/freddie-runtime/path'
 import { runNativeCommand } from '@freddie/freddie-native-command'
+import { process } from '@freddie/freddie-runtime/process'
 
 const BROWSER_DOCUMENTS = new Set(['.html', '.htm', '.xhtml', '.svg'])
 

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { parseSessionLogQuery } from '../api/downloads.schema.js'
 import { RpcId } from '../api/rpc.js'
 import { clientRequestSchema, clientResponseSchema } from '../api/rpc.schema.js'

@@ -1,5 +1,5 @@
-import { stat } from 'node:fs/promises'
-import { isAbsolute } from 'node:path'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
+import { isAbsolute } from '@freddie/freddie-runtime/path'
 import { isTrustedApiRequest } from '@freddie/freddie-client-connection/src/api-request-trust.js'
 import z from '@freddie/schemastery'
 import { OPEN_IN_APP_CATALOG } from './catalog.js'
@@ -8,6 +8,7 @@ import { launchResolved, resolveLaunch, resolveOpenInAppApps } from './resolver.
 import {
   OPEN_IN_APP_APPS_PATH, OPEN_IN_APP_ICON_PREFIX_PATH, OPEN_IN_APP_OPEN_PATH,
 } from './shared.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export {
   OPEN_IN_APP_APPS_PATH, OPEN_IN_APP_ICON_PREFIX_PATH, OPEN_IN_APP_OPEN_PATH,

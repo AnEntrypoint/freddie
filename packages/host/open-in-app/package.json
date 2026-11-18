@@ -37,6 +37,7 @@
   "dependencies": {
     "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-native-command": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/schemastery": "*"
   },

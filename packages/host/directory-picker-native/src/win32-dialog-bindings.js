@@ -1,3 +1,4 @@
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 function readUtf16(koffi, address) {
   const bytes = Buffer.from(koffi.view(address, 32768))
   let end = 0

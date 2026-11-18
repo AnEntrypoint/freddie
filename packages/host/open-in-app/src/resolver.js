@@ -1,10 +1,11 @@
-import { spawn } from 'node:child_process'
-import { readdir, readFile, stat } from 'node:fs/promises'
-import { homedir, platform as osPlatform } from 'node:os'
-import { delimiter, dirname, isAbsolute, join } from 'node:path'
+import { spawn } from '@freddie/freddie-runtime/child-process'
+import { readdir, readFile, stat } from '@freddie/freddie-runtime/fs-promises'
+import { homedir, platform as osPlatform } from '@freddie/freddie-runtime/os'
+import { delimiter, dirname, isAbsolute, join } from '@freddie/freddie-runtime/path'
 import { runNativeCommand } from '@freddie/freddie-native-command'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 import { OPEN_IN_APP_CATALOG, PATH_TOKEN } from './catalog.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 
 

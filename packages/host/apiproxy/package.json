@@ -46,6 +46,7 @@
     "@freddie/freddie-host-directory-picker": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-native-command": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-projection": "*",

@@ -1,7 +1,8 @@
-import { open } from 'node:fs/promises'
-import { createHash } from 'node:crypto'
-import { promisify } from 'node:util'
-import { brotliCompress, constants, gzip } from 'node:zlib'
+import { open } from '@freddie/freddie-runtime/fs-promises'
+import { createHash } from '@freddie/freddie-runtime/crypto'
+import { promisify } from '@freddie/freddie-runtime/util'
+import { brotliCompress, constants, gzip } from '@freddie/freddie-runtime/zlib'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const MISS_CODES = new Set(['ENOENT', 'EISDIR', 'ENOTDIR'])
 const compressBrotli = promisify(brotliCompress)

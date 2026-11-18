@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 
 const PROCESS_INSTANCE_ID = randomUUID()
-import { mkdir, stat } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { dirname } from 'node:path'
+import { mkdir, stat } from '@freddie/freddie-runtime/fs-promises'
+import { homedir } from '@freddie/freddie-runtime/os'
+import { dirname } from '@freddie/freddie-runtime/path'
 import { installModelSelection } from '@freddie/freddie-agent'
 import { AttachmentError, admitEncodedImages } from '@freddie/freddie-attachment'
 import { createUserMessage, freezeMessage, ReasoningEffortId } from '@freddie/freddie-llm'
@@ -52,6 +52,7 @@ import {
   inspectApiRemoteSession,
 } from '@freddie/freddie-api-remotes'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const DEFAULT_MAX_MESSAGES = 50
 

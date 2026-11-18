@@ -1,5 +1,6 @@
 import { loadWin32DialogBindings } from './win32-dialog-bindings.js'
 import { runFolderDialog } from './win32-dialog-logic.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const title = process.env.FREDDIE_DIALOG_TITLE ?? ''
 if (title === '') throw new Error('win32-dialog-worker: FREDDIE_DIALOG_TITLE is required')

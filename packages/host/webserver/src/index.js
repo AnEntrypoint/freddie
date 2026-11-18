@@ -1,4 +1,4 @@
-import { createServer } from 'node:http'
+import { createServer } from '@freddie/freddie-runtime/http'
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { renderIndexInjections } from './injections.js'
