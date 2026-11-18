@@ -6,7 +6,6 @@ const tjs = globalThis.tjs
 const webCrypto = globalThis.crypto
 const utf8Encoder = new TextEncoder()
 const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
-const utf16leDecoder = new TextDecoder('utf-16le')
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
@@ -123,6 +122,17 @@ function utf16leBytes(text) {
   return bytes
 }
 
+function utf16leText(bytes) {
+  let text = ''
+  const end = bytes.length - (bytes.length % 2)
+  for (let start = 0; start < end; start += LATIN1_CHUNK * 2) {
+    const units = []
+    for (let index = start; index < end && index < start + LATIN1_CHUNK * 2; index += 2) units.push(bytes[index] | (bytes[index + 1] << 8))
+    text += String.fromCharCode(...units)
+  }
+  return text
+}
+
 const CODECS = {
   utf8: { encode: (text) => utf8Encoder.encode(text), decode: (bytes) => utf8Decoder.decode(bytes) },
   hex: { encode: hexBytes, decode: hexText },
@@ -130,7 +140,7 @@ const CODECS = {
   base64url: { encode: base64Bytes, decode: (bytes) => base64Text(bytes, true) },
   latin1: { encode: latin1Bytes, decode: (bytes) => latin1Text(bytes, 0xff) },
   ascii: { encode: latin1Bytes, decode: (bytes) => latin1Text(bytes, 0x7f) },
-  utf16le: { encode: utf16leBytes, decode: (bytes) => utf16leDecoder.decode(bytes) },
+  utf16le: { encode: utf16leBytes, decode: utf16leText },
 }
 
 function viewOf(bytes) {
