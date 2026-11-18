@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash } from '@freddie/freddie-runtime/crypto'
 import z from '@freddie/schemastery'
 import { defineTool } from '@freddie/freddie-tools'
 import { createUserMessage } from '@freddie/freddie-llm'

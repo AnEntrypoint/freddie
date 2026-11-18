@@ -35,6 +35,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "chokidar": "^5.0.0",
     "@freddie/schemastery": "*",
     "js-yaml": "^5.4.1"

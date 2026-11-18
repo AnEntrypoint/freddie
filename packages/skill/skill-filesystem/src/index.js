@@ -1,7 +1,7 @@
-import { access, lstat, readdir, readFile, stat } from 'node:fs/promises'
-import { unwatchFile, watchFile } from 'node:fs'
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import { homedir } from 'node:os'
+import { access, lstat, readdir, readFile, stat } from '@freddie/freddie-runtime/fs-promises'
+import { unwatchFile, watchFile } from '@freddie/freddie-runtime/fs'
+import { dirname, isAbsolute, join, relative, resolve, sep } from '@freddie/freddie-runtime/path'
+import { homedir } from '@freddie/freddie-runtime/os'
 import chokidar from 'chokidar'
 import z from '@freddie/schemastery'
 import { load as parseYaml } from 'js-yaml'
@@ -10,6 +10,7 @@ import {
   BUNDLED_SKILL_RANK,
   isSkillName,
 } from '@freddie/freddie-skill'
+import { process } from '@freddie/freddie-runtime/process'
 
 const PROJECT_FREDDIE_RANK = 100
 const PROJECT_AGENTS_RANK = 200

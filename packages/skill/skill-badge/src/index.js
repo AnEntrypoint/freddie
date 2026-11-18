@@ -1,5 +1,5 @@
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { readFile } from '@freddie/freddie-runtime/fs-promises'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import {
   BUNDLED_SKILL_RANK,
 } from '@freddie/freddie-skill'
