@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { foldConsumedWork } from '@freddie/freddie-agent'
 import { SessionId } from '@freddie/freddie-session'
 import { createUserMessage } from '@freddie/freddie-llm'

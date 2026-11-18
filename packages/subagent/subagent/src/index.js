@@ -9,6 +9,7 @@ import SubagentActivationSetupRegistry from './activation-setup-registry.js'
 import { listChildren as listSubagentChildren, listDescendants as listSubagentDescendants } from './list-children.js'
 import { snapshotSubagentDescriptor } from './descriptor.js'
 import { subagentIdentityProjectionDefinition, subagentTimingProjectionDefinition } from './projection.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export * from './out-of-process.js'
 export { AssistantOutputFold, finalAssistantOutput } from './assistant-output.js'

@@ -1,5 +1,6 @@
 import z from '@freddie/schemastery'
 import { startInProcessRun } from '@freddie/freddie-subagent-in-process-driver'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'subagent-spawn-in-process'
 export const inject = ['subagents']

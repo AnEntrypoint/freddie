@@ -55,5 +55,8 @@
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-user-approval": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

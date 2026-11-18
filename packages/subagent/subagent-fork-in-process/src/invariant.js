@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 const PACKAGE_NAME = '@freddie/freddie-subagent-fork-in-process'
 
 export const name = 'subagent-fork-in-process-invariant'

@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 const PACKAGE_NAME = '@freddie/freddie-subagent-spawn-in-process'
 
 export const name = 'subagent-spawn-in-process-invariant'

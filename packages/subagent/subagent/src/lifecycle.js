@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { foldConsumedWork } from '@freddie/freddie-agent'
 import { finalAssistantOutput } from './assistant-output.js'
 import { SubagentRunId } from './types.js'

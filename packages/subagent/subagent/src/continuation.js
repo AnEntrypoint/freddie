@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { boundContextSummary, createUserMessage, errorChain } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
 import { foldSubagentDescriptor, snapshotSubagentDescriptor } from './descriptor.js'
