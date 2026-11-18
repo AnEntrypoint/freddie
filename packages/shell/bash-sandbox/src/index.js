@@ -1,6 +1,6 @@
 import { SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { LocalBashExecutor } from '@freddie/freddie-bash-local'
-import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.js'
+import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from '@freddie/freddie-sandbox-policy'
 
 export class SandboxBashExecutor extends LocalBashExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']

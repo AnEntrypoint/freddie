@@ -25,7 +25,8 @@
   "files": [
     "src/index.js",
     "src/invariant.js",
-    "src/session-mode.js"
+    "src/session-mode.js",
+    "src/runner-failure.js"
   ],
   "license": "MIT",
   "peerDependencies": {

@@ -1,6 +1,6 @@
 import { SandboxUnavailableError } from '@freddie/freddie-sandbox'
 import { PwshLocalExecutor } from '@freddie/freddie-pwsh-local'
-import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './helpers.js'
+import { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from '@freddie/freddie-sandbox-policy'
 
 export class SandboxPwshExecutor extends PwshLocalExecutor {
   static inject = ['subprocess', 'sandbox', 'sandboxPolicy']

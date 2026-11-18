@@ -5,6 +5,7 @@ import { canonicalPath } from '@freddie/freddie-sandbox'
 import { effectiveSandboxMode } from './session-mode.js'
 
 export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.js'
+export { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './runner-failure.js'
 
 function resolveWorkspaceRoot(path) {
   return resolvePath(canonicalPath(path))

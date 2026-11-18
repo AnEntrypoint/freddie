@@ -24,7 +24,6 @@
   },
   "files": [
     "src/index.js",
-    "src/helpers.js",
     "src/invariant.js"
   ],
   "license": "MIT",
