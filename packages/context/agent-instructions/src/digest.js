@@ -1,5 +1,5 @@
 
-import { createHash } from 'node:crypto'
+import { createHash } from '@freddie/freddie-runtime/crypto'
 
 export function instructionContentSha1(content) {
   return createHash('sha1').update(content).digest('hex')

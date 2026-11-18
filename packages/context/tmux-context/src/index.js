@@ -1,6 +1,7 @@
 
 import z from '@freddie/schemastery'
 import { createUserMessage } from '@freddie/freddie-llm'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'tmux-context'
 

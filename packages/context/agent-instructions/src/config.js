@@ -1,5 +1,5 @@
 
-import { relative } from 'node:path'
+import { relative } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'
 

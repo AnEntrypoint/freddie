@@ -3,6 +3,7 @@ import { isCompactCheckpointSource } from '@freddie/freddie-compaction'
 import { assertNever } from '@freddie/freddie-llm'
 import { TextRetainer } from '@freddie/freddie-output-retention'
 import { stringifyTagSafeJson } from './serialization.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 function projectSessionConversation(snapshot) {
   const conversation = []

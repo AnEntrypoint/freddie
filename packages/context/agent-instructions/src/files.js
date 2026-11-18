@@ -1,7 +1,7 @@
 
-import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { createReadStream } from '@freddie/freddie-runtime/fs'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, isAbsolute, join, relative, resolve } from '@freddie/freddie-runtime/path'
 import { assertNever } from '@freddie/freddie-llm'
 import { freddieHomeDisplay } from '@freddie/freddie-home-paths'
 import { resolveConfig, resolveDiscoveryConfig } from './config.js'
@@ -12,6 +12,7 @@ import {
   USER_GLOBAL_DIRECTORY,
   USER_GLOBAL_FILE,
 } from './render.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 function signalOptions(signal) {
   return signal === undefined ? undefined : { signal }

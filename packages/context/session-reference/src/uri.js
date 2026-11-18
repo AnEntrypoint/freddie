@@ -1,6 +1,7 @@
 
 import { SessionId } from '@freddie/freddie-session'
 import { SessionReferenceError } from './config.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const SESSION_REFERENCE_SCHEME = 'freddie-session:'
 

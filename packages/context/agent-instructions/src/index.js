@@ -1,5 +1,5 @@
 
-import { isDeepStrictEqual } from 'node:util'
+import { isDeepStrictEqual } from '@freddie/freddie-runtime/util'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { Config, resolveConfig, workspaceBaselineIdentity } from './config.js'
 import { findProjectRoot, loadBaselineInstructionSet } from './files.js'
@@ -10,6 +10,7 @@ import {
   reconcileInstructionContext,
   workspaceContextMessage,
 } from './state.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { Config, name }
 export {

@@ -17,6 +17,7 @@ import {
   USER_GLOBAL_DIRECTORY,
   USER_GLOBAL_FILE,
 } from './render.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'agent-instructions'
 

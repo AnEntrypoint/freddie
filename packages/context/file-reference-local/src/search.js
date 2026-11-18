@@ -1,6 +1,6 @@
 
-import { lstat, readdir } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { lstat, readdir } from '@freddie/freddie-runtime/fs-promises'
+import { isAbsolute, join, relative, resolve, sep } from '@freddie/freddie-runtime/path'
 
 export { activeAtToken, formatFileMention } from '@freddie/freddie-file-reference/grammar'
 

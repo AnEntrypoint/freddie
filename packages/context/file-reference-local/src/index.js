@@ -9,6 +9,7 @@ import {
   DEFAULT_FILE_SEARCH_MAX_RESULTS,
   WorkspaceFileSearch,
 } from './search.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export {
   DEFAULT_FILE_SEARCH_EXCLUDED_DIRECTORIES,
