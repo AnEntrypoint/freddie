@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import z from '@freddie/schemastery'
 import { agentEvents } from '@freddie/freddie-agent'
 import { TypertRemoteService, Remote } from '@freddie/freddie-typert-protocol'

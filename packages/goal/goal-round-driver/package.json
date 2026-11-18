@@ -44,5 +44,8 @@
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

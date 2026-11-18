@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { process } from '@freddie/freddie-runtime/process'
 
 const _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema = z.intersection(z.string(), z.unknown())
 const _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema = z.object({

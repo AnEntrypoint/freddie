@@ -58,6 +58,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },

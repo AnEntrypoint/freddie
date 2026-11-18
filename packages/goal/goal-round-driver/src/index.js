@@ -1,4 +1,4 @@
-import { isDeepStrictEqual } from 'node:util'
+import { isDeepStrictEqual } from '@freddie/freddie-runtime/util'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { renderGoalRoundPrompt } from './prompt.js'
 
