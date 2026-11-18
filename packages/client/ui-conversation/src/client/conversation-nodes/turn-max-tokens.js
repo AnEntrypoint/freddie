@@ -1,10 +1,4 @@
-import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode } from './common.js'
-
-function lastStep(context) {
-  const location = context.start?.location ?? context.matches[0]?.location
-  if (location?.kind !== 'turn' && location?.kind !== 'step') return 0
-  return location.turn.steps.at(-1)?.step ?? 0
-}
+import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode, lastStep } from './common.js'
 
 function noticeAnchor(context, seq) {
   const location = context.start?.location ?? context.matches[0]?.location

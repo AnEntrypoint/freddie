@@ -1,11 +1,5 @@
 import { displayFailureMessage } from '@freddie/freddie-client-runtime/client'
-import { chatNode } from './common.js'
-
-function lastStep(context) {
-  const location = context.start?.location ?? context.matches[0]?.location
-  if (location?.kind !== 'turn' && location?.kind !== 'step') return 0
-  return location.turn.steps.at(-1)?.step ?? 0
-}
+import { chatNode, lastStep } from './common.js'
 
 function failureFrom(match) {
   if (match.event.type !== 'turn/end' || match.event.data.reason.kind !== 'error') return undefined
