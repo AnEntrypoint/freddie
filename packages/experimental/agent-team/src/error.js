@@ -1,4 +1,4 @@
-import { inspect } from 'node:util'
+import { inspect } from '@freddie/freddie-runtime/util'
 import { HarnessError } from '@freddie/freddie-llm'
 
 export class TeamError extends HarnessError {

@@ -1,12 +1,13 @@
-import { existsSync } from 'node:fs'
-import { resolve as resolvePath } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { existsSync } from '@freddie/freddie-runtime/fs'
+import { resolve as resolvePath } from '@freddie/freddie-runtime/path'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import Schema from '@freddie/schemastery'
 import {
   BrowserMcpConfig,
   mountSessionMcp,
   validateBrowserMcpConfig,
 } from '@freddie/freddie-experimental-browser-use-runtime/mcp'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const PINNED_SERVER_VERSION = '1.9.0'
 

@@ -1,10 +1,11 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { createUserMessage } from '@freddie/freddie-llm'
 import { SessionId } from '@freddie/freddie-session'
 import { errorMessage, TeamError } from './error.js'
 import { resolveActiveMember } from './roster.js'
 import { messageAccepted } from './session-message.js'
 import { TeamId, TeamMessageId } from './types.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export class TeamMailbox {
   dispatchTails = new Map()

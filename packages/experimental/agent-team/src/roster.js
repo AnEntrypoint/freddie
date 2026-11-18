@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { SessionId } from '@freddie/freddie-session'
 import { foldSubagentDescriptor } from '@freddie/freddie-subagent'
 import { errorMessage, TeamError } from './error.js'

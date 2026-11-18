@@ -2,6 +2,7 @@ import z from '@freddie/schemastery'
 import { BrowserUseProviderName } from '@freddie/freddie-browser-use/brand'
 import { defineTool } from '@freddie/freddie-tools'
 import { checkBsk, runBsk } from './runner.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'experimental-browser-use-browserskill'
 export const inject = ['agents', 'browserUse', 'subprocess', 'tools']
