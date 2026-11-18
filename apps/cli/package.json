@@ -47,6 +47,7 @@
     "@freddie/freddie-http-proxy": "*",
     "@freddie/freddie-persona": "*",
     "@freddie/freddie-plan-mode": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-terminal-bash": "*",
     "@freddie/freddie-pwsh-local": "*",

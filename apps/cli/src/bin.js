@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import '@freddie/freddie-runtime/install-node'
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
