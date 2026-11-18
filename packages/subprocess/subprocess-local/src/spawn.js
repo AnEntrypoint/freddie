@@ -1,12 +1,14 @@
-import { spawn, spawnSync } from 'node:child_process'
-import { randomBytes } from 'node:crypto'
-import { closeSync, mkdtempSync, openSync, unlinkSync, writeSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { setTimeout as sleepMs } from 'node:timers/promises'
+import { spawn, spawnSync } from '@freddie/freddie-runtime/child-process'
+import { randomBytes } from '@freddie/freddie-runtime/crypto'
+import { closeSync, mkdtempSync, openSync, unlinkSync, writeSync } from '@freddie/freddie-runtime/fs'
+import { tmpdir } from '@freddie/freddie-runtime/os'
+import { join } from '@freddie/freddie-runtime/path'
+import { setTimeout as sleepMs } from '@freddie/freddie-runtime/timers-promises'
 import { scrubbedParentEnv } from '@freddie/freddie-subprocess'
 import { MAX_TIMER_DELAY_MS } from '@freddie/freddie-timeout'
 import { linuxProcessGroupHasLiveMembers } from './process-inspector.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const SPAWN_FAILED_PID = -1
 

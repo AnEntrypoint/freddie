@@ -1,6 +1,8 @@
-import { closeSync, openSync, readFileSync, readdirSync, readSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
+import { closeSync, openSync, readFileSync, readdirSync, readSync } from '@freddie/freddie-runtime/fs'
+import { execFileSync } from '@freddie/freddie-runtime/child-process'
 import { createWindowsProcessInspector } from './windows-inspector.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 
 

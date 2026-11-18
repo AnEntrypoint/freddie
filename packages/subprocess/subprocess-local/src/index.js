@@ -1,11 +1,12 @@
-import { constants } from 'node:fs'
-import { access, stat } from 'node:fs/promises'
-import { delimiter, extname, isAbsolute, resolve } from 'node:path'
+import { constants } from '@freddie/freddie-runtime/fs'
+import { access, stat } from '@freddie/freddie-runtime/fs-promises'
+import { delimiter, extname, isAbsolute, resolve } from '@freddie/freddie-runtime/path'
 import * as nodePty from 'node-pty'
 import { SubprocessRuntime } from '@freddie/freddie-subprocess'
 import { childEnv, spawnSubprocess } from './spawn.js'
 import { createProcessInspector } from './process-inspector.js'
 import { LocalTerminalHandle } from './terminal.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export class LocalSubprocessRuntime extends SubprocessRuntime {
   live = new Set()

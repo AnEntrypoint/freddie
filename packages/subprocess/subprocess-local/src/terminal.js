@@ -1,6 +1,7 @@
-import { Buffer } from 'node:buffer'
-import { constants } from 'node:os'
-import { PassThrough } from 'node:stream'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
+import { constants } from '@freddie/freddie-runtime/os'
+import { PassThrough } from '@freddie/freddie-runtime/stream'
+import { process } from '@freddie/freddie-runtime/process'
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))

@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawnSync } from '@freddie/freddie-runtime/child-process'
 import koffi from 'koffi'
 
 

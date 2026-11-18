@@ -1,5 +1,6 @@
 import { Service } from '@freddie/cordis'
 import { FREDDIE_ENV_PREFIX } from './types.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { FREDDIE_ENV_PREFIX } from './types.js'
 
