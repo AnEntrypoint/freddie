@@ -21,6 +21,10 @@ patchedDependencies:
 importers:
 
   .:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:packages/util/runtime
     devDependencies:
       js-yaml:
         specifier: ^5.4.1

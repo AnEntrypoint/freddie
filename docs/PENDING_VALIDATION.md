@@ -264,3 +264,7 @@ Run under gm's pinned txiki (run_code, native/components/quickjs) on the tree af
 
 Defect found and fixed in Phase B: txiki's TextDecoder rejects utf-16le, which made the whole module fail to load. txiki.js now decodes utf-16le itself.
 
+
+## root workspace link for @freddie/freddie-runtime (2026-11-18)
+
+Phase A, local commit as lanmower, not pushed. The root package.json declares "@freddie/freddie-runtime": "*" in dependencies, and pnpm-lock.yaml gains the importer entry importers["."].dependencies pointing at link:packages/util/runtime. The link comes from pnpm, not from a hand-made symlink. Phase B witness: pnpm install, then the literal import '@freddie/freddie-runtime/fs-promises' from /workspace/freddie under Node and under gm's txiki, both resolving to packages/util/runtime/src/fs-promises.js.

@@ -36,6 +36,9 @@
     "demo:cordis": "node scripts/demo-cordis.mjs",
     "demo:acp": "node packages/examples/acp-demo/src/bin.js --config examples/acp-agent/cordis.yml"
   },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
+  },
   "devDependencies": {
     "js-yaml": "^5.4.1",
     "patch-package": "^8.0.1",
