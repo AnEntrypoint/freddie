@@ -1,10 +1,10 @@
 import z from '@freddie/schemastery'
-import { readdirSync } from 'node:fs'
-import { open, mkdir, readFile, readdir, realpath, link, rm, stat, truncate } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
-import { performance } from 'node:perf_hooks'
-import { scheduler } from 'node:timers/promises'
-import { randomBytes } from 'node:crypto'
+import { readdirSync } from '@freddie/freddie-runtime/fs'
+import { open, mkdir, readFile, readdir, realpath, link, rm, stat, truncate } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, join, resolve } from '@freddie/freddie-runtime/path'
+import { performance } from '@freddie/freddie-runtime/perf-hooks'
+import { scheduler } from '@freddie/freddie-runtime/timers-promises'
+import { randomBytes } from '@freddie/freddie-runtime/crypto'
 import {
   DEFAULT_PREPARED_SESSION_CACHE_SIZE, DEFAULT_WRITE_BATCH_MAX_DELAY_MS, MAX_WRITE_BATCH_DELAY_MS,
   SessionPersistence, SessionPersistenceRevision, PersistenceCoordinator, SessionFormatUnsupportedError,
@@ -17,6 +17,8 @@ import {
   compressZstdFrame, createZstdFrameDecoder, decompressZstdFrame, decompressZstdPrefix, scanZstdFrames,
 } from './zstd.js'
 import { ensureDurableDirectoryWin32, publishNewFileWin32 } from './win32.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export { logSuffix } from './format.js'
 

@@ -39,6 +39,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "koffi": "^3.1.0",
     "@freddie/schemastery": "*"
   },

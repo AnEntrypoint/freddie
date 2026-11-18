@@ -21,6 +21,7 @@
   "files": ["src/**/*.js"],
   "license": "MIT",
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "zod": "^4.4.3"
   },

@@ -1,5 +1,6 @@
-import { constants as bufferConstants } from 'node:buffer'
-import { createZstdDecompress } from 'node:zlib'
+import { constants as bufferConstants } from '@freddie/freddie-runtime/buffer'
+import { createZstdDecompress } from '@freddie/freddie-runtime/zlib'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const DECODE_CHUNK_SIZE = 1024 * 1024
 

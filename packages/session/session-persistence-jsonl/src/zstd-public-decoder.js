@@ -1,4 +1,4 @@
-import { zstdDecompressSync } from 'node:zlib'
+import { zstdDecompressSync } from '@freddie/freddie-runtime/zlib'
 
 export class PublicZstdFrameDecoder {
   started = false

@@ -1,6 +1,7 @@
-import { join } from 'node:path'
+import { join } from '@freddie/freddie-runtime/path'
 import { decodeStorageRecord, packChunkRuns, SESSION_FORMAT_VERSION } from '@freddie/freddie-session'
 import { SessionFormatUnsupportedError, sessionFormatVersionRefusal } from '@freddie/freddie-session-persistence'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export function logSuffix(compression) {
   return compression === 'zstd' ? '.jsonl.zstd' : '.jsonl'

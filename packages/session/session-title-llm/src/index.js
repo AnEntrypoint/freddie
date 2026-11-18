@@ -5,6 +5,7 @@ import {
   normalizeSessionTitle,
   SessionTitleProviderId,
 } from '@freddie/freddie-session-title'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const SESSION_TITLE_TIMEOUT_CODE = 'SESSION_TITLE_TIMEOUT'
 

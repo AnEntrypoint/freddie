@@ -1,4 +1,4 @@
-import { createRequire } from 'node:module'
+import { createRequire } from '@freddie/freddie-runtime/module'
 import z from '@freddie/schemastery'
 import {
   SessionTelemetryBackend,

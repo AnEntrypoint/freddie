@@ -1,7 +1,7 @@
 import {
   constants, zstdCompress, zstdDecompress,
-} from 'node:zlib'
-import { promisify } from 'node:util'
+} from '@freddie/freddie-runtime/zlib'
+import { promisify } from '@freddie/freddie-runtime/util'
 import { NodePrivateZstdFrameDecoder } from './zstd-private-decoder.js'
 import { PublicZstdFrameDecoder } from './zstd-public-decoder.js'
 

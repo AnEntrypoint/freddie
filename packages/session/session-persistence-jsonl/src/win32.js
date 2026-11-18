@@ -1,5 +1,5 @@
-import { mkdtemp, rm, stat } from 'node:fs/promises'
-import { join, parse, resolve, toNamespacedPath } from 'node:path'
+import { mkdtemp, rm, stat } from '@freddie/freddie-runtime/fs-promises'
+import { join, parse, resolve, toNamespacedPath } from '@freddie/freddie-runtime/path'
 
 const MOVEFILE_WRITE_THROUGH = 0x00000008
 const ERROR_FILE_NOT_FOUND = 2

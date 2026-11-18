@@ -1,3 +1,4 @@
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 const OSC_SEQUENCE = /(?:\u001B\]|\u009D)(?:(?!\u0007|\u001B\\)[\s\S])*(?:\u0007|\u001B\\|$)/gu
 const CSI_SEQUENCE = /(?:\u001B\[|\u009B)[0-?]*[ -\/]*[@-~]/gu
 const ESC_SEQUENCE = /\u001B[@-_]/gu
