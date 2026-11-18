@@ -1,4 +1,4 @@
-import { isIP } from 'node:net'
+import { isIP } from '@freddie/freddie-runtime/net'
 
 const IPV4_TEXT = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
 

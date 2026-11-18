@@ -1,4 +1,4 @@
-import { isIP } from 'node:net'
+import { isIP } from '@freddie/freddie-runtime/net'
 import { WebError } from '@freddie/freddie-web'
 import { classifyAddress, normalizeHostname } from './address.js'
 

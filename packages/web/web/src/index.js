@@ -1,6 +1,7 @@
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { WebError } from './types.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export {
   WebError,
