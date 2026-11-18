@@ -39,5 +39,8 @@
     "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*",
     "@freddie/schemastery": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

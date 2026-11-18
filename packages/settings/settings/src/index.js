@@ -1,5 +1,6 @@
 import { Context, Service } from '@freddie/cordis'
 import { redactSecrets } from './redact.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { redactSecrets } from './redact.js'
 
