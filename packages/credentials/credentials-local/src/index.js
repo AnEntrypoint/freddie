@@ -1,13 +1,14 @@
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { watch as chokidarWatch } from 'chokidar'
-import { mkdir, readFile, stat } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { mkdir, readFile, stat } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, join, resolve } from '@freddie/freddie-runtime/path'
 import { Document, isMap, isScalar, parseDocument } from 'yaml'
 import { withFileLock, writeFileAtomic } from '@freddie/freddie-atomic-write'
 import { canonicalizeWatchPath, resolveFreddieHome } from '@freddie/freddie-home-paths'
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { CredentialProvider, credentialRef, parseCredentialKey } from '@freddie/freddie-credentials'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const CREDENTIALS_FILENAME = '.credentials.yaml'
 
