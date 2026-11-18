@@ -246,3 +246,21 @@ Local commits as lanmower, not pushed. Each row names the witness Phase B must p
 | 199b894f | src/install-txiki.js and the ./install-txiki export, plus the files list | publint on packages/util/runtime; node test/contract-node.js still passes |
 | c5102087 | packages/util/runtime/test: contract names for 25 subpaths, subpaths, check, and the node and txiki entries | node test/contract-node.js and tjs test/contract-txiki.js both print their present count |
 | (docs commit) | docs/fx-split.md gap table, README, this section, and the Agent Note | every name in the gap table throws the documented message under txiki |
+
+## fx split Phase B: txiki implementation of the runtime contract (2026-11-18)
+
+Run under gm's pinned txiki (run_code, native/components/quickjs) on the tree after the Phase A commits and the utf-16le fix. Node runs use node directly. No standalone tjs CLI is built on this host.
+
+| Check | Result | Evidence |
+|---|---|---|
+| contract-node (Node runtime) | PASS | node: 114 names present across 25 subpaths, exit 0 |
+| contract (txiki runtime) | PASS | 114 present, missing []; contract-txiki.js imports without error under gm txiki |
+| txiki behaviour probes | PASS | path.join, Buffer base64, hex, utf16le, concat, write and read, URL round trip, env, cwd, pid, os homedir and cpus, uuid, randomBytes, isIP, StringDecoder, timers, fs.promises mkdtemp, writeFile, readFile, stat, mkdir recursive, readdir withFileTypes, cp recursive, rm recursive, rename, realpath, truncate, unlink, ENOENT code |
+| txiki gap messages | PASS | process.platform, os.platform, fs.readFileSync, crypto.createHash, access with a mode, writeFile flag a, opendir, AbortSignal, StringDecoder latin1, randomBytes callback, Worker, parentPort, exitCode, dns lookup, zlib.gzip and vm.Script each throw the documented message |
+| cosmokit array and job-controller rows under txiki | PASS | contain true, deduplicate [1,2,3], difference [1,3], intersection [2,3], union [1,2,3], remove true |
+| Cordis composition under txiki | BLOCKED | could not load module @freddie/cosmokit: gm loader reads bare specifiers as paths (engine.cpp load_module_from_disk) |
+| agent packages importing @freddie/freddie-runtime/* under txiki | BLOCKED | could not load module @freddie/freddie-runtime/fs-promises: same loader limit |
+| publint (pnpm run publint) | recorded in the Phase B report | exit 0 and All good! on the final tree |
+
+Defect found and fixed in Phase B: txiki's TextDecoder rejects utf-16le, which made the whole module fail to load. txiki.js now decodes utf-16le itself.
+
