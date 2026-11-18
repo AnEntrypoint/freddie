@@ -317,3 +317,38 @@ Node-only uses that stay outside the adapter, each by design:
 | packages/workspace/workspace/src/entity.js | modules: fs-promises |
 | packages/workspace/workspace/src/index.js | modules: crypto, fs-promises, path |
 | packages/workspace/workspace/src/paths.js | modules: fs-promises |
+
+
+## txiki implementation of the runtime contract (Phase A)
+
+packages/util/runtime/src/txiki.js is the second implementation of the contract. txikiRuntime has the same keys as nodeRuntime, and src/install-txiki.js installs it. It imports only tjs:path, tjs:ipaddr and tjs:utils, and it uses the tjs global and web globals (TextEncoder, TextDecoder, URL, atob, btoa, crypto, performance, MessageChannel, setTimeout). It imports no Node built-in.
+
+Where txiki has no equivalent, the name is still exported, so the contract holds, and its value throws "@freddie/freddie-runtime: txiki.js has no <name>, see docs/fx-split.md (txiki gaps)" on use. A module object or default export that lacks a member throws the same way. Nothing falls back to Node.
+
+| Area | Names that throw | Why txiki has no equivalent |
+|---|---|---|
+| fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, unwatchFile, watchFile, writeFileSync, writeSync | txiki file APIs are async only |
+| fs.promises | opendir; access with a mode other than F_OK; writeFile with a flag other than w or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no append or mode option; link copy not defined |
+| fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
+| crypto | createHash; randomBytes with a callback | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
+| stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
+| buffer.constants | all members | not mapped |
+| util | isDeepStrictEqual, parseArgs, parseEnv | no equivalent in txiki or the web platform |
+| module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
+| child_process | execFile, execFileSync, spawn, spawnSync | tjs.spawn exists, but its result is not Node's ChildProcess |
+| os | networkInterfaces, platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
+| process | platform, arch, version, versions, exitCode, stdout, stderr, stdin, on, off, send, and every other member not in txiki.js | no JS-level platform; stdio is web streams; signals not mapped |
+| worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
+| async_hooks | AsyncLocalStorage | txiki has no async context |
+| vm | Script, createContext, runInContext | not mapped |
+| http, https, zlib, inspector, dns/promises | all members | tjs.serve and tjs.lookup have other shapes; zlib is not mapped |
+| timers/promises | setTimeout with an AbortSignal | not implemented |
+| string_decoder | any encoding except utf8 | only utf8 is streamed |
+
+Mapped without a gap: path (the tjs:path default object), url file-URL conversion (built on URL), util.promisify, util.TextDecoder, util.inspect (tjs:utils, so its output format differs from Node's), util.types.isPromise, perf_hooks.performance, timers/promises setTimeout and scheduler, crypto.randomUUID and randomBytes, net.isIP (tjs:ipaddr.isValid), os.homedir, os.tmpdir, os.availableParallelism, process.env, cwd, pid, ppid, execPath, argv, exit and kill, and a Buffer subset: from, alloc, allocUnsafe, concat, byteLength, compare, isBuffer, isView; toString for utf8, hex, base64, base64url, latin1, ascii and utf16le; equals, compare, copy, write, toJSON, slice as a view, and the UInt8, UInt16, UInt32, Int16, Int32, UIntLE and UIntBE accessors.
+
+Behaviour that differs from Node and is kept on purpose: fs.promises.stat and lstat return Node-shaped Stats whose isX() methods wrap txiki's boolean flags, and whose time fields come from txiki's Date values. readFile returns a Buffer decoded from txiki's Uint8Array. process.env is tjs.env, and process.argv is [tjs.exePath, ...tjs.args]. Buffer.write does not avoid splitting a multi-byte character.
+
+Assumptions Phase B must check against the real txiki: makeDir options, remove with recursive, writeFile(path, bytes), makeTempDir with a trailing XXXXXX template, ipaddr.isValid for IPv4 and IPv6 addresses, kill(pid, signal), and the contents of tjs.args.
+
+The contract test lives in packages/util/runtime/test. contract-names.js lists 114 names across 25 subpaths, generated from the subpath files. contract-node.js installs the Node runtime and contract-txiki.js installs the txiki runtime; each checks every listed name. They run as node test/contract-node.js and tjs test/contract-txiki.js. The txiki entry needs no import map, because the subpaths use relative imports.

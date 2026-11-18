@@ -234,3 +234,15 @@ Run with runs/analysis/baseline.mjs and runs/analysis/phaseB.sh on the tree afte
 import-smoke is informational: 247 of 249 packages import. The two failures are the browser-only client entries @freddie/freddie-client-ui-primitives (HTMLElement is not defined in Node) and @freddie/freddie-client-web (Cannot find package webjsx); neither file changed in this stage.
 
 Live headless boot: node apps/cli/src/bin.js --profile headless "Reply with the word ready." exits 1 with MISSING_CREDENTIAL, as expected without a key.
+
+
+## fx split Phase A: txiki implementation of the runtime contract (2026-11-18)
+
+Local commits as lanmower, not pushed. Each row names the witness Phase B must produce.
+
+| Commit | Change | Phase B witness |
+|---|---|---|
+| e0314416 | packages/util/runtime/src/txiki.js: txikiRuntime, the second implementation of the contract | tjs test/contract-txiki.js passes with 114 names present; a live import of the agent packages under txiki |
+| 199b894f | src/install-txiki.js and the ./install-txiki export, plus the files list | publint on packages/util/runtime; node test/contract-node.js still passes |
+| c5102087 | packages/util/runtime/test: contract names for 25 subpaths, subpaths, check, and the node and txiki entries | node test/contract-node.js and tjs test/contract-txiki.js both print their present count |
+| (docs commit) | docs/fx-split.md gap table, README, this section, and the Agent Note | every name in the gap table throws the documented message under txiki |
