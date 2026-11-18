@@ -1,0 +1,59 @@
+{
+  "name": "@freddie/freddie-runtime",
+  "description": "Runtime adapter: the only seam through which freddie agent code reaches Node built-ins and process globals; one runtime is installed at the composition root",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/util/runtime"
+  },
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./install-node": {
+      "default": "./src/install-node.js"
+    },
+    "./package.json": "./package.json",
+    "./*": {
+      "default": "./src/*.js"
+    }
+  },
+  "files": [
+    "src/index.js",
+    "src/runtime.js",
+    "src/node.js",
+    "src/install-node.js",
+    "src/fs.js",
+    "src/fs-promises.js",
+    "src/path.js",
+    "src/crypto.js",
+    "src/stream.js",
+    "src/buffer.js",
+    "src/url.js",
+    "src/util.js",
+    "src/util-types.js",
+    "src/module.js",
+    "src/child-process.js",
+    "src/os.js",
+    "src/worker-threads.js",
+    "src/async-hooks.js",
+    "src/vm.js",
+    "src/http.js",
+    "src/https.js",
+    "src/zlib.js",
+    "src/inspector.js",
+    "src/string-decoder.js",
+    "src/perf-hooks.js",
+    "src/timers-promises.js",
+    "src/net.js",
+    "src/dns-promises.js",
+    "src/process.js"
+  ],
+  "license": "MIT"
+}
