@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto'
-import { stat } from 'node:fs/promises'
-import { basename } from 'node:path'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
+import { basename } from '@freddie/freddie-runtime/path'
 import { Service } from '@freddie/cordis'
 import { WorkspaceEntity } from './entity.js'
 

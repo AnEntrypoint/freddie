@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
 import { realpathNormalize } from './paths.js'
 
 

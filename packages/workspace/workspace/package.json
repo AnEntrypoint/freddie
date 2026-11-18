@@ -47,5 +47,8 @@
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-storage": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }
