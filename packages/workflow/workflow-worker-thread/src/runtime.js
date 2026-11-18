@@ -1,4 +1,4 @@
-import * as vm from 'node:vm'
+import * as vm from '@freddie/freddie-runtime/vm'
 import { SessionId } from '@freddie/freddie-session'
 import { assertObjectJsonSchema, JsonSchemaError } from '@freddie/freddie-tools'
 import { isFatalWorkflowError, WorkflowError } from '@freddie/freddie-workflow'

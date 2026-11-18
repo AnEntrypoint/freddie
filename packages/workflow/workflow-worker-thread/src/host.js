@@ -1,10 +1,11 @@
-import { tmpdir } from 'node:os'
-import { Worker } from 'node:worker_threads'
-import { fileURLToPath } from 'node:url'
+import { tmpdir } from '@freddie/freddie-runtime/os'
+import { Worker } from '@freddie/freddie-runtime/worker-threads'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { assertNever } from '@freddie/freddie-llm'
 import { snapshotJsonValue } from '@freddie/freddie-session'
 import { renderThrown } from './realm.js'
 import { HostToWorkerType, WorkerToHostType } from './protocol.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export function workerSpawnEnv(
   platform = process.platform,
