@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { process } from '@freddie/freddie-runtime/process'
 
 const JsonValueRemoteCodec$schema = z.union([z.literal(null), z.string(), z.number(), z.literal(false), z.literal(true), z.array(z.lazy(() => JsonValueRemoteCodec$schema)), z.record(z.string(), z.lazy(() => JsonValueRemoteCodec$schema))])
 const JsonValueRemoteCodec$schema2 = z.union([z.literal(null), z.string(), z.number(), z.literal(false), z.literal(true), z.array(z.lazy(() => JsonValueRemoteCodec$schema2)), z.record(z.string(), z.lazy(() => JsonValueRemoteCodec$schema2))])

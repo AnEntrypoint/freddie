@@ -1,3 +1,5 @@
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 export const CORDIS_SYSTEM_PROMPT = `# Dynamic Cordis Plugins
 
 Dynamic Cordis plugins temporarily extend the current FREDDIE process. A Plugin uses apply(ctx) to consume Services, listen to Events, provide Services, register model Tools, or register browser UI in Slots.

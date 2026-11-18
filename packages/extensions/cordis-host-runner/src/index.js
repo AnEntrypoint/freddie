@@ -6,6 +6,7 @@ import { CordisInspectRegistryService } from './inspect-registry.js'
 import { missingServices, startHostHalf } from './lifecycle.js'
 import { DynamicCordisRegistry } from './registry.js'
 import { createSandbox, evaluateHostCode, precheckCode } from './sandbox.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export { CordisInspectRegistryService } from './inspect-registry.js'
 export { HOST_BUILTIN_INSPECTION } from './sandbox.js'

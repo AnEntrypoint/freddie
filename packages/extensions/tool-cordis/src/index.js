@@ -10,6 +10,7 @@ import {
 } from './present.js'
 import { CORDIS_SYSTEM_PROMPT } from './prompt.js'
 import { hostInspectProviders } from './providers.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'tool-cordis'
 export const inject = ['tools', 'systemPrompt', 'dynamicCordisRunner', 'cordisInspect']

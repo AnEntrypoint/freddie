@@ -1,5 +1,6 @@
-import { createContext, runInContext, Script } from 'node:vm'
+import { createContext, runInContext, Script } from '@freddie/freddie-runtime/vm'
 import { sandboxDefineTool, sandboxRegisterTool } from './guard.js'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const HOST_BUILTIN_INSPECTION = [
   {

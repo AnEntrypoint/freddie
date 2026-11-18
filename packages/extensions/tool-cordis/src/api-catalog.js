@@ -1,3 +1,5 @@
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 export const SERVICE_API = [
   {
     key: 'agentDefaultModel',
