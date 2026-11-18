@@ -37,6 +37,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@freddie/schemastery": "*",
     "zod": "^4.4.3"

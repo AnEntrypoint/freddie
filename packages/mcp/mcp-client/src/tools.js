@@ -1,9 +1,10 @@
-import { createHash } from 'node:crypto'
-import { isDeepStrictEqual } from 'node:util'
+import { createHash } from '@freddie/freddie-runtime/crypto'
+import { isDeepStrictEqual } from '@freddie/freddie-runtime/util'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 import { isImageAdmissionError } from '@freddie/freddie-attachment'
 import { assertSupportedJsonSchema } from '@freddie/freddie-tools'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const MAX_PUBLIC_NAME_LENGTH = 64
 
