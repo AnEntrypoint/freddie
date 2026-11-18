@@ -1,6 +1,6 @@
 
-import { randomUUID } from 'node:crypto'
-import { isDeepStrictEqual } from 'node:util'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { isDeepStrictEqual } from '@freddie/freddie-runtime/util'
 import {
   CompactionId,
   ManualCompactionError,

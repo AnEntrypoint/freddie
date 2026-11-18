@@ -1,5 +1,6 @@
 
 import { ManualCompactionError } from '@freddie/freddie-compaction'
+import { process } from '@freddie/freddie-runtime/process'
 
 export const name = 'command-compact'
 export const inject = ['commands', 'compaction']
