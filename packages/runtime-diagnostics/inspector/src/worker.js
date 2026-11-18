@@ -1,10 +1,12 @@
-import { randomUUID } from 'node:crypto'
-import { createServer } from 'node:http'
-import { parentPort, workerData } from 'node:worker_threads'
+import '@freddie/freddie-runtime/install-node'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { createServer } from '@freddie/freddie-runtime/http'
+import { parentPort, workerData } from '@freddie/freddie-runtime/worker-threads'
 import { CdpHub, ElementsBackend } from './cdp.js'
 import { assertLoopback, isLoopbackAddress } from './options.js'
 import { CDP_PATH_PREFIX, FRAME, TOPIC } from './shared.js'
 import { acceptWebSocket, isWebSocketUpgrade } from './ws.js'
+import { process } from '@freddie/freddie-runtime/process'
 
 const config = workerData.config
 const hostSourcePort = workerData.hostSourcePort

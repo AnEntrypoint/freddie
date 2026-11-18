@@ -41,6 +41,7 @@
     "@freddie/freddie-invariants": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

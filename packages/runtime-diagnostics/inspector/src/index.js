@@ -1,4 +1,4 @@
-import { MessageChannel, Worker } from 'node:worker_threads'
+import { MessageChannel, Worker } from '@freddie/freddie-runtime/worker-threads'
 import z from '@freddie/schemastery'
 import { collectCordisTree } from './cordis-tree.js'
 import { installFetchObserver } from './fetch-capture.js'

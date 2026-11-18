@@ -1,4 +1,4 @@
-import { Session } from 'node:inspector'
+import { Session } from '@freddie/freddie-runtime/inspector'
 
 const FORWARDED_METHODS = new Set([
   'Runtime.enable', 'Runtime.disable', 'Runtime.getProperties',

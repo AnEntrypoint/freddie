@@ -1,4 +1,5 @@
-import { createHash } from 'node:crypto'
+import { createHash } from '@freddie/freddie-runtime/crypto'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
