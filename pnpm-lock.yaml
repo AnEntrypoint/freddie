@@ -136,6 +136,9 @@ importers:
       '@freddie/freddie-pwsh-sandbox':
         specifier: '*'
         version: link:../../packages/shell/pwsh-sandbox
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
       '@freddie/freddie-schedule':
         specifier: '*'
         version: link:../../packages/schedule/schedule
@@ -395,8 +398,15 @@ importers:
       '@freddie/cosmokit':
         specifier: link:../cosmokit
         version: link:../cosmokit
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
 
-  framework/cosmokit: {}
+  framework/cosmokit:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
 
   framework/group:
     dependencies:
@@ -424,6 +434,9 @@ importers:
       '@freddie/cosmokit':
         specifier: link:../cosmokit
         version: link:../cosmokit
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
       '@freddie/schemastery':
         specifier: link:../schemastery
         version: link:../schemastery
@@ -445,6 +458,9 @@ importers:
       '@freddie/cosmokit':
         specifier: link:../cosmokit
         version: link:../cosmokit
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
       js-yaml:
         specifier: ^5.4.1
         version: 5.4.1
@@ -457,6 +473,9 @@ importers:
       '@freddie/cosmokit':
         specifier: link:../cosmokit
         version: link:../cosmokit
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
       node-addon-require-builtin:
         specifier: ^0.1.4
         version: 0.1.4
@@ -469,6 +488,9 @@ importers:
       '@freddie/cosmokit':
         specifier: link:../cosmokit
         version: link:../cosmokit
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../packages/util/runtime
       '@freddie/schemastery':
         specifier: link:../schemastery
         version: link:../schemastery
@@ -517,6 +539,9 @@ importers:
       '@agentclientprotocol/sdk':
         specifier: 0.25.1
         version: 0.25.1(zod@4.4.3)
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -629,6 +654,9 @@ importers:
 
   packages/api/remote-stream:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -730,6 +758,9 @@ importers:
       '@freddie/freddie-remote-stream':
         specifier: '*'
         version: link:../remote-stream
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -780,6 +811,9 @@ importers:
       '@freddie/freddie-deque':
         specifier: '*'
         version: link:../../util/deque
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -830,6 +864,9 @@ importers:
 
   packages/api/workspace-files:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -851,6 +888,10 @@ importers:
         version: link:../../typert/protocol
 
   packages/attachment/attachment:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -864,6 +905,9 @@ importers:
 
   packages/attachment/attachment-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -886,6 +930,9 @@ importers:
 
   packages/boot/app-boot:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       js-yaml:
         specifier: ^5.4.1
         version: 5.4.1
@@ -922,6 +969,10 @@ importers:
         version: link:../../core/system-prompt
 
   packages/boot/cmdline:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -941,6 +992,9 @@ importers:
 
   packages/boot/config-editor:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -1335,6 +1389,9 @@ importers:
       '@freddie/freddie-code-runtime-worker-thread':
         specifier: '*'
         version: link:../../code-runtime/code-runtime-worker-thread
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -1622,6 +1679,9 @@ importers:
       '@freddie/freddie-remote-stream':
         specifier: '*'
         version: link:../../api/remote-stream
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/freddie-session-artifacts':
         specifier: '*'
         version: link:../../session/session-artifacts
@@ -3462,6 +3522,9 @@ importers:
 
   packages/code-runtime/code-runtime-worker-thread:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3483,6 +3546,10 @@ importers:
         version: link:../../util/timeout
 
   packages/compaction/command-compact:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -3535,6 +3602,9 @@ importers:
 
   packages/compaction/compaction-basic:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3652,6 +3722,9 @@ importers:
 
   packages/context/agent-instructions:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3720,6 +3793,9 @@ importers:
 
   packages/context/file-reference-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3745,6 +3821,9 @@ importers:
 
   packages/context/session-reference:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3813,6 +3892,9 @@ importers:
 
   packages/context/tmux-context:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3840,6 +3922,10 @@ importers:
         version: link:../../core/system-prompt
 
   packages/core/agent:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -3890,6 +3976,9 @@ importers:
 
   packages/core/agent-loop:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -3969,6 +4058,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/core/session:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -4077,6 +4170,9 @@ importers:
 
   packages/credentials/credentials-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4108,6 +4204,9 @@ importers:
 
   packages/examples/acp-demo:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4272,6 +4371,9 @@ importers:
 
   packages/experimental/agent-team:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4315,6 +4417,9 @@ importers:
 
   packages/experimental/browser-use-browserskill:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4343,6 +4448,9 @@ importers:
       '@freddie/freddie-experimental-browser-use-runtime':
         specifier: '*'
         version: link:../browser-use-runtime
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4479,6 +4587,9 @@ importers:
 
   packages/extensions/cordis-host-runner:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4518,6 +4629,10 @@ importers:
         version: link:../../typert/protocol
 
   packages/extensions/tool-cordis:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -4627,6 +4742,9 @@ importers:
 
   packages/feedback/message-feedback:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4694,6 +4812,9 @@ importers:
 
   packages/fs/fs-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4730,6 +4851,10 @@ importers:
         version: link:../../llm/llm
 
   packages/fs/fs-sandbox:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -4752,6 +4877,9 @@ importers:
 
   packages/fs/tool-fs:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4810,6 +4938,9 @@ importers:
 
   packages/fs/tool-fs-search:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4856,6 +4987,9 @@ importers:
 
   packages/fs/tool-str-replace-editor:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4929,6 +5063,9 @@ importers:
 
   packages/goal/goal:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4965,6 +5102,10 @@ importers:
         version: link:../../typert/protocol
 
   packages/goal/goal-round-driver:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -5109,6 +5250,9 @@ importers:
       '@freddie/freddie-native-command':
         specifier: '*'
         version: link:../../util/native-command
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -5196,6 +5340,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/host/directory-picker-auto:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -5233,6 +5381,9 @@ importers:
       '@freddie/freddie-host-directory-picker':
         specifier: '*'
         version: link:../directory-picker
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5252,6 +5403,9 @@ importers:
       '@freddie/freddie-native-command':
         specifier: '*'
         version: link:../../util/native-command
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
@@ -5265,6 +5419,9 @@ importers:
 
   packages/host/frontend-static:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5290,6 +5447,9 @@ importers:
       '@freddie/freddie-native-command':
         specifier: '*'
         version: link:../../util/native-command
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
@@ -5328,6 +5488,9 @@ importers:
 
   packages/host/product-telemetry-otel:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5353,6 +5516,9 @@ importers:
 
   packages/host/webserver:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5365,6 +5531,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/identity/anonymous-user-id:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -5381,6 +5551,9 @@ importers:
 
   packages/interaction/auto-review:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5498,6 +5671,9 @@ importers:
 
   packages/interaction/user-approval:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5636,6 +5812,9 @@ importers:
 
   packages/llm/llm:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5661,6 +5840,9 @@ importers:
 
   packages/llm/llm-deepseek:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5710,6 +5892,9 @@ importers:
       '@earendil-works/pi-ai':
         specifier: ^0.85.1
         version: 0.85.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5744,6 +5929,9 @@ importers:
 
   packages/llm/llm-retry:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5818,6 +6006,9 @@ importers:
 
   packages/mcp/mcp-client:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5897,6 +6088,9 @@ importers:
 
   packages/preset/agent-presets:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5971,6 +6165,9 @@ importers:
 
   packages/runtime-diagnostics/inspector:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5993,6 +6190,10 @@ importers:
         version: link:../../../framework/cordis
 
   packages/sandbox/sandbox:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -6009,6 +6210,9 @@ importers:
 
   packages/sandbox/sandbox-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/freddie-sandbox-windows-acl':
         specifier: '*'
         version: link:../sandbox-windows-acl
@@ -6037,6 +6241,9 @@ importers:
 
   packages/sandbox/sandbox-policy:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6062,6 +6269,9 @@ importers:
 
   packages/sandbox/sandbox-windows-acl:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
@@ -6119,6 +6329,10 @@ importers:
         version: link:../../core/tools
 
   packages/sdk/protocol:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -6138,6 +6352,9 @@ importers:
 
   packages/sdk/server:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6247,6 +6464,9 @@ importers:
 
   packages/session-query/session-query-sqlite:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6324,6 +6544,9 @@ importers:
 
   packages/session/session-artifacts:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6415,6 +6638,9 @@ importers:
 
   packages/session/session-persistence-jsonl:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6516,6 +6742,9 @@ importers:
 
   packages/session/session-telemetry-otel:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6562,6 +6791,9 @@ importers:
 
   packages/session/session-title:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6658,6 +6890,9 @@ importers:
 
   packages/session/session-title-llm:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6704,6 +6939,9 @@ importers:
 
   packages/settings/settings:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6720,6 +6958,9 @@ importers:
 
   packages/settings/settings-file:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6748,6 +6989,9 @@ importers:
 
   packages/shell/bash-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6806,6 +7050,9 @@ importers:
 
   packages/shell/pwsh-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6910,6 +7157,9 @@ importers:
 
   packages/shell/tool-bash:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6974,6 +7224,9 @@ importers:
 
   packages/shell/tool-bash-persistent:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7026,6 +7279,9 @@ importers:
 
   packages/shell/tool-pwsh:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7081,6 +7337,9 @@ importers:
 
   packages/shell/tool-pwsh-persistent:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7154,6 +7413,10 @@ importers:
         version: link:../../core/scope
 
   packages/skill/skill-badge:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7167,6 +7430,9 @@ importers:
 
   packages/skill/skill-filesystem:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7195,6 +7461,9 @@ importers:
 
   packages/skill/tool-skill:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7247,6 +7516,9 @@ importers:
 
   packages/spill/spill-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7272,6 +7544,9 @@ importers:
 
   packages/spill/spill-policy:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7331,6 +7606,9 @@ importers:
 
   packages/storage/storage-json:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7346,6 +7624,10 @@ importers:
         version: link:../storage
 
   packages/subagent/subagent:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7404,6 +7686,9 @@ importers:
 
   packages/subagent/subagent-fork-in-process:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7440,6 +7725,10 @@ importers:
         version: link:../subagent-spawn-in-process
 
   packages/subagent/subagent-in-process-driver:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7492,6 +7781,9 @@ importers:
 
   packages/subagent/subagent-spawn-in-process:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7677,6 +7969,10 @@ importers:
         version: link:../../core/tools
 
   packages/subprocess/subprocess:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7687,6 +7983,9 @@ importers:
 
   packages/subprocess/subprocess-local:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       koffi:
         specifier: ^3.1.0
         version: 3.1.1
@@ -7730,6 +8029,9 @@ importers:
       '@freddie/freddie-pwsh-local':
         specifier: '*'
         version: link:../../shell/pwsh-local
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7810,6 +8112,9 @@ importers:
 
   packages/typert/loader:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7850,6 +8155,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/util/atomic-write:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7872,6 +8181,10 @@ importers:
   packages/util/deque: {}
 
   packages/util/home-paths:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7882,11 +8195,18 @@ importers:
 
   packages/util/http-proxy:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
       undici:
         specifier: '>=7.29.0'
         version: 8.10.1
 
   packages/util/launch-environment:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7896,6 +8216,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/util/native-command:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7912,6 +8236,8 @@ importers:
       '@freddie/freddie-invariants':
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
+
+  packages/util/runtime: {}
 
   packages/util/time: {}
 
@@ -7977,6 +8303,9 @@ importers:
 
   packages/web/web:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7993,6 +8322,9 @@ importers:
 
   packages/web/web-fetch-http:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -8125,6 +8457,9 @@ importers:
 
   packages/workflow/workflow-worker-thread:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -8167,6 +8502,10 @@ importers:
         version: link:../workflow
 
   packages/workspace/workspace:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'

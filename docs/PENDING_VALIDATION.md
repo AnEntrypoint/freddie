@@ -203,3 +203,34 @@ Local commits as lanmower, none pushed in Phase A. Each commit routes agent-side
 | 05f1653 |  refactor(workspace): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
 
 Inventory and per-file uses: docs/fx-split.md, section Node-only uses in agent-side code.
+
+## fx split Phase B: runtime adapter on the final tree (2026-11-18)
+
+Run with runs/analysis/baseline.mjs and runs/analysis/phaseB.sh on the tree after the adapter, the 41 group commits, the entry fix c971f13d and the lockfile commit. DEEPSEEK_API_KEY is not set on this host, so the headless profile stops at its credential gate, as its no-key witness expects.
+
+| Check | Result | Evidence |
+|---|---|---|
+| install | PASS | Already up to date / Done in 326ms using pnpm v11.7.0 |
+| publint | PASS | All good! / $ node scripts/publint-all.js |
+| third-party-notices | PASS | gen-third-party-notices: THIRD_PARTY_NOTICES.md is up to date. / $ node scripts/gen-third-party-notices.js --check |
+| rescope-vendor-check | PASS | rescope-vendor: post-state verified — no residue, every exact edit landed, idempotent. / $ node scripts/rescope-vendor.js --check |
+| release-verify-freddie | PASS | @freddie/freddie-client-runtime -> @freddie/freddie-host-apiproxy / release verify: family freddie, 235 member(s), 0.1.1-rc.2, publish order resolved, |
+| release-verify-vendor | PASS | @freddie/cordis-plugin-loader -> @freddie/cordis / release verify: family vendor, 10 member(s), 9 versions, publish order resolved, 2 peer declaration |
+| cli-help | PASS | / 0.1.1-rc.2 |
+| dump-web | PASS | bytes 20138 md5 ec3165180a7193232905f7b115d1786b |
+| dump-headless | PASS | bytes 13257 md5 6067aa2192eaff47da8de1ae597d9882 |
+| dump-acp | PASS | bytes 12918 md5 4668262cf13066c3639e2a376b48de81 |
+| dump-sdk | PASS | bytes 13077 md5 fe0324ee81713a18fc899c0c1818a508 |
+| headless-no-key | PASS | freddie: MISSING_CREDENTIAL: llm-deepseek: no API key for provider route "deepseek-official"; store DEEPSEEK_API_KEY through the credentials service ( |
+| acp-initialize | PASS | {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"agentInfo":{"name":"freddie-acp","version":"0.0.1"},"agentCapabilities":{"promptCapabilities":{ |
+| sdk-initialize | PASS | {"jsonrpc":"2.0","id":1,"result":{"serverInfo":{"name":"freddie-sdk-runtime","version":"0.0.1"}}} |
+| demo-acp | PASS | {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"agentInfo":{"name":"freddie-acp","version":"0.0.1"},"agentCapabilities":{"promptCapabilities":{ |
+| demo-cordis-acp | PASS | {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"agentInfo":{"name":"freddie-acp","version":"0.0.1"},"agentCapabilities":{"promptCapabilities":{ |
+| demo-code-mode | PASS | {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":1,"agentInfo":{"name":"freddie-acp","version":"0.0.1"},"agentCapabilities":{"promptCapabilities":{ |
+| web-boot | PASS | GET / 200 htmlBytes 48902 assets200 261 bad [] |
+| demo-cordis-web | PASS | GET / 200 htmlBytes 48902 assets200 261 bad [] |
+| import-smoke | PASS | 249 packages, ok 247, failing 2: freddie-client-ui-primitives,freddie-client-web |
+
+import-smoke is informational: 247 of 249 packages import. The two failures are the browser-only client entries @freddie/freddie-client-ui-primitives (HTMLElement is not defined in Node) and @freddie/freddie-client-web (Cannot find package webjsx); neither file changed in this stage.
+
+Live headless boot: node apps/cli/src/bin.js --profile headless "Reply with the word ready." exits 1 with MISSING_CREDENTIAL, as expected without a key.
