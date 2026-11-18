@@ -1,4 +1,5 @@
 import { FsError } from '@freddie/freddie-fs'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const READ_MAX_LINE_LENGTH = 2000
 

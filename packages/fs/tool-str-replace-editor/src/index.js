@@ -1,4 +1,4 @@
-import { isAbsolute } from 'node:path'
+import { isAbsolute } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import { FsError } from '@freddie/freddie-fs'
 import { sandboxDenialMarker } from '@freddie/freddie-sandbox'

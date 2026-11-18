@@ -1,3 +1,4 @@
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 export function groupMatchesByFile(matches) {
   const byFile = new Map()
   for (const match of matches) {

@@ -1,5 +1,6 @@
-import { stat } from 'node:fs/promises'
-import { dirname, sep } from 'node:path'
+import { stat } from '@freddie/freddie-runtime/fs-promises'
+import { dirname, sep } from '@freddie/freddie-runtime/path'
+import { process } from '@freddie/freddie-runtime/process'
 
 const MISSING_CODES = new Set(['ENOENT', 'ENOTDIR'])
 

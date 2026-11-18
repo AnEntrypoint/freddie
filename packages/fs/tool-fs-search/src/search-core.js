@@ -1,7 +1,9 @@
-import { existsSync } from 'node:fs'
-import { isAbsolute, relative, sep } from 'node:path'
+import { existsSync } from '@freddie/freddie-runtime/fs'
+import { isAbsolute, relative, sep } from '@freddie/freddie-runtime/path'
 import { HarnessError } from '@freddie/freddie-llm'
 import { ItemRetainer, TextRetainer } from '@freddie/freddie-output-retention'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 export const RAW_OUTPUT_MAX_BYTES = 20_000_000
 

@@ -1,4 +1,4 @@
-import { sep } from 'node:path'
+import { sep } from '@freddie/freddie-runtime/path'
 import { defineTool } from '@freddie/freddie-tools'
 import { runRipgrep, toWorkdirRelative, trySaveFormattedResult } from './search-core.js'
 import { globSearchMeta, searchViewFromMeta } from './presentation.js'

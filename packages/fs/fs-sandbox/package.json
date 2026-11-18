@@ -43,5 +43,8 @@
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
   }
 }

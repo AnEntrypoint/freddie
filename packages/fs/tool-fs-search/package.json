@@ -33,6 +33,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@vscode/ripgrep": "^1.18.0",
     "@freddie/schemastery": "*"
   },

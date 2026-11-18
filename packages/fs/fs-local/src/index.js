@@ -1,6 +1,6 @@
-import { constants as bufferConstants } from 'node:buffer'
-import { isAbsolute, relative, resolve, sep } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { constants as bufferConstants } from '@freddie/freddie-runtime/buffer'
+import { isAbsolute, relative, resolve, sep } from '@freddie/freddie-runtime/path'
+import { pathToFileURL } from '@freddie/freddie-runtime/url'
 import z from '@freddie/schemastery'
 import { FileSystem, FsError, FsVersion } from '@freddie/freddie-fs'
 import {
@@ -18,6 +18,8 @@ import {
   streamWholeText,
   writeFileAtomic,
 } from './fsio.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 
 const DEFAULT_DIFF_BASIS_MAX_BYTES = 10 * 1024 * 1024

@@ -1,10 +1,12 @@
-import { randomUUID } from 'node:crypto'
-import { createReadStream } from 'node:fs'
-import { chmod, link, lstat, mkdir, open, readFile, realpath, readdir, rename, rm, stat } from 'node:fs/promises'
-import { basename, dirname, join, resolve } from 'node:path'
-import { TextDecoder } from 'node:util'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
+import { createReadStream } from '@freddie/freddie-runtime/fs'
+import { chmod, link, lstat, mkdir, open, readFile, realpath, readdir, rename, rm, stat } from '@freddie/freddie-runtime/fs-promises'
+import { basename, dirname, join, resolve } from '@freddie/freddie-runtime/path'
+import { TextDecoder } from '@freddie/freddie-runtime/util'
 import { FsError, FsTargetKey, FsVersion } from '@freddie/freddie-fs'
 import { copyFileDaclWin32, replaceFileWin32 } from './win32.js'
+import { process } from '@freddie/freddie-runtime/process'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const BINARY_SAMPLE_BYTES = 8192
 const DIFF_BASIS_READ_CHUNK_BYTES = 64 * 1024

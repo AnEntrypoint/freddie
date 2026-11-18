@@ -1,4 +1,4 @@
-import { basename, extname } from 'node:path'
+import { basename, extname } from '@freddie/freddie-runtime/path'
 import { AttachmentError, AttachmentId } from '@freddie/freddie-attachment'
 import { defineTool } from '@freddie/freddie-tools'
 import { resolveRegularReadTarget } from './read-target.js'

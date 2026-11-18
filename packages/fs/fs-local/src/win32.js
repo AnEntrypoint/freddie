@@ -1,4 +1,5 @@
-import { toNamespacedPath } from 'node:path'
+import { toNamespacedPath } from '@freddie/freddie-runtime/path'
+import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const DACL_SECURITY_INFORMATION = 0x00000004
 const PROTECTED_DACL_SECURITY_INFORMATION = 0x80000000
