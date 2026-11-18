@@ -151,3 +151,55 @@ Local commits as lanmower. Each row names the files and the Phase B witness it n
 | 1e216623 | lastStep shared by turn-error and turn-max-tokens | packages/client/ui-conversation/src/client/conversation-nodes/common.js, turn-error.js, turn-max-tokens.js | boot the web profile and render a turn that ends in error and one that hits max tokens in the browser, with no console errors |
 
 Also see docs/fx-split.md for the inventory and the proposed merges that were not made.
+
+## fx split Phase A: runtime adapter (2026-11-18)
+
+Local commits as lanmower, none pushed in Phase A. Each commit routes agent-side Node built-ins through @freddie/freddie-runtime. The Phase B witness is in the last column; Phase B runs it on the final tree, after pnpm install updates the lockfile for the new dependency.
+
+| Commit | Change | Files | Phase B witness |
+|---|---|---|---|
+| f908497 |  feat(runtime): add the runtime adapter for agent-side Node built-ins | 32 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| bf91122 |  refactor(apps/cli): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 2c8bc8f |  refactor(framework): route agent-side Node built-ins through the runtime adapter | 14 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| a023d88 |  refactor(acp): route agent-side Node built-ins through the runtime adapter | 3 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 1b8ec00 |  refactor(api): route agent-side Node built-ins through the runtime adapter | 13 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 91502a8 |  refactor(attachment): route agent-side Node built-ins through the runtime adapter | 6 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| b626978 |  refactor(boot): route agent-side Node built-ins through the runtime adapter | 7 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 5705eff |  refactor(bundle): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| e0a2b0c |  refactor(code-runtime): route agent-side Node built-ins through the runtime adapter | 5 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 37fca63 |  refactor(compaction): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 9a33d8f |  refactor(context): route agent-side Node built-ins through the runtime adapter | 15 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| f98d8c8 |  refactor(core): route agent-side Node built-ins through the runtime adapter | 7 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 2278d74 |  refactor(credentials): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 4fa989f |  refactor(examples): route agent-side Node built-ins through the runtime adapter | 3 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 3a1cfda |  refactor(experimental): route agent-side Node built-ins through the runtime adapter | 8 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 350f700 |  refactor(extensions): route agent-side Node built-ins through the runtime adapter | 8 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 30a6123 |  refactor(feedback): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| fe3e509 |  refactor(fs): route agent-side Node built-ins through the runtime adapter | 15 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| b2787ea |  refactor(goal): route agent-side Node built-ins through the runtime adapter | 6 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| f1ad697 |  refactor(host): route agent-side Node built-ins through the runtime adapter | 26 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 5c6d189 |  refactor(identity): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 72b6cb8 |  refactor(interaction): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| d165d4e |  refactor(llm): route agent-side Node built-ins through the runtime adapter | 11 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 21baa2e |  refactor(mcp): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 9d5938b |  refactor(preset): route agent-side Node built-ins through the runtime adapter | 7 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 7bad6c9 |  refactor(runtime-diagnostics): route agent-side Node built-ins through the runtime adapter | 5 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| eda9521 |  refactor(sandbox): route agent-side Node built-ins through the runtime adapter | 17 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| cf95625 |  refactor(sdk): route agent-side Node built-ins through the runtime adapter | 5 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 48bb532 |  refactor(session): route agent-side Node built-ins through the runtime adapter | 15 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 652fdbe |  refactor(session-query): route agent-side Node built-ins through the runtime adapter | 3 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 451c8dc |  refactor(settings): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 81cfcce |  refactor(shell): route agent-side Node built-ins through the runtime adapter | 13 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| b4c0eba |  refactor(skill): route agent-side Node built-ins through the runtime adapter | 6 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| c272b1a |  refactor(spill): route agent-side Node built-ins through the runtime adapter | 5 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 7b42722 |  refactor(storage): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 13a5456 |  refactor(subagent): route agent-side Node built-ins through the runtime adapter | 13 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| a94799f |  refactor(subprocess): route agent-side Node built-ins through the runtime adapter | 8 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| edda7d8 |  refactor(terminal): route agent-side Node built-ins through the runtime adapter | 3 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 62986a0 |  refactor(typert): route agent-side Node built-ins through the runtime adapter | 2 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 6ebf0d4 |  refactor(util): route agent-side Node built-ins through the runtime adapter | 10 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 048a8e3 |  refactor(web): route agent-side Node built-ins through the runtime adapter | 6 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 99baf7d |  refactor(workflow): route agent-side Node built-ins through the runtime adapter | 5 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+| 05f1653 |  refactor(workspace): route agent-side Node built-ins through the runtime adapter | 4 | publint; baseline dumps identical; web boot; import smoke of the changed package |
+
+Inventory and per-file uses: docs/fx-split.md, section Node-only uses in agent-side code.

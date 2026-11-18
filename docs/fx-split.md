@@ -108,3 +108,212 @@ Stage 2: move the agent loop (core/agent-loop, the core/tools dispatch, guard) a
 - Gate: fx's run_code witness passes.
 - Prerequisites: txiki embedded in fx (none in its source now), and fx audit issue 1 closed or re-verified.
 - Not started here: no loop or tool-dispatch change in this stage.
+
+## Node-only uses in agent-side code and their adapter routes (Phase A)
+
+Counted at e11df906, the commit before the adapter. Scope: packages/ and framework/ files that are not GUI-side (see the classification rule above). Each Node import, process member and Buffer use is listed below by file. Each one is now reached through @freddie/freddie-runtime/<subpath>; the subpath names are in packages/util/runtime/src.
+
+| Count | Value |
+|---|---|
+| Files with a Node-only use | 180 |
+| Node built-in import statements | 278 |
+| process member uses | 144 |
+| Buffer uses | 121 |
+
+Built-in modules: node:path 66, node:crypto 42, node:fs/promises 40, node:fs 25, node:os 16, node:url 14, node:util 14, node:module 9, node:buffer 9, node:child_process 8, node:worker_threads 6, node:zlib 5, node:http 4, node:timers/promises 3, node:stream 3, node:vm 3, node:net 3, node:async_hooks 2, node:util/types 1, node:inspector 1, node:string_decoder 1, node:perf_hooks 1, node:dns/promises 1, node:https 1.
+
+process members: env 37, platform 26, cwd 18, stderr 11, pid 9, execPath 6, stdout 5, kill 5, argv 4, stdin 4, exitCode 4, exit 4, send 2, execArgv 1, versions 1, loadEnvFile 1, connected 1, disconnect 1, on 1, prependListener 1, off 1, arch 1.
+
+Buffer statics: .byteLength 34, .from 33, .alloc 28, .concat 15, .allocUnsafe 2, .isBuffer 1, plus instance methods on Buffer values.
+
+Node-only uses that stay outside the adapter, each by design:
+
+- apps/cli (the Node host): bin.js, dump-config.js, plugin.js, profile-boot.js keep direct node: imports and the global process. bin.js is the install point, and its first import is @freddie/freddie-runtime/install-node.
+- GUI-side Node halves, 10 files, which serve the browser from the Node host: packages/client/connection/src/websocket-downlink.js, packages/client/css-manifest/src/index.js and scripts/generate-manifest.mjs, packages/client/file-upload/src/index.js, intake.js and staging.js, packages/client/hmr/src/index.js, packages/client/modules/src/index.js, packages/client/vendor-modules/src/index.js and scripts/generate-vendor.mjs. Their node: imports are unchanged.
+- Worker entries, which run in a separate module graph and install the runtime themselves: packages/code-runtime/code-runtime-worker-thread/src/worker.js, packages/workflow/workflow-worker-thread/src/worker.js, packages/runtime-diagnostics/inspector/src/worker.js.
+- Node-only globals not routed through the adapter: setImmediate in 3 files (packages/boot/app-boot/src/index.js, packages/code-runtime/code-runtime-worker-thread/src/index.js, packages/sdk/server/src/index.js), which txiki must provide or the callers must change. fetch and structuredClone are standard globals and are listed for the txiki check.
+
+### Files
+
+| File | Uses at e11df906 |
+|---|---|
+| framework/cordis/bin.js | modules: url; process: cwd x1 |
+| framework/cosmokit/src/types.js | Buffer x8 |
+| framework/hmr/src/error.js | modules: fs |
+| framework/hmr/src/index.js | modules: path, fs-promises, url, module, async-hooks; process: argv x1 |
+| framework/include/src/index.js | modules: path, fs-promises, timers-promises, url |
+| framework/loader/src/index.js | process: env x2 |
+| framework/loader/src/internal.js | modules: module; process: execArgv x1, versions x1 |
+| framework/logger-console/src/index.js | modules: util |
+| packages/acp/acp/src/content.js | Buffer x2 |
+| packages/acp/acp/src/index.js | modules: crypto, path, stream; process: stdout x1, stdin x1 |
+| packages/api/remote-stream/src/index.js | modules: crypto |
+| packages/api/session-controller/src/commands.js | modules: crypto |
+| packages/api/session-controller/src/list.js | modules: fs-promises |
+| packages/api/terminal-controller/src/index.js | Buffer x1 |
+| packages/api/terminal-controller/src/shells.js | process: platform x1 |
+| packages/api/terminal-controller/src/stream.js | Buffer x1 |
+| packages/api/workspace-files/src/index.js | modules: buffer; Buffer x1 |
+| packages/attachment/attachment-local/src/index.js | modules: path |
+| packages/attachment/attachment-local/src/request-image.js | modules: crypto, fs-promises, path |
+| packages/attachment/attachment-local/src/store.js | modules: crypto, fs, fs-promises, path; process: platform x1 |
+| packages/attachment/attachment/src/admission.js | modules: buffer; Buffer x1 |
+| packages/boot/app-boot/src/index.js | modules: url, fs, util, path; process: cwd x3, stderr x3, loadEnvFile x1, env x2 |
+| packages/boot/app-boot/src/profile.js | modules: module, fs, path |
+| packages/boot/cmdline/src/index.js | process: stdout x1, stderr x1, stdin x1 |
+| packages/boot/config-editor/src/index.js | modules: fs-promises, path, util |
+| packages/bundle/headless/src/index.js | modules: crypto; process: stdout x1, stderr x1, cwd x1 |
+| packages/bundle/web-app/src/index.js | modules: child-process, module, os, url; process: argv x1, platform x1, exitCode x2, execPath x1, stderr x1 |
+| packages/code-runtime/code-runtime-worker-thread/src/bootstrap.js | modules: util |
+| packages/code-runtime/code-runtime-worker-thread/src/index.js | modules: worker-threads, module, url |
+| packages/code-runtime/code-runtime-worker-thread/src/output-json.js | Buffer x2 |
+| packages/code-runtime/code-runtime-worker-thread/src/worker.js | modules: worker-threads; process: stdout x1, stderr x1 |
+| packages/compaction/compaction-basic/src/region.js | modules: crypto, util |
+| packages/context/agent-instructions/src/config.js | modules: path |
+| packages/context/agent-instructions/src/digest.js | modules: crypto |
+| packages/context/agent-instructions/src/files.js | modules: fs, fs-promises, path; Buffer x1 |
+| packages/context/agent-instructions/src/index.js | modules: util; process: cwd x1 |
+| packages/context/agent-instructions/src/render.js | modules: path; Buffer x2 |
+| packages/context/agent-instructions/src/state.js | process: cwd x1 |
+| packages/context/file-reference-local/src/index.js | process: cwd x1 |
+| packages/context/file-reference-local/src/search.js | modules: fs-promises, path |
+| packages/context/session-reference/src/projection.js | Buffer x6 |
+| packages/context/session-reference/src/uri.js | Buffer x2 |
+| packages/context/tmux-context/src/index.js | process: platform x1, env x1, pid x1 |
+| packages/core/agent-loop/src/index.js | modules: crypto |
+| packages/core/agent/src/index.js | modules: async-hooks, util-types |
+| packages/core/session/src/index.js | modules: path |
+| packages/credentials/credentials-local/src/index.js | modules: fs-promises, path; process: platform x1 |
+| packages/examples/acp-demo/src/bin.js | modules: util; process: env x1, argv x1, stdin x1, exit x1 |
+| packages/examples/acp-demo/src/index.js | modules: path |
+| packages/experimental/agent-team/src/error.js | modules: util |
+| packages/experimental/agent-team/src/mailbox.js | modules: crypto; Buffer x1 |
+| packages/experimental/agent-team/src/roster.js | modules: crypto |
+| packages/experimental/browser-use-browserskill/src/index.js | process: cwd x1 |
+| packages/experimental/browser-use-chrome-devtools-mcp/src/index.js | modules: fs, path, url; process: execPath x1 |
+| packages/extensions/cordis-host-runner/src/sandbox.js | modules: vm; Buffer x2 |
+| packages/extensions/tool-cordis/src/api-catalog.js | Buffer x1 |
+| packages/extensions/tool-cordis/src/prompt.js | Buffer x1 |
+| packages/feedback/message-feedback/src/index.js | modules: buffer, crypto; Buffer x1 |
+| packages/fs/fs-local/src/fsio.js | modules: crypto, fs, fs-promises, path, util; process: platform x2, pid x1; Buffer x2 |
+| packages/fs/fs-local/src/index.js | modules: buffer, path, url; process: cwd x1; Buffer x1 |
+| packages/fs/fs-local/src/win32.js | modules: path; Buffer x1 |
+| packages/fs/fs-sandbox/src/containment.js | modules: fs-promises, path; process: platform x1 |
+| packages/fs/tool-fs-search/src/glob.js | modules: path |
+| packages/fs/tool-fs-search/src/presentation.js | Buffer x1 |
+| packages/fs/tool-fs-search/src/search-core.js | modules: fs, path; process: execPath x1, cwd x1; Buffer x1 |
+| packages/fs/tool-fs/src/read-image.js | modules: path |
+| packages/fs/tool-fs/src/read-render.js | Buffer x1 |
+| packages/fs/tool-str-replace-editor/src/index.js | modules: path |
+| packages/goal/goal-round-driver/src/index.js | modules: util |
+| packages/goal/goal-round-driver/src/invariant.js | modules: util |
+| packages/goal/goal/src/index.js | modules: crypto |
+| packages/host/apiproxy/src/api-proxy.js | modules: crypto, fs-promises, os, path; Buffer x3 |
+| packages/host/apiproxy/src/fetch/handler.js | modules: crypto |
+| packages/host/apiproxy/src/index.js | process: cwd x1 |
+| packages/host/apiproxy/src/native-path-opener.js | modules: os, path; process: env x3, platform x2 |
+| packages/host/directory-picker-auto/src/index.js | process: platform x1, env x2 |
+| packages/host/directory-picker-auto/src/probe.js | modules: fs, path |
+| packages/host/directory-picker-browse/src/index.js | modules: fs-promises, os, path; process: platform x1 |
+| packages/host/directory-picker-native/src/native-picker.js | process: platform x1 |
+| packages/host/directory-picker-native/src/win32-dialog-bindings.js | Buffer x4 |
+| packages/host/directory-picker-native/src/win32-dialog-host.js | modules: child-process, url; process: execPath x1 |
+| packages/host/directory-picker-native/src/win32-dialog-worker.js | process: env x1, send x2, connected x1, disconnect x1, on x1, exit x1 |
+| packages/host/frontend-static/src/index.js | modules: fs-promises, path |
+| packages/host/open-in-app/src/icons.js | modules: fs-promises, os, path |
+| packages/host/open-in-app/src/index.js | modules: fs-promises, path; Buffer x1 |
+| packages/host/open-in-app/src/resolver.js | modules: child-process, fs-promises, os, path; process: env x10 |
+| packages/host/product-telemetry-otel/src/index.js | modules: module, http |
+| packages/host/webserver/src/index.js | modules: http |
+| packages/host/webserver/src/static-file.js | modules: fs-promises, crypto, util, zlib; Buffer x2 |
+| packages/identity/anonymous-user-id/src/index.js | modules: crypto, fs, path; process: env x1 |
+| packages/interaction/auto-review/src/index.js | Buffer x1 |
+| packages/interaction/user-approval/src/index.js | modules: crypto |
+| packages/llm/llm-deepseek/src/serialize.js | Buffer x1 |
+| packages/llm/llm-deepseek/src/upload-index.js | modules: crypto, fs-promises, path |
+| packages/llm/llm-pi-ai/src/auth.js | modules: os, fs-promises, path |
+| packages/llm/llm-pi-ai/src/context.js | Buffer x2 |
+| packages/llm/llm-retry/src/index.js | modules: crypto |
+| packages/llm/llm/src/attribution.js | modules: module |
+| packages/mcp/mcp-client/src/tools.js | modules: crypto, util; Buffer x1 |
+| packages/preset/agent-presets/src/authoring.js | modules: fs-promises, path |
+| packages/preset/agent-presets/src/discovery.js | modules: fs-promises, path |
+| packages/preset/agent-presets/src/index.js | modules: fs-promises |
+| packages/preset/agent-presets/src/metadata.js | modules: fs-promises, path |
+| packages/preset/agent-presets/src/mount.js | modules: path, url |
+| packages/runtime-diagnostics/inspector/src/cdp.js | modules: inspector |
+| packages/runtime-diagnostics/inspector/src/index.js | modules: worker-threads |
+| packages/runtime-diagnostics/inspector/src/worker.js | modules: crypto, http, worker-threads; process: exit x1 |
+| packages/runtime-diagnostics/inspector/src/ws.js | modules: crypto; Buffer x17 |
+| packages/sandbox/sandbox-local/src/index.js | modules: child-process, fs, os, path, url; process: platform x1, execPath x2 |
+| packages/sandbox/sandbox-policy/src/index.js | modules: path; process: cwd x1 |
+| packages/sandbox/sandbox-policy/src/runner-failure.js | modules: fs |
+| packages/sandbox/sandbox-windows-acl/src/acl.js | modules: crypto, fs, path; Buffer x1 |
+| packages/sandbox/sandbox-windows-acl/src/ffi.js | Buffer x2 |
+| packages/sandbox/sandbox-windows-acl/src/index.js | modules: fs, path; process: cwd x1; Buffer x2 |
+| packages/sandbox/sandbox-windows-acl/src/path-boundary.js | modules: fs, path |
+| packages/sandbox/sandbox-windows-acl/src/runner.js | modules: fs, path; process: stderr x4, argv x1, exitCode x2 |
+| packages/sandbox/sandbox-windows-acl/src/spawn.js | Buffer x3 |
+| packages/sandbox/sandbox-windows-acl/src/token.js | process: pid x3; Buffer x4 |
+| packages/sandbox/sandbox-windows-acl/src/workspace-sid.js | modules: crypto |
+| packages/sandbox/sandbox/src/roots.js | modules: fs, os |
+| packages/sdk/protocol/src/transport.js | modules: crypto, string-decoder |
+| packages/sdk/server/src/index.js | process: stdin x1, stdout x1, exit x1 |
+| packages/sdk/server/src/server.js | modules: path; process: cwd x1 |
+| packages/session-query/session-query-sqlite/src/index.js | modules: crypto; Buffer x3 |
+| packages/session-query/session-query-sqlite/src/schema.js | modules: fs-promises, path |
+| packages/session/session-artifacts/src/index.js | modules: buffer, crypto; Buffer x2 |
+| packages/session/session-persistence-jsonl/src/format.js | modules: path; Buffer x2 |
+| packages/session/session-persistence-jsonl/src/index.js | modules: fs, fs-promises, path, perf-hooks, timers-promises, crypto; process: platform x1, pid x2, kill x1; Buffer x10 |
+| packages/session/session-persistence-jsonl/src/win32.js | modules: fs-promises, path |
+| packages/session/session-persistence-jsonl/src/zstd-private-decoder.js | modules: buffer, zlib; Buffer x4 |
+| packages/session/session-persistence-jsonl/src/zstd-public-decoder.js | modules: zlib |
+| packages/session/session-persistence-jsonl/src/zstd.js | modules: zlib, util |
+| packages/session/session-telemetry-otel/src/index.js | modules: module |
+| packages/session/session-title-llm/src/index.js | Buffer x1 |
+| packages/session/session-title/src/normalize.js | Buffer x2 |
+| packages/settings/settings-file/src/index.js | modules: fs-promises, path |
+| packages/shell/bash-local/src/index.js | process: cwd x1 |
+| packages/shell/pwsh-local/src/index.js | process: cwd x1 |
+| packages/shell/pwsh-local/src/resolve.js | modules: fs, path; process: env x2, platform x1 |
+| packages/shell/tool-bash-persistent/src/index.js | modules: crypto |
+| packages/shell/tool-bash/src/index.js | modules: path |
+| packages/shell/tool-pwsh-persistent/src/index.js | modules: crypto |
+| packages/shell/tool-pwsh/src/index.js | modules: path |
+| packages/skill/skill-badge/src/index.js | modules: fs-promises, url |
+| packages/skill/skill-filesystem/src/index.js | modules: fs-promises, fs, path, os; process: env x2 |
+| packages/skill/tool-skill/src/index.js | modules: crypto |
+| packages/spill/spill-local/src/index.js | modules: path |
+| packages/spill/spill-local/src/store.js | modules: crypto, fs, fs-promises, path, os; Buffer x1 |
+| packages/spill/spill-policy/src/index.js | Buffer x4 |
+| packages/storage/storage-json/src/atomic.js | modules: fs-promises, path, crypto; process: platform x1 |
+| packages/storage/storage-json/src/index.js | modules: fs-promises, path |
+| packages/storage/storage-json/src/unit.js | modules: fs-promises |
+| packages/subagent/subagent-in-process-driver/src/index.js | modules: crypto |
+| packages/subagent/subagent/src/continuation.js | modules: crypto |
+| packages/subagent/subagent/src/lifecycle.js | modules: crypto |
+| packages/subprocess/subprocess-local/src/index.js | modules: fs, fs-promises, path; process: prependListener x1, off x1, platform x3, cwd x1 |
+| packages/subprocess/subprocess-local/src/process-inspector.js | modules: fs, child-process; process: kill x1, platform x1, arch x1; Buffer x1 |
+| packages/subprocess/subprocess-local/src/spawn.js | modules: child-process, crypto, fs, os, path, timers-promises; process: platform x2, pid x1, kill x3; Buffer x2 |
+| packages/subprocess/subprocess-local/src/terminal.js | modules: buffer, os, stream; process: platform x1; Buffer x1 |
+| packages/subprocess/subprocess-local/src/windows-inspector.js | modules: child-process |
+| packages/subprocess/subprocess/src/index.js | process: env x1 |
+| packages/terminal/terminal-bash/src/sanitize.js | modules: buffer; Buffer x1 |
+| packages/terminal/terminal-bash/src/session.js | modules: buffer; Buffer x3 |
+| packages/typert/loader/src/index.js | modules: fs, module, path, url |
+| packages/util/atomic-write/src/index.js | modules: crypto, fs-promises, path; process: pid x1 |
+| packages/util/home-paths/src/index.js | modules: fs-promises, os, path; process: env x1 |
+| packages/util/http-proxy/src/install.js | process: env x5 |
+| packages/util/launch-environment/src/index.js | process: platform x1, env x1 |
+| packages/util/native-command/src/index.js | modules: child-process |
+| packages/web/web-fetch-http/src/address.js | modules: net |
+| packages/web/web-fetch-http/src/network.js | modules: dns-promises, http, https, net, stream, zlib |
+| packages/web/web-fetch-http/src/policy.js | modules: net |
+| packages/web/web/src/index.js | process: env x2 |
+| packages/workflow/workflow-worker-thread/src/host.js | modules: os, worker-threads, url; process: platform x1 |
+| packages/workflow/workflow-worker-thread/src/index.js | modules: crypto, os, vm |
+| packages/workflow/workflow-worker-thread/src/runtime.js | modules: vm |
+| packages/workflow/workflow-worker-thread/src/worker.js | modules: worker-threads |
+| packages/workspace/workspace/src/entity.js | modules: fs-promises |
+| packages/workspace/workspace/src/index.js | modules: crypto, fs-promises, path |
+| packages/workspace/workspace/src/paths.js | modules: fs-promises |
