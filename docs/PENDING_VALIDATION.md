@@ -565,3 +565,14 @@ Ranked item 6 in docs/fx-split.md. spawn is a pure-JS ChildProcess over tjs.spaw
 | test/parity-cases.js: 8 spawn cases from Node's spawn output (exit then close; SIGTERM after the spawn event; missing command; numeric pid after spawn; kill before spawn returns true; pid is a number before spawn; stdout gap; option cwd gap); the old child_process.spawn gap line is removed, because the name is implemented | node --check passes | txiki gap names 41 (was 42) |
 | docs/fx-split.md: the spawn section with each decision and its reason, including the synchronous tjs.spawn finding; the child_process row, the owner-decision bullet and ranked item 6 updated | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-child-process-spawn.md: Agent Note | none | none |
+
+## fx split: Phase B for child-process.spawn (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| swap-in at the start of each run | 520 KB/s (Node parity), 520 KB/s (Node contract, same poll), 956 KB/s (txiki parity), 784 KB/s (txiki contract and gap names) | none |
+| node test/parity-node.js | 242/242 shared cases match, including the 8 spawn cases and the 2 converted before-spawn cases; exit 0 | 1.00 s process (817 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.12 s |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 242, gapAsserted 7, gaps 12 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 1.63 s probe (1257 ms in runParity) |
+| contract under gm's txiki | present 115, missing [] | 0.19 s probe |
+| contract gap names under gm's txiki | 41 of the non-default names (was 42): child-process.spawn left the list | 0.20 s probe |
