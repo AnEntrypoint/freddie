@@ -2904,6 +2904,12 @@ function timeoutOf(opts) {
   return timeout
 }
 
+function shellArguments(file, argv, shell) {
+  if (shell === undefined || shell === false) return { file, argv }
+  if (shell !== true) throw gapError('child-process shell ' + String(shell))
+  return { file: '/bin/sh', argv: ['-c', [file, ...argv].join(' ')] }
+}
+
 function processEnv(env) {
   return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
 }
@@ -2938,13 +2944,14 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
   const timeout = timeoutOf(opts)
   const killSignal = killSignalOf(opts)
-  captureExecFile(startProcess(file, argv, { cwd: opts.cwd, env: opts.env }), cmd, { timeout, killSignal }).then(({ error, stdout, stderr }) => {
+  const shelled = shellArguments(file, argv, opts.shell)
+  captureExecFile(startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env }), cmd, { timeout, killSignal }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
@@ -3087,9 +3094,10 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
-  return new ChildProcess(file, argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts) })
+  const shelled = shellArguments(file, argv, opts.shell)
+  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts) })
 }
 
 export const txikiRuntime = {

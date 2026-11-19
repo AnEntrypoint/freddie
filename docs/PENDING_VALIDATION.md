@@ -1286,3 +1286,36 @@ Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 15 of 15:
 Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
 
 Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only.
+
+## fx split: child-process shell, Phase A (2026-11-19)
+
+Rank 7d in docs/fx-split.md. Probes: runs/analysis/child-shell-node.mjs (deterministic with --no-deprecation) and runs/analysis/child-timer-node.mjs (deterministic).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: shellArguments (shell true wraps in /bin/sh -c with args joined by spaces, undefined and false pass through, any other value is a gap); execFile and spawn accept the shell key | before: both threw the gap; after: the 10 shell and timer cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 554, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 12065 ms; Node parity 554/554 |
+| test/parity-cases.js: 9 shell cases generated from child-shell-node.out, plus 2 timer cases from child-timer-node.out (execFile and spawn, each run past the 100 ms timeout with a 300 ms wait) | the same runs |
+
+Item 4 (left-armed timer after wait), from the earlier gap in fa3f67b1:
+- execFile: observable. A timer left armed fires after the process was reaped, calls kill, and txiki throws ESRCH: no such process (native). The throw is uncaught, so it aborts the whole run rather than one case. The execFile timer case therefore fails under that mutation.
+- spawn: not observable from a case. ChildProcess.kill returns false once #exited is set, so the leftover timer does nothing. Mutation S9 (clearTimeout removed from #reap) leaves the spawn timer case green: the case passes. Only the process lifetime would change, and no case measures that.
+
+Mutation evidence (saved good copy; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S1: shell ignored | run aborted: unhandled spawn error event for 'echo $FOO' (spawn ENOENT), no result file |
+| S2: args joined with '+' | 2 |
+| S3: execFile shell gap restored | 6 |
+| S4: spawn shell gap restored | 2 |
+| S5: shell false treated as true | 1 |
+| S6: default (undefined) shell gapped | 2 (includes the execFile timer case, which the default-shell mutation also turns into a gap throw) |
+| S7: no -c flag | 7 |
+| S8: timer left armed in captureExecFile | run aborted: ESRCH from kill (native); no result file |
+| S9: spawn timer left armed in #reap | 0 (spawn timer case stays green, as recorded above) |
+
+Coverage: all 10 shell and timer cases are red under at least one mutation, except the two cases recorded under S8 and S1 run aborts, which fail the run rather than a single case. uncovered [].
+
+Regression (not a witness): txiki parity with gap assertions: shared 554, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1. Node parity: 554/554.
+
+Not verified: shell as a path string; shell metacharacters beyond the cases; the DEP0190 warning.

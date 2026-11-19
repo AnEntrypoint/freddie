@@ -665,7 +665,7 @@ Design choices, each with its reason:
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
 
 
-## Declared gaps outside the stream group, ranked (2026-11-19, after child-process timeout and killSignal)
+## Declared gaps outside the stream group, ranked (2026-11-19, after child-process shell)
 
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
@@ -678,6 +678,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 7. child-process.spawn stdin: done 2026-11-19 (see the spawn stdin section). The stdin pipe is a ProcessWritableStream with getWriter.
 7b. child-process option env (spawn and execFile): done 2026-11-19 (see the env section). The other option keys stay gaps: spawn accepts only cwd and env, execFile only encoding, cwd and env (timeout, maxBuffer, killSignal, shell, stdio, uid, gid, argv0, detached, windowsHide are each unprobed and need a verified tjs mapping).
 7c. child-process options timeout and killSignal (spawn and execFile): done 2026-11-19 (see the timeout section). Signal names limited to the ten probed on txiki (SIGTERM, SIGKILL, SIGINT, SIGHUP, SIGUSR1, SIGUSR2, SIGQUIT, SIGALRM, SIGPIPE, SIGABRT); other names and numeric signals stay gaps. Remaining child-process keys stay gaps and are unprobed: stdio, shell, uid, gid, argv0, detached, windowsHide, maxBuffer. Reachable via a probe, but not taken.
+7d. child-process option shell (spawn and execFile, boolean true or false only): done 2026-11-19 (see the shell section). Other shell values (a path string) stay a gap. Reachable and still open, in order: fs.promises.writeFile flag and mode (tjs.open takes wx, r+ and mode, probed); child-process uid and gid (accepted by txiki, same-uid probe needed, a different uid gives EPERM); child-process detached (accepted, session effect unprobed); child-process stdio 'inherit' (accepted, output routing unprobed); child-process maxBuffer, signal (AbortSignal exists), numeric killSignal (needs a number-to-name table), windowsHide (a no-op on Linux); crypto.createHash outputLength on non-XOF algorithms (unprobed); stream option highWaterMark, objectMode and encoding (unprobed); createReadStream options other than encoding (unprobed). Held: child-process argv0 (txiki ignores it, probed); fs.promises.access mode other than F_OK (tjs has no access, probed); fs sync family, execFileSync and spawnSync (tjs has no sync calls, probed).
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -795,3 +796,13 @@ Node probe: runs/analysis/child-timeout-node.mjs (run twice, identical output). 
 Design: captureExecFile arms one timer when timeout > 0; the timer sets killed and calls the raw process kill with killSignal; the timer is cleared after wait. exitFailure takes killed. ChildProcess arms its timer in the constructor when options.timeout > 0 and clears it in #reap. spawn and execFile accept the two keys; killSignal must be one of the ten probed names, and timeout must be a non-negative number, otherwise a declared gap.
 
 Not verified: fractional timeouts; a killSignal name outside the ten; numeric killSignal (Node accepts it, txiki rejects it); the orphan case (a shell killed by timeout leaves its sleep child running, as in Node's probe, and that behavior is not compared beyond the cases).
+
+## child-process shell under txiki (2026-11-19)
+
+Reachability (before any implementation): the wrapper /bin/sh -c "<file> <args joined by spaces>" run through tjs.spawn gives the same stdout and status as Node for echo, env expansion, argument joining, quotes and exit 3 (dev body inline; output matched the Node probe).
+
+Node probe: runs/analysis/child-shell-node.mjs (run with --no-deprecation, twice, identical). Measured: execFile shell true runs the joined command through the shell; env expands; args join with spaces without quoting; quotes are kept; exit 3 gives code 3 and cmd 'exit 3'; shell false and the default run the file directly and give ENOENT with message 'spawn echo hi there ENOENT' and no killed key; spawn shell true expands env and joins args.
+
+Design: shellArguments returns { file, argv } unchanged when shell is undefined or false, and otherwise { file: '/bin/sh', argv: ['-c', [file, ...argv].join(' ')] }. A value other than true or false throws the gap. spawn and execFile accept the key; both route through shellArguments.
+
+Not verified: a path string as shell (gap); args containing spaces or shell metacharacters beyond the cases; the DEP0190 warning (Node warns when args are passed with shell true, which txiki does not emit; it goes to stderr and not to any case).

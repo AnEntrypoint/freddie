@@ -2282,6 +2282,33 @@ sharedCases.push(
   { name: "child-process.spawn timeout 0 disables the timer", run: () => timedSpawnOutcome('/bin/sh', ['-c', 'echo late'], { timeout: 0 }), expected: {"stdout":"late\n","code":0,"signal":null,"killed":false} },
 )
 
+const delayed = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+sharedCases.push(
+  { name: "child-process.execFile shell runs the joined command", run: () => execFileOutcome('echo hi there', [], { shell: true }), expected: {"error":null,"stdout":"hi there\n","stderr":""} },
+  { name: "child-process.execFile shell expands env", run: () => execFileOutcome('echo $FOO', [], { shell: true, env: { FOO: 'bar' } }), expected: {"error":null,"stdout":"bar\n","stderr":""} },
+  { name: "child-process.execFile shell joins args with spaces", run: () => execFileOutcome('echo', ['a', 'b c'], { shell: true }), expected: {"error":null,"stdout":"a b c\n","stderr":""} },
+  { name: "child-process.execFile shell keeps quotes", run: () => execFileOutcome('echo "a  b"', [], { shell: true }), expected: {"error":null,"stdout":"a  b\n","stderr":""} },
+  { name: "child-process.execFile shell reports the exit code", run: () => execFileOutcome('exit 3', [], { shell: true }), expected: {"error":{"code":3,"signal":null,"killed":false,"cmd":"exit 3","message":"Command failed: exit 3\n"},"stdout":"","stderr":""} },
+  { name: "child-process.execFile shell false runs the file directly", run: () => execFileOutcome('echo hi there', [], { shell: false }), expected: {"error":{"code":"ENOENT","signal":null,"cmd":"echo hi there","message":"spawn echo hi there ENOENT"},"stdout":"","stderr":""} },
+  { name: "child-process.execFile without shell runs the file directly", run: () => execFileOutcome('echo hi there', [], {}), expected: {"error":{"code":"ENOENT","signal":null,"cmd":"echo hi there","message":"spawn echo hi there ENOENT"},"stdout":"","stderr":""} },
+  { name: "child-process.spawn shell expands env", run: () => envSpawnOutcome('echo $FOO', [], { shell: true, env: { FOO: 'bar' } }), expected: {"stdout":"bar\n","code":0,"signal":null} },
+  { name: "child-process.spawn shell joins args with spaces", run: () => envSpawnOutcome('echo', ['x', 'y'], { shell: true }), expected: {"stdout":"x y\n","code":0,"signal":null} },
+  { name: "child-process.execFile timeout leaves no timer after a normal exit", run: async () => {
+    const outcome = await execFileOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 100 })
+    await delayed(300)
+    return outcome
+  }, expected: {"error":null,"stdout":"ok\n","stderr":""} },
+)
+
+sharedCases.push(
+  { name: "child-process.spawn timeout leaves no timer after close", run: async () => {
+    const outcome = await timedSpawnOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 100 })
+    await delayed(300)
+    return outcome
+  }, expected: {"stdout":"ok\n","code":0,"signal":null,"killed":false} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
