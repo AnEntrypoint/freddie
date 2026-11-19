@@ -806,3 +806,20 @@ Found by Phase B: the txiki parity run (the first one, red) reported unexpectedG
 | Change | Phase A evidence | Phase B witness needed |
 |---|---|---|
 | test/parity-cases.js: gapCases loses stream.Readable.off | txiki parity rerun: unexpectedGaps [] (see the Phase B record) | the Phase B record |
+
+## Phase B: queue items 1 to 3 after d269ae6a (2026-11-19)
+
+Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/s, taken immediately before it.
+
+Run history for the parity witnesses. The first Phase B job ran Node parity and txiki parity once each, plus both contract probes. The txiki parity run was red: unexpectedGaps listed stream.Readable.off, a gap case that still asserted off throws (reading 392 / 0, wall 4.13 s). The fix removed that gap case (commit 7e9ef620). The two parity witnesses were then run again on the fixed tree; those reruns are the witnesses below. The Node parity run from the first job was green (352/352), and the rerun is the same. The contract probes were not rerun, because their code under test did not change.
+
+| Witness | Reading (swap-in / swap-out KB/s) | Result | Wall time |
+|---|---|---|---|
+| node test/parity-node.js (rerun on the fixed tree) | 340 / 0 (1 poll) | 352/352 shared cases match; 0/0 gaps throw the documented message; exit 0 | 4.00 s process (1739 ms in runParity) |
+| parity under gm's txiki (runs/analysis/parity-txiki-body.js, rerun) | 348 / 0 (1 poll) | shared 352, gapAsserted 3, gaps 13, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 4.38 s probe (3827 ms in runParity) |
+| node test/contract-node.js | 528 / 0 (4 polls) | 117 names present across 25 subpaths; exit 0 | 0.20 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 852 / 0 (5 polls) | present 117, missing []; exit 0 | 0.33 s probe |
+
+Phase A witnesses for items 1 to 3 (each change has its own mutation check, already in its section): the file-onto-link case (removing the unlink turns it red); the contract names (removing the readlink export turns the Node contract red with exit 1, and the txiki contract reports the missing name); the Emitter surface (making removeListener a no-op turns 8 Emitter cases red).
+
+Note for the contract witness: the txiki contract probe exits 0 even when a name is missing; its missing list is the red result.
