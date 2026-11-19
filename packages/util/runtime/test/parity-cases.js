@@ -2455,9 +2455,25 @@ sharedCases.push(
   { name: "child-process.execFile windowsHide false is a no-op on Linux", run: () => execRecord('/bin/sh', ['-c', 'echo ok'], { windowsHide: false }), expected: {"error":null,"stdoutLength":3,"stdout":"ok\n","stderr":""} },
 )
 
+const hashOutcome = (run) => {
+  try {
+    return run()
+  } catch (e) {
+    return { threw: { name: e.name ?? null, code: e.code ?? null, message: String(e.message).split('\n')[0].slice(0, 120) } }
+  }
+}
+
+sharedCases.push(
+  { name: "crypto.createHash sha256 outputLength 32 matches the digest size", run: () => hashOutcome(() => s.crypto.createHash('sha256', { outputLength: 32 }).update('abc').digest('hex')), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash md5 outputLength 16 matches the digest size", run: () => hashOutcome(() => s.crypto.createHash('md5', { outputLength: 16 }).update('abc').digest('hex')), expected: "900150983cd24fb0d6963f7d28e17f72" },
+  { name: "crypto.createHash sha512 outputLength 64 matches the digest size", run: () => hashOutcome(() => s.crypto.createHash('sha512', { outputLength: 64 }).update('abc').digest('hex')), expected: "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f" },
+  { name: "crypto.createHash sha256 outputLength 16 throws ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH on digest", run: () => hashOutcome(() => s.crypto.createHash('sha256', { outputLength: 16 }).update('abc').digest('hex')), expected: {"threw":{"name":"Error","code":"ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH","message":"error:030000B2:digital envelope routines::not XOF or invalid length"}} },
+  { name: "crypto.createHash sha256 outputLength 16 throws at createHash", run: () => hashOutcome(() => { s.crypto.createHash('sha256', { outputLength: 16 }); return 'created' }), expected: {"threw":{"name":"Error","code":"ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH","message":"error:030000B2:digital envelope routines::not XOF or invalid length"}} },
+  { name: "crypto.createHash sha256 outputLength 32 creates at createHash", run: () => hashOutcome(() => { s.crypto.createHash('sha256', { outputLength: 32 }); return 'created' }), expected: "created" },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
-  { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'stream.Readable option highWaterMark', run: () => new s.stream.Readable({ highWaterMark: 1 }) },
   { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
@@ -2474,6 +2490,8 @@ export const gapCases = [
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
   { name: 'child-process windowsHide yes', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {}) },
+  { name: 'crypto.createHash outputLength abc', run: () => s.crypto.createHash('sha256', { outputLength: 'abc' }) },
+  { name: 'crypto.createHash shake256', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

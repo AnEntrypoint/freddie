@@ -688,6 +688,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 7k. child-process signal (AbortSignal) on execFile and spawn: done 2026-11-19 (see the signal section). A value without addEventListener stays a gap. Abort kills the child with killSignal; execFile reports AbortError (ABORT_ERR); spawn emits error then close. Already-aborted signals kill at once on spawn and are not started on execFile.
 7l. child-process killSignal as a number: done 2026-11-19 on Linux (see the killSignal section). Numbers in the Linux table map to the ten names txiki accepts; any other number, and any number on a non-Linux host, stays a gap.
 7m. child-process windowsHide: done 2026-11-19 as a no-op on Linux (see the windowsHide section). Boolean values are accepted on execFile and spawn and change nothing; any other value stays a gap.
+7n. crypto.createHash outputLength on non-XOF algorithms: done 2026-11-19 (see the outputLength section). Equal to the digest size is accepted; any other value throws ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH at createHash, as in Node. SHAKE (XOF) algorithms with outputLength stay a gap; a non-number value stays a gap.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -905,3 +906,13 @@ Design: the key is accepted on execFile and spawn; a windowsHideChecked validato
 Not verified: Windows (no Windows host; the platform stays a gap, so windowsHide would not be reached there).
 
 Mutation evidence and the regression numbers are in the PENDING_VALIDATION section for this step.
+
+## crypto.createHash outputLength under txiki (2026-11-19)
+
+Probe on txiki (through mcp-probe): outputLength threw the gap (option key). Node probe: runs/analysis/five-node.mjs (deterministic). Node: outputLength equal to the digest size (sha256 32, md5 16, sha512 64) gives the normal digest; sha256 with 16 throws Error with code ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH and message 'error:030000B2:digital envelope routines::not XOF or invalid length' at createHash (not at digest); the same for any other length.
+
+Design: createHash accepts the outputLength key. A number equal to the digest size of the algorithm (taken from the algorithm's own digest of an empty input, not a table) is accepted; any other number throws notXofError (the same code and message as Node). A shake* name with outputLength gaps, because SHAKE is an XOF in Node and accepts any length, which txiki does not implement; a non-number gaps.
+
+Found by the txiki regression, not the dev body: shake256 (in txiki's hash table) with outputLength 8 threw the digest-length error, not the gap, because the first version of the check did not exclude XOFs. Fixed with the shake gap; the regression is clean after the fix.
+
+Not verified: SHAKE with outputLength (gap); Node's behaviour for outputLength on other XOF names (none in txiki).

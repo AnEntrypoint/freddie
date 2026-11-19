@@ -1666,11 +1666,22 @@ class Hash {
   }
 }
 
+function notXofError() {
+  const error = new Error('error:030000B2:digital envelope routines::not XOF or invalid length')
+  error.code = 'ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH'
+  return error
+}
+
 function createHash(algorithm, options) {
   const name = String(algorithm).toLowerCase()
-  const [key] = Object.keys(options ?? {})
+  const key = Object.keys(options ?? {}).find((option) => option !== 'outputLength')
   if (key !== undefined) throw gapError('crypto.createHash option ' + key)
   if (!Object.hasOwn(HASH_FUNCTIONS, name)) throw gapError('crypto.createHash ' + name)
+  if (options?.outputLength !== undefined) {
+    if (name.startsWith('shake')) throw gapError('crypto.createHash ' + name)
+    if (typeof options.outputLength !== 'number') throw gapError('crypto.createHash outputLength ' + String(options.outputLength))
+    if (options.outputLength !== HASH_FUNCTIONS[name](new Uint8Array()).length) throw notXofError()
+  }
   return new Hash(name)
 }
 

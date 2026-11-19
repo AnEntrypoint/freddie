@@ -1604,3 +1604,27 @@ Mutation evidence (saved good copy; the dev body runs the windowsHide cases on t
 Coverage: every windowsHide case is red under at least one mutation.
 
 Regression (not a witness): txiki parity with gap assertions: shared 611, mismatches [], unexpectedGaps [], gaps 19, gapInactive 1, 15588 ms. Node parity: 611/611.
+
+## fx split: crypto.createHash outputLength on non-XOF, Phase A (2026-11-19)
+
+Rank 7n in docs/fx-split.md. Probes: runs/analysis/five-node.mjs (deterministic; the outputLength cases) and the txiki probe through mcp-probe (gap before the change).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: notXofError (Error, code ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH, the Node message); createHash accepts the outputLength key; a shake* name with outputLength gaps; a number equal to the algorithm's digest size is accepted, any other number throws notXofError; a non-number gaps | before: the outputLength cases threw the gap; after: the 6 shared outputLength cases match on txiki (dev body) and Node; the gap cases 'crypto.createHash outputLength abc' and 'crypto.createHash shake256' match; txiki parity with gap assertions: shared 617, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1, 15226 ms; Node parity 617/617 |
+| test/parity-cases.js: 6 shared cases generated from five-node.out (sha256 32, md5 16, sha512 64 accepted; sha256 16 throws on digest and at createHash; sha256 32 creates); 2 gap cases ('abc' value; shake256, which replaced the old option gap whose probe used shake256) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the outputLength cases and the shake gap on txiki; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| H1: length check reversed | 6 (every shared outputLength case) and the gap case that asserts no option gap is not affected |
+| H2: length check removed | 2 (the two mismatch cases) |
+| H3: key gap restored | 6 shared cases and the abc gap case |
+| H4: wrong error code | 2 (the mismatch cases) |
+| H5: non-number gap removed | 1 (the abc gap case) |
+| X1: shake gap removed | 1 (the shake256 gap case) |
+
+Coverage: every outputLength case and both gap cases are red under at least one mutation.
+
+Regression (not a witness): txiki parity with gap assertions: shared 617, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1. Node parity: 617/617.
