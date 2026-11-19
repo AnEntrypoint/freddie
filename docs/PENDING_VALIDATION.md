@@ -1853,3 +1853,32 @@ Mutation evidence (saved good copy /tmp/stageC-good-txiki.js, which is the edite
 | C-H4: PassThrough names options.highWaterMark instead of the readable side | 1 (PassThrough -1) |
 
 Coverage: every error case is red under at least one mutation (the string '4' case under C-H1 only). The zero case is a control and is not red under any mutation.
+
+## Phase B: stream-level limit, object path, objectMode and highWaterMark errors (7ec83244, after 724554a5), 2026-11-20
+
+Window: one bounded window, one reading every 30 seconds, from the first reading (slot0) to the last witness (slot8), 314 s. Each reading: `vmstat 1 2`, second sample = gate (si, so in KB/s); heavy-job check: `top -bn2 -d1`, second frame, current %CPU, any process at 25% or more that is not a gm-core started with `--handshake`. Each witness started only on a clear reading.
+
+| Slot | Since-boot (si, so) | Gate sample (si, so) | Heavy jobs (current %CPU) | Clear |
+|---|---|---|---|---|
+| 0 | 6370, 9386 | 7796, 0 | 12 rustc processes at 86–91% (another peer) | no |
+| 1 | 6387, 9377 | 676, 0 | none | yes: Node parity started |
+| 2 | 6381, 9364 | 512, 0 | none | yes: txiki parity started |
+| 3 | 6377, 9370 | 2556, 75608 | chromium at 205% and 177% (another peer) | no |
+| 4 | 6390, 9382 | 3184, 0 | none (gate closed) | no |
+| 5 | 6391, 9373 | 2608, 0 | none (gate closed) | no |
+| 6 | 6389, 9363 | 132, 0 | none | yes: Node contract started |
+| 7 | 6399, 9353 | 7784, 0 | none (gate closed) | no |
+| 8 | 6396, 9345 | 148, 8 | none | yes: txiki contract started |
+
+| Witness | Start slot | Command | Result | Wall time |
+|---|---|---|---|---|
+| Node parity | 1 | cd packages/util/runtime && node test/parity-node.js (timeout 150, PID 1392938, exit 0) | node: 665/665 shared cases match; 0/0 gaps throw the documented message; 8854 ms | 9.23 s |
+| txiki parity with gap assertions | 2 | mcp-probe runs/analysis/parity-txiki-body.js (timeout 150, PID 1393561, exit 0) | label txiki, shared 665, gapAsserted 0, gaps 21, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 13654 | 13.84 s |
+| Node contract | 6 | node test/contract-node.js (timeout 150, PID 1396365, exit 0) | node: 117 names present across 25 subpaths | 0.11 s |
+| txiki contract | 8 | mcp-probe runs/analysis/contract-txiki-body.js (timeout 150, PID 1396698, exit 0) | present 117, missing [] | 0.18 s |
+
+Probes: each probe ran under timeout 150, was started by its PID (captured with `$!`) and was waited on to its end; each exited by itself with exit 0 after 0.11 s to 13.84 s. None was stopped by PID because none hung. None was restarted under a new PID. A final `ps` check found no mcp-probe, parity or contract process of mine.
+
+Longest step: the window waiting for the gate (slots 0, 3, 4, 5 and 7 were closed, by other peers' rustc, chromium and loads). What was done about it: readings every 30 s, witnesses started only on clear readings, every probe bounded at 150 s.
+
+Not verified: the four witnesses ran once each.
