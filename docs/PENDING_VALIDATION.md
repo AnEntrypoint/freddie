@@ -438,3 +438,13 @@ The txiki gap names were ranked by pure-JS feasibility in docs/fx-split.md under
 | src/txiki.js: validateHeaderValue (undefined, and characters outside tab, 0x20-0x7e, 0x80-0xff, throw Node's codes and messages); the http export takes it and keeps createServer as a gap; the coded-error helper renamed parseArgsError to codedTypeError, since two features share it | node --check passes | txiki parity: 0 mismatches; contract gap list 48 |
 | test/parity-cases.js: 13 shared cases for validateHeaderValue, including the name-not-checked and coercion cases | node --check passes | Node parity 172/172 |
 | docs/fx-split.md: the ranked list of the 49 gap names with each one's class, and the http gap-table row | grep shows the rows | none |
+
+## fx split: Phase B for http.validateHeaderValue (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.14 s |
+| node test/parity-node.js | 172/172 shared cases match; exit 0 | 0.27 s process, 115 ms in runParity |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.24 s probe |
+| contract gap names under gm's txiki | 48 of the 111 non-default names (was 49): http.validateHeaderValue left the list; the diff against the previous list shows only that name | 0.28 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 172, gapAsserted 5, gaps 14, mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.60 s probe, 323 ms in runParity |
