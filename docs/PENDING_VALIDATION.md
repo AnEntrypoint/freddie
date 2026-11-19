@@ -1057,3 +1057,20 @@ Mutation evidence (each applied to the saved good file, run through the createRe
 Regression (not a witness): Node parity 421 of 421 (2986 ms). txiki parity with gap assertions: shared 421, gapAsserted 0, gaps 11, gapInactive 1, mismatches [], unexpectedGaps [] (4931 ms).
 
 Not verified: base64 and latin1 file encodings beyond the one mutation, start and end, file descriptors, symlinks, and pause and resume with an encoding set.
+
+## Phase B: spawn cwd (c1c58990) and createReadStream encoding (5a90d278), 2026-11-19
+
+Swap gate: `vmstat 1 2 | tail -1`, polled until swap-in (column 7) and swap-out (column 8) were both under 1000 KB/s. It passed on poll 82 of 82 with si 164 KB/s and so 0 KB/s. The first poll read si 8560 and so 88128, and the trace was high for the first 81 polls.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 421/421 shared cases match; 0/0 gaps throw the documented message; 3049 ms | 5.85 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 421, gapAsserted 0, gaps 11, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 4745 | 5.30 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.18 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.30 s |
+
+Wall times are measured around each command in sequence, so they include process startup. The txiki runs include the mcp-probe launch.
+
+Gap assertions: the spawn cwd and createReadStream encoding gap cases are no longer gaps, so gapAsserted is 0 for the first time in this run. The remaining 11 gap cases still throw their documented messages (gapInactive 1 is unchanged).
+
+Not verified in Phase B: the timing trace is one reading of the swap gate, and the wall times are single runs, not averages.
