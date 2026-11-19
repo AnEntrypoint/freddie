@@ -755,3 +755,16 @@ Ranked item 3 in docs/fx-split.md, reopened once tjs.stat was witnessed to retur
 Open divergence (not ported): a regular file copied over an existing link to a regular file. Node raised a raw readlink EINVAL on one run and succeeded on another; txiki copies through the link. Reopen with a Node run that gives one stable result.
 
 Contract name note: test/contract-names.js does not list fs-promises readlink or symlink, which the Readable and cp work added to src/fs-promises.js. The contract probe checks presence only, so it passes.
+
+## Phase B: cp into its own subdirectory and the hard-link inode check (2026-11-19)
+
+Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/s (the reading is recorded per row).
+
+| Witness | Reading (swap-in / swap-out KB/s) | Result | Wall time |
+|---|---|---|---|
+| node test/parity-node.js | 360 / 0 (70 polls) | 335/335 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.70 s process (1454 ms in runParity) |
+| parity under gm's txiki (runs/analysis/parity-txiki-body.js) | 620 / 0 | shared 335, gapAsserted 3, gaps 14, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 2.96 s probe (2514 ms in runParity) |
+| node test/contract-node.js | 48 / 0 | 115 names present across 25 subpaths; exit 0 | 0.17 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 188 / 0 (5 polls) | present 115, missing []; exit 0 | 0.32 s probe |
+
+Mutation check (not a witness): Readable's same-file helper sameFile in src/txiki.js was changed to return false, which removes the ino and dev comparison. Under gm's txiki (runs/analysis/dev-txiki-cp-body.js), the hard-link expectations went red: the cpSubdirScenario case (hard-link-same-inode, hard-link-src-is-dest-other-name, dereference-hard-link-same-inode) and the older "copies symbolic links" case (dereferenceExistingLinkDest, which also depends on the same-file error). The file was restored with git checkout from de7fbd93; git status was clean after the restore.
