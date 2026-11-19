@@ -89,6 +89,7 @@ export const sharedCases = [
   { name: 'buffer isBuffer, with ArrayBuffer.isView for views', run: () => [ArrayBuffer.isView(new Uint8Array(1)), Buffer.isBuffer(Buffer.alloc(1)), Buffer.isBuffer(new Uint8Array(1))], expected: [true, true, false] },
   { name: 'buffer from a typed array copies its values', run: () => Array.from(Buffer.from(new Uint8Array([9, 8]))), expected: [9, 8] },
   { name: 'buffer from an ArrayBuffer', run: () => Buffer.from(new ArrayBuffer(3)).length, expected: 3 },
+  { name: 'buffer has no static isView, as in Node', run: () => typeof Buffer.isView, expected: 'undefined' },
   { name: 'string_decoder keeps a split character', run: () => { const d = new StringDecoder('utf8'); return [d.write(Buffer.from([0xe2, 0x82])), d.end(Buffer.from([0xac]))] }, expected: ['', '€'] },
   { name: 'util.promisify resolves', run: () => s.util.promisify((a, cb) => cb(null, a * 2))(21), expected: 42 },
   { name: 'util.promisify rejects', run: () => s.util.promisify((cb) => cb(new Error('boom')))().then(() => 'resolved', (error) => error.message), expected: 'boom' },

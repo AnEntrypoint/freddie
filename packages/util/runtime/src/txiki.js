@@ -201,10 +201,6 @@ class Buffer extends Uint8Array {
     return value instanceof Buffer
   }
 
-  static isView(value) {
-    return ArrayBuffer.isView(value)
-  }
-
   toString(encoding, start = 0, end = this.length) {
     return CODECS[encodingOf(encoding)].decode(this.subarray(start, end))
   }
