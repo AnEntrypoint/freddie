@@ -2525,6 +2525,17 @@ sharedCases.push(
   { name: 'fs.createReadStream start, end and highWaterMark set the chunk sizes', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamLengths(s.fs.createReadStream(file, { start: 1, end: 8, highWaterMark: 3 })) }, expected: [3, 3, 2] },
 )
 
+sharedCases.push(
+  { name: 'fs.promises.writeFile rs+ overwrites from start', run: () => writeFlagOutcome([{ file: 'f', data: 'abcdef', flag: 'w' }], { file: 'f', data: 'XY', flag: 'rs+' }), expected: { content: 'XYcdef', mode: '644' } },
+  { name: 'fs.promises.writeFile rs+ missing ENOENT', run: () => writeFlagOutcome([], { file: 'f', data: 'XY', flag: 'rs+' }), expected: { error: 'ENOENT' } },
+  { name: 'fs.promises.writeFile as new creates', run: () => writeFlagOutcome([], { file: 'f', data: 'add', flag: 'as' }), expected: { content: 'add', mode: '644' } },
+  { name: 'fs.promises.writeFile as existing appends', run: () => writeFlagOutcome([{ file: 'f', data: 'base', flag: 'w' }], { file: 'f', data: 'add', flag: 'as' }), expected: { content: 'baseadd', mode: '644' } },
+  { name: 'fs.promises.writeFile as+ existing appends', run: () => writeFlagOutcome([{ file: 'f', data: 'base', flag: 'w' }], { file: 'f', data: 'add', flag: 'as+' }), expected: { content: 'baseadd', mode: '644' } },
+  { name: 'fs.promises.writeFile as+ new creates', run: () => writeFlagOutcome([], { file: 'f', data: 'add', flag: 'as+' }), expected: { content: 'add', mode: '644' } },
+  { name: 'fs.promises.writeFile string mode 0600 new', run: () => writeFlagOutcome([], { file: 'f', data: 'm', flag: 'w', mode: '0600' }), expected: { content: 'm', mode: '600' } },
+  { name: 'fs.promises.writeFile string mode 0600 ignored when file exists', run: () => writeFlagOutcome([{ file: 'f', data: 'old', flag: 'w', mode: 420 }], { file: 'f', data: 'new', flag: 'w', mode: '0600' }), expected: { content: 'new', mode: '644' } },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -2537,8 +2548,7 @@ export const gapCases = [
   { name: 'fs.createReadStream option highWaterMark -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
-  { name: 'fs.promises.writeFile with flag rs+', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { flag: 'rs+' }) },
-  { name: 'fs.promises.writeFile with mode 0600', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: '0600' }) },
+  { name: 'fs.promises.writeFile with mode zz', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: 'zz' }) },
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },

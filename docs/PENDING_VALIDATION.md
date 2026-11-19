@@ -1729,3 +1729,26 @@ Mutation evidence (saved good copy /tmp/stage2-good-txiki.js; each run through m
 | S2M3: block size ignored | 2 (highWaterMark 4 gives [10]; start, end and highWaterMark give [8]) |
 | S2M4: skip loop removed | 2 (same as S2M1 for the start cases) |
 | S2M5: stream-level highWaterMark not forwarded to the stream | 0: not covered. The stream's own limit is not observable in the suite (there is no getter for it), so no witness is red. Recorded as a gap in the witnesses, not hidden. |
+
+## fx split: writeFile flags rs+, as, as+ and string modes, Phase A (2026-11-19)
+
+Rank 7r in docs/fx-split.md. Node probes: runs/analysis/stream-shapes-node.mjs (rs+ over 'abcdef' with 'XY' gives 'XYcdef'; rs+ on a missing file gives ENOENT; as creates 'add' with mode 644; as on 'base' gives 'baseadd'; as+ on 'base' gives 'baseadd'; string mode '0600' gives mode 600; a string mode on an existing file keeps its mode 644) and runs/analysis/stream-shapes3-node.mjs (as+ creating 'add' gives mode 644). Both exit 0 under timeout 60. tjs.open accepts 'as', 'as+' and 'rs+' (runs/analysis/dev-txiki-shapes-body.js through mcp-probe: as and as+ append; rs+ overwrites from the start, 'XYcdef'); tjs.open has no seek, which is why createReadStream start was done by discarding bytes.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: WRITE_FILE_FLAGS adds 'rs+', 'as' and 'as+'; modeOf accepts a number, or a string of octal digits (parsed as base 8), and gaps any other string | before: rs+, as, as+ and string modes gapped; after: 8 new shared cases match on txiki (full parity run, 644 shared) and Node (644/644) |
+| test/parity-cases.js: 8 shared cases (rs+ overwrite and ENOENT; as new and existing; as+ new and existing; string mode 0600 new and on an existing file); the gaps 'fs.promises.writeFile with flag rs+' and 'fs.promises.writeFile with mode 0600' are replaced by 'fs.promises.writeFile with mode zz' | the same runs |
+
+Regression: txiki parity with gap assertions: shared 644, mismatches [], unexpectedGaps [], gaps 23, gapInactive 1, 15216 ms. Node parity 644/644 (8211 ms).
+
+Mutation evidence (saved good copy /tmp/stage3-good-txiki.js; each run through mcp-probe with timeout 150 and a gate reading before it; restore checked with cmp, git status shows the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S3M1: rs+ removed from the whitelist | 2 (rs+ overwrite; rs+ ENOENT) |
+| S3M2: as removed from the whitelist | 2 (as new; as existing) |
+| S3M3: as+ removed from the whitelist | 2 (as+ existing; as+ new) |
+| S3M4: string modes gapped | 2 (string mode new; string mode on an existing file) |
+| S3M5: string modes parsed as decimal | 1 (string mode new, threw EACCES). The existing-file case stays green, because a file that exists keeps its mode, so the parse is not reached on it. |
+
+Coverage: every new shared case is red under at least one mutation.
