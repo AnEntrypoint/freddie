@@ -416,3 +416,15 @@ Ranked items 7 and 8 in docs/fx-split.md. Both are implemented in pure JS in src
 | test/parity-cases.js: 6 os.networkInterfaces shared cases; 41 util.parseArgs shared cases; parseArgsOutcome helper; loopbackEntries helper; gap entry util.parseArgs without args | node --check passes | Node parity 159/159; txiki parity 159/159 with 0 mismatches, 14 gaps |
 | docs/fx-split.md: util row removed from the gap table; os row drops networkInterfaces; ranked rows 7 and 8 marked done; section for both | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-os-networkinterfaces-and-parseargs.md: Agent Note | none | none |
+
+## fx split: Phase B for ranked items 7 and 8 (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.09 s |
+| node test/parity-node.js | 159/159 shared cases match (6 networkInterfaces, 41 parseArgs, the rest unchanged); exit 0 | 0.19 s process, 91 ms in runParity |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.18 s probe |
+| contract gap names under gm's txiki | 49 of the 111 non-default names are gaps (was 51): os.networkInterfaces and util.parseArgs left the list | 0.16 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 159, gapAsserted 5, gaps 14, mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.47 s probe, 301 ms in runParity |
+
+Gap names in the txiki contract (49): fs.accessSync fs.closeSync fs.createReadStream fs.existsSync fs.lstatSync fs.mkdirSync fs.mkdtempSync fs.openSync fs.readFileSync fs.readSync fs.readdirSync fs.readlinkSync fs.realpathSync fs.rmSync fs.statSync fs.symlinkSync fs.unlinkSync fs.unwatchFile fs.watchFile fs.writeFileSync fs.writeSync crypto.createHash stream.PassThrough stream.Readable stream.Writable stream.pipeline module.createRequire module.stripTypeScriptTypes child-process.execFile child-process.execFileSync child-process.spawn child-process.spawnSync os.platform os.release worker-threads.Worker async-hooks.AsyncLocalStorage vm.Script vm.createContext vm.runInContext http.createServer http.validateHeaderValue zlib.brotliCompress zlib.createZstdDecompress zlib.gunzip zlib.gzip zlib.zstdCompress zlib.zstdDecompress zlib.zstdDecompressSync inspector.Session.
