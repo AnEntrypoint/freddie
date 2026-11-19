@@ -479,3 +479,13 @@ Ranked item 3 in docs/fx-split.md. Both leave the sync-fs gap list; the decision
 | test/parity-cases.js: 5 shared cases, each with a 20 ms interval and a 2000 ms deadline: the Node-shaped current and previous stats after a change; unwatch stopping events; a missing path giving one zeroed event; a path reporting once it appears; silence while unchanged. The helpers remove each watcher in a finally block | node --check passes; Node parity 181/181 | txiki parity 181/181, mismatches [], unexpectedGaps []; Node parity 181/181 |
 | docs/fx-split.md: ranked row 3 marked done; the fs (sync) gap row drops the two names; a section with the decisions (missing path, sub-ms precision, return value, interval) | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-fs-watchfile.md: the Agent Note for the change | none | none |
+
+## fx split: Phase B for fs.watchFile and fs.unwatchFile (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.19 s |
+| node test/parity-node.js, runs 1 to 3 (timing cases) | 181/181 shared cases match each run; exit 0 each run (696, 738, 717 ms in runParity) | 0.81, 0.86, 0.87 s process |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.30 s probe |
+| contract gap names under gm's txiki | 45 of the non-default names (was 47): fs.watchFile and fs.unwatchFile left the list | 0.32 s probe |
+| parity under gm's txiki, runs 1 to 3 (timing cases) | shared 181, gapAsserted 5, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 each run (1074, 1154, 1082 ms in runParity) | 1.33, 1.45, 1.37 s probe |
