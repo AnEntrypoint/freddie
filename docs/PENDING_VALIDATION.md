@@ -576,3 +576,14 @@ Ranked item 6 in docs/fx-split.md. spawn is a pure-JS ChildProcess over tjs.spaw
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 242, gapAsserted 7, gaps 12 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 1.63 s probe (1257 ms in runParity) |
 | contract under gm's txiki | present 115, missing [] | 0.19 s probe |
 | contract gap names under gm's txiki | 41 of the non-default names (was 42): child-process.spawn left the list | 0.20 s probe |
+
+## fx split: zlib.gzip as stored blocks under txiki (2026-11-19)
+
+Ranked item 5 in docs/fx-split.md. zlib.gzip is a pure-JS stored-block encoder; zlib.gunzip is pure JS. Byte parity with Node's compressed output stays open.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: STORED_BLOCK_MAX, writeUint32LittleEndian, gzipBytes (10-byte header, stored blocks, CRC-32 and length trailer), gzip (callback form, zlib input, async done); gzip removed from the zlib gap list and exported | grep shows the functions and the export; node --check runs in Phase B | see Phase B |
+| test/parity-cases.js: zlib.gzip round trip, header bytes and trailer lose the gap field and become shared; empty input checks the round trip only (the length 20 expectation is removed, because stored output differs in length); new cases: a 70000-byte round trip across two stored blocks and a trailer of [112, 17, 1, 0]; four gap fields removed | grep shows the cases | see Phase B |
+| docs/fx-split.md: the stored-block section, the ranked item 5 row, the superseded markers on the earlier zlib decisions | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-zlib-gzip-stored.md: Agent Note | none | none |

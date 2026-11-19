@@ -1485,6 +1485,44 @@ function gunzip(buffer, options, callback) {
   setTimeout(() => (failure === undefined ? done(null, output) : done(failure)), 0)
 }
 
+const STORED_BLOCK_MAX = 0xffff
+
+function writeUint32LittleEndian(bytes, position, value) {
+  bytes[position] = value & 0xff
+  bytes[position + 1] = (value >>> 8) & 0xff
+  bytes[position + 2] = (value >>> 16) & 0xff
+  bytes[position + 3] = (value >>> 24) & 0xff
+}
+
+function gzipBytes(bytes) {
+  const blockCount = Math.max(1, Math.ceil(bytes.length / STORED_BLOCK_MAX))
+  const output = new Uint8Array(10 + blockCount * 5 + bytes.length + 8)
+  output.set([0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 0, 3], 0)
+  let position = 10
+  for (let offset = 0; ; ) {
+    const length = Math.min(STORED_BLOCK_MAX, bytes.length - offset)
+    const final = offset + length === bytes.length
+    output[position++] = final ? 1 : 0
+    output[position++] = length & 0xff
+    output[position++] = length >>> 8
+    output[position++] = ~length & 0xff
+    output[position++] = (~length >>> 8) & 0xff
+    output.set(bytes.subarray(offset, offset + length), position)
+    position += length
+    offset += length
+    if (final) break
+  }
+  writeUint32LittleEndian(output, position, crc32(bytes))
+  writeUint32LittleEndian(output, position + 4, bytes.length)
+  return output
+}
+
+function gzip(buffer, options, callback) {
+  const done = typeof options === 'function' ? options : callback
+  const output = Buffer.from(gzipBytes(zlibInput(buffer)))
+  setTimeout(() => done(null, output), 0)
+}
+
 function execFileArguments(args, options, callback) {
   if (typeof args === 'function') return { argv: [], opts: {}, done: args }
   if (!Array.isArray(args)) return { argv: [], opts: args ?? {}, done: options }
@@ -1687,8 +1725,9 @@ export const txikiRuntime = {
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
     constants: withGaps('zlib.constants', {}),
+    gzip,
     gunzip,
-    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
+    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
   }),
   inspector: withGaps('inspector', { Session: gapClass('inspector.Session') }),
   stringDecoder: withGaps('string_decoder', { StringDecoder }),

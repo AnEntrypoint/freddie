@@ -365,7 +365,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 2 | util.isDeepStrictEqual and util.parseEnv in pure JS (done 2026-11-19: 91/91 parity under Node and txiki) | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
 | 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal (done 2026-11-19: 98/98 parity under Node and txiki) | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
 | 4 | fs.promises.opendir (done 2026-11-19: 102/102 parity under Node and txiki) | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
-| 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | blocked: gaps under txiki, because the globals throw "not a function" for every valid format in this build (see the zlib section) | parity cases for the round trip, header bytes, trailer, empty input and bad input |
+| 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | done 2026-11-19 for a round trip: zlib.gzip is a pure-JS stored-block encoder (no compression) and zlib.gunzip is pure JS. Byte parity with Node compressed output stays an open gap (see the stored-block section) | round-trip, header, trailer, empty and multi-block cases pass under Node and txiki |
 | 6 | fs.promises.writeFile with flag a (done 2026-11-19: the 5 append cases pass under Node and txiki) | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
 | 7 | os.networkInterfaces (done 2026-11-19: 6 parity cases, Node and txiki agree) | txiki exposes a flat array, regrouped in pure JS | a probe of its shape, then a parity case against Node's shape |
 | 8 | util.parseArgs (done 2026-11-19: 41 parity cases, Node and txiki agree) | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
@@ -386,13 +386,13 @@ Found by the parity run: gm's txiki loader does not resolve symlinks to one real
 
 ## zlib gzip and gunzip under txiki (2026-11-19): gaps, decided
 
-Decision (zlib.gunzip superseded 2026-11-19, see the gunzip section below; zlib.gzip still a gap): zlib.gzip and zlib.gunzip are gaps under txiki. They are not present names. Each throws the documented gap message when called: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)", and the same with zlib.gunzip.
+Decision (zlib.gunzip superseded 2026-11-19, see the gunzip section below; zlib.gzip superseded 2026-11-19, see the stored-block section): zlib.gzip and zlib.gunzip are gaps under txiki. They are not present names. Each throws the documented gap message when called: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)", and the same with zlib.gunzip.
 
 Reason: under gm's txiki, the CompressionStream and DecompressionStream globals exist but throw TypeError "not a function" for every valid format (gzip, deflate, deflate-raw). Only an unknown format is validated ("Unsupported compression format: 'bogus'"), so the native compressor behind valid formats is missing from this build. The txiki build source is not in this checkout, so the missing component is inferred from that symptom. A zlib implementation over these streams could only throw that error, so a gap states the actual state. Callers get the documented message instead of a raw TypeError.
 
 Removed: the callback-form implementation added in 7f2e5983 (bytesOf, concatBytes, transformBytes, runCodec, gzip, gunzip). It stays in that commit's history and can be restored once the build provides a working compressor.
 
-Contract: gunzip is a contract name, so the zlib list has 115 names in total. Under txiki the contract reports 115 names present, because a gap member is present by design. Of the 111 non-default names, 51 are gaps, and zlib.gzip and zlib.gunzip are among them.
+Contract: gunzip is a contract name, so the zlib list has 115 names in total. Under txiki the contract reports 115 names present, because a gap member is present by design. Of the 111 non-default names, 51 are gaps, zlib.gunzip is done and zlib.gzip is done in stored form (see the stored-block section); the count is re-measured there.
 
 Parity: the five zlib cases in test/parity-cases.js (round trip, header bytes, trailer, empty input, bad input) keep their Node expectations and run under Node unchanged. Each carries a gap field. Under txiki each must throw the documented message for the named gap, and the runner counts it as gap-asserted rather than a value match. The bad-input case's Node expectation is Node's own message, "incorrect header check" (its code is Z_DATA_ERROR). The gap entries zlib.gzip and zlib.gunzip assert the same documented message directly.
 
@@ -437,7 +437,7 @@ Excluded, with the reason:
 - async-hooks.AsyncLocalStorage: native. txiki has no async context to propagate.
 - vm.Script, vm.createContext, vm.runInContext: native or fx. They need a separate realm.
 - http.createServer: owner decision. tjs.serve has a different shape, so the server API needs designing.
-- zlib.gzip: owner decision. Its bytes differ from Node's deflate unless the algorithm is reproduced, so byte parity is the owner's call. zlib.gunzip is done (see the gunzip section).
+- zlib.gzip: stored-block gzip done 2026-11-19; compressed byte parity is still the owner decision. Its bytes differ from Node's deflate unless the algorithm is reproduced, so byte parity is the owner's call. zlib.gunzip is done (see the gunzip section).
 - zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: owner decision and native. Brotli and zstd are not realistic in pure JS here.
 - inspector.Session: native.
 
@@ -531,16 +531,16 @@ Decisions:
 - Bytes after a member must start another gzip member, as in Node. Anything else raises "incorrect header check".
 - Errors carry code and errno (Z_DATA_ERROR -3, Z_BUF_ERROR -5), as Node's do.
 - Not checked against Node: the messages for other malformed streams (invalid block type, invalid distance, invalid code). They exist, but no fixture produces them, so they are unverified.
-- zlib.gzip remains a gap. Its bytes differ from Node's deflate, and the byte-parity decision stays with the owner.
+- zlib.gzip is a stored-block encoder since 2026-11-19 (see its section); compressed bytes still differ. Its bytes differ from Node's deflate, and the byte-parity decision stays with the owner.
 
 
 ## zlib.gzip byte parity: decided open (2026-11-19)
 
-Decision: zlib.gzip stays a documented gap under txiki, asserted in the gap check. Byte parity with Node's deflate is recorded as open, not closed.
+Decision (part superseded 2026-11-19): zlib.gzip is no longer a gap; its output is stored-block gzip. Compressed byte parity stays open, asserted in the gap check. Byte parity with Node's deflate is recorded as open, not closed.
 
 Reason: Node's default output comes from zlib's deflate (lazy matching, hash chains, dynamic Huffman tree construction, block splitting). Reproducing its bytes exactly is a separate, large algorithm port, and no shipped caller needs it: the agent code paths that gzip only need a valid gzip stream. A round trip through Node's gunzip and the txiki gunzip verifies correctness without byte parity, so a partial implementation would add a surface that matches only some levels. Keeping the name a gap keeps the contract honest.
 
-What would reopen it: a caller that depends on Node's exact compressed bytes (for example a stored checksum over gzipped output), or a decision to port zlib's deflate. Until then the gap message stands: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)".
+What would reopen it: a caller that depends on Node's exact compressed bytes (for example a stored checksum over gzipped output), or a decision to port zlib's deflate. Until then compressed byte parity stays open. The retired gap message was: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)".
 
 
 ## child-process.execFile under txiki (2026-11-19)
@@ -579,3 +579,19 @@ Decisions, each reversible, with its reason:
 - error with no listener is silent here, where Node throws. Difference, recorded.
 
 Verified (Node oracle): exit code and close order; SIGTERM from kill after the spawn event, returning true and setting killed; missing command error and close; a numeric pid after the spawn event; kill before the spawn event returns true, as in Node; the gap cases for stdout, option cwd. Not verified: grandchild pipes, output content, unknown signal names, and listeners that throw.
+
+## zlib.gzip as stored blocks under txiki (2026-11-19)
+
+Decision: zlib.gzip is a pure-JS encoder that writes stored (uncompressed) deflate blocks, with the gzip header, CRC-32 and length trailer. zlib.gunzip (pure JS, earlier) decodes it. This reverses the earlier "zlib.gzip stays a gap" decision, and it keeps the byte-parity decision open.
+
+Reason: a stored-block gzip is a valid gzip stream that Node and every inflater accept. It needs no compressor, so it does not depend on the missing txiki zlib backend. A stored-block output cannot match Node's compressed bytes, so the byte-parity gap stays declared in this section and in the open decision above; no parity case asserts those bytes.
+
+Choices, each reversible:
+- Blocks hold up to 65535 bytes. Empty input is one final block of length 0.
+- The header is 10 bytes: magic, deflate, mtime 0, XFL 0, OS 3. Node writes the same header at its default level, so the header is a shared case.
+- The trailer is CRC-32 and the input length modulo 2^32, little-endian. It is a shared case, including a length above 65535.
+- Output size differs from Node for every input (stored blocks add five bytes each, and Node compresses). The empty-input case therefore checks the round trip, not the length of 20 bytes Node gives. That length expectation was removed from the shared cases.
+
+Verified (Phase A, by reading the code; Node runs decide the rest): the five zlib cases that had a gap field lost it, so header, trailer and round trip are shared cases. Three cases are added: empty round trip, a 70000-byte round trip across two stored blocks, and a trailer of [112, 17, 1, 0] for length 70000.
+
+Not matched or not verified: compressed bytes, Node's output length, and any input that Node's compressor treats differently. Byte parity remains the owner's decision.

@@ -233,10 +233,12 @@ const zlibGzip = (input) => new Promise((resolve, reject) => s.zlib.gzip(input, 
 const zlibGunzip = (input) => new Promise((resolve, reject) => s.zlib.gunzip(input, (error, output) => (error ? reject(error) : resolve(output))))
 
 sharedCases.push(
-  { name: 'zlib.gzip then gunzip round-trips a string', run: async () => (await zlibGunzip(await zlibGzip(Buffer.from('hello hello')))).toString(), expected: 'hello hello', gap: 'zlib.gzip' },
-  { name: 'zlib.gzip header bytes match Node (magic, deflate, zero mtime, XFL 0, OS 3)', run: async () => Array.from((await zlibGzip(Buffer.from('hello hello'))).subarray(0, 10)), expected: [31, 139, 8, 0, 0, 0, 0, 0, 0, 3], gap: 'zlib.gzip' },
-  { name: 'zlib.gzip trailer records the input length', run: async () => Array.from((await zlibGzip(Buffer.from('abc'))).subarray(-4)), expected: [3, 0, 0, 0], gap: 'zlib.gzip' },
-  { name: 'zlib.gzip of empty input is 20 bytes and gunzips to empty', run: async () => [(await zlibGzip(Buffer.alloc(0))).length, (await zlibGunzip(await zlibGzip(Buffer.alloc(0)))).length], expected: [20, 0], gap: 'zlib.gzip' },
+  { name: 'zlib.gzip then gunzip round-trips a string', run: async () => (await zlibGunzip(await zlibGzip(Buffer.from('hello hello')))).toString(), expected: 'hello hello' },
+  { name: 'zlib.gzip header bytes match Node (magic, deflate, zero mtime, XFL 0, OS 3)', run: async () => Array.from((await zlibGzip(Buffer.from('hello hello'))).subarray(0, 10)), expected: [31, 139, 8, 0, 0, 0, 0, 0, 0, 3] },
+  { name: 'zlib.gzip trailer records the input length', run: async () => Array.from((await zlibGzip(Buffer.from('abc'))).subarray(-4)), expected: [3, 0, 0, 0] },
+  { name: 'zlib.gzip of empty input gunzips to empty', run: async () => (await zlibGunzip(await zlibGzip(Buffer.alloc(0)))).length, expected: 0 },
+  { name: 'zlib.gzip of 70000 bytes spans two stored blocks and round-trips', run: async () => (await zlibGunzip(await zlibGzip(Buffer.alloc(70000, 97)))).length, expected: 70000 },
+  { name: 'zlib.gzip trailer records a length above 65535', run: async () => Array.from((await zlibGzip(Buffer.alloc(70000, 97))).subarray(-4)), expected: [112, 17, 1, 0] },
   { name: 'zlib.gunzip rejects bytes that are not gzip', run: () => zlibGunzip(Buffer.from('nope')), expected: 'threw: incorrect header check' },
 )
 
@@ -636,7 +638,6 @@ export const gapCases = [
   { name: 'stream.Readable', run: () => new s.stream.Readable() },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
-  { name: 'zlib.gzip', run: () => s.zlib.gzip(Buffer.alloc(0), () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
