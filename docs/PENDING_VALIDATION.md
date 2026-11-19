@@ -823,3 +823,13 @@ Run history for the parity witnesses. The first Phase B job ran Node parity and 
 Phase A witnesses for items 1 to 3 (each change has its own mutation check, already in its section): the file-onto-link case (removing the unlink turns it red); the contract names (removing the readlink export turns the Node contract red with exit 1, and the txiki contract reports the missing name); the Emitter surface (making removeListener a no-op turns 8 Emitter cases red).
 
 Note for the contract witness: the txiki contract probe exits 0 even when a name is missing; its missing list is the red result.
+
+## fx split: Writable cork, uncork and setDefaultEncoding (2026-11-19)
+
+Ranked item 5 in docs/fx-split.md, taken first because it is the Writable surface behind pipe (pipe itself is already ported; its shared cases pass). Probe: runs/analysis/stream-gaps-node.mjs (cork, uncork, double cork, writev under cork, end while corked, setDefaultEncoding hex with and without decodeStrings, the unknown-encoding error, and the writev backlog without cork). Expectations are the probe output.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Writable gains cork, uncork, writableCorked, setDefaultEncoding; writes buffer while corked; uncork and end flush through _write or, with two or more buffered and a writev option, through _writev; decodeStrings option; encodingOf throws with code ERR_UNKNOWN_ENCODING; the three names leave the Writable gap list | dev: 66 of 66 txiki stream cases pass with failing [] (verify-item1.out, after the mutation restore); Node dev 68 of 68 SAME (dev-item1-node.out) | Node parity and txiki parity |
+| test/parity-cases.js: 9 Writable cases from the probe output; the stream.Writable.cork gap case is removed | the same cases | Node parity and txiki parity |
+| Mutation: uncork without the flush makes 3 cork cases red; setDefaultEncoding ignoring the set value makes 2 cases red; each restored and checked | /tmp/mut-uncork.out and /tmp/mut-default.out | none |

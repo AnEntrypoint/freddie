@@ -775,6 +775,108 @@ function emitterAddListenerReturnsThis() {
   return r.addListener('x', () => {}) === r
 }
 
+async function writableCorkBuffers() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { log.push('_write ' + c.toString() + ' ' + e); cb() } })
+  log.push('cork returns ' + typeof w.cork())
+  log.push('corked ' + w.writableCorked)
+  w.write('a')
+  w.write('b')
+  log.push('before uncork ' + log.filter((x) => x.startsWith('_write')).length)
+  log.push('uncork returns ' + typeof w.uncork())
+  log.push('after uncork corked ' + w.writableCorked)
+  await wait(10)
+  return log
+}
+
+async function writableCorkWritev() {
+  const log = []
+  const w = new s.stream.Writable({ writev(chunks, cb) { log.push('writev ' + chunks.map((x) => x.chunk.toString() + ':' + x.encoding).join(',')); cb() }, write(c, e, cb) { log.push('_write ' + c.toString()); cb() } })
+  w.cork()
+  w.write('a')
+  w.write('b')
+  w.uncork()
+  await wait(10)
+  return log
+}
+
+async function writableDoubleCork() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { log.push('_write ' + c.toString()); cb() } })
+  w.cork()
+  w.cork()
+  log.push('corked ' + w.writableCorked)
+  w.write('a')
+  w.uncork()
+  await wait(5)
+  log.push('after one uncork writes ' + log.filter((x) => x.startsWith('_write')).length + ' corked ' + w.writableCorked)
+  w.uncork()
+  await wait(5)
+  log.push('after second uncork writes ' + log.filter((x) => x.startsWith('_write')).length)
+  return log
+}
+
+function writableUncorkWithoutCork() {
+  const w = new s.stream.Writable({ write(c, e, cb) { cb() } })
+  w.uncork()
+  return 'corked ' + w.writableCorked
+}
+
+async function writableEndWhileCorked() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { log.push('_write ' + c.toString()); cb() } })
+  w.on('finish', () => log.push('finish'))
+  w.cork()
+  w.write('a')
+  w.end()
+  log.push('after end corked ' + w.writableCorked)
+  await wait(10)
+  return log
+}
+
+async function writableSetDefaultEncodingHex() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { log.push('_write ' + c.toString() + ' ' + e + ' ' + Buffer.isBuffer(c)); cb() } })
+  const ret = w.setDefaultEncoding('hex')
+  log.push('returns same ' + (ret === w))
+  w.write('6869')
+  await wait(5)
+  return log
+}
+
+async function writableSetDefaultEncodingNoDecode() {
+  const log = []
+  const w = new s.stream.Writable({ decodeStrings: false, write(c, e, cb) { log.push('_write ' + typeof c + ' ' + c + ' ' + e); cb() } })
+  w.setDefaultEncoding('hex')
+  w.write('6869')
+  await wait(5)
+  return log
+}
+
+function writableSetDefaultEncodingInvalid() {
+  const w = new s.stream.Writable({ write(c, e, cb) { cb() } })
+  try {
+    w.setDefaultEncoding('bogus')
+    return 'ok'
+  } catch (error) {
+    return error.code
+  }
+}
+
+async function writableWritevBacklogNoCork() {
+  const log = []
+  const w = new s.stream.Writable({
+    write(c, e, cb) { log.push('_write ' + c.toString()); setTimeout(cb, 2) },
+    writev(chunks, cb) { log.push('writev ' + chunks.map((x) => x.chunk.toString()).join(',')); setTimeout(cb, 2) }
+  })
+  w.write('a')
+  w.write('b')
+  w.write('c')
+  w.end()
+  await new Promise((resolve) => w.on('finish', resolve))
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -929,6 +1031,15 @@ export const sharedCases = [
   { name: 'stream Emitter: off("readable") resets flowing to null after a tick', run: () => streamSettle(emitterOffReadableResetsFlowing()), expected: ["flowing null"] },
   { name: 'stream Emitter: removeAllListeners("readable") resets flowing to null after a tick', run: () => streamSettle(emitterRemoveAllReadableResetsFlowing()), expected: ["flowing null"] },
   { name: 'stream Emitter: addListener returns the stream', run: () => emitterAddListenerReturnsThis(), expected: true },
+  { name: 'stream Writable.cork: writes buffer until uncork, then each goes to _write with the buffer encoding', run: () => streamSettle(writableCorkBuffers()), expected: ["cork returns undefined","corked 1","before uncork 0","_write a buffer","_write b buffer","uncork returns undefined","after uncork corked 0"] },
+  { name: 'stream Writable.cork: a corked backlog goes to _writev as one call when writev is defined', run: () => streamSettle(writableCorkWritev()), expected: ["writev a:buffer,b:buffer"] },
+  { name: 'stream Writable.cork: two cork calls need two uncork calls before the buffer flushes', run: () => streamSettle(writableDoubleCork()), expected: ["corked 2","after one uncork writes 0 corked 1","_write a","after second uncork writes 1"] },
+  { name: 'stream Writable.uncork without cork does nothing', run: () => writableUncorkWithoutCork(), expected: "corked 0" },
+  { name: 'stream Writable.end uncorks a corked stream, so the buffer is written and finish follows', run: () => streamSettle(writableEndWhileCorked()), expected: ["_write a","after end corked 0","finish"] },
+  { name: 'stream Writable.setDefaultEncoding hex decodes a string write to a Buffer, passed with encoding buffer', run: () => streamSettle(writableSetDefaultEncodingHex()), expected: ["returns same true","_write hi buffer true"] },
+  { name: 'stream Writable.setDefaultEncoding with decodeStrings false passes the string and its encoding', run: () => streamSettle(writableSetDefaultEncodingNoDecode()), expected: ["_write string 6869 hex"] },
+  { name: 'stream Writable.setDefaultEncoding with an unknown encoding throws ERR_UNKNOWN_ENCODING', run: () => writableSetDefaultEncodingInvalid(), expected: "ERR_UNKNOWN_ENCODING" },
+  { name: 'stream Writable: a backlog of two or more writes goes to _writev when it is defined, one write goes to _write', run: () => streamSettle(writableWritevBacklogNoCork()), expected: ["_write a","writev b,c"] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
@@ -1545,7 +1656,6 @@ export const gapCases = [
   { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
   { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
   { name: 'fs.createReadStream option encoding', run: () => s.fs.createReadStream('/nonexistent-freddie-stream/x', 'utf8') },
-  { name: 'stream.Writable.cork', run: () => new s.stream.Writable().cork() },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },

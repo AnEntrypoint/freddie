@@ -64,7 +64,7 @@ function withGaps(name, members) {
 
 function encodingOf(encoding = 'utf8') {
   const name = ENCODINGS.get(String(encoding).toLowerCase())
-  if (name === undefined) throw new TypeError('Unknown encoding: ' + String(encoding))
+  if (name === undefined) throw Object.assign(new TypeError('Unknown encoding: ' + String(encoding)), { code: 'ERR_UNKNOWN_ENCODING' })
   return name
 }
 
@@ -1843,16 +1843,49 @@ class Writable extends Emitter {
   #needDrain = false
   #finishCallbacks = []
   #failure = null
+  #corked = 0
+  #defaultEncoding = 'utf8'
+  #decodeStrings = true
 
   constructor(options) {
     super()
-    assertNoOptions('stream.Writable', options, ['write', 'final'])
+    assertNoOptions('stream.Writable', options, ['write', 'final', 'writev', 'decodeStrings'])
     if (options?.write !== undefined) this._write = options.write
     if (options?.final !== undefined) this._final = options.final
+    if (options?.writev !== undefined) this._writev = options.writev
+    if (options?.decodeStrings === false) this.#decodeStrings = false
   }
 
   get writableNeedDrain() {
     return !this.#ending && !this.#destroyed && this.#needDrain
+  }
+
+  get writableCorked() {
+    return this.#corked
+  }
+
+  cork() {
+    this.#corked += 1
+  }
+
+  uncork() {
+    if (this.#corked === 0) return
+    this.#corked -= 1
+    this.#drain()
+  }
+
+  setDefaultEncoding(encoding) {
+    encodingOf(encoding)
+    this.#defaultEncoding = String(encoding).toLowerCase()
+    return this
+  }
+
+  #entryOf(chunk, encoding, callback) {
+    if (typeof chunk !== 'string') return { chunk, encoding: 'buffer', callback, length: chunk.length }
+    const enc = encoding || this.#defaultEncoding
+    if (!this.#decodeStrings) return { chunk, encoding: enc, callback, length: chunk.length }
+    const bytes = Buffer.from(chunk, enc)
+    return { chunk: bytes, encoding: 'buffer', callback, length: bytes.length }
   }
 
   _write(chunk, encoding, callback) {
@@ -1878,9 +1911,9 @@ class Writable extends Emitter {
       nextTick(() => callback?.(destroyedError()))
       return false
     }
-    const bytes = bytesOf(chunk, encoding)
-    this.#queue.push({ bytes, callback })
-    this.#length += bytes.length
+    const entry = this.#entryOf(chunk, encoding, callback)
+    this.#queue.push(entry)
+    this.#length += entry.length
     const ok = this.#length < DEFAULT_HIGH_WATER_MARK
     if (!ok) this.#needDrain = true
     this.#drain()
@@ -1896,6 +1929,10 @@ class Writable extends Emitter {
       encoding = undefined
     }
     if (chunk !== undefined && chunk !== null) this.write(chunk, encoding)
+    if (this.#corked > 0) {
+      this.#corked = 0
+      this.#drain()
+    }
     if (callback !== undefined) this.#finishCallbacks.push(callback)
     if (!this.#ending) {
       this.#ending = true
@@ -1917,23 +1954,29 @@ class Writable extends Emitter {
   }
 
   #drain() {
-    if (this.#writing !== null || this.#queue.length === 0 || this.#destroyed) return
+    if (this.#writing !== null || this.#queue.length === 0 || this.#destroyed || this.#corked > 0) return
+    if (this.#queue.length > 1 && typeof this._writev === 'function') {
+      const entries = this.#queue.splice(0)
+      this.#writing = entries
+      this._writev(entries.map(({ chunk, encoding }) => ({ chunk, encoding })), (error) => this.#written(entries, error))
+      return
+    }
     const entry = this.#queue.shift()
-    this.#writing = entry
-    this._write(entry.bytes, 'buffer', (error) => this.#written(entry, error))
+    this.#writing = [entry]
+    this._write(entry.chunk, entry.encoding, (error) => this.#written([entry], error))
   }
 
-  #written(entry, error) {
+  #written(entries, error) {
     this.#writing = null
-    this.#length -= entry.bytes.length
+    for (const entry of entries) this.#length -= entry.length
     if (error) {
-      nextTick(() => entry.callback?.(error))
+      for (const entry of entries) nextTick(() => entry.callback?.(error))
       this.#failure = error
       this.#failBuffered()
       this.destroy(error)
       return
     }
-    nextTick(() => entry.callback?.())
+    for (const entry of entries) nextTick(() => entry.callback?.())
     if (this.#destroyed) {
       this.#failBuffered()
       return
@@ -1974,7 +2017,6 @@ class Writable extends Emitter {
     })
   }
 }
-declareGaps('stream.Writable', Writable, ['cork', 'setDefaultEncoding', 'uncork'])
 
 const kTransform = Symbol('transform')
 
