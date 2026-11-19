@@ -1800,3 +1800,13 @@ Mutation evidence (saved good copy /tmp/stageA-good-txiki.js; each run through m
 | A-M2 (= S2M2): the end limit ignored | 2: 'start and end limit the buffered bytes to the range' (got 8, expected 3) and 'end alone limits the buffered bytes' (got 10, expected 3); the data-level end cases are red as well |
 
 S2M5 is now covered (it was red under no witness before). The object-path mutation for the stage-1 case is recorded in its own section below.
+
+## Phase A: object path witness (stage-1 case 'stream.Writable objectMode passes objects and numbers to _write'), 2026-11-19
+
+Gap from the previous report: the case was red under no mutation. A new mutation breaks the object path in Writable's objectMode entry (the chunk is turned into a Buffer of its string form before it reaches _write), and the case turns red. Restored with cmp (identical to the committed source) and git status (clean).
+
+| Mutation | Red case and evidence |
+|---|---|
+| S1M6: objectMode entry converts the chunk: `chunk: Buffer.from(String(chunk))` | 1 red: 'stream.Writable objectMode passes objects and numbers to _write' (got 'object:{"type":"Buffer","data":[91,111,98,106,101,99,116,32,79,98,106,101,99,116,93]}' for the object, expected 'object:{"a":1}'). Run through mcp-probe with timeout 150, exit 0, gate open before it. Only this case is red. |
+
+The earlier note (the case is a regression witness only) is superseded: it is now red under S1M6.
