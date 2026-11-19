@@ -2117,6 +2117,12 @@ function highWaterMarkOf(name, options, fallback = DEFAULT_HIGH_WATER_MARK) {
   return value
 }
 
+function positionOf(name, value, fallback) {
+  if (value === undefined) return fallback
+  if (!Number.isSafeInteger(value) || value < 0) throw gapError(name + ' ' + String(value))
+  return value
+}
+
 function declareGaps(prefix, target, names) {
   for (const name of names) {
     Object.defineProperty(target.prototype, name, { value: gapFunction(prefix + '.' + name), writable: true, configurable: true })
@@ -2870,9 +2876,15 @@ class FileReadStream extends Readable {
   #handle
   #opening
   #closing = false
+  #block
+  #skip
+  #remaining
 
-  constructor(path) {
-    super({ read: () => this.#readBlock() })
+  constructor(path, options) {
+    super({ read: () => this.#readBlock(), highWaterMark: options.highWaterMark })
+    this.#block = options.highWaterMark
+    this.#skip = options.start
+    this.#remaining = options.end === undefined ? Infinity : options.end - options.start + 1
     this.#opening = tjs.open(path, 'r').then(
       (handle) => {
         this.#handle = handle
@@ -2892,8 +2904,16 @@ class FileReadStream extends Readable {
     this.#opening
       .then(async () => {
         if (this.#handle === undefined || this.#closing) return
-        const buffer = new Uint8Array(DEFAULT_HIGH_WATER_MARK)
+        while (this.#skip > 0) {
+          const skipped = await this.#handle.read(new Uint8Array(Math.min(this.#block, this.#skip)))
+          if (skipped <= 0) return this.push(null)
+          this.#skip -= skipped
+        }
+        const size = Math.min(this.#block, this.#remaining)
+        if (size <= 0) return this.push(null)
+        const buffer = new Uint8Array(size)
         const count = await this.#handle.read(buffer)
+        this.#remaining -= count
         this.push(count > 0 ? buffer.subarray(0, count) : null)
       })
       .catch((error) => this.destroy(error))
@@ -2902,11 +2922,16 @@ class FileReadStream extends Readable {
 
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
-  assertNoOptions('fs.createReadStream', opts, ['encoding'])
+  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark'])
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   }
-  const stream = new FileReadStream(path)
+  const start = positionOf('fs.createReadStream start', opts.start, 0)
+  const end = positionOf('fs.createReadStream end', opts.end, undefined)
+  if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
+  const highWaterMark = highWaterMarkOf('fs.createReadStream', opts)
+  if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
+  const stream = new FileReadStream(path, { start, end, highWaterMark })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
   return stream
 }

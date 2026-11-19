@@ -2511,12 +2511,30 @@ sharedCases.push(
 )
 
 
+const readStreamLengths = (stream) => new Promise((resolve) => {
+  const lengths = []
+  stream.on('data', (chunk) => lengths.push(chunk.length))
+  stream.on('error', (error) => resolve({ error: error.code }))
+  stream.on('end', () => resolve(lengths))
+})
+sharedCases.push(
+  { name: 'fs.createReadStream start and end read an inclusive range', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { start: 2, end: 4 })) }, expected: 'cde' },
+  { name: 'fs.createReadStream start alone reads to the end', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { start: 7 })) }, expected: 'hij' },
+  { name: 'fs.createReadStream end alone reads from byte 0', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { end: 2 })) }, expected: 'abc' },
+  { name: 'fs.createReadStream highWaterMark 4 sets the chunk size', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamLengths(s.fs.createReadStream(file, { highWaterMark: 4 })) }, expected: [4, 4, 2] },
+  { name: 'fs.createReadStream start, end and highWaterMark set the chunk sizes', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamLengths(s.fs.createReadStream(file, { start: 1, end: 8, highWaterMark: 3 })) }, expected: [3, 3, 2] },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'stream.Readable option highWaterMark -1', run: () => new s.stream.Readable({ read() {}, highWaterMark: -1 }) },
   { name: 'stream.Readable option objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }) },
   { name: 'stream.PassThrough option objectMode', run: () => new s.stream.PassThrough({ objectMode: true }) },
+  { name: 'fs.createReadStream start -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: -1 }) },
+  { name: 'fs.createReadStream end before start', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: 5, end: 2 }) },
+  { name: 'fs.createReadStream highWaterMark 0', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 0 }) },
+  { name: 'fs.createReadStream option highWaterMark -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with flag rs+', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { flag: 'rs+' }) },

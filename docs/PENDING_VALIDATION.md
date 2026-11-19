@@ -1708,3 +1708,24 @@ Mutation evidence (saved good copy /tmp/stage1-good-txiki.js; each run through m
 | S1M5: Readable encoding option ignored | 3 (hex on Readable, hex on PassThrough, utf8 multibyte) |
 
 Coverage: every new shared case is red under at least one mutation, except 'stream.Writable objectMode passes objects and numbers to _write' and 'stream.Writable highWaterMark 5' (the latter is red under S1M3). The objects case is not red under any of the five mutations: its _write receives the same chunks with or without the objectMode branch, so it is a regression witness for the object chunk path, not a mutation witness. Recorded here, not hidden.
+
+## fx split: fs.createReadStream start, end and highWaterMark, Phase A (2026-11-19)
+
+Rank 7q in docs/fx-split.md. Node probe: runs/analysis/stream-shapes-node.mjs (exit 0, timeout 60): start 2 end 4 of 'abcdefghij' gives 'cde'; start 7 gives 'hij'; end 2 gives 'abc'; highWaterMark 4 gives chunk sizes [4, 4, 2]; start 1, end 8, highWaterMark 3 gives [3, 3, 2]. Invalid shapes (start -1, start 5 end 2) throw in Node and stay gaps in txiki.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: positionOf (safe integer, else gap); createReadStream takes start, end and highWaterMark (0 and negative gap); FileReadStream reads the block size from highWaterMark, skips start bytes by reading and discarding, and stops after end | before: start, end and highWaterMark gapped; after: 5 new shared cases match on txiki (full parity run, 636 shared) and Node (636/636) |
+| test/parity-cases.js: 5 shared cases from the Node probe (3 read ranges, 2 chunk sizes) and a helper readStreamLengths; gaps: 'fs.createReadStream start -1', 'fs.createReadStream end before start', 'fs.createReadStream highWaterMark 0', 'fs.createReadStream option highWaterMark -1' | the same runs |
+
+Regression: txiki parity with gap assertions: shared 636, mismatches [], unexpectedGaps [], gaps 24, gapInactive 1. Node parity 636/636.
+
+Mutation evidence (saved good copy /tmp/stage2-good-txiki.js; each run through mcp-probe with timeout 150 and a gate reading before it; restore checked with cmp; git status shows the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S2M1: start ignored | 2 (start and end read gives 'abc'; start alone gives the whole file) |
+| S2M2: end ignored | 3 (start and end; end alone; chunk sizes with start, end and highWaterMark) |
+| S2M3: block size ignored | 2 (highWaterMark 4 gives [10]; start, end and highWaterMark give [8]) |
+| S2M4: skip loop removed | 2 (same as S2M1 for the start cases) |
+| S2M5: stream-level highWaterMark not forwarded to the stream | 0: not covered. The stream's own limit is not observable in the suite (there is no getter for it), so no witness is red. Recorded as a gap in the witnesses, not hidden. |
