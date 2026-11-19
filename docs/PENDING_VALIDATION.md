@@ -1882,3 +1882,15 @@ Probes: each probe ran under timeout 150, was started by its PID (captured with 
 Longest step: the window waiting for the gate (slots 0, 3, 4, 5 and 7 were closed, by other peers' rustc, chromium and loads). What was done about it: readings every 30 s, witnesses started only on clear readings, every probe bounded at 150 s.
 
 Not verified: the four witnesses ran once each.
+
+## fx split: createReadStream signal option (7u), Phase A (2026-11-20)
+
+Oracle: runs/analysis/createreadstream-options-node.mjs (timeout 60, PID 1491617, exit 0; output runs/analysis/createreadstream-options-node.out). Node 24.22.0 values:
+- signal already aborted: error ABORT_ERR (AbortError), then close, no data.
+- signal aborted inside the first data handler (highWaterMark 4): data 'abcd', error ABORT_ERR (AbortError), close.
+- non-AbortSignal signal: ERR_INVALID_ARG_TYPE thrown synchronously ("The \"options.signal\" property must be an instance of AbortSignal").
+- flags 'r' and 'r+' read the file; flags 'w' gives EBADF on the read stream and truncates the file; flags 'wx' on an existing file gives EEXIST; mode 0o600 on an existing file leaves its mode at 644; autoClose false gives data, end, close.
+
+Change (Phase A): src/txiki.js FileReadStream #watchAbort (already aborted → nextTick destroy with abortError; otherwise an abort listener); createReadStream accepts the signal option and throws gapError for a non-AbortSignal value; the other options (flags as a non-read value, mode, autoClose) stay gapped, as before. test/parity-cases.js: shared cases 'fs.createReadStream signal already aborted emits AbortError then close' (expected ['error ABORT_ERR AbortError', 'close']) and 'fs.createReadStream signal aborted during a read stops after the chunk in flight' (expected ['data abcd', 'error ABORT_ERR AbortError', 'close']).
+
+Pending (Phase B window): Node parity run, txiki parity run, and the red mutations (see the Phase B section that follows the window).

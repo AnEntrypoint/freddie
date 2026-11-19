@@ -2907,6 +2907,7 @@ class FileReadStream extends Readable {
 
   constructor(path, options) {
     super({ read: () => this.#readBlock(), highWaterMark: options.highWaterMark })
+    if (options.signal !== undefined) this.#watchAbort(options.signal)
     this.#block = options.highWaterMark
     this.#skip = options.start
     this.#remaining = options.end === undefined ? Infinity : options.end - options.start + 1
@@ -2918,6 +2919,11 @@ class FileReadStream extends Readable {
       },
       (error) => this.destroy(fsPathError(error, 'open', path)),
     )
+  }
+
+  #watchAbort(signal) {
+    if (signal.aborted) nextTick(() => this.destroy(abortError(signal)))
+    else signal.addEventListener('abort', () => this.destroy(abortError(signal)), { once: true })
   }
 
   _destroy(error, callback) {
@@ -2947,7 +2953,8 @@ class FileReadStream extends Readable {
 
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
-  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark'])
+  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal'])
+  if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   }
@@ -2956,7 +2963,7 @@ function createReadStream(path, options) {
   if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
   const highWaterMark = highWaterMarkOf(opts)
   if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
-  const stream = new FileReadStream(path, { start, end, highWaterMark })
+  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
   return stream
 }

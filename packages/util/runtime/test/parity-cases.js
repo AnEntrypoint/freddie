@@ -2546,6 +2546,28 @@ sharedCases.push(
   { name: 'fs.createReadStream without options buffers the whole small file', run: () => bufferedAfterRead(undefined), expected: 10 },
 )
 
+const streamEvents = (stream, onData) => new Promise((resolve) => {
+  const got = []
+  stream.on('data', (chunk) => { got.push('data ' + String(chunk)); onData?.() })
+  stream.on('error', (error) => got.push('error ' + error.code + ' ' + error.name))
+  stream.on('close', () => { got.push('close'); resolve(got) })
+})
+const abortedBeforeRead = async () => {
+  const { file } = await streamFile('ten.txt', 'abcdefghij')
+  const controller = new AbortController()
+  controller.abort()
+  return streamEvents(s.fs.createReadStream(file, { signal: controller.signal }))
+}
+const abortedDuringRead = async () => {
+  const { file } = await streamFile('ten.txt', 'abcdefghij')
+  const controller = new AbortController()
+  return streamEvents(s.fs.createReadStream(file, { signal: controller.signal, highWaterMark: 4 }), () => controller.abort())
+}
+sharedCases.push(
+  { name: 'fs.createReadStream signal already aborted emits AbortError then close', run: abortedBeforeRead, expected: ['error ABORT_ERR AbortError', 'close'] },
+  { name: 'fs.createReadStream signal aborted during a read stops after the chunk in flight', run: abortedDuringRead, expected: ['data abcd', 'error ABORT_ERR AbortError', 'close'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
