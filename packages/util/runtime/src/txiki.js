@@ -2596,8 +2596,8 @@ function execFileArguments(args, options, callback) {
   return { argv: args, opts: options ?? {}, done: callback }
 }
 
-function missingCommandError(file, cmd) {
-  return Object.assign(new Error('spawn ' + file + ' ENOENT'), { code: 'ENOENT', cmd })
+function spawnError(file, argv, code) {
+  return Object.assign(new Error('spawn ' + file + ' ' + code), { code, syscall: 'spawn ' + file, path: file, spawnargs: argv })
 }
 
 function exitFailure(cmd, stderr, status) {
@@ -2609,17 +2609,17 @@ function exitFailure(cmd, stderr, status) {
 
 const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
 
-function startExecFile(file, argv, cmd, cwd) {
+function startProcess(file, argv, cwd) {
   try {
-    return { child: tjs.spawn([file, ...argv], cwd === undefined ? { stdout: 'pipe', stderr: 'pipe' } : { stdout: 'pipe', stderr: 'pipe', cwd }) }
+    return { process: tjs.spawn([file, ...argv], cwd === undefined ? { stdout: 'pipe', stderr: 'pipe' } : { stdout: 'pipe', stderr: 'pipe', cwd }) }
   } catch (error) {
     if (!ASYNC_SPAWN_ERRORS.includes(error.code)) throw Object.assign(new Error('spawn ' + error.code), { code: error.code, syscall: 'spawn' })
-    return { error: error.code === 'ENOENT' ? missingCommandError(file, cmd) : Object.assign(new Error('spawn ' + file + ' ' + error.code), { code: error.code, cmd }) }
+    return { error: spawnError(file, argv, error.code) }
   }
 }
 
-async function captureExecFile({ child, error }, cmd) {
-  if (child === undefined) return { error, stdout: new Uint8Array(), stderr: new Uint8Array() }
+async function captureExecFile({ process: child, error }, cmd) {
+  if (child === undefined) return { error: Object.assign(error, { cmd }), stdout: new Uint8Array(), stderr: new Uint8Array() }
   const [stdout, stderr, status] = await Promise.all([child.stdout.bytes(), child.stderr.bytes(), child.wait()])
   return { error: exitFailure(cmd, stderr, status), stdout, stderr }
 }
@@ -2636,7 +2636,7 @@ function execFile(file, args, options, callback) {
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
-  captureExecFile(startExecFile(file, argv, cmd, opts.cwd), cmd).then(({ error, stdout, stderr }) => {
+  captureExecFile(startProcess(file, argv, opts.cwd), cmd).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
@@ -2644,14 +2644,6 @@ function execFile(file, args, options, callback) {
 function spawnArguments(args, options) {
   if (!Array.isArray(args)) return { argv: [], opts: args ?? {} }
   return { argv: args, opts: options ?? {} }
-}
-
-function startChild(file, argv) {
-  try {
-    return { process: tjs.spawn([file, ...argv], { stdout: 'pipe', stderr: 'pipe' }) }
-  } catch (error) {
-    return { error }
-  }
 }
 
 function openPipe(stream) {
@@ -2693,14 +2685,13 @@ class ChildProcess extends Emitter {
   #stderr
   killed = false
 
-  constructor(file, argv, cmd) {
+  constructor(file, argv, cwd) {
     super()
-    const started = startChild(file, argv)
+    const started = startProcess(file, argv, cwd)
     if (started.error !== undefined) {
-      const error = started.error.code === 'ENOENT' ? missingCommandError(file, cmd) : started.error
       this.#stdout = closedPipe()
       this.#stderr = closedPipe()
-      setTimeout(() => this.#fail(error), 0)
+      setTimeout(() => this.#fail(started.error), 0)
       return
     }
     this.#process = started.process
@@ -2762,9 +2753,9 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const [key] = Object.keys(opts)
+  const key = Object.keys(opts).find((name) => name !== 'cwd')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
-  return new ChildProcess(file, argv, [file, ...argv].join(' '))
+  return new ChildProcess(file, argv, opts.cwd)
 }
 
 export const txikiRuntime = {

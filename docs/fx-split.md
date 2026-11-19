@@ -574,7 +574,7 @@ Decisions, each reversible, with its reason:
 - exit fires when the child exits, not at process exit. close fires after both stdout and stderr have ended; a stream with no consumer at exit is drained and its data discarded (see the stdout and stderr sections). Reason: the pipes are drained so a chatty child cannot block. Not verified against Node: a grandchild holding stderr open, which keeps close waiting.
 - pid and kill(signal) are synchronous, as in Node. kill accepts signal names, returns true when the signal is sent and false once the child has exited or failed to start, and sets killed. A signal name txiki rejects with RangeError becomes the documented gap message "child-process.spawn kill with signal <name>". Node throws ERR_UNKNOWN_SIGNAL for an unknown name instead, so the messages differ; this path is not verified by a shared case.
 - stdin getter throws the documented gap message. Not ported yet. stdout and stderr are Readables (see their sections).
-- Options: any option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (cwd, env, stdio and the rest need verified mappings).
+- Options: cwd is supported (see the spawn cwd section). Any other option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (env, stdio and the rest need verified mappings).
 - on and once are the only listener methods. Node's ChildProcess is a full EventEmitter; off, emit and the rest are not provided. Reason: no caller here needs them; adding them later is reversible.
 - error with no listener throws, as Node does: the shared Emitter rethrows it (changed 2026-11-19 with the stream change).
 
@@ -671,7 +671,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 
 1. child-process.spawn stdout: done 2026-11-19 (see the stdout section).
 2. child-process.spawn stderr: done 2026-11-19 (see the stderr section).
-3. child-process option cwd: execFile done 2026-11-19 (see the cwd section). spawn is still a gap: reachable by the same tjs.spawn option (runs/analysis/spawn-facts-body.js printed '/' for cwd '/'), not ported yet. exec is held: it is not a name in src/txiki.js or test/contract-names.js, so there is no function to add the option to. Reopen: a contract change adding exec.
+3. child-process option cwd: execFile done 2026-11-19 (see the cwd section); spawn done 2026-11-19 (see the spawn cwd section). exec is held: it is not a name in src/txiki.js or test/contract-names.js, so there is no function to add the option to. Reopen: a contract change adding exec.
 4. util.parseArgs() with no args: reachable. Node's default is process.argv.slice(2), and the runtime already sets process.argv, so only a mapping probe is needed.
 5. fs.createReadStream option encoding: reachable. Readable.setEncoding is done, so the option can call it.
 6. crypto.createHash sha3-256, and the other algorithms beyond md5, sha1, sha256 and sha512: reachable by a pure-JS Keccak port with Node's digests as the oracle. Not probed yet.
@@ -706,3 +706,15 @@ Design, with reasons: tjs.spawn throws both errors synchronously (runs/analysis/
 exec: held. There is no exec function in src/txiki.js and no exec name in test/contract-names.js, so the option has nothing to attach to. Reopen: a contract change that adds exec.
 
 spawn cwd: still a gap, and reachable by the same option on tjs.spawn; it is not ported in this stretch.
+
+## child-process.spawn option cwd under txiki (2026-11-19)
+
+Probe runs/analysis/child-spawn-cwd-node.mjs, run twice with identical output. Node measured:
+
+- cwd '/', a directory holding a marker file, '.', and an undefined cwd each run the command there, with spawn, exit and close events;
+- a missing directory emits an 'error' event (code ENOENT, message 'spawn sh ENOENT', syscall 'spawn sh', path 'sh', spawnargs ['-c', 'pwd']) and then 'close' with code -2; there is no 'spawn' event, and pid is undefined;
+- a cwd that names a file throws synchronously as ENOTDIR (message 'spawn ENOTDIR', syscall 'spawn').
+
+Design: spawn and execFile share startProcess in src/txiki.js, so the two follow the same rules. ENOENT and the other asynchronous codes become an error object that carries Node's syscall, path and spawnargs, and the ChildProcess reports it through an error event followed by close -2 (no spawn event). Any other code throws synchronously. execFile adds cmd to its error object, which Node's execFile also has; spawn's error does not carry cmd.
+
+Not verified: EACCES, EAGAIN, EMFILE and ENFILE (the asynchronous list comes from Node's source, not a probe); errno numbers; a missing directory that is reached through a symlink.

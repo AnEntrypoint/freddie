@@ -1008,3 +1008,29 @@ Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/
 | contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 80 / 0 (1 poll) | present 117, missing []; exit 0 | 0.15 s |
 
 Commits covered: eec48dd2 (child-process.spawn stderr as a Readable, sharing the stdout pump) and d8719a45 (child-process.execFile option cwd), on top of 79c9a2e0. The gap-assertion count is 1: the spawn cwd gap, which is still open.
+
+## fx split: child-process.spawn option cwd (2026-11-19)
+
+Rank 4 of the ranked list in docs/fx-split.md, and the last asserted gap in the parity run. Probe: runs/analysis/child-spawn-cwd-node.mjs, run twice with identical output.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: one startProcess serves spawn and execFile, with cwd passed only when defined; ENOENT and the other asynchronous codes become an error object carrying syscall, path and spawnargs, which ChildProcess reports as an error event then close -2; other codes throw synchronously; spawn accepts cwd; execFile adds cmd to its error; the missing-command helper is replaced by spawnError | dev before the change: the 6 spawn cwd cases red on txiki (gap throw), Node 12 of 12 SAME across execFile and spawn cwd. After the change: 12 of 12 on txiki; the child-process group is clean on txiki (failing []) and 45 of 45 SAME on Node | Node parity and txiki parity with gap assertions |
+| test/parity-cases.js: 6 spawn cwd cases from the probe output, replacing the gap case; a spawnErrorOutcome helper records the error event's fields | the same runs | the same |
+
+Mutation evidence (each mutation applied to the saved good file, run through the cwd dev body, restored; each restore checked with cmp against the saved copy; git status shows only the two changed files):
+
+| Mutation | Spawn cases red |
+|---|---|
+| Sa: cwd is not passed to startProcess | sets the working directory; runs in a named directory; missing directory; file as cwd |
+| Sb: the gap throw is restored for cwd | sets the working directory; runs in a named directory; relative path; missing directory; file as cwd; undefined cwd |
+| Sc: the missing-directory error is emitted synchronously, before a listener exists | missing directory |
+| Sd: ENOTDIR is delivered asynchronously (first run crashed the body on an unhandled error event, so it was rerun with a per-case progress file) | file as cwd |
+| Se: cwd is pinned to '/' | runs in a named directory; relative path; missing directory; file as cwd; undefined cwd |
+| Sf: the error has no path | missing directory |
+
+Case reading: each of the six spawn cwd cases is red under at least one mutation.
+
+Regression (not a witness): Node parity 412 of 412 (2495 ms). txiki parity with gap assertions: shared 412, gapAsserted 0, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3981 ms). No gap case is asserted now.
+
+Not verified: EACCES, EAGAIN, EMFILE and ENFILE timing, errno numbers, and a missing directory reached through a symlink.

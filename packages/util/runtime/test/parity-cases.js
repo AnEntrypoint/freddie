@@ -1993,6 +1993,14 @@ const pipesOutcome = (file, args, attach) => new Promise((resolve) => {
   })
 })
 
+const spawnErrorOutcome = (file, args, options) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options ?? {})
+  const events = []
+  child.on('spawn', () => events.push('spawn'))
+  child.on('error', (error) => events.push(['error', error.code, error.message, error.syscall, error.path, error.spawnargs]))
+  child.on('close', (code, signal) => resolve({ events, code, signal, pid: typeof child.pid }))
+})
+
 const lateRead = (which) => new Promise((resolve, reject) => {
   const script = which === 'stdout' ? 'printf late' : 'printf late >&2'
   const child = s['child-process'].spawn('sh', ['-c', script])
@@ -2018,7 +2026,12 @@ sharedCases.push(
   { name: "child-process.spawn kill before the spawn event returns true", run: () => s['child-process'].spawn('sh', ['-c', 'exec sleep 1']).kill('SIGTERM'), expected: true },
   { name: "child-process.spawn pid is a number before the spawn event", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).pid, expected: "number" },
   { name: "child-process.spawn stdout is a declared gap", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).stdout, expected: "object" },
-  { name: "child-process.spawn option cwd is a declared gap", run: () => spawnOutcome('sh', ['-c', 'pwd'], { cwd: '/' }), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null}, gap: "child-process.spawn option cwd" },
+  { name: "child-process.spawn option cwd sets the working directory", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'pwd'], { cwd: '/' })), expected: {"code":0,"signal":null,"text":"/\n","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn option cwd runs the command in a directory it names", run: async () => { const dir = await fsp.mkdtemp('/tmp/cwd-'); await fsp.writeFile(dir + '/marker.txt', 'found\n'); return streamSettle(stdoutOutcome('sh', ['-c', 'cat marker.txt'], { cwd: dir })) }, expected: {"code":0,"signal":null,"text":"found\n","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn option cwd of a relative path is the current directory", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'pwd'], { cwd: '.' })).then((o) => o.text === proc.cwd() + '\n'), expected: true },
+  { name: "child-process.spawn option cwd missing reports an ENOENT error and no spawn event", run: () => streamSettle(spawnErrorOutcome('sh', ['-c', 'pwd'], { cwd: '/no-such-dir-freddie-xyz' })), expected: {"events":[["error","ENOENT","spawn sh ENOENT","spawn sh","sh",["-c","pwd"]]],"code":-2,"signal":null,"pid":"undefined"} },
+  { name: "child-process.spawn option cwd that is a file throws ENOTDIR synchronously", run: () => { try { s['child-process'].spawn('sh', ['-c', 'pwd'], { cwd: '/etc/hostname' }); return 'no throw' } catch (error) { return { code: error.code, message: error.message, syscall: error.syscall } } }, expected: {"code":"ENOTDIR","message":"spawn ENOTDIR","syscall":"spawn"} },
+  { name: "child-process.spawn option cwd undefined uses the current directory", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'pwd'], { cwd: undefined })).then((o) => o.text === proc.cwd() + '\n'), expected: true },
 )
 
 sharedCases.push(
