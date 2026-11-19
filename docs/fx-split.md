@@ -571,14 +571,14 @@ Finding that shaped the design: tjs.spawn is synchronous in this build. It retur
 Decisions, each reversible, with its reason:
 
 - Events are delivered asynchronously with setTimeout(0), as Node delivers them after the call returns. The order is spawn, then exit, then close. A missing command emits error (code ENOENT, message "spawn <file> ENOENT") and then close with code -2, as Node does. Reason: a listener attached after spawn() returns must still see every event.
-- exit and close fire after the child's stdout and stderr pipes end, not at process exit. Reason: the pipes are drained so a chatty child cannot block; the output is discarded because the stream getters are gaps. Difference: if the child leaves a grandchild holding a pipe open, exit waits for that grandchild. Node emits exit at process exit.
+- exit fires when the child exits, not at process exit. close fires after the stderr pipe ends and, once stdout has a consumer, after the stdout stream ends; with no consumer at exit, stdout is discarded (see the stdout section). Reason: the pipes are drained so a chatty child cannot block. Not verified against Node: a grandchild holding stderr open, which keeps close waiting.
 - pid and kill(signal) are synchronous, as in Node. kill accepts signal names, returns true when the signal is sent and false once the child has exited or failed to start, and sets killed. A signal name txiki rejects with RangeError becomes the documented gap message "child-process.spawn kill with signal <name>". Node throws ERR_UNKNOWN_SIGNAL for an unknown name instead, so the messages differ; this path is not verified by a shared case.
-- stdin, stdout and stderr getters throw the documented gap messages. Reason: Node's streams need a stream design, which is an open owner decision; a silent undefined would hide the gap. Asserted in the gap check through the shared gap cases.
+- stdin and stderr getters throw the documented gap messages. Not ported yet; stderr uses the same route as stdout (see the ranked list below). stdout is a Readable (see the stdout section).
 - Options: any option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (cwd, env, stdio and the rest need verified mappings).
 - on and once are the only listener methods. Node's ChildProcess is a full EventEmitter; off, emit and the rest are not provided. Reason: no caller here needs them; adding them later is reversible.
 - error with no listener throws, as Node does: the shared Emitter rethrows it (changed 2026-11-19 with the stream change).
 
-Verified (Node oracle): exit code and close order; SIGTERM from kill after the spawn event, returning true and setting killed; missing command error and close; a numeric pid after the spawn event; kill before the spawn event returns true, as in Node; the gap cases for stdout, option cwd. Not verified: grandchild pipes, output content, unknown signal names, and listeners that throw.
+Verified (Node oracle): exit code and close order; SIGTERM from kill after the spawn event, returning true and setting killed; missing command error and close; a numeric pid after the spawn event; kill before the spawn event returns true, as in Node; the gap cases for stdout, option cwd. Not verified: grandchild pipes, unknown signal names, and listeners that throw. Output content and end before close are verified through the stdout cases (see the stdout section).
 
 ## zlib.gzip as stored blocks under txiki (2026-11-19)
 
@@ -646,3 +646,41 @@ Held (each names the evidence that would reopen it):
 - H10. vm (3), worker_threads.Worker (1), async_hooks.AsyncLocalStorage (1), inspector.Session (1). Native or fx: a separate realm, Node's Worker API, async context and inspector. Reopen: a txiki realm, worker, async-context or inspector API.
 
 Gap-name count: 35 = H8 (20) + H9 (5) + H10 (6) + H4 (1) + H5 (1) + H6 (1) + H7 (1).
+
+## child-process.spawn stdout under txiki (2026-11-19)
+
+stdout is a Readable from the stream module, fed from tjs.spawn's stdout pipe by a pump that starts at spawn. Probe runs/analysis/child-stdout-node.mjs, run twice: only the exit and end order in one case differs between runs, so the cases assert order-independent facts (end before close, close last, exit code). Node measured (runs/analysis/child-stdout-node.out):
+
+- a default read gives Buffer chunks, a Readable, the same object on each access, and end before close;
+- 70000 bytes arrive whole, as Buffer chunks, with end before close;
+- setEncoding('utf8') yields strings, and a multibyte character arrives intact;
+- with no read, close still fires and the output is discarded; a stream attached after close gets nothing.
+
+Design choices, each with its reason:
+
+- The pump reads from spawn, so a consumer that attaches before exit receives all the data.
+- Backpressure applies once a consumer exists; an unattached child is never blocked. Node does not block it either (the 70000-byte no-read case closes).
+- close waits for the stdout stream to end when a consumer exists. When none exists at exit, the stream is resumed and drained, so close fires and the data is discarded, as Node does.
+
+Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
+
+
+## Declared gaps outside the stream group, ranked (2026-11-19, after child-process stdout)
+
+Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
+
+1. child-process.spawn stdout: done 2026-11-19 (see the stdout section).
+2. child-process.spawn stderr: reachable by the stdout route (tjs.spawn's stderr is a ProcessReadableStream). Not ported yet.
+3. child-process option cwd on execFile and spawn: reachable. A probe ran tjs.spawn with cwd '/' and it printed '/' and exited 0 (runs/analysis/spawn-facts-body.js). Not ported yet; env and the other options are not probed.
+4. util.parseArgs() with no args: reachable. Node's default is process.argv.slice(2), and the runtime already sets process.argv, so only a mapping probe is needed.
+5. fs.createReadStream option encoding: reachable. Readable.setEncoding is done, so the option can call it.
+6. crypto.createHash sha3-256, and the other algorithms beyond md5, sha1, sha256 and sha512: reachable by a pure-JS Keccak port with Node's digests as the oracle. Not probed yet.
+7. child-process.spawn stdin: reachable only if tjs.spawn's stdin pipe is a writable. Not probed.
+8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
+9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
+10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
+11. zlib brotli and zstd (5 names): held, H9. Reopen: a brotli or zstd backend in txiki.
+12. vm (3 names), worker_threads.Worker, async_hooks.AsyncLocalStorage and inspector.Session: held, H10. Reopen: a separate-realm, worker, async-context or inspector API in txiki.
+13. module.createRequire: held, fx (it needs a CommonJS loader). Reopen: fx providing one.
+14. module.stripTypeScriptTypes: held, owner decision (a TypeScript parser is a dependency). Reopen: that decision.
+15. http.createServer: held, H4 (owner decision on the server API). Reopen: the owner's design for it.

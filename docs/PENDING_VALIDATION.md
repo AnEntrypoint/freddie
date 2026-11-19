@@ -904,3 +904,30 @@ Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/
 The gap count fell from 13 to 12 with the removal of stream.Writable.cork; no stream gap name remains declared.
 
 Commits covered: 43abb221 (Writable surface), d72cc142 (setEncoding), 262cef9b (unshift), 7ec42357 (wrap). Each has its Phase A evidence and mutation record above.
+
+## fx split: child-process.spawn stdout as a Readable (2026-11-19)
+
+Rank 1 of the ranked list of declared gaps outside the stream group (docs/fx-split.md). Probe: runs/analysis/child-stdout-node.mjs, output runs/analysis/child-stdout-node.out (run twice; the exit and end order in the exitCode case differs between runs, so the cases assert order-independent facts).
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: ChildProcess.stdout is a Readable fed by a pump over tjs.spawn's stdout, started at spawn; backpressure applies once a consumer exists; close waits for the stdout stream to end when a consumer exists, and drains and discards it when none exists at exit; stdin and stderr stay gap getters | dev before the change: 8 child-process.spawn cases red (6 new stdout cases, the old stdout gap case, and the cwd gap case, which the dev harness does not assert); after the change: 15 total, failing only the cwd gap case | Node parity and txiki parity with gap assertions |
+| test/parity-cases.js: 7 cases from the probe output; the old stdout gap case becomes a shared case with no gap marker; the late-read case reports a failed access as a rejection, not an uncaught error | the same dev runs | the same |
+
+Mutation evidence (each mutation applied to the saved good file, run, then the file restored; each restore checked with cmp against the saved copy, and git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| M1: getter throws the gap again | the old stdout gap case; A; B; C; D; F; G |
+| M2: pump pushes empty buffers | A; B; C; D |
+| M3: close does not wait for stdout end | A; B; C; D |
+| M4: unattached stream is not resumed at exit | E and F (TIMEOUT, targeted run). In the full run it hangs at the first existing spawn case, which has no per-case timeout |
+| M5: pump pushes raw values | none: equivalent, because the stream converts pushes to Buffer |
+| M5b: pump drops the first byte | A; B; C; D |
+| M6: getter returns a new wrapper on each access | F; G |
+
+Case letters: A carries Buffer chunks and ends before close; B delivers 70000 bytes; C setEncoding utf8 yields strings; D keeps output before a nonzero exit code; E closes without a stdout read and discards 70000 bytes; F read after close is empty; G is the same Readable on each access.
+
+Regression (not a witness): Node child-process dev 25 of 25 SAME; txiki child-process dev failing only the two cwd gap cases; Node parity 392 of 392 (1947 ms); txiki parity with gap assertions shared 392, gapAsserted 2, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3973 ms). Runs that failed to launch because gm-core was being rebuilt (EACCES) were rerun and are not counted.
+
+Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure.

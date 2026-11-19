@@ -1942,6 +1942,41 @@ const spawnOutcome = (file, args, options, step) => new Promise((resolve) => {
 const killStep = (child) => [child.kill('SIGTERM'), child.killed]
 const pidStep = (child) => typeof child.pid
 
+const stdoutOutcome = (file, args, options, encoding) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options ?? {})
+  const chunks = []
+  const order = []
+  if (encoding !== undefined) child.stdout.setEncoding(encoding)
+  child.stdout.on('data', (chunk) => chunks.push(chunk))
+  child.stdout.on('end', () => order.push('end'))
+  child.on('close', (code, signal) => {
+    order.push('close')
+    resolve({
+      code,
+      signal,
+      text: encoding === undefined ? Buffer.concat(chunks).toString() : chunks.join(''),
+      chunkTypes: [...new Set(chunks.map((chunk) => typeof chunk))],
+      allBuffers: chunks.every((chunk) => Buffer.isBuffer(chunk)),
+      endBeforeClose: order.join() === 'end,close',
+      readable: child.stdout instanceof s.stream.Readable,
+    })
+  })
+})
+
+const lateStdoutRead = () => new Promise((resolve, reject) => {
+  const child = s['child-process'].spawn('sh', ['-c', 'printf late'])
+  child.on('close', () => setTimeout(() => {
+    try {
+      const late = []
+      child.stdout.on('data', (chunk) => late.push(chunk))
+      setTimeout(() => resolve(Buffer.concat(late).toString()), 300)
+    } catch (error) {
+      reject(error)
+    }
+  }, 200))
+})
+
+
 sharedCases.push(
   { name: "child-process.spawn reports exit then close with the exit code", run: () => spawnOutcome('sh', ['-c', 'exit 3']), expected: {"events":["spawn",["exit",3,null]],"code":3,"signal":null} },
   { name: "child-process.spawn kills with SIGTERM after it starts", run: () => spawnOutcome('sh', ['-c', 'exec sleep 5'], undefined, killStep), expected: {"events":["spawn",["step",[true,true]],["exit",null,"SIGTERM"]],"code":null,"signal":"SIGTERM"} },
@@ -1949,8 +1984,18 @@ sharedCases.push(
   { name: "child-process.spawn exposes a numeric pid after the spawn event", run: () => spawnOutcome('sh', ['-c', 'exit 0'], undefined, pidStep), expected: {"events":["spawn",["step","number"],["exit",0,null]],"code":0,"signal":null} },
   { name: "child-process.spawn kill before the spawn event returns true", run: () => s['child-process'].spawn('sh', ['-c', 'exec sleep 1']).kill('SIGTERM'), expected: true },
   { name: "child-process.spawn pid is a number before the spawn event", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).pid, expected: "number" },
-  { name: "child-process.spawn stdout is a declared gap", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).stdout, expected: "object", gap: "child-process.spawn stdout stream" },
+  { name: "child-process.spawn stdout is a declared gap", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).stdout, expected: "object" },
   { name: "child-process.spawn option cwd is a declared gap", run: () => spawnOutcome('sh', ['-c', 'pwd'], { cwd: '/' }), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null}, gap: "child-process.spawn option cwd" },
+)
+
+sharedCases.push(
+  { name: "child-process.spawn stdout carries Buffer chunks and ends before close", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'])), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn stdout delivers 70000 bytes across chunks before close", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'head -c 70000 /dev/zero']).then(({ text, ...rest }) => ({ ...rest, length: text.length }))), expected: {"code":0,"signal":null,"chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true,"length":70000} },
+  { name: "child-process.spawn stdout setEncoding utf8 yields strings", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf "h\\303\\251"'], undefined, 'utf8')), expected: {"code":0,"signal":null,"text":"hé","chunkTypes":["string"],"allBuffers":false,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn stdout keeps output before a nonzero exit code", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf out; exit 3'])), expected: {"code":3,"signal":null,"text":"out","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn closes without a stdout read and discards 70000 bytes", run: () => streamSettle(spawnOutcome('sh', ['-c', 'head -c 70000 /dev/zero'])), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null} },
+  { name: "child-process.spawn stdout read after close is empty", run: () => streamSettle(lateStdoutRead()), expected: "" },
+  { name: "child-process.spawn stdout is the same Readable on each access", run: () => { const child = s['child-process'].spawn('sh', ['-c', 'exit 0']); return child.stdout === child.stdout }, expected: true },
 )
 
 export const gapCases = [
