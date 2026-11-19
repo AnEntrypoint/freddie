@@ -1852,4 +1852,4 @@ Mutation evidence (saved good copy /tmp/stageC-good-txiki.js, which is the edite
 | C-H3: non-integer accepted | 2 (Readable 1.5, createReadStream 2.5) |
 | C-H4: PassThrough names options.highWaterMark instead of the readable side | 1 (PassThrough -1) |
 
-Coverage: every new case is red under at least one mutation, except the string '4' case, which is not red under any of the four (the string input is still caught by the same check as 1.5 and -1 in the code path; not covered separately).
+Coverage: every error case is red under at least one mutation (the string '4' case under C-H1 only). The zero case is a control and is not red under any mutation.
