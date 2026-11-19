@@ -543,3 +543,14 @@ Ranked item 5 in docs/fx-split.md. execFile is implemented in pure JS over tjs.s
 | test/parity-cases.js: 8 shared cases from Node's execFile output (stdout and stderr; nonzero exit; encoding buffer; SIGTERM; SIGKILL with partial stdout; empty command; missing command; callback ordering); 1 callback-optional case; 1 gap case for option cwd asserted in the gap check. The helpers execText, execOutcome and callbackOrder live above them | node --check passes; Node parity 234/234 | txiki gap names 42 (see the Phase B table) |
 | docs/fx-split.md: the execFile section with each decision and its reason; the child_process gap row; the owner-decision bullet and ranked item 5 marked done; the zlib.gzip byte-parity decision (kept a gap, byte parity open, with its reason) | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-child-process-execfile.md: Agent Note | none | none |
+
+## fx split: Phase B for child-process.execFile (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| swap-in at the start of each run | 576 KB/s (Node parity and contract), 928 KB/s (txiki parity), 612 KB/s (txiki contract and gap names) | none |
+| node test/parity-node.js | 234/234 shared cases match, including the 8 execFile cases, the callback-optional case, and the cwd gap case under Node; exit 0 | 1.13 s process (911 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.18 s |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 234, gapAsserted 5, gaps 13 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 4.16 s probe (1368 ms in runParity) |
+| contract under gm's txiki | present 115, missing [] | 0.52 s probe |
+| contract gap names under gm's txiki | 42 of the non-default names (was 43): child-process.execFile left the list (child-process.execFileSync and child-process.spawn stay as gaps). zlib.gzip stays a gap | 0.18 s probe |
