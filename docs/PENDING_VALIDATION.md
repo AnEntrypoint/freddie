@@ -1957,3 +1957,15 @@ Restore: /tmp/stageG-good-txiki.js is the committed source; after the mutations 
 Not done here: the txiki contract witness (see above). The Node oracle recheck (before the witnesses were written) ran on a clear sample at slot 4 of the earlier job, PID 1507144, exit 0, with the same values as before.
 
 Longest step: the txiki parity run (14.05 s). The longest wait was the closed gate (16 of 21 samples).
+
+## Phase B completion: txiki contract for the createReadStream flags (4723570c), 2026-11-20
+
+The txiki contract, which was not run in the window recorded above, ran in its own window: 8 samples at 30 s (slots 0 to 7). Samples 0 to 6 were closed (a chromium renderer at 169% with 3.9 GB RES and an fx build of another peer; si up to 72240 KB/s; a claude session at 31.7%); no probe started on them and they have no ledger line. The clear reading was slot 7: `vmstat 1 2` second sample si 104, so 0; no process above 20% CPU in top and no process above 1 GB RES, after excluding gm-core workers started with `--handshake`.
+
+Witness (once, under timeout 150, PID captured with `$!`, exit 0 by itself):
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki contract (PID 1603330, exit 0) | 7 | present 117, missing [] | 0.18 s |
+
+No process of mine was left after the run (ps shows none). No source was changed in this stretch, so no restore was needed.
