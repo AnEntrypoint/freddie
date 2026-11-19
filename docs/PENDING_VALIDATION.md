@@ -1242,3 +1242,32 @@ Wall times are single runs in sequence, and include process startup and the mcp-
 Scope note: this stretch produced two Phase A changes (stdin and env), not one. Both are covered by this single Phase B.
 
 Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only.
+
+## fx split: child-process timeout and killSignal, Phase A (2026-11-19)
+
+Rank 7c in docs/fx-split.md. Probe: runs/analysis/child-timeout-node.mjs (deterministic); txiki reachability body runs/analysis/dev-txiki-timeout-body.js.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: captureExecFile arms a timer when timeout > 0 and kills with killSignal, exitFailure sets killed; ChildProcess arms its own timer and clears it in #reap; spawn and execFile accept timeout and killSignal; killSignalOf limits names to ten probed ones; timeoutOf requires a non-negative number | before the change: both keys threw the gap; after it: the 9 new cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 543, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 13893 ms; Node parity 543/543 |
+| test/parity-cases.js: 9 cases generated from child-timeout-node.out (execFile timeout SIGTERM, SIGKILL, SIGINT, partial stdout, not reached, timeout 0; spawn timeout SIGTERM, SIGUSR1, timeout 0); the execFile helper now reports killed, cmd and message | the same runs |
+
+Mutation evidence (each applied to a saved copy of the good file; the dev body writes full results to /tmp/timeout-result.json; each restore checked with cmp, then git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| T1: execFile timer absent | 4 |
+| T2: execFile kills with SIGTERM whatever killSignal says | 2 |
+| T3: execFile killed never set | 4 |
+| T4: execFile timer armed at timeout 0 | 1 |
+| T5: spawn timer absent | 2 |
+| T6: spawn kills with SIGTERM whatever killSignal says | 1 |
+| T7: execFile timeout and killSignal gaps restored | 6 |
+| T8: spawn timeout and killSignal gaps restored | 3 |
+| T9: spawn kill leaves killed false | 2 |
+
+Coverage: all 9 cases are red under at least one mutation (uncovered []). Not discriminated: removing clearTimeout after wait (nothing in the cases observes a timer left armed after exit); no case covers the killSignal name check (a non-listed name still gaps, but no case asserts it).
+
+Regression (not a witness): txiki parity with gap assertions: shared 543, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1. Node parity: 543/543.
+
+Not verified: fractional timeouts; names outside the ten; numeric killSignal.

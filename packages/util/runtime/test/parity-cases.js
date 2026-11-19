@@ -2242,9 +2242,9 @@ const envSpawnOutcome = (file, args, options) => new Promise((resolve) => {
   child.on('close', (code, signal) => resolve({ stdout: Buffer.concat(out).toString('utf8'), code, signal }))
 })
 
-const envExecOutcome = (file, args, options) => new Promise((resolve) => {
+const execFileOutcome = (file, args, options) => new Promise((resolve) => {
   s['child-process'].execFile(file, args, options, (error, stdout, stderr) => {
-    resolve({ error: error ? { code: error.code ?? null, signal: error.signal ?? null } : null, stdout, stderr })
+    resolve({ error: error ? { code: error.code ?? null, signal: error.signal ?? null, killed: error.killed, cmd: error.cmd, message: error.message } : null, stdout, stderr })
   })
 })
 
@@ -2259,8 +2259,27 @@ sharedCases.push(
   { name: "child-process.spawn env and cwd together", run: () => envSpawnOutcome('/bin/sh', ['-c', 'pwd; echo "[$FOO]"'], { env: { FOO: 'bar' }, cwd: '/' }), expected: {"stdout":"/\n[bar]\n","code":0,"signal":null} },
   { name: "child-process.spawn env drops an undefined value", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { A: undefined, B: 'b' } }), expected: {"stdout":"B=b\n","code":0,"signal":null} },
   { name: "child-process.spawn env turns null into the string null", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { A: null, B: 'b' } }), expected: {"stdout":"A=null\nB=b\n","code":0,"signal":null} },
-  { name: "child-process.execFile env sets FOO for the child", run: () => envExecOutcome('/bin/sh', ['-c', 'echo "[$FOO]"'], { env: { FOO: 'bar' } }), expected: {"error":null,"stdout":"[bar]\n","stderr":""} },
-  { name: "child-process.execFile env {} gives the child no HOME", run: () => envExecOutcome('/bin/sh', ['-c', 'echo "[$HOME]"'], { env: {} }), expected: {"error":null,"stdout":"[]\n","stderr":""} },
+  { name: "child-process.execFile env sets FOO for the child", run: () => execFileOutcome('/bin/sh', ['-c', 'echo "[$FOO]"'], { env: { FOO: 'bar' } }), expected: {"error":null,"stdout":"[bar]\n","stderr":""} },
+  { name: "child-process.execFile env {} gives the child no HOME", run: () => execFileOutcome('/bin/sh', ['-c', 'echo "[$HOME]"'], { env: {} }), expected: {"error":null,"stdout":"[]\n","stderr":""} },
+)
+
+const timedSpawnOutcome = (file, args, options) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options)
+  const out = []
+  child.stdout.on('data', (chunk) => out.push(chunk))
+  child.on('close', (code, signal) => resolve({ stdout: Buffer.concat(out).toString('utf8'), code, signal, killed: child.killed }))
+})
+
+sharedCases.push(
+  { name: "child-process.execFile timeout kills with SIGTERM and sets killed", run: () => execFileOutcome('sleep', ['5'], { timeout: 300 }), expected: {"error":{"code":null,"signal":"SIGTERM","killed":true,"cmd":"sleep 5","message":"Command failed: sleep 5\n"},"stdout":"","stderr":""} },
+  { name: "child-process.execFile killSignal SIGKILL", run: () => execFileOutcome('sleep', ['5'], { timeout: 300, killSignal: 'SIGKILL' }), expected: {"error":{"code":null,"signal":"SIGKILL","killed":true,"cmd":"sleep 5","message":"Command failed: sleep 5\n"},"stdout":"","stderr":""} },
+  { name: "child-process.execFile killSignal SIGINT", run: () => execFileOutcome('sleep', ['5'], { timeout: 300, killSignal: 'SIGINT' }), expected: {"error":{"code":null,"signal":"SIGINT","killed":true,"cmd":"sleep 5","message":"Command failed: sleep 5\n"},"stdout":"","stderr":""} },
+  { name: "child-process.execFile timeout keeps the partial stdout", run: () => execFileOutcome('/bin/sh', ['-c', 'echo hi; sleep 5'], { timeout: 300 }), expected: {"error":{"code":null,"signal":"SIGTERM","killed":true,"cmd":"/bin/sh -c echo hi; sleep 5","message":"Command failed: /bin/sh -c echo hi; sleep 5\n"},"stdout":"hi\n","stderr":""} },
+  { name: "child-process.execFile timeout not reached gives no error", run: () => execFileOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 5000 }), expected: {"error":null,"stdout":"ok\n","stderr":""} },
+  { name: "child-process.execFile timeout 0 disables the timer", run: () => execFileOutcome('/bin/sh', ['-c', 'sleep 0.2; echo late'], { timeout: 0 }), expected: {"error":null,"stdout":"late\n","stderr":""} },
+  { name: "child-process.spawn timeout kills with SIGTERM and sets killed", run: () => timedSpawnOutcome('sleep', ['5'], { timeout: 300 }), expected: {"stdout":"","code":null,"signal":"SIGTERM","killed":true} },
+  { name: "child-process.spawn killSignal SIGUSR1", run: () => timedSpawnOutcome('sleep', ['5'], { timeout: 300, killSignal: 'SIGUSR1' }), expected: {"stdout":"","code":null,"signal":"SIGUSR1","killed":true} },
+  { name: "child-process.spawn timeout 0 disables the timer", run: () => timedSpawnOutcome('/bin/sh', ['-c', 'echo late'], { timeout: 0 }), expected: {"stdout":"late\n","code":0,"signal":null,"killed":false} },
 )
 
 export const gapCases = [

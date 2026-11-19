@@ -2881,14 +2881,28 @@ function spawnError(file, argv, code) {
   return Object.assign(new Error('spawn ' + file + ' ' + code), { code, syscall: 'spawn ' + file, path: file, spawnargs: argv })
 }
 
-function exitFailure(cmd, stderr, status) {
+function exitFailure(cmd, stderr, status, killed) {
   if (status.term_signal === null && status.exit_status === 0) return null
   const error = new Error('Command failed: ' + cmd + '\n' + Buffer.from(stderr).toString('utf8'))
   const cause = status.term_signal === null ? { code: status.exit_status, signal: null } : { code: null, signal: status.term_signal }
-  return Object.assign(error, cause, { killed: false, cmd })
+  return Object.assign(error, cause, { killed, cmd })
 }
 
 const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
+
+const KILL_SIGNALS = ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP', 'SIGUSR1', 'SIGUSR2', 'SIGQUIT', 'SIGALRM', 'SIGPIPE', 'SIGABRT']
+
+function killSignalOf(opts) {
+  const signal = opts.killSignal ?? 'SIGTERM'
+  if (!KILL_SIGNALS.includes(signal)) throw gapError('child-process killSignal ' + String(signal))
+  return signal
+}
+
+function timeoutOf(opts) {
+  const timeout = opts.timeout ?? 0
+  if (typeof timeout !== 'number' || timeout < 0) throw gapError('child-process timeout ' + String(timeout))
+  return timeout
+}
 
 function processEnv(env) {
   return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
@@ -2907,10 +2921,13 @@ function startProcess(file, argv, { cwd, env, stdin = false } = {}) {
   }
 }
 
-async function captureExecFile({ process: child, error }, cmd) {
+async function captureExecFile({ process: child, error }, cmd, { timeout, killSignal }) {
   if (child === undefined) return { error: Object.assign(error, { cmd }), stdout: new Uint8Array(), stderr: new Uint8Array() }
+  let killed = false
+  const timer = timeout > 0 ? setTimeout(() => { killed = true; child.kill(killSignal) }, timeout) : undefined
   const [stdout, stderr, status] = await Promise.all([child.stdout.bytes(), child.stderr.bytes(), child.wait()])
-  return { error: exitFailure(cmd, stderr, status), stdout, stderr }
+  clearTimeout(timer)
+  return { error: exitFailure(cmd, stderr, status, killed), stdout, stderr }
 }
 
 function decodeExecOutput(bytes, encoding) {
@@ -2921,11 +2938,13 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
-  captureExecFile(startProcess(file, argv, { cwd: opts.cwd, env: opts.env }), cmd).then(({ error, stdout, stderr }) => {
+  const timeout = timeoutOf(opts)
+  const killSignal = killSignalOf(opts)
+  captureExecFile(startProcess(file, argv, { cwd: opts.cwd, env: opts.env }), cmd, { timeout, killSignal }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
@@ -2993,6 +3012,7 @@ class ChildProcess extends Emitter {
   #stdin
   #stdout
   #stderr
+  #timer
   killed = false
 
   constructor(file, argv, options) {
@@ -3009,6 +3029,7 @@ class ChildProcess extends Emitter {
     this.#stdin = openWritable(started.process.stdin)
     this.#stdout = openPipe(started.process.stdout)
     this.#stderr = openPipe(started.process.stderr)
+    if (options.timeout > 0) this.#timer = setTimeout(() => this.kill(options.killSignal), options.timeout)
     setTimeout(() => this.#spawned(), 0)
   }
 
@@ -3047,6 +3068,7 @@ class ChildProcess extends Emitter {
 
   async #reap() {
     const status = await this.#process.wait()
+    clearTimeout(this.#timer)
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
     this.emit('exit', code, signal)
@@ -3065,9 +3087,9 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
-  return new ChildProcess(file, argv, opts)
+  return new ChildProcess(file, argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts) })
 }
 
 export const txikiRuntime = {
