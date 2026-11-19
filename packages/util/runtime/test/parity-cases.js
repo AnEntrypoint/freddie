@@ -2449,6 +2449,12 @@ sharedCases.push(
   { name: "child-process.spawn numeric killSignal 9 closes with SIGKILL", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 9 }), expected: {"events":[["close",null,"SIGKILL"]],"stdout":""} },
 )
 
+sharedCases.push(
+  { name: "child-process.spawn windowsHide true is a no-op on Linux", run: () => spawnEventsRecord('/bin/sh', ['-c', 'echo ok'], { windowsHide: true }), expected: {"events":[["close",0,null]],"stdout":"ok\n"} },
+  { name: "child-process.execFile windowsHide true is a no-op on Linux", run: () => execRecord('/bin/sh', ['-c', 'echo ok'], { windowsHide: true }), expected: {"error":null,"stdoutLength":3,"stdout":"ok\n","stderr":""} },
+  { name: "child-process.execFile windowsHide false is a no-op on Linux", run: () => execRecord('/bin/sh', ['-c', 'echo ok'], { windowsHide: false }), expected: {"error":null,"stdoutLength":3,"stdout":"ok\n","stderr":""} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2467,6 +2473,7 @@ export const gapCases = [
   { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
+  { name: 'child-process windowsHide yes', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

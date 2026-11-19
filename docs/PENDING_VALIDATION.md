@@ -1582,3 +1582,25 @@ Mutation evidence (saved good copy; the dev body runs the numeric cases on txiki
 Coverage: each numeric case is red under at least one mutation; K3 is the one uncovered mutation (the Linux-only guard cannot be tested on this host).
 
 Regression (not a witness): txiki parity with gap assertions: shared 608, mismatches [], unexpectedGaps [], gaps 18, gapInactive 1. Node parity: 608/608.
+
+## fx split: child-process windowsHide, Phase A (2026-11-19)
+
+Rank 7m in docs/fx-split.md. Probes: runs/analysis/five-node.mjs (deterministic: windowsHide true on spawn and execFile, false on execFile; each matches the no-option output) and the txiki probe through mcp-probe (gap for each windowsHide case before the change).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: windowsHideChecked accepts undefined or a boolean and gaps any other value; execFile and spawn accept the windowsHide key and call the check | before: the 3 cases threw the gap; after: the 3 cases match on txiki (dev body) and Node; the gap case 'child-process windowsHide yes' matches; txiki parity with gap assertions: shared 611, mismatches [], unexpectedGaps [], gaps 19, gapInactive 1, 15588 ms; Node parity 611/611 |
+| test/parity-cases.js: 3 shared cases generated from five-node.out (spawn true, execFile true, execFile false); 1 gap case (a string value) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the windowsHide cases on txiki; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| W1: execFile key gap restored | 3 (the 2 execFile cases and the gap case) |
+| W2: spawn key gap restored | 1 (the spawn case) |
+| W3: validator removed | 1 (the gap case) |
+| W4: false rejected by the validator | 1 (the execFile false case) |
+
+Coverage: every windowsHide case is red under at least one mutation.
+
+Regression (not a witness): txiki parity with gap assertions: shared 611, mismatches [], unexpectedGaps [], gaps 19, gapInactive 1, 15588 ms. Node parity: 611/611.

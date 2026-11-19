@@ -2927,6 +2927,11 @@ function signalOf(opts) {
   return value
 }
 
+function windowsHideChecked(opts) {
+  const value = opts.windowsHide
+  if (value !== undefined && typeof value !== 'boolean') throw gapError('child-process windowsHide ' + String(value))
+}
+
 function maxBufferError(stream) {
   const error = new RangeError(stream + ' maxBuffer length exceeded')
   error.code = 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
@@ -3026,7 +3031,7 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer' && key !== 'signal') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer' && key !== 'signal' && key !== 'windowsHide') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
@@ -3034,6 +3039,7 @@ function execFile(file, args, options, callback) {
   const killSignal = killSignalOf(opts)
   const maxBuffer = maxBufferOf(opts)
   const signal = signalOf(opts)
+  windowsHideChecked(opts)
   const shelled = shellArguments(file, argv, opts.shell)
   captureExecFile(signal?.aborted ? { error: abortError(signal) } : startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal, maxBuffer, signal }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
@@ -3198,8 +3204,9 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio' && name !== 'signal')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio' && name !== 'signal' && name !== 'windowsHide')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
+  windowsHideChecked(opts)
   const shelled = shellArguments(file, argv, opts.shell)
   return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts), signal: signalOf(opts) })
 }

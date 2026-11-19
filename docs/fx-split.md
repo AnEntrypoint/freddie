@@ -687,6 +687,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 7j. child-process.execFile maxBuffer: done 2026-11-19 (see the maxBuffer section). Stdout and stderr are read as streams and counted; past the limit the child is killed, the reader is cancelled, and the callback gets a RangeError with code ERR_CHILD_PROCESS_STDIO_MAXBUFFER and the output truncated to the limit. The default is 1 MiB, as in Node. A non-number or negative value stays a gap. spawn has no maxBuffer in Node, so spawn keeps its gap.
 7k. child-process signal (AbortSignal) on execFile and spawn: done 2026-11-19 (see the signal section). A value without addEventListener stays a gap. Abort kills the child with killSignal; execFile reports AbortError (ABORT_ERR); spawn emits error then close. Already-aborted signals kill at once on spawn and are not started on execFile.
 7l. child-process killSignal as a number: done 2026-11-19 on Linux (see the killSignal section). Numbers in the Linux table map to the ten names txiki accepts; any other number, and any number on a non-Linux host, stays a gap.
+7m. child-process windowsHide: done 2026-11-19 as a no-op on Linux (see the windowsHide section). Boolean values are accepted on execFile and spawn and change nothing; any other value stays a gap.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -894,3 +895,13 @@ Design: LINUX_SIGNAL_NUMBERS maps the Linux numbers (1, 2, 3, 6, 9, 10, 12, 13, 
 Not verified: non-Linux numbers (macOS and BSD numbers differ for SIGUSR1, SIGUSR2 and others; no such host here, so those stay gaps); ChildProcess.kill(number) (a separate gap, unchanged).
 
 Mutation K3 (the platform guard removed) is not red: on this Linux host, the numbers map the same way with or without the guard, so the guard is not observable here.
+
+## child-process windowsHide under txiki (2026-11-19)
+
+Probe on txiki (through mcp-probe): windowsHide threw the gap on execFile and on spawn (the key checks). Node probe: runs/analysis/five-node.mjs (deterministic). Node: windowsHide true on spawn and execFile, and false on execFile, gives the same output as no option ('ok\n', exit 0). On Linux windowsHide has no effect (it hides a console window on Windows).
+
+Design: the key is accepted on execFile and spawn; a windowsHideChecked validator accepts undefined or a boolean and gaps any other value. The value is not used: on Linux nothing depends on it, and txiki has no Windows target (uname gives no name there, so the platform stays a gap).
+
+Not verified: Windows (no Windows host; the platform stays a gap, so windowsHide would not be reached there).
+
+Mutation evidence and the regression numbers are in the PENDING_VALIDATION section for this step.
