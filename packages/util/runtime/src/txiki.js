@@ -455,6 +455,7 @@ async function cp(source, destination, options = {}) {
     }
     return
   }
+  if (destinationEntry !== null) await unlink(destination)
   return tjs.copyFile(source, destination)
 }
 

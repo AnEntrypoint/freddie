@@ -565,6 +565,53 @@ async function cpSelfDirScenario() {
   return out
 }
 
+async function cpFileOntoLinkScenario() {
+  const roots = []
+  const variant = async (setup, source, destination, options) => {
+    const dir = await fsp.mkdtemp('/tmp/cp-file-link-')
+    roots.push(dir)
+    const at = (name) => dir + '/' + name
+    const shown = (text) => String(text).split(dir).join('ROOT')
+    await setup(at)
+    try {
+      await fsp.cp(at(source), at(destination), options)
+      const entry = await fsp.lstat(at(destination))
+      return { ok: true, dstIsLink: entry.isSymbolicLink(), dstText: entry.isSymbolicLink() ? null : await fsp.readFile(at(destination), 'utf8'), a: await fsp.readFile(at('a.txt'), 'utf8').catch((error) => 'ERR ' + error.code) }
+    } catch (error) {
+      return { ok: false, code: error.code, message: shown(error.message) }
+    }
+  }
+  const out = {}
+  const relToOther = async (at) => { await fsp.writeFile(at('a.txt'), 'AAAA'); await fsp.writeFile(at('b.txt'), 'BBBB'); await fsp.symlink('a.txt', at('l')) }
+  const absToOther = async (at) => { await fsp.writeFile(at('a.txt'), 'AAAA'); await fsp.writeFile(at('b.txt'), 'BBBB'); await fsp.symlink(at('a.txt'), at('l')) }
+  const toItself = async (at) => { await fsp.writeFile(at('a.txt'), 'AAAA'); await fsp.symlink('a.txt', at('l')) }
+  const dangling = async (at) => { await fsp.writeFile(at('b.txt'), 'BBBB'); await fsp.symlink('gone.txt', at('l')) }
+  const toDir = async (at) => { await fsp.writeFile(at('b.txt'), 'BBBB'); await fsp.mkdir(at('d')); await fsp.symlink('d', at('l')) }
+  out.plainRelLinkToOtherFile = await variant(relToOther, 'b.txt', 'l')
+  out.plainAbsLinkToOtherFile = await variant(absToOther, 'b.txt', 'l')
+  out.plainLinkToItself = await variant(toItself, 'a.txt', 'l')
+  out.plainDanglingLink = await variant(dangling, 'b.txt', 'l')
+  out.plainLinkToDirectory = await variant(toDir, 'b.txt', 'l')
+  out.derefRelLinkToOtherFile = await variant(relToOther, 'b.txt', 'l', { dereference: true })
+  out.derefLinkToItself = await variant(toItself, 'a.txt', 'l', { dereference: true })
+  out.derefDanglingLink = await variant(dangling, 'b.txt', 'l', { dereference: true })
+  out.derefDanglingLinkTargetText = await fsp.readFile(roots[roots.length - 1] + '/gone.txt', 'utf8').catch((error) => 'ERR ' + error.code)
+  const hard = async (dir) => {
+    const at = (name) => dir + '/' + name
+    await fsp.writeFile(at('src.txt'), 'SRC')
+    await fsp.writeFile(at('dst.txt'), 'OLD')
+    const before = (await fsp.stat(at('dst.txt'))).ino
+    await fsp.link(at('dst.txt'), at('sibling.txt'))
+    await fsp.cp(at('src.txt'), at('dst.txt'))
+    return { sibling: await fsp.readFile(at('sibling.txt'), 'utf8'), dst: await fsp.readFile(at('dst.txt'), 'utf8'), inodeChanged: (await fsp.stat(at('dst.txt'))).ino !== before }
+  }
+  const hardDir = await fsp.mkdtemp('/tmp/cp-file-hard-')
+  roots.push(hardDir)
+  out.plainOverwriteHardLinkSibling = await hard(hardDir)
+  for (const dir of roots) await fsp.rm(dir, { recursive: true, force: true })
+  return out
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -702,6 +749,7 @@ export const sharedCases = [
   { name: 'stream pipe after unpipe(dest): the destination receives the data and finishes again', run: () => streamSettle(repipeAfterUnpipe()), expected: ["w write r1","w write r2","r end","w finish"] },
   { name: 'fs.promises.cp: links into their own source subdirectory, links onto a hard link, and the hard-link inode check report Node errors', run: () => cpSubdirScenario(), expected: {"linkDirIntoOwnSubdirNew":{"type":"link","target":"ROOT/D"},"linkIntoSubdirOfTargetExistingDest":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/existing-into-sub"},"destLinkPointsAtSrcSubdirExisting":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/dest-sub-link"},"destLinkPointsAtSrcExistingSameTarget":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D) ROOT/dest-same-link"},"srcDirIntoLinkToItsSubdir":{"error":"ERR_FS_CP_DIR_TO_NON_DIR","message":"Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ROOT/linkSub with directory ROOT/D) ROOT/linkSub"},"srcLinkToSubdirOverDirLinkOfParent":{"error":"ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY","message":"Cannot overwrite symlink in subdirectory of self: cp returned EINVAL (cannot overwrite ROOT/D with ROOT/D/sub) ROOT/dest-parent-link"},"hardLinkSameInode":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/hard.txt"},"hardLinkSrcIsDestOtherName":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/a.txt"},"plainDistinctFilesControl":{"type":"file","text":"BBBB"},"dereferenceHardLinkSameInode":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/hard.txt"}} },
   { name: 'fs.promises.cp: a directory into its own subdirectory reports ERR_FS_CP_EINVAL, new and existing', run: () => cpSelfDirScenario(), expected: {"intoOwnSubdirRecursive":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/D/sub"},"intoOwnExistingSubdirRecursive":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub2) ROOT/D/sub2"}} },
+  { name: 'fs.promises.cp: a file copied onto an existing link replaces the link, and an overwrite unlinks the destination so a hard-linked sibling keeps its content', run: () => cpFileOntoLinkScenario(), expected: {"plainRelLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"plainAbsLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"plainLinkToItself":{"ok":true,"dstIsLink":false,"dstText":"AAAA","a":"AAAA"},"plainDanglingLink":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"ERR ENOENT"},"plainLinkToDirectory":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"ERR ENOENT"},"derefRelLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"derefLinkToItself":{"ok":false,"code":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/l"},"derefDanglingLink":{"ok":true,"dstIsLink":true,"dstText":null,"a":"ERR ENOENT"},"derefDanglingLinkTargetText":"BBBB","plainOverwriteHardLinkSibling":{"sibling":"OLD","dst":"SRC","inodeChanged":true}} },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },

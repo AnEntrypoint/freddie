@@ -768,3 +768,12 @@ Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/
 | contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 188 / 0 (5 polls) | present 115, missing []; exit 0 | 0.32 s probe |
 
 Mutation check (not a witness): Readable's same-file helper sameFile in src/txiki.js was changed to return false, which removes the ino and dev comparison. Under gm's txiki (runs/analysis/dev-txiki-cp-body.js), the hard-link expectations went red: the cpSubdirScenario case (hard-link-same-inode, hard-link-src-is-dest-other-name, dereference-hard-link-same-inode) and the older "copies symbolic links" case (dereferenceExistingLinkDest, which also depends on the same-file error). The file was restored with git checkout from de7fbd93; git status was clean after the restore.
+
+## fx split: a file copied onto an existing link, and a hard-linked overwrite (2026-11-19)
+
+Item 1 of the queue after d269ae6a: the open divergence from the cp into own-subdirectory stretch. Probes (untracked, runs/analysis/): cp-file-onto-link-repeat-node.mjs (6 layouts, 3 fresh roots each, all identical), cp-file-onto-link-deref-node.mjs (plain and dereference), cp-dangling-deref-node.mjs (the link target is created through a dangling link), cp-overwrite-hardlink-node.mjs (sibling keeps its content; inode changes). The earlier EINVAL readlink was in the probe itself: its return value called readlink on the destination after cp had replaced the link with a regular file.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: a file copy unlinks an existing destination before tjs.copyFile, so a link is replaced (the dereferenced dangling link stays, and its target is created) and a hard-linked sibling keeps its content | dev check: the new cp case (the whole scenario) red before the fix (writes through the link, EISDIR on a link to a directory, sibling changed); green after the fix, 4 of 4 cp cases match Node (dev-cp-node.out) and txiki total 4, failing [] (dev-cp-green.out) | Node parity and txiki parity; the mutation (remove the unlink, the case must go red) |
+| test/parity-cases.js: cpFileOntoLinkScenario (9 expectations plus the gone.txt text and the hard-link sibling) from the probe outputs | the same case matches Node and txiki | Node parity and txiki parity |
