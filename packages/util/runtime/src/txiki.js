@@ -2364,14 +2364,19 @@ class Readable extends Emitter {
   #decoder = null
   #encoding = null
   #highWaterMark = DEFAULT_HIGH_WATER_MARK
+  #objectMode = false
 
   constructor(options) {
     super()
-    assertNoOptions('stream.Readable', options, ['read', 'highWaterMark', 'encoding'])
+    assertNoOptions('stream.Readable', options, ['read', 'highWaterMark', 'encoding', 'objectMode'])
     if (options?.read !== undefined) this._read = options.read
     if (options?.[kTransform] === true) this.#sync = false
-    this.#highWaterMark = highWaterMarkOf('stream.Readable', options)
-    if (options?.encoding !== undefined && options.encoding !== null) this.setEncoding(options.encoding)
+    this.#objectMode = Boolean(options?.objectMode)
+    this.#highWaterMark = highWaterMarkOf('stream.Readable', options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
+    if (options?.encoding !== undefined && options.encoding !== null) {
+      if (this.#objectMode) throw gapError('stream.Readable encoding with objectMode')
+      this.setEncoding(options.encoding)
+    }
   }
 
   _read() {
@@ -2528,6 +2533,7 @@ class Readable extends Emitter {
   }
 
   unshift(chunk, encoding) {
+    if (this.#objectMode) throw gapError('stream.Readable unshift with objectMode')
     if (this.#endEmitted) {
       this.destroy(nodeError('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event'))
       return false
@@ -2588,6 +2594,11 @@ class Readable extends Emitter {
     if (this.#ended) {
       this.destroy(nodeError('ERR_STREAM_PUSH_AFTER_EOF', 'stream.push() after EOF'))
       return false
+    }
+    if (this.#objectMode) {
+      this.#reading = false
+      this.#addChunk(chunk)
+      return !this.#ended && (this.#length < this.#highWaterMark || this.#length === 0)
     }
     const bytes = bytesOf(chunk, encoding)
     this.#reading = false
@@ -2656,7 +2667,7 @@ class Readable extends Emitter {
     if (this.#flowing === true && this.#length === 0 && !this.#sync && this.listenerCount('data') > 0) {
       this.emit('data', bytes)
     } else {
-      this.#length += bytes.length
+      this.#length += this.#objectMode ? 1 : bytes.length
       if (addToFront) this.#buffer.unshift(bytes)
       else this.#buffer.push(bytes)
       if (this.#needReadable) this.#emitReadable()
@@ -2735,6 +2746,7 @@ class Readable extends Emitter {
 
   #howMuchToRead(n) {
     if (n <= 0 || (this.#length === 0 && this.#ended)) return 0
+    if (this.#objectMode) return this.#length > 0 ? 1 : 0
     if (Number.isNaN(n)) {
       if (this.#flowing === true && this.#length > 0) return this.#buffer[0].length
       return this.#length
@@ -2745,6 +2757,7 @@ class Readable extends Emitter {
 
   #fromList(n) {
     if (this.#length === 0) return null
+    if (this.#objectMode) return this.#buffer.shift()
     if (this.#decoder !== null) return this.#fromStrings(n)
     if (n >= this.#length) {
       const all = this.#buffer.length === 1 ? this.#buffer[0] : Buffer.concat(this.#buffer, this.#length)
@@ -2815,10 +2828,11 @@ class PassThrough extends Readable {
   #writeFinished = false
 
   constructor(options) {
-    super({ read() {}, [kTransform]: true, highWaterMark: options?.highWaterMark, encoding: options?.encoding })
-    assertNoOptions('stream.PassThrough', options, ['highWaterMark', 'encoding'])
+    super({ read() {}, [kTransform]: true, highWaterMark: options?.highWaterMark, encoding: options?.encoding, objectMode: options?.objectMode })
+    assertNoOptions('stream.PassThrough', options, ['highWaterMark', 'encoding', 'objectMode'])
     this.#writable = new Writable({
       highWaterMark: options?.highWaterMark,
+      objectMode: options?.objectMode,
       write: (chunk, encoding, callback) => {
         this.push(chunk)
         callback()

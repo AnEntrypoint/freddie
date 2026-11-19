@@ -1810,3 +1810,26 @@ Gap from the previous report: the case was red under no mutation. A new mutation
 | S1M6: objectMode entry converts the chunk: `chunk: Buffer.from(String(chunk))` | 1 red: 'stream.Writable objectMode passes objects and numbers to _write' (got 'object:{"type":"Buffer","data":[91,111,98,106,101,99,116,32,79,98,106,101,99,116,93]}' for the object, expected 'object:{"a":1}'). Run through mcp-probe with timeout 150, exit 0, gate open before it. Only this case is red. |
 
 The earlier note (the case is a regression witness only) is superseded: it is now red under S1M6.
+
+## fx split: objectMode on Readable and PassThrough, Phase A (2026-11-20)
+
+Rank 7s in docs/fx-split.md. Node probe: runs/analysis/stream-objectmode-node.mjs (exit 0, timeout 60). Node values used as expected: 17 pushes to an objectMode Readable return fifteen trues then two falses, length 17; data events emit object, number and string in order; read(5) returns one object, the next read returns the number, the third read returns null with length 0; read on an empty stream returns null; a Buffer pushed in objectMode stays one object (typeof object, length 2); a PassThrough objectMode round-trips an object and a number with write true for both; with highWaterMark 2 the pushes return true, false, false and length 3. Not used: the PassThrough with highWaterMark 2 in objectMode (Node returns true, true, false because the unread readable side holds back its writable side; txiki's PassThrough calls its transform callback at once, so the expected value would not match; gapped in the notes).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: Readable takes objectMode (one count per object; push adds the object as it is; #howMuchToRead and #fromList return one object; default limit 16; unshift and encoding with objectMode gap); PassThrough forwards objectMode to both sides | before: objectMode on Readable and PassThrough gapped; after: 7 new shared cases match on txiki (full run, 656 shared, gaps 23, mismatches [], elapsedMs 15912) and Node (656/656, 8897 ms) |
+| test/parity-cases.js: 7 shared cases (push returns with 16-object limit; data events; read one per call; read on empty; Buffer as one object; PassThrough round trip; highWaterMark 2 push returns); gaps: 'stream.Readable encoding with objectMode', 'stream.Readable unshift with objectMode' (the two Readable and PassThrough objectMode gaps are removed) | the same runs |
+
+Mutation evidence (saved good copy /tmp/stageB-good-txiki.js; each run through mcp-probe with timeout 150 and an open window before it; restore checked with cmp each time; git status shows the two changed files):
+
+| Mutation | Result |
+|---|---|
+| B-OM1: push bypasses the object path (object converted to a Buffer) | 3 red: 'data events emit objects, numbers and strings', 'read returns one object per call', 'PassThrough round trips objects and numbers' |
+| B-OM2: the object branch of #fromList removed | no result: the run hung until its timeout (exit 124 at 150 s); the body never returned. Not counted as a red case. |
+| B-OM3: the object branch of #howMuchToRead removed | no result: the gm worker restarted during the run, both times (the body was killed with reason restart); not counted as a red case. |
+| B-OM4: the default limit of 16 for objectMode ignored | 1 red: 'push returns follow a 16-object limit' |
+| B-OM5: objects counted in bytes (length += bytes.length) | no result: the run hung until its timeout (exit 124 at 150 s). Not counted as a red case. |
+| B-OM6: PassThrough does not forward objectMode to the read side | 1 red: 'PassThrough round trips objects and numbers' |
+| B-OM7: the objectMode highWaterMark option ignored | 1 red: 'highWaterMark 2 push returns' (got [true, true, true, 3]) |
+
+Coverage: five of the seven new shared cases are red under a clean mutation (push returns, data events, read one per call, PassThrough round trip, highWaterMark 2). 'read on an empty stream returns null' and 'keeps a Buffer as one object' are regression witnesses only: no clean mutation of theirs was found.

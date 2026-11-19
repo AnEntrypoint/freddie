@@ -2546,12 +2546,27 @@ sharedCases.push(
   { name: 'fs.createReadStream without options buffers the whole small file', run: () => bufferedAfterRead(undefined), expected: 10 },
 )
 
+const readObjects = (stream) => new Promise((resolve) => {
+  const got = []
+  stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
+  stream.on('end', () => resolve(got))
+})
+sharedCases.push(
+  { name: 'stream.Readable objectMode push returns follow a 16-object limit', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); const ret = []; for (let i = 0; i < 17; i++) ret.push(r.push({ i })); return { ret, length: r.readableLength } }, expected: { ret: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, false, false], length: 17 } },
+  { name: 'stream.Readable objectMode data events emit objects, numbers and strings', run: async () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); r.push({ a: 1 }); r.push(7); r.push('s'); r.push(null); return readObjects(r) }, expected: ['object:{"a":1}', 'number:7', 'string:"s"'] },
+  { name: 'stream.Readable objectMode read returns one object per call', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); r.push({ a: 1 }); r.push(2); const first = r.read(5); const second = r.read(); const third = r.read(); return [first, second, third, r.readableLength] }, expected: [{ a: 1 }, 2, null, 0] },
+  { name: 'stream.Readable objectMode read on an empty stream returns null', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); return [r.read(), r.readableLength] }, expected: [null, 0] },
+  { name: 'stream.Readable objectMode keeps a Buffer as one object', run: async () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); r.push(Buffer.from('ab')); r.push(null); const got = []; r.on('data', (chunk) => got.push(typeof chunk + ':' + chunk.length)); await new Promise((resolve) => r.on('end', resolve)); return got }, expected: ['object:2'] },
+  { name: 'stream.PassThrough objectMode round trips objects and numbers', run: async () => { const p = new s.stream.PassThrough({ objectMode: true }); const got = readObjects(p); const ret = [p.write({ a: 1 }), p.write(7)]; p.end(); return { ret, got: await got } }, expected: { ret: [true, true], got: ['object:{"a":1}', 'number:7'] } },
+  { name: 'stream.Readable objectMode highWaterMark 2 push returns', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true, highWaterMark: 2 }); return [r.push({ a: 1 }), r.push({ a: 2 }), r.push({ a: 3 }), r.readableLength] }, expected: [true, false, false, 3] },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'stream.Readable option highWaterMark -1', run: () => new s.stream.Readable({ read() {}, highWaterMark: -1 }) },
-  { name: 'stream.Readable option objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }) },
-  { name: 'stream.PassThrough option objectMode', run: () => new s.stream.PassThrough({ objectMode: true }) },
+  { name: 'stream.Readable encoding with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }) },
+  { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
   { name: 'fs.createReadStream start -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: -1 }) },
   { name: 'fs.createReadStream end before start', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: 5, end: 2 }) },
   { name: 'fs.createReadStream highWaterMark 0', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 0 }) },
