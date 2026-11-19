@@ -665,7 +665,7 @@ Design choices, each with its reason:
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
 
 
-## Declared gaps outside the stream group, ranked (2026-11-19, after crypto.createHash)
+## Declared gaps outside the stream group, ranked (2026-11-19, after child-process.spawn stdin)
 
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
@@ -675,7 +675,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 4. util.parseArgs() with no args: held. Node's default is process.argv.slice(2). The txiki mapping process.argv = [exePath, ...tjs.args] has no script entry under gm-core: process.argv is [gm-core] with no user arguments (runs/analysis/parseargs-argv-txiki.out), so slice(2) and slice(1) both give [] and the probe cannot tell which one tjs.args needs. Re-probed 2026-11-19 with the launcher that adds arguments (runs/analysis/mcp-probe-extra-args.mjs): gm-core serve exits before initialize when extra arguments are given, with or without a -- separator, and tjs.args stays [] under serve. There is no standalone tjs binary on this machine. Reopen: a gm-core build that puts user arguments into tjs.args, or a standalone tjs binary to run a body with arguments.
 5. fs.createReadStream option encoding: done 2026-11-19 (see the createReadStream section).
 6. crypto.createHash: done 2026-11-19 for sha224, sha384, sha512-224, sha512-256, sha3-224, sha3-256, sha3-384, sha3-512, shake128, shake256, ripemd160, blake2b512 and blake2s256 (see the createHash and RIPEMD and BLAKE2 sections). Still a gap: options (shake outputLength and any other option key) throw the declared gap, reopen: an outputLength implementation for XOF names. md4 has no Node 24 oracle (ERR_OSSL_EVP_UNSUPPORTED).
-7. child-process.spawn stdin: reachable only if tjs.spawn's stdin pipe is a writable. Not probed.
+7. child-process.spawn stdin: done 2026-11-19 (see the spawn stdin section). The stdin pipe is a ProcessWritableStream with getWriter.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -754,3 +754,18 @@ Probe: runs/analysis/create-hash-algorithms-node.mjs (the same probe as the crea
 Design: RIPEMD-160 follows the 80-step two-line structure with the rho permutation, the (9i+5) right-line permutation, and the shift and constant tables. BLAKE2b is the 12-round compression on BigInt words with the SHA-512 IV, and BLAKE2s is the 10-round compression on 32-bit words with the SHA-256 IV. Both use the parameter block for an unkeyed digest of the requested length. The tables were checked against the Node output, and the empty-input values against the published test vectors.
 
 Not verified: keyed BLAKE2 (createHash takes no key option, so keyed use is a declared option gap); the ripemd160 and rmd160 aliases; digests of inputs over one megabyte.
+
+## child-process.spawn stdin under txiki (2026-11-19)
+
+Probe runs/analysis/child-stdin-node.mjs, run twice with identical output (cat as the child). Node measured:
+
+- a string write and end: stdout is the written text, exit 0, close with code 0 and no stdin error; the stdin is writable before end();
+- two writes arrive in order ("ab"); an end with no writes gives empty stdout and exit 0;
+- a binary chunk (0, 255, 16, 10) passes through unchanged;
+- 300000 bytes in 3000 writes arrive whole, and the child exits 0;
+- a write after end() emits an error with code ERR_STREAM_WRITE_AFTER_END, and the child still finishes with exit 0;
+- a missing command: child.stdin is not null and is writable, a write produces no stdin error, the spawn error is ENOENT with syscall "spawn <file>", and close reports -2.
+
+Design: spawn asks tjs for a stdin pipe. The stdin is a Writable whose writes go through the pipe's writer, whose end closes the writer, and whose destroy also closes it. The destroy is needed: a write after end destroys the stream, and without the close the child would never see EOF (the first run hung on exactly that). A failed start gets a Writable that accepts and discards writes, as Node does. The Writable class gains the writable getter, which is false once end() has been called, as in Node. execFile keeps its current options (no stdin pipe).
+
+Not verified: the stdin error for a write into a child that has already exited (EPIPE); stdin destroy() called by the user before end; the stdin close event ordering relative to the child close event.

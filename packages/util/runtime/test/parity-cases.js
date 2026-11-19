@@ -2182,6 +2182,59 @@ sharedCases.push(
   { name: "fs.createReadStream rejects an unknown encoding with ERR_INVALID_ARG_VALUE", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); try { s.fs.createReadStream(file, 'no-such-encoding'); return { thrown: null } } catch (error) { return { thrown: { code: error.code, name: error.name, message: error.message } } } }, expected: {"thrown":{"code":"ERR_INVALID_ARG_VALUE","name":"TypeError","message":"The argument 'encoding' is invalid encoding. Received 'no-such-encoding'"}} },
 )
 
+const stdinOutcome = (writes, afterEnd) => new Promise((resolve) => {
+  const child = s['child-process'].spawn('cat')
+  const out = []
+  const stdinErrors = []
+  child.stdout.on('data', (chunk) => out.push(chunk))
+  child.stdin.on('error', (error) => stdinErrors.push(error.code ?? error.name))
+  const result = { isWritable: child.stdin instanceof Object && typeof child.stdin.write === 'function', writableBeforeEnd: child.stdin.writable }
+  const timer = setTimeout(() => resolve('TIMEOUT'), 3000)
+  child.on('close', (code, signal) => {
+    clearTimeout(timer)
+    const bytes = Buffer.concat(out)
+    resolve({ ...result, stdout: bytes.toString('utf8'), stdoutBytes: bytes.length, code, signal, stdinErrors })
+  })
+  for (const chunk of writes) child.stdin.write(chunk)
+  child.stdin.end()
+  result.writableAfterEnd = child.stdin.writable
+  if (afterEnd !== null) child.stdin.write(afterEnd)
+})
+
+const stdinLargeOutcome = async () => {
+  const outcome = await stdinOutcome(Array.from({ length: 3000 }, () => 'x'.repeat(100)), null)
+  if (outcome === 'TIMEOUT') return outcome
+  return { stdoutBytes: outcome.stdoutBytes, allX: outcome.stdout === 'x'.repeat(300000), code: outcome.code, signal: outcome.signal }
+}
+
+const stdinMissingOutcome = () => new Promise((resolve) => {
+  const child = s['child-process'].spawn('freddie-no-such-command-xyz')
+  const stdinErrors = []
+  const result = { stdinIsNull: child.stdin === null, stdinWritableBeforeEvents: child.stdin?.writable ?? null }
+  child.stdin?.on('error', (error) => stdinErrors.push(error.code ?? error.name))
+  child.on('error', (error) => {
+    result.spawnErrorCode = error.code
+    result.spawnErrorSyscall = error.syscall
+  })
+  const timer = setTimeout(() => resolve('TIMEOUT'), 3000)
+  child.on('close', (code, signal) => {
+    clearTimeout(timer)
+    resolve({ ...result, closeCode: code, closeSignal: signal, stdinErrors })
+  })
+  child.stdin?.write('x')
+  child.stdin?.end()
+})
+
+sharedCases.push(
+  { name: "child-process.spawn stdin: a string write reaches cat and end closes it", run: () => stdinOutcome(['hello stdin\n'], null), expected: {"isWritable":true,"writableBeforeEnd":true,"writableAfterEnd":false,"stdout":"hello stdin\n","stdoutBytes":12,"code":0,"signal":null,"stdinErrors":[]} },
+  { name: "child-process.spawn stdin: two writes arrive in order", run: () => stdinOutcome(['a', 'b'], null), expected: {"isWritable":true,"writableBeforeEnd":true,"writableAfterEnd":false,"stdout":"ab","stdoutBytes":2,"code":0,"signal":null,"stdinErrors":[]} },
+  { name: "child-process.spawn stdin: end with no writes gives empty stdout", run: () => stdinOutcome([], null), expected: {"isWritable":true,"writableBeforeEnd":true,"writableAfterEnd":false,"stdout":"","stdoutBytes":0,"code":0,"signal":null,"stdinErrors":[]} },
+  { name: "child-process.spawn stdin: a binary chunk passes through", run: () => stdinOutcome([Buffer.from([0, 255, 16, 10])], null), expected: {"isWritable":true,"writableBeforeEnd":true,"writableAfterEnd":false,"stdout":"\u0000�\u0010\n","stdoutBytes":4,"code":0,"signal":null,"stdinErrors":[]} },
+  { name: "child-process.spawn stdin: 300000 bytes in 3000 writes arrive whole", run: () => stdinLargeOutcome(), expected: {"stdoutBytes":300000,"allX":true,"code":0,"signal":null} },
+  { name: "child-process.spawn stdin: a write after end emits ERR_STREAM_WRITE_AFTER_END", run: () => stdinOutcome(['ok\n'], 'late'), expected: {"isWritable":true,"writableBeforeEnd":true,"writableAfterEnd":false,"stdout":"ok\n","stdoutBytes":3,"code":0,"signal":null,"stdinErrors":["ERR_STREAM_WRITE_AFTER_END"]} },
+  { name: "child-process.spawn stdin: a missing command has a writable stdin that discards writes", run: () => stdinMissingOutcome(), expected: {"stdinIsNull":false,"stdinWritableBeforeEvents":true,"spawnErrorCode":"ENOENT","spawnErrorSyscall":"spawn freddie-no-such-command-xyz","closeCode":-2,"closeSignal":null,"stdinErrors":[]} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },

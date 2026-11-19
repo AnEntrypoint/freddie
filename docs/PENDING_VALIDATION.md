@@ -1166,3 +1166,30 @@ Reading the gap numbers: the gap assertions are the gaps count with unexpectedGa
 Re-probe of util.parseArgs with no arguments (held, rank 4 in docs/fx-split.md): gm-core serve exits before initialize when extra arguments are given, with or without a -- separator, and tjs.args stays [] under serve (runs/analysis/dev-txiki-tjsargs-body.js). No standalone tjs binary is on the machine, so the held item stays held.
 
 Not verified in Phase B: one run per witness, so the wall times are single readings, and the txiki parity run is on the gm-core host only.
+
+## fx split: child-process.spawn stdin, Phase A (2026-11-19)
+
+Rank 7 of the ranked list in docs/fx-split.md (done this stretch). Probe: runs/analysis/child-stdin-node.mjs, deterministic.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: startProcess takes a stdin flag (spawn sets it, execFile does not); ChildProcess keeps a stdin Writable from openWritable (write through the pipe's writer, final closes it, _destroy closes it); a failed start gets a discarding Writable; the stdin getter returns it; Writable gains the writable getter (false after end, destroy or a failure) | before the change: the stdin gap threw; after it: 7 of 7 cases match on txiki (dev body) and 7 of 7 on Node; the first run hung on the write-after-end case (destroy did not close the pipe), fixed by the _destroy close and recorded below |
+| test/parity-cases.js: 7 stdin cases generated from the probe output (string write, two writes, no writes, binary, 300000 bytes, write after end, missing command), with a timeout in each helper; writableAfterEnd recorded after end() | the same runs |
+
+Mutation evidence (each applied to the saved good file, run through the stdin dev body that writes its full result to a file; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| X1: the stdin gap restored | all 7 |
+| X2: writes not forwarded to the pipe | string, two writes, binary, 300000 bytes, write after end (5) |
+| X3: never closed (final and destroy both skip the close; cat waits forever, so the helper timeout reports TIMEOUT) | string, two writes, no writes, binary, 300000 bytes, write after end (6) |
+| X4: destroy does not close the pipe (the bug the first run found) | write after end (1) |
+| X5: writable always true | string, two writes, no writes, binary, write after end (5) |
+| X6: discarding stdin reports an error on each write | missing command (1) |
+| X7: only the first byte of each chunk written | string, binary, 300000 bytes, write after end (4) |
+
+Coverage: every one of the 7 cases is red under at least one mutation. The X3 mutant leaves cat waiting; no cat process was left after the runs (checked with ps).
+
+Regression (not a witness): txiki parity with gap assertions: shared 522, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 4320 ms. Node parity: 522/522.
+
+Not verified: EPIPE when writing to a child that has exited; a user-called destroy before end.

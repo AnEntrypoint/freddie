@@ -2127,6 +2127,10 @@ class Writable extends Emitter {
     if (options?.decodeStrings === false) this.#decodeStrings = false
   }
 
+  get writable() {
+    return !this.#ending && !this.#destroyed && this.#failure === null
+  }
+
   get writableNeedDrain() {
     return !this.#ending && !this.#destroyed && this.#needDrain
   }
@@ -2886,9 +2890,12 @@ function exitFailure(cmd, stderr, status) {
 
 const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
 
-function startProcess(file, argv, cwd) {
+function startProcess(file, argv, cwd, stdin = false) {
+  const options = { stdout: 'pipe', stderr: 'pipe' }
+  if (stdin) options.stdin = 'pipe'
+  if (cwd !== undefined) options.cwd = cwd
   try {
-    return { process: tjs.spawn([file, ...argv], cwd === undefined ? { stdout: 'pipe', stderr: 'pipe' } : { stdout: 'pipe', stderr: 'pipe', cwd }) }
+    return { process: tjs.spawn([file, ...argv], options) }
   } catch (error) {
     if (!ASYNC_SPAWN_ERRORS.includes(error.code)) throw Object.assign(new Error('spawn ' + error.code), { code: error.code, syscall: 'spawn' })
     return { error: spawnError(file, argv, error.code) }
@@ -2955,23 +2962,46 @@ function closedPipe() {
   return { readable, ended: Promise.resolve() }
 }
 
+function openWritable(stream) {
+  const writer = stream.getWriter()
+  const writable = new Writable({
+    write(chunk, encoding, callback) {
+      writer.write(chunk).then(() => callback(), callback)
+    },
+    final(callback) {
+      writer.close().then(() => callback(), callback)
+    },
+  })
+  writable._destroy = (error, callback) => {
+    writer.close().then(() => callback(), () => callback())
+  }
+  return writable
+}
+
+function discardingWritable() {
+  return new Writable({ write(chunk, encoding, callback) { callback() } })
+}
+
 class ChildProcess extends Emitter {
   #process
   #exited = false
+  #stdin
   #stdout
   #stderr
   killed = false
 
   constructor(file, argv, cwd) {
     super()
-    const started = startProcess(file, argv, cwd)
+    const started = startProcess(file, argv, cwd, true)
     if (started.error !== undefined) {
+      this.#stdin = discardingWritable()
       this.#stdout = closedPipe()
       this.#stderr = closedPipe()
       setTimeout(() => this.#fail(started.error), 0)
       return
     }
     this.#process = started.process
+    this.#stdin = openWritable(started.process.stdin)
     this.#stdout = openPipe(started.process.stdout)
     this.#stderr = openPipe(started.process.stderr)
     setTimeout(() => this.#spawned(), 0)
@@ -2982,7 +3012,7 @@ class ChildProcess extends Emitter {
   }
 
   get stdin() {
-    throw gapError('child-process.spawn stdin stream')
+    return this.#stdin
   }
 
   get stdout() {
