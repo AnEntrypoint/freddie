@@ -1685,3 +1685,26 @@ Other peers' load seen in the ps snapshots: a gm-core worker (about 44% CPU) and
 Probe runs in this stretch (all bounded, all ended by themselves; no probe was restarted under a new PID): the txiki stdio probe (timeout 120, about 15 s before the poll returned); the txiki flood probe (timeout 120); the txiki mutation loop (each probe timeout 120, 5 probes); the txiki regression (timeout 150, about 15 s); the Phase B txiki witnesses (timeout 150 and 120). The mcp-probe poll loop (runs/analysis, gitignored) was reduced from 40 polls to 3, so a stuck run ends in about 3 minutes rather than 40.
 
 Not verified: the txiki witnesses ran in one run each; macOS and Windows.
+
+## fx split: stream options (highWaterMark, Writable objectMode, encoding), Phase A (2026-11-19)
+
+Rank 7p in docs/fx-split.md. Node probes: runs/analysis/stream-shapes2-node.mjs and stream-shapes3-node.mjs (run once each, exit 0, under timeout 60). Node values used as expected: a Readable with highWaterMark 3 gives push returns [true, false, false] and readableLength 4; a Writable with objectMode and highWaterMark 3 and a held callback gives write returns [true, true, false, false]; a Writable with highWaterMark 5 gives [true, false, false] for 3, 2 and 1 bytes; a PassThrough with highWaterMark 2 gives write false; encoding hex on a Readable or PassThrough gives the chunk '6162' as a string; an encoding of utf8 across split pushes gives 'é'. Default highWaterMark is 65536 for Readable and Writable and 16 for an objectMode Writable.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: highWaterMarkOf (non-negative integer, else gap); Readable keeps its limit in #highWaterMark (replacing the module constant in its 8 uses) and takes an encoding option; Writable takes highWaterMark and objectMode (objects count 1, default limit 16); PassThrough forwards highWaterMark and encoding and gaps other options | before: the highWaterMark, objectMode and encoding options gapped; after: 8 new shared cases match on txiki (full parity run) and on Node (631/631) |
+| test/parity-cases.js: 8 shared cases (push/write returns, objects reaching _write, hex and utf8 read-side strings); gaps replaced: 'stream.Readable option highWaterMark -1', 'stream.Readable option objectMode', 'stream.PassThrough option objectMode' (the old highWaterMark and Writable objectMode gaps are removed because they are supported now) | the same runs |
+
+Regression: txiki parity with gap assertions: shared 631, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1, 15240 ms. Node parity 631/631 (8411 ms).
+
+Mutation evidence (saved good copy /tmp/stage1-good-txiki.js; each run through mcp-probe with timeout 150 and a gate reading before it; each restore checked with cmp, git status shows the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S1M1: Readable highWaterMark ignored | 1 (push returns [true, true, true, 4]) |
+| S1M2: objectMode entry ignored | 1 (write returns all false) |
+| S1M3: Writable highWaterMark ignored | 3 (the objectMode held case, highWaterMark 5, PassThrough highWaterMark 2 path) |
+| S1M4: PassThrough highWaterMark not forwarded to the write side | 1 (write true, expected false) |
+| S1M5: Readable encoding option ignored | 3 (hex on Readable, hex on PassThrough, utf8 multibyte) |
+
+Coverage: every new shared case is red under at least one mutation, except 'stream.Writable objectMode passes objects and numbers to _write' and 'stream.Writable highWaterMark 5' (the latter is red under S1M3). The objects case is not red under any of the five mutations: its _write receives the same chunks with or without the objectMode branch, so it is a regression witness for the object chunk path, not a mutation witness. Recorded here, not hidden.

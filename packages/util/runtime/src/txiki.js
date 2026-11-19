@@ -2110,6 +2110,13 @@ function assertNoOptions(name, options, allowed) {
   }
 }
 
+function highWaterMarkOf(name, options, fallback = DEFAULT_HIGH_WATER_MARK) {
+  const value = options?.highWaterMark
+  if (value === undefined) return fallback
+  if (!Number.isSafeInteger(value) || value < 0) throw gapError(name + ' option highWaterMark ' + String(value))
+  return value
+}
+
 function declareGaps(prefix, target, names) {
   for (const name of names) {
     Object.defineProperty(target.prototype, name, { value: gapFunction(prefix + '.' + name), writable: true, configurable: true })
@@ -2142,14 +2149,18 @@ class Writable extends Emitter {
   #corked = 0
   #defaultEncoding = 'utf8'
   #decodeStrings = true
+  #objectMode = false
+  #highWaterMark = DEFAULT_HIGH_WATER_MARK
 
   constructor(options) {
     super()
-    assertNoOptions('stream.Writable', options, ['write', 'final', 'writev', 'decodeStrings'])
+    assertNoOptions('stream.Writable', options, ['write', 'final', 'writev', 'decodeStrings', 'highWaterMark', 'objectMode'])
     if (options?.write !== undefined) this._write = options.write
     if (options?.final !== undefined) this._final = options.final
     if (options?.writev !== undefined) this._writev = options.writev
     if (options?.decodeStrings === false) this.#decodeStrings = false
+    this.#objectMode = Boolean(options?.objectMode)
+    this.#highWaterMark = highWaterMarkOf('stream.Writable', options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
   }
 
   get writable() {
@@ -2181,6 +2192,7 @@ class Writable extends Emitter {
   }
 
   #entryOf(chunk, encoding, callback) {
+    if (this.#objectMode) return { chunk, encoding: 'buffer', callback, length: 1 }
     if (typeof chunk !== 'string') return { chunk, encoding: 'buffer', callback, length: chunk.length }
     const enc = encoding || this.#defaultEncoding
     if (!this.#decodeStrings) return { chunk, encoding: enc, callback, length: chunk.length }
@@ -2214,7 +2226,7 @@ class Writable extends Emitter {
     const entry = this.#entryOf(chunk, encoding, callback)
     this.#queue.push(entry)
     this.#length += entry.length
-    const ok = this.#length < DEFAULT_HIGH_WATER_MARK
+    const ok = this.#length < this.#highWaterMark
     if (!ok) this.#needDrain = true
     this.#drain()
     return ok && !this.#destroyed
@@ -2340,12 +2352,15 @@ class Readable extends Emitter {
   #awaitDrain = new Set()
   #decoder = null
   #encoding = null
+  #highWaterMark = DEFAULT_HIGH_WATER_MARK
 
   constructor(options) {
     super()
-    assertNoOptions('stream.Readable', options, ['read'])
+    assertNoOptions('stream.Readable', options, ['read', 'highWaterMark', 'encoding'])
     if (options?.read !== undefined) this._read = options.read
     if (options?.[kTransform] === true) this.#sync = false
+    this.#highWaterMark = highWaterMarkOf('stream.Readable', options)
+    if (options?.encoding !== undefined && options.encoding !== null) this.setEncoding(options.encoding)
   }
 
   _read() {
@@ -2514,7 +2529,7 @@ class Readable extends Emitter {
       else data = from === this.#encoding ? chunk : Buffer.from(chunk, from).toString(this.#encoding)
     }
     if (data.length > 0) this.#addChunk(data, true)
-    return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
+    return !this.#ended && (this.#length < this.#highWaterMark || this.#length === 0)
   }
 
   wrap(stream) {
@@ -2568,7 +2583,7 @@ class Readable extends Emitter {
     const data = this.#decoder === null ? Buffer.from(bytes) : this.#decoder.write(bytes)
     if (data.length > 0) this.#addChunk(data)
     else this.#maybeReadMore()
-    return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
+    return !this.#ended && (this.#length < this.#highWaterMark || this.#length === 0)
   }
 
   read(n) {
@@ -2576,7 +2591,7 @@ class Readable extends Emitter {
     else if (!Number.isInteger(n)) n = Number.parseInt(n, 10)
     const requested = n
     if (n !== 0) this.#emittedReadable = false
-    if (n === 0 && this.#needReadable && (this.#length >= DEFAULT_HIGH_WATER_MARK || this.#ended)) {
+    if (n === 0 && this.#needReadable && (this.#length >= this.#highWaterMark || this.#ended)) {
       if (this.#length === 0 && this.#ended) this.#endReadable()
       else this.#emitReadable()
       return null
@@ -2587,19 +2602,19 @@ class Readable extends Emitter {
       return null
     }
     let doRead = this.#needReadable
-    if (this.#length === 0 || this.#length - n < DEFAULT_HIGH_WATER_MARK) doRead = true
+    if (this.#length === 0 || this.#length - n < this.#highWaterMark) doRead = true
     if (this.#ended || this.#reading || this.#destroyed) doRead = false
     else if (doRead) {
       this.#reading = true
       this.#sync = true
       if (this.#length === 0) this.#needReadable = true
-      this._read(DEFAULT_HIGH_WATER_MARK)
+      this._read(this.#highWaterMark)
       this.#sync = false
       if (!this.#reading) n = this.#howMuchToRead(requested)
     }
     const ret = n > 0 ? this.#fromList(n) : null
     if (ret === null) {
-      this.#needReadable = this.#length <= DEFAULT_HIGH_WATER_MARK
+      this.#needReadable = this.#length <= this.#highWaterMark
       n = 0
     } else {
       this.#length -= n
@@ -2670,7 +2685,7 @@ class Readable extends Emitter {
       this.emit('readable')
       this.#emittedReadable = false
     }
-    this.#needReadable = this.#flowing !== true && !this.#ended && this.#length <= DEFAULT_HIGH_WATER_MARK
+    this.#needReadable = this.#flowing !== true && !this.#ended && this.#length <= this.#highWaterMark
     this.#flow()
   }
 
@@ -2699,7 +2714,7 @@ class Readable extends Emitter {
   }
 
   #maybeReadMoreNT() {
-    while (!this.#reading && !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || (this.#flowing === true && this.#length === 0))) {
+    while (!this.#reading && !this.#ended && (this.#length < this.#highWaterMark || (this.#flowing === true && this.#length === 0))) {
       const length = this.#length
       this.read(0)
       if (length === this.#length) break
@@ -2789,9 +2804,10 @@ class PassThrough extends Readable {
   #writeFinished = false
 
   constructor(options) {
-    super({ read() {}, [kTransform]: true })
-    assertNoOptions('stream.PassThrough', options, [])
+    super({ read() {}, [kTransform]: true, highWaterMark: options?.highWaterMark, encoding: options?.encoding })
+    assertNoOptions('stream.PassThrough', options, ['highWaterMark', 'encoding'])
     this.#writable = new Writable({
+      highWaterMark: options?.highWaterMark,
       write: (chunk, encoding, callback) => {
         this.push(chunk)
         callback()

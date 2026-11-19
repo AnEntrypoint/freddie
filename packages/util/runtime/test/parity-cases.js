@@ -2493,12 +2493,30 @@ sharedCases.push(
   { name: "child-process.execFile stdio inherit is accepted and both streams are captured, as in Node", run: () => execCapture('/bin/sh', ['-c', 'echo hi; echo err 1>&2'], { stdio: 'inherit' }), expected: {"error":null,"stdout":"hi\n","stderr":"err\n"} },
 )
 
+const readStreamText = (stream) => new Promise((resolve) => {
+  const chunks = []
+  stream.on('data', (chunk) => chunks.push(String(chunk)))
+  stream.on('error', (error) => resolve({ error: error.code }))
+  stream.on('end', () => resolve(chunks.join('')))
+})
+sharedCases.push(
+  { name: 'stream.Readable highWaterMark 3 push returns', run: () => { const r = new s.stream.Readable({ read() {}, highWaterMark: 3 }); return [r.push(Buffer.from('ab')), r.push(Buffer.from('c')), r.push(Buffer.from('d')), r.readableLength] }, expected: [true, false, false, 4] },
+  { name: 'stream.Writable objectMode write returns with a held callback', run: () => { const w = new s.stream.Writable({ objectMode: true, highWaterMark: 3, write(chunk, enc, cb) {} }); return [w.write({ n: 1 }), w.write({ n: 2 }), w.write({ n: 3 }), w.write({ n: 4 })] }, expected: [true, true, false, false] },
+  { name: 'stream.Writable objectMode passes objects and numbers to _write', run: async () => { const got = []; const w = new s.stream.Writable({ objectMode: true, write(chunk, enc, cb) { got.push(typeof chunk + ':' + JSON.stringify(chunk)); cb() } }); w.write({ a: 1 }); w.write(7); await new Promise((resolve) => w.end(resolve)); return got }, expected: ['object:{"a":1}', 'number:7'] },
+  { name: 'stream.Writable highWaterMark 5 write returns', run: () => { const w = new s.stream.Writable({ highWaterMark: 5, write(chunk, enc, cb) {} }); return [w.write(Buffer.from('abc')), w.write(Buffer.from('de')), w.write(Buffer.from('f'))] }, expected: [true, false, false] },
+  { name: 'stream.PassThrough highWaterMark 2 write returns', run: () => new s.stream.PassThrough({ highWaterMark: 2 }).write(Buffer.from('abc')), expected: false },
+  { name: 'stream.Readable encoding hex yields hex strings', run: async () => { const r = new s.stream.Readable({ read() {}, encoding: 'hex' }); r.push(Buffer.from('ab')); r.push(null); return readStreamText(r) }, expected: '6162' },
+  { name: 'stream.PassThrough encoding hex yields hex strings on the read side', run: async () => { const p = new s.stream.PassThrough({ encoding: 'hex' }); p.end(Buffer.from('ab')); return readStreamText(p) }, expected: '6162' },
+  { name: 'stream.Readable encoding utf8 keeps a multibyte character whole across pushes', run: async () => { const r = new s.stream.Readable({ read() {}, encoding: 'utf8' }); const e = Buffer.from('é'); r.push(e.subarray(0, 1)); r.push(e.subarray(1)); r.push(null); return readStreamText(r) }, expected: 'é' },
+)
+
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
-  { name: 'stream.Readable option highWaterMark', run: () => new s.stream.Readable({ highWaterMark: 1 }) },
-  { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
-  { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
+  { name: 'stream.Readable option highWaterMark -1', run: () => new s.stream.Readable({ read() {}, highWaterMark: -1 }) },
+  { name: 'stream.Readable option objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }) },
+  { name: 'stream.PassThrough option objectMode', run: () => new s.stream.PassThrough({ objectMode: true }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with flag rs+', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { flag: 'rs+' }) },
