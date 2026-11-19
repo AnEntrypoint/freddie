@@ -1143,6 +1143,8 @@ const SHA256_CONSTANTS = HASH_PRIMES.slice(0, 64).map((prime) => Number(integerR
 const SHA256_INITIAL = HASH_PRIMES.slice(0, 8).map((prime) => Number(integerRoot(BigInt(prime) << 64n, 2n) & 0xffffffffn))
 const SHA512_CONSTANTS = HASH_PRIMES.map((prime) => integerRoot(BigInt(prime) << 192n, 3n) & UINT64_MASK)
 const SHA512_INITIAL = HASH_PRIMES.slice(0, 8).map((prime) => integerRoot(BigInt(prime) << 128n, 2n) & UINT64_MASK)
+const SHA224_INITIAL = HASH_PRIMES.slice(8, 16).map((prime) => Number(integerRoot(BigInt(prime) << 128n, 2n) & 0xffffffffn))
+const SHA384_INITIAL = HASH_PRIMES.slice(8, 16).map((prime) => integerRoot(BigInt(prime) << 128n, 2n) & UINT64_MASK)
 
 function firstPrimes(count) {
   const primes = []
@@ -1263,10 +1265,10 @@ function sha1Digest(bytes) {
   return wordsToBytes(state, false)
 }
 
-function sha256Digest(bytes) {
+function sha256Digest(bytes, initial = SHA256_INITIAL, length = 32) {
   const blocks = padMessage(bytes, 64, 8, false)
   const view = new DataView(blocks.buffer)
-  const state = SHA256_INITIAL.slice()
+  const state = initial.slice()
   for (let offset = 0; offset < blocks.length; offset += 64) {
     const w = Array.from({ length: 64 }, (_, i) => (i < 16 ? view.getUint32(offset + i * 4) : 0))
     for (let i = 16; i < 64; i++) {
@@ -1296,13 +1298,13 @@ function sha256Digest(bytes) {
       state[j] = (value + working[j]) | 0
     })
   }
-  return wordsToBytes(state, false)
+  return wordsToBytes(state, false).subarray(0, length)
 }
 
-function sha512Digest(bytes) {
+function sha512Digest(bytes, initial = SHA512_INITIAL, length = 64) {
   const blocks = padMessage(bytes, 128, 16, false)
   const view = new DataView(blocks.buffer)
-  const state = SHA512_INITIAL.slice()
+  const state = initial.slice()
   for (let offset = 0; offset < blocks.length; offset += 128) {
     const w = Array.from({ length: 80 }, (_, i) => (i < 16 ? view.getBigUint64(offset + i * 8) : 0n))
     for (let i = 16; i < 80; i++) {
@@ -1335,10 +1337,108 @@ function sha512Digest(bytes) {
   const bytes64 = new Uint8Array(64)
   const view64 = new DataView(bytes64.buffer)
   state.forEach((word, i) => view64.setBigUint64(i * 8, word))
-  return bytes64
+  return bytes64.subarray(0, length)
 }
 
-const HASH_FUNCTIONS = { md5: md5Digest, sha1: sha1Digest, sha256: sha256Digest, sha512: sha512Digest }
+function sha512TruncatedInitial(truncatedBits) {
+  const digest = sha512Digest(Buffer.from('SHA-512/' + truncatedBits), SHA512_INITIAL.map((word) => word ^ 0xa5a5a5a5a5a5a5a5n))
+  const view = new DataView(digest.buffer, digest.byteOffset, digest.byteLength)
+  return Array.from({ length: 8 }, (_, i) => view.getBigUint64(i * 8))
+}
+
+const SHA512_224_INITIAL = sha512TruncatedInitial(224)
+const SHA512_256_INITIAL = sha512TruncatedInitial(256)
+
+function keccakRcBit(t) {
+  if (t % 255 === 0) return 1
+  const bits = [1, 0, 0, 0, 0, 0, 0, 0]
+  for (let i = 1; i <= t % 255; i++) {
+    bits.unshift(0)
+    bits[0] ^= bits[8]
+    bits[4] ^= bits[8]
+    bits[5] ^= bits[8]
+    bits[6] ^= bits[8]
+    bits.length = 8
+  }
+  return bits[0]
+}
+
+const KECCAK_ROUND_CONSTANTS = Array.from({ length: 24 }, (_, round) => {
+  let constant = 0n
+  for (let j = 0; j <= 6; j++) if (keccakRcBit(j + 7 * round) === 1) constant |= 1n << BigInt((1 << j) - 1)
+  return constant
+})
+
+const KECCAK_ROTATIONS = (() => {
+  const rotations = new Array(25).fill(0)
+  let x = 1
+  let y = 0
+  for (let t = 0; t < 24; t++) {
+    rotations[x + 5 * y] = ((t + 1) * (t + 2) / 2) % 64
+    const nextY = (2 * x + 3 * y) % 5
+    x = y
+    y = nextY
+  }
+  return rotations
+})()
+
+function keccakRotl(value, bits) {
+  if (bits === 0) return value
+  const shift = BigInt(bits)
+  return ((value << shift) | (value >> (64n - shift))) & UINT64_MASK
+}
+
+function keccakPermute(state) {
+  for (let round = 0; round < 24; round++) {
+    const columns = Array.from({ length: 5 }, (_, x) => state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20])
+    const offsets = columns.map((_, x) => columns[(x + 4) % 5] ^ keccakRotl(columns[(x + 1) % 5], 1))
+    for (let i = 0; i < 25; i++) state[i] ^= offsets[i % 5]
+    const permuted = new Array(25)
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) permuted[y + 5 * ((2 * x + 3 * y) % 5)] = keccakRotl(state[x + 5 * y], KECCAK_ROTATIONS[x + 5 * y])
+    }
+    for (let x = 0; x < 5; x++) {
+      for (let y = 0; y < 5; y++) state[x + 5 * y] = permuted[x + 5 * y] ^ ((permuted[((x + 1) % 5) + 5 * y] ^ UINT64_MASK) & permuted[((x + 2) % 5) + 5 * y])
+    }
+    state[0] ^= KECCAK_ROUND_CONSTANTS[round]
+  }
+  return state
+}
+
+function keccakDigest(bytes, rate, domain, length) {
+  const total = (Math.floor(bytes.length / rate) + 1) * rate
+  const padded = new Uint8Array(total)
+  padded.set(bytes)
+  padded[bytes.length] ^= domain
+  padded[total - 1] ^= 0x80
+  const view = new DataView(padded.buffer)
+  const state = new Array(25).fill(0n)
+  for (let offset = 0; offset < total; offset += rate) {
+    for (let i = 0; i < rate / 8; i++) state[i] ^= view.getBigUint64(offset + 8 * i, true)
+    keccakPermute(state)
+  }
+  const lanes = new Uint8Array(200)
+  const laneView = new DataView(lanes.buffer)
+  state.forEach((lane, i) => laneView.setBigUint64(i * 8, lane, true))
+  return lanes.slice(0, length)
+}
+
+const HASH_FUNCTIONS = {
+  md5: md5Digest,
+  sha1: sha1Digest,
+  sha224: (bytes) => sha256Digest(bytes, SHA224_INITIAL, 28),
+  sha256: sha256Digest,
+  sha384: (bytes) => sha512Digest(bytes, SHA384_INITIAL, 48),
+  sha512: sha512Digest,
+  'sha512-224': (bytes) => sha512Digest(bytes, SHA512_224_INITIAL, 28),
+  'sha512-256': (bytes) => sha512Digest(bytes, SHA512_256_INITIAL, 32),
+  'sha3-224': (bytes) => keccakDigest(bytes, 144, 0x06, 28),
+  'sha3-256': (bytes) => keccakDigest(bytes, 136, 0x06, 32),
+  'sha3-384': (bytes) => keccakDigest(bytes, 104, 0x06, 48),
+  'sha3-512': (bytes) => keccakDigest(bytes, 72, 0x06, 64),
+  shake128: (bytes) => keccakDigest(bytes, 168, 0x1f, 16),
+  shake256: (bytes) => keccakDigest(bytes, 136, 0x1f, 32),
+}
 
 function concatBytes(chunks) {
   const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0))
@@ -1383,8 +1483,10 @@ class Hash {
   }
 }
 
-function createHash(algorithm) {
+function createHash(algorithm, options) {
   const name = String(algorithm).toLowerCase()
+  const [key] = Object.keys(options ?? {})
+  if (key !== undefined) throw gapError('crypto.createHash option ' + key)
   if (!Object.hasOwn(HASH_FUNCTIONS, name)) throw gapError('crypto.createHash ' + name)
   return new Hash(name)
 }

@@ -665,7 +665,7 @@ Design choices, each with its reason:
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
 
 
-## Declared gaps outside the stream group, ranked (2026-11-19, after fs.createReadStream encoding)
+## Declared gaps outside the stream group, ranked (2026-11-19, after crypto.createHash)
 
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
@@ -674,7 +674,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 3. child-process option cwd: execFile done 2026-11-19 (see the cwd section); spawn done 2026-11-19 (see the spawn cwd section). exec is held: it is not a name in src/txiki.js or test/contract-names.js, so there is no function to add the option to. Reopen: a contract change adding exec.
 4. util.parseArgs() with no args: held. Node's default is process.argv.slice(2). The txiki mapping process.argv = [exePath, ...tjs.args] has no script entry under gm-core: process.argv is [gm-core] with no user arguments (runs/analysis/parseargs-argv-txiki.out), so slice(2) and slice(1) both give [] and the probe cannot tell which one tjs.args needs. Reopen: a txiki run with user arguments showing whether tjs.args starts with the script (gm-core started with arguments, not reachable through the current harness).
 5. fs.createReadStream option encoding: done 2026-11-19 (see the createReadStream section).
-6. crypto.createHash sha3-256, and the other algorithms beyond md5, sha1, sha256 and sha512: reachable by a pure-JS Keccak port with Node's digests as the oracle. Not probed yet.
+6. crypto.createHash: done 2026-11-19 for sha224, sha384, sha512-224, sha512-256, sha3-224, sha3-256, sha3-384, sha3-512, shake128 and shake256 (see the createHash section). Still gaps: ripemd160, blake2b512 and blake2s256 (reachable, not probed); options (shake outputLength) throw the declared gap; md4 has no Node 24 oracle (ERR_OSSL_EVP_UNSUPPORTED).
 7. child-process.spawn stdin: reachable only if tjs.spawn's stdin pipe is a writable. Not probed.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
@@ -732,3 +732,17 @@ Probe runs/analysis/create-read-stream-encoding-node.mjs, run twice with identic
 Design: createReadStream validates the encoding the way Node does, then calls setEncoding on the FileReadStream it already returns. Only the encoding key is accepted; start, end, highWaterMark and the rest still throw the gap error.
 
 Not verified: base64 and latin1 as file encodings; start and end; a file descriptor argument; a symlinked path; the encoding of a stream that is paused and then resumed.
+
+## fx split: crypto.createHash algorithms and options (2026-11-19)
+
+Rank 6 of the ranked list in docs/fx-split.md. Probe: runs/analysis/create-hash-algorithms-node.mjs, run twice with identical output. It covers 21 names, the default digest length, and the empty, abc, 200-byte, non-ASCII, chunked and Buffer inputs.
+
+Node measured: md5, sha1, sha224, sha256, sha384, sha512, sha512-224, sha512-256, sha3-224, sha3-256, sha3-384, sha3-512, shake128 and shake256 all hash. Their default lengths are 16, 20, 28, 32, 48, 64, 28, 32, 28, 32, 48, 64, 16, 32 respectively. ripemd160, blake2b512 and blake2s256 also hash in Node. md4 throws ERR_OSSL_EVP_UNSUPPORTED, and an unknown name throws "Digest method not supported". shake256 honours options.outputLength (an 8-byte request is the prefix of the 32-byte digest). sha256 with outputLength throws ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH.
+
+Design: sha256Digest and sha512Digest take an initial state and an output length. The SHA-224 and SHA-384 initial values are the FIPS 180-4 second-order and first-order bits of the square roots of the 9th to 16th primes. The SHA-512/224 and SHA-512/256 initial values are SHA-512 run over the label "SHA-512/t" from the SHA-512 IV XOR a5a5…. Keccak-f[1600] runs on BigInt lanes. Its round constants come from the rc LFSR and its rotation offsets from the (x, y) walk, both as FIPS 202 defines them. Each sha3 and shake name is a sponge with its rate, domain byte and output length. createHash throws the declared gap for any option key, so options.outputLength on shake is not silently ignored.
+
+Found during the run: the first SHA-224 initial value used the first 32 bits of each root, not the second, so its 6 cases were red. It was fixed by shifting 128 instead of 64. The other three SHA-2 variants matched on the first run.
+
+Still gaps: ripemd160, blake2b512, blake2s256 (reachable with a pure-JS port, not probed); shake outputLength and any other option (declared gap, reopen: an outputLength implementation for XOF names with a probe of the non-XOF rules); md4 (Node 24 does not produce it, so there is no oracle).
+
+Not verified: shake with an output longer than the rate (more than 136 or 168 bytes, which needs more squeeze rounds); digests of inputs over one megabyte; the timing of Keccak on txiki.

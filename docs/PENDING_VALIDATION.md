@@ -1071,6 +1071,48 @@ Swap gate: `vmstat 1 2 | tail -1`, polled until swap-in (column 7) and swap-out 
 
 Wall times are measured around each command in sequence, so they include process startup. The txiki runs include the mcp-probe launch.
 
-Gap assertions: the spawn cwd and createReadStream encoding gap cases are no longer gaps, so gapAsserted is 0 for the first time in this run. The remaining 11 gap cases still throw their documented messages (gapInactive 1 is unchanged).
+Gap assertions: the gap cases are checked through the gaps count with unexpectedGaps []. After the spawn cwd and createReadStream encoding changes, 11 gap cases remain and all throw their documented messages (gapInactive 1). gapAsserted is not a gap count: it counts shared-case entries that carry a gap field, and none do, so it is 0 by construction. The spawn cwd section above also said gapAsserted 0 meant no gap was asserted; that reading was wrong.
 
 Not verified in Phase B: the timing trace is one reading of the swap gate, and the wall times are single runs, not averages.
+
+## fx split: crypto.createHash algorithms and options, Phase A (2026-11-19)
+
+Rank 6. See the createHash section in docs/fx-split.md for the Node facts and the design.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: sha224, sha384, sha512-224, sha512-256 (initial values derived from the primes and the SHA-512/t rule); sha3-224/256/384/512 and shake128/256 (Keccak-f[1600] on BigInt lanes); createHash throws the gap for any option key | txiki dev body on the 'crypto.createHash' cases: 0 failing after the fix (the SHA-224 fix is recorded in fx-split.md); Node dev check on the same filter: 96 SAME, 0 DIFF; txiki parity with gap assertions: shared 491, mismatches [], unexpectedGaps [], gaps 10 before the option gap was added and 11 after |
+| test/parity-cases.js: 28 SHA-2-variant cases and 42 SHA-3/SHAKE cases, generated from the Node probe output; the sha3-256 gap case is removed (sha3-256 is now a shared case); a gap case for createHash option outputLength | the same runs |
+
+Mutation evidence (each applied to the saved good file, run through the createHash dev body, which writes its full result to a file because the printed output truncates; each restore checked with cmp against the saved copy; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| Ma: sha224 uses the SHA-256 initial value | sha224: empty, abc, long, non-ASCII, chunked, base64 (6) |
+| Mb: sha224 output length 32 | sha224: the 6 above and default length (7) |
+| Mc: sha384 uses the SHA-512 initial value | sha384: the 6 digest cases (6) |
+| Md: sha384 output length 64 | sha384: 7 |
+| Me: sha512-224 output length 32 | sha512-224: 7 |
+| Mf: sha512-256 uses the SHA-512/224 initial value | sha512-256: the 6 digest cases (6) |
+| Mg: SHA-512/t initial values without the a5 XOR | sha512-224 and sha512-256: 12 |
+| Mh: sha224 gap restored | sha224: 7 |
+| Mi: sha512-256 output length 28 | sha512-256: 7 |
+| Mk1: round-constant bit positions shifted | sha3-224/256/384/512, shake128/256: 36 (the six non-length cases each) |
+| Mk2: rotation offset plus one | the same 36 |
+| Mk3: sha3-256 domain byte 0x1f | sha3-256: 6 |
+| Mk4: shake128 output length 32 | shake128: 7 |
+| Mk5: sha3-512 rate 136 | sha3-512: 6 |
+| Mk6: sha3-384 gap restored | sha3-384: 7 |
+| Mk7: rho rotation dropped | the same 36 |
+| Mk8: chi without the NOT | the same 36 |
+| Mk9: sha3-224 output length 32 | sha3-224: 7 (the default-length case) |
+| Mk10: sha3-256 output length 16 | sha3-256: 7 |
+| Mk11: sha3-512 output length 32 | sha3-512: 7 |
+| Mk12: shake256 output length 16 | shake256: 7 |
+| Gap: createHash option check removed | the gap case crypto.createHash option outputLength: reported as unexpectedGaps with the message "resolved" |
+
+Coverage: every one of the 28 SHA-2-variant cases and the 42 SHA-3/SHAKE cases is red under at least one mutation. The SHA-3 union was checked from the mutation results (the Mk4 and Mk6 results were recorded in the earlier pass, and the Mk9 to Mk12 pass covered the default-length cases).
+
+Earlier mutation counts of 27 for Mk1 and Mk2 came from truncated printed output, not from a missing case. The file-based run shows 36.
+
+Not verified: outputs longer than the rate; shake outputLength (a declared gap); the other gap names in this section.
