@@ -1894,3 +1894,37 @@ Oracle: runs/analysis/createreadstream-options-node.mjs (timeout 60, PID 1491617
 Change (Phase A): src/txiki.js FileReadStream #watchAbort (already aborted → nextTick destroy with abortError; otherwise an abort listener); createReadStream accepts the signal option and throws gapError for a non-AbortSignal value; the other options (flags as a non-read value, mode, autoClose) stay gapped, as before. test/parity-cases.js: shared cases 'fs.createReadStream signal already aborted emits AbortError then close' (expected ['error ABORT_ERR AbortError', 'close']) and 'fs.createReadStream signal aborted during a read stops after the chunk in flight' (expected ['data abcd', 'error ABORT_ERR AbortError', 'close']).
 
 Pending (Phase B window): Node parity run, txiki parity run, and the red mutations (see the Phase B section that follows the window).
+
+## Phase B: createReadStream signal option (3ffe4105), 2026-11-20
+
+Window: one bounded window, 344 s, one reading every 30 s (slot 0 to slot 9). Each reading is `vmstat 1 2` (second sample = gate, si and so in KB/s) plus `top -bn2 -d1` (second frame, current %CPU or RES 1 GB or more; gm-core started with `--handshake` excluded by its full command line). Each witness started only on a clear reading.
+
+| Slot | Gate (si, so) | Heavy jobs | Clear |
+|---|---|---|---|
+| 0 | 32, 0 | chromium renderer 3.4g RES at 222.8%, chromium gpu-process at 213.9% (another peer) | no |
+| 1 | 1152, 0 | none | no (si over 1000) |
+| 2 | 180, 0 | none | yes: Node parity started |
+| 3 | 5128, 0 | chromium renderer 49.5%, chromium 45.5% and 27.7% (another peer) | no |
+| 4 | 412, 0 | none | yes: txiki parity started |
+| 5 | 13588, 0 | none | no (si over 1000) |
+| 6 | 140, 0 | none | yes: S-A1 started |
+| 7 | 196, 0 | none | yes: S-A2 started |
+| 8 | 356, 0 | none | yes: Node contract started |
+| 9 | 52, 0 | none | yes: txiki contract started |
+
+Witnesses (each run once, each probe under timeout 150 and started by its PID):
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| Node parity (PID 1492594, exit 0) | 2 | node: 667/667 shared cases match; 0/0 gaps throw the documented message; 8894 ms | 8.98 s |
+| txiki parity, good source (PID 1493206, exit 0) | 4 | shared 667, gaps 21, mismatches [] | 13.86 s |
+| S-A1: the watch is not installed (PID 1495580, exit 0) | 6 | red: 'signal already aborted' got ['data abcdefghij','close'] (expected ['error ABORT_ERR AbortError','close']); 'signal aborted during a read' mismatches too (got data abcdefghij events, expected ['data abcd','error ABORT_ERR AbortError','close']). Restored: RESTORED_IDENTICAL | 13.98 s |
+| S-A2: the already-aborted branch returns without an error (PID 1497681, exit 0) | 7 | red on 'signal already aborted' only (got ['data abcdefghij','close']); 'signal aborted during a read' stays green. Restored: RESTORED_IDENTICAL | 13.87 s |
+| Node contract (PID 1499935, exit 0) | 8 | node: 117 names present across 25 subpaths | 0.12 s |
+| txiki contract (PID 1500313, exit 0) | 9 | present 117, missing [] | 0.22 s |
+
+Restore: /tmp/stageD-good-txiki.js is the source before the mutations; after the mutations, `cmp` gave identical files and `git status --short` was empty. The output of `ps` showed no process of mine left.
+
+Longest step: the txiki parity run and the two mutation runs (about 14 s each). The longest wait was the gate closed at slots 0, 1, 3 and 5 (other peers' chromium, si 1000 or more). What was done about it: sampled every 30 s, started each witness only on a clear reading, and bounded each probe at 150 s.
+
+Not covered in this window: the other options that the Node oracle records (flags r+, w, wx; mode; autoClose: false; a non-AbortSignal signal). They stay as gaps, with the one-line reopen evidence in 7u.
