@@ -1193,3 +1193,35 @@ Coverage: every one of the 7 cases is red under at least one mutation. The X3 mu
 Regression (not a witness): txiki parity with gap assertions: shared 522, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 4320 ms. Node parity: 522/522.
 
 Not verified: EPIPE when writing to a child that has exited; a user-called destroy before end.
+
+## fx split: child-process option env, Phase A (2026-11-19)
+
+Rank 7b in docs/fx-split.md. Probe: runs/analysis/child-env-node.mjs, deterministic (the parent's HOME is /config).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: startProcess takes { cwd, env, stdin } and passes env through processEnv (undefined dropped, others String); spawn and execFile accept the env key; ChildProcess takes the options object | before the change: spawn and execFile threw the env gap; after it: the 12 env cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 534, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1; Node parity 534/534 |
+| test/parity-cases.js: 12 env cases generated from the probe output (FOO, inherited HOME control, empty env, env command, number, equals and space, env with cwd, undefined dropped, null, execFile FOO, execFile empty env) | the same runs |
+
+A case was removed: "spawn without env inherits PATH". Under the mutation that makes the default env empty it still passed, because /bin/sh sets its own default PATH when none is given. The HOME control covers the same point and does detect it, so the PATH case was not discriminating.
+
+Mutation evidence (each applied to the saved good file, run through the env dev body that writes its full result to a file; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| E1: env not forwarded to tjs.spawn | 11 |
+| E2: PATH added to every env | 6 |
+| E3: undefined values kept (String gives 'undefined') | 1 |
+| E4: null becomes the empty string | 1 |
+| E5: spawn env gap restored | 9 |
+| E6: execFile env gap restored | 2 |
+| E7: an empty env object treated as absent | 3 |
+| E8: cwd dropped when env is given | 1 |
+| E9: execFile env not forwarded | 2 |
+| E10: default env empty (no env inherits nothing) | 1 |
+
+Coverage: every one of the 12 cases is red under at least one mutation (the uncovered check ran over the names of the good run before the PATH case was removed; after the removal the remaining 12 are all covered by the same mutation runs).
+
+Regression (not a witness): txiki parity with gap assertions: shared 534, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 4220 ms. Node parity: 534/534, 2541 ms.
+
+Not verified: non-string env values beyond null and undefined, env keys containing '=', PATH lookup of a bare command under a custom env.

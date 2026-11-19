@@ -2890,10 +2890,15 @@ function exitFailure(cmd, stderr, status) {
 
 const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
 
-function startProcess(file, argv, cwd, stdin = false) {
+function processEnv(env) {
+  return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
+}
+
+function startProcess(file, argv, { cwd, env, stdin = false } = {}) {
   const options = { stdout: 'pipe', stderr: 'pipe' }
   if (stdin) options.stdin = 'pipe'
   if (cwd !== undefined) options.cwd = cwd
+  if (env !== undefined) options.env = processEnv(env)
   try {
     return { process: tjs.spawn([file, ...argv], options) }
   } catch (error) {
@@ -2916,11 +2921,11 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
-  captureExecFile(startProcess(file, argv, opts.cwd), cmd).then(({ error, stdout, stderr }) => {
+  captureExecFile(startProcess(file, argv, { cwd: opts.cwd, env: opts.env }), cmd).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
@@ -2990,9 +2995,9 @@ class ChildProcess extends Emitter {
   #stderr
   killed = false
 
-  constructor(file, argv, cwd) {
+  constructor(file, argv, options) {
     super()
-    const started = startProcess(file, argv, cwd, true)
+    const started = startProcess(file, argv, { ...options, stdin: true })
     if (started.error !== undefined) {
       this.#stdin = discardingWritable()
       this.#stdout = closedPipe()
@@ -3060,9 +3065,9 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
-  return new ChildProcess(file, argv, opts.cwd)
+  return new ChildProcess(file, argv, opts)
 }
 
 export const txikiRuntime = {

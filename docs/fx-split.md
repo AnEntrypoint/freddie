@@ -665,7 +665,7 @@ Design choices, each with its reason:
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
 
 
-## Declared gaps outside the stream group, ranked (2026-11-19, after child-process.spawn stdin)
+## Declared gaps outside the stream group, ranked (2026-11-19, after child-process option env)
 
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
@@ -676,6 +676,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 5. fs.createReadStream option encoding: done 2026-11-19 (see the createReadStream section).
 6. crypto.createHash: done 2026-11-19 for sha224, sha384, sha512-224, sha512-256, sha3-224, sha3-256, sha3-384, sha3-512, shake128, shake256, ripemd160, blake2b512 and blake2s256 (see the createHash and RIPEMD and BLAKE2 sections). Still a gap: options (shake outputLength and any other option key) throw the declared gap, reopen: an outputLength implementation for XOF names. md4 has no Node 24 oracle (ERR_OSSL_EVP_UNSUPPORTED).
 7. child-process.spawn stdin: done 2026-11-19 (see the spawn stdin section). The stdin pipe is a ProcessWritableStream with getWriter.
+7b. child-process option env (spawn and execFile): done 2026-11-19 (see the env section). The other option keys stay gaps: spawn accepts only cwd and env, execFile only encoding, cwd and env (timeout, maxBuffer, killSignal, shell, stdio, uid, gid, argv0, detached, windowsHide are each unprobed and need a verified tjs mapping).
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -769,3 +770,17 @@ Probe runs/analysis/child-stdin-node.mjs, run twice with identical output (cat a
 Design: spawn asks tjs for a stdin pipe. The stdin is a Writable whose writes go through the pipe's writer, whose end closes the writer, and whose destroy also closes it. The destroy is needed: a write after end destroys the stream, and without the close the child would never see EOF (the first run hung on exactly that). A failed start gets a Writable that accepts and discards writes, as Node does. The Writable class gains the writable getter, which is false once end() has been called, as in Node. execFile keeps its current options (no stdin pipe).
 
 Not verified: the stdin error for a write into a child that has already exited (EPIPE); stdin destroy() called by the user before end; the stdin close event ordering relative to the child close event.
+
+## child-process option env under txiki (2026-11-19)
+
+Probe runs/analysis/child-env-node.mjs, run twice with identical output (the parent has HOME=/config and PATH). Node measured:
+
+- env {FOO: 'bar'} replaces the environment: the child sees FOO; an env command prints only FOO=bar;
+- env {} gives the child no HOME (the parent has one; a control without env prints it); the env command prints nothing;
+- a number value becomes its string ("N=1"), a value with '=' and a space is kept whole, an undefined value is dropped, and a null value becomes the string "null";
+- env with cwd together works ('/' then the value of FOO);
+- execFile takes env the same way (FOO set; env {} gives no HOME).
+
+Design: startProcess takes its options as one object (cwd, env, stdin) and passes env through processEnv, which drops undefined values and converts the rest with String. spawn and execFile both accept env; any other key is still the declared gap. tjs.spawn already replaces the environment with the env option, as Node does.
+
+Not verified: env values that are objects, symbols or nested; env keys with '=' in them; env with PATH lookup of a bare command name (the cases use absolute paths); a null or non-object env argument.

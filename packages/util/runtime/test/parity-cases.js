@@ -2235,6 +2235,34 @@ sharedCases.push(
   { name: "child-process.spawn stdin: a missing command has a writable stdin that discards writes", run: () => stdinMissingOutcome(), expected: {"stdinIsNull":false,"stdinWritableBeforeEvents":true,"spawnErrorCode":"ENOENT","spawnErrorSyscall":"spawn freddie-no-such-command-xyz","closeCode":-2,"closeSignal":null,"stdinErrors":[]} },
 )
 
+const envSpawnOutcome = (file, args, options) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options)
+  const out = []
+  child.stdout.on('data', (chunk) => out.push(chunk))
+  child.on('close', (code, signal) => resolve({ stdout: Buffer.concat(out).toString('utf8'), code, signal }))
+})
+
+const envExecOutcome = (file, args, options) => new Promise((resolve) => {
+  s['child-process'].execFile(file, args, options, (error, stdout, stderr) => {
+    resolve({ error: error ? { code: error.code ?? null, signal: error.signal ?? null } : null, stdout, stderr })
+  })
+})
+
+sharedCases.push(
+  { name: "child-process.spawn env sets FOO for the child", run: () => envSpawnOutcome('/bin/sh', ['-c', 'echo "[$FOO]"'], { env: { FOO: 'bar' } }), expected: {"stdout":"[bar]\n","code":0,"signal":null} },
+  { name: "child-process.spawn without env inherits HOME", run: () => envSpawnOutcome('/bin/sh', ['-c', 'echo "[$HOME]"'], {}), expected: {"stdout":"[/config]\n","code":0,"signal":null} },
+  { name: "child-process.spawn env {} gives the child no HOME", run: () => envSpawnOutcome('/bin/sh', ['-c', 'echo "[$HOME]"'], { env: {} }), expected: {"stdout":"[]\n","code":0,"signal":null} },
+  { name: "child-process.spawn env lists only FOO for the env command", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { FOO: 'bar' } }), expected: {"stdout":"FOO=bar\n","code":0,"signal":null} },
+  { name: "child-process.spawn env coerces a number value to a string", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { N: 1 } }), expected: {"stdout":"N=1\n","code":0,"signal":null} },
+  { name: "child-process.spawn env keeps an equals sign and a space in a value", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { A: 'x=y z' } }), expected: {"stdout":"A=x=y z\n","code":0,"signal":null} },
+  { name: "child-process.spawn env {} with the env command prints nothing", run: () => envSpawnOutcome('/usr/bin/env', [], { env: {} }), expected: {"stdout":"","code":0,"signal":null} },
+  { name: "child-process.spawn env and cwd together", run: () => envSpawnOutcome('/bin/sh', ['-c', 'pwd; echo "[$FOO]"'], { env: { FOO: 'bar' }, cwd: '/' }), expected: {"stdout":"/\n[bar]\n","code":0,"signal":null} },
+  { name: "child-process.spawn env drops an undefined value", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { A: undefined, B: 'b' } }), expected: {"stdout":"B=b\n","code":0,"signal":null} },
+  { name: "child-process.spawn env turns null into the string null", run: () => envSpawnOutcome('/usr/bin/env', [], { env: { A: null, B: 'b' } }), expected: {"stdout":"A=null\nB=b\n","code":0,"signal":null} },
+  { name: "child-process.execFile env sets FOO for the child", run: () => envExecOutcome('/bin/sh', ['-c', 'echo "[$FOO]"'], { env: { FOO: 'bar' } }), expected: {"error":null,"stdout":"[bar]\n","stderr":""} },
+  { name: "child-process.execFile env {} gives the child no HOME", run: () => envExecOutcome('/bin/sh', ['-c', 'echo "[$HOME]"'], { env: {} }), expected: {"error":null,"stdout":"[]\n","stderr":""} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
