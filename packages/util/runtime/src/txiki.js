@@ -2230,6 +2230,19 @@ class Readable extends Emitter {
     }
   }
 
+  unpipe(destination) {
+    if (destination === undefined) {
+      if (this.#pipes.length === 0) return this
+      const destinations = this.#pipes
+      this.#pipes = []
+      this.pause()
+      for (const piped of destinations) piped.emit('unpipe', this)
+      return this
+    }
+    this.#unpipe(destination)
+    return this
+  }
+
   #unpipe(destination) {
     const index = this.#pipes.indexOf(destination)
     if (index === -1) return
@@ -2238,7 +2251,7 @@ class Readable extends Emitter {
     destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'setEncoding', 'unpipe', 'unshift', 'wrap'])
+declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'setEncoding', 'unshift', 'wrap'])
 
 class PassThrough extends Readable {
   #writable

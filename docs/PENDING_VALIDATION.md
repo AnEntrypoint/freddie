@@ -718,3 +718,13 @@ Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken
 | parity under gm's txiki (runs/analysis/parity-txiki-body.js) | shared 328, gapAsserted 3, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 1.95 s probe (1805 ms in runParity) |
 | node test/contract-node.js (not listed by the change; run as a check) | 115 names present across 25 subpaths; exit 0 | 0.07 s |
 | contract under gm's txiki (not listed by the change; run as a check) | present 115, missing []; exit 0 | 0.14 s probe |
+
+## fx split: public Readable.unpipe under txiki (2026-11-19)
+
+Ranked item 2 in docs/fx-split.md. The Node 24 probe is runs/analysis/unpipe-node.mjs (untracked); it covers removing the first of two destinations, unpipe of a destination that is not piped, unpipe() with two destinations, resume after unpipe, and re-piping. The existing probes manual-unpipe-after-first-write and unpipe-all-no-pipes in pipe-error-node.mjs agree with it. Readable.unpipe leaves the declared gap list.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Readable.unpipe(destination) removes one destination through the internal path and returns the stream; unpipe() with no argument pauses once and emits unpipe on each destination; Readable.unpipe is removed from the declared gap names | the dev check passes the 5 unpipe cases under Node and under gm's txiki (dev-unpipe-node.out, dev-unpipe-txiki.out) | Node parity and txiki parity; the mutation check (the unpipe cases must fail when the public method is broken) |
+| test/parity-cases.js: unpipeFirstOfTwo, unpipeNotPiped, unpipeAllOfTwo, unpipeThenResume, repipeAfterUnpipe with the wait helper; 5 shared cases from the probe | the same 5 match Node and txiki | Node parity and txiki parity |
+| docs/fx-split.md: ranked item 2 marked done; item 3 kept held | none | none |

@@ -423,6 +423,90 @@ async function writableDestroyWithQueue() {
   return log
 }
 
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const sinkTo = (name, log) => new s.stream.Writable({ write(c, e, cb) { log.push(name + ' write ' + c.toString()); cb() } })
+
+async function unpipeFirstOfTwo() {
+  const log = []
+  let n = 0
+  const r = new s.stream.Readable({ read() { n += 1; this.push(n <= 3 ? 'c' + n : null) } })
+  const w1 = sinkTo('w1', log), w2 = sinkTo('w2', log)
+  r.on('pause', () => log.push('r pause'))
+  r.on('resume', () => log.push('r resume'))
+  r.on('end', () => log.push('r end'))
+  w1.on('unpipe', () => log.push('w1 unpipe'))
+  w2.on('unpipe', () => log.push('w2 unpipe'))
+  w1.on('finish', () => log.push('w1 finish'))
+  w2.on('finish', () => log.push('w2 finish'))
+  r.pipe(w1)
+  r.pipe(w2)
+  const ret = r.unpipe(w1)
+  log.push('ret same ' + (ret === r))
+  await wait(20)
+  return log
+}
+
+async function unpipeNotPiped() {
+  const log = []
+  const r = new s.stream.Readable({ read() { this.push('x'); this.push(null) } })
+  const w = sinkTo('w', log)
+  r.on('pause', () => log.push('r pause'))
+  w.on('unpipe', () => log.push('w unpipe'))
+  r.pipe(w)
+  const ret = r.unpipe(new s.stream.Writable({ write(c, e, cb) { cb() } }))
+  log.push('ret same ' + (ret === r))
+  await wait(20)
+  log.push('paused ' + r.isPaused())
+  return log
+}
+
+async function unpipeAllOfTwo() {
+  const log = []
+  const r = new s.stream.Readable({ read() { this.push('x'); this.push(null) } })
+  const w1 = sinkTo('w1', log), w2 = sinkTo('w2', log)
+  r.on('pause', () => log.push('r pause'))
+  w1.on('unpipe', () => log.push('w1 unpipe'))
+  w2.on('unpipe', () => log.push('w2 unpipe'))
+  r.pipe(w1)
+  r.pipe(w2)
+  r.unpipe()
+  log.push('paused ' + r.isPaused())
+  await wait(20)
+  return log
+}
+
+async function unpipeThenResume() {
+  const log = []
+  const r = new s.stream.Readable({ read() { this.push('a'); this.push(null) } })
+  const w = sinkTo('w', log)
+  r.on('pause', () => log.push('r pause'))
+  r.on('end', () => log.push('r end'))
+  w.on('finish', () => log.push('w finish'))
+  r.pipe(w)
+  r.unpipe(w)
+  await wait(10)
+  log.push('before resume ' + r.isPaused())
+  r.resume()
+  await wait(20)
+  return log
+}
+
+async function repipeAfterUnpipe() {
+  const log = []
+  let n = 0
+  const r = new s.stream.Readable({ read() { n += 1; this.push(n <= 2 ? 'r' + n : null) } })
+  const w = sinkTo('w', log)
+  w.on('finish', () => log.push('w finish'))
+  r.on('end', () => log.push('r end'))
+  r.pipe(w)
+  r.unpipe(w)
+  await wait(10)
+  r.pipe(w)
+  await wait(30)
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -553,6 +637,11 @@ export const sharedCases = [
   { name: 'stream Writable: a write after destroy returns false and calls back with ERR_STREAM_DESTROYED', run: () => streamSettle(writableWriteAfterDestroy()), expected: ["ret false","close","cb ERR_STREAM_DESTROYED Cannot call write after a stream was destroyed"] },
   { name: 'stream Writable: destroy inside write makes the write return false and the later write fail', run: () => streamSettle(writableDestroyInsideWrite()), expected: ["_write a","r1 false","r2 false","close","cb b ERR_STREAM_DESTROYED"] },
   { name: 'stream Writable: destroy with a write in flight closes first, then the in-flight callback runs and the queued one fails', run: () => streamSettle(writableDestroyWithQueue()), expected: ["_write a","close","cb a ok","cb b ERR_STREAM_DESTROYED"] },
+  { name: 'stream unpipe(dest): removing the first of two destinations emits unpipe on it only, and the other keeps receiving', run: () => streamSettle(unpipeFirstOfTwo()), expected: ["w1 unpipe","ret same true","r resume","w2 write c1","w2 write c2","w2 write c3","r end","w2 finish","r pause","w2 unpipe"] },
+  { name: 'stream unpipe(dest): a destination that is not piped does nothing and returns the stream', run: () => streamSettle(unpipeNotPiped()), expected: ["ret same true","w write x","r pause","w unpipe","paused true"] },
+  { name: 'stream unpipe(): with two destinations pauses once, then emits unpipe on each', run: () => streamSettle(unpipeAllOfTwo()), expected: ["r pause","w1 unpipe","w2 unpipe","paused true"] },
+  { name: 'stream unpipe(dest): the stream stays paused until resume, then ends without ending the destination', run: () => streamSettle(unpipeThenResume()), expected: ["r pause","before resume true","r end"] },
+  { name: 'stream pipe after unpipe(dest): the destination receives the data and finishes again', run: () => streamSettle(repipeAfterUnpipe()), expected: ["w write r1","w write r2","r end","w finish"] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
