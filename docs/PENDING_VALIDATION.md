@@ -1628,3 +1628,20 @@ Mutation evidence (saved good copy; the dev body runs the outputLength cases and
 Coverage: every outputLength case and both gap cases are red under at least one mutation.
 
 Regression (not a witness): txiki parity with gap assertions: shared 617, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1. Node parity: 617/617.
+
+## Phase B: os.platform and process.platform, child-process maxBuffer, signal, killSignal (number), windowsHide, crypto.createHash outputLength (1dfe3930, cd95559f, 669638d0, 3e6c8100, 77c65a0c, 0d762ffc), 2026-11-19
+
+Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8 (si, so). Readings in order: 556/0, 92/0, 7924/0 (first three, before the witnesses); 772/0 (open, Node witnesses started); 2344/0 (after the Node witnesses); 100452/0 (closed, before txiki parity; the gate loop kept sampling); 332/0 (open, txiki parity started); 500/0 (open, txiki contract started); 40/0 (after). Both directions were below 1000 KB/s at each start.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 617/617 shared cases match; 0/0 gaps throw the documented message; 8253 ms | 8.36 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 617, gapAsserted 0 (structural), gaps 20, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 15028 | 15.25 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.09 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.23 s |
+
+Wall times are single runs in sequence. The txiki times include the mcp-probe launch and the job wait.
+
+Harness note (affects how the txiki witnesses were obtained, not their result): in this session the gm host returned a background stub for run_code, and the probe exited before the body's result arrived, so the txiki witnesses printed no result. runs/analysis/mcp-probe.mjs (gitignored, not part of the repo) was changed to send resources/read for skill://gm/SKILL.md before the body, and, when run_code returns a background job, to poll gm.job_status until the job finishes and print the final output. The witness command is unchanged; the probe's poll loop is what delivers the result.
+
+Not verified: macOS (the platform cases were verified on Linux only); Windows; one run per witness.
