@@ -2418,6 +2418,29 @@ sharedCases.push(
   { name: "child-process.execFile maxBuffer 0 reports RangeError with empty stdout", run: () => execRecord('/bin/sh', ['-c', 'printf abc'], { maxBuffer: 0 }), expected: {"error":{"name":"RangeError","code":"ERR_CHILD_PROCESS_STDIO_MAXBUFFER","killed":null,"signal":null,"message":"stdout maxBuffer length exceeded"},"stdoutLength":0,"stdout":"","stderr":""} },
 )
 
+const abortedSignal = () => { const controller = new AbortController(); controller.abort(); return controller.signal }
+const abortSoonSignal = (ms) => { const controller = new AbortController(); setTimeout(() => controller.abort(), ms); return controller.signal }
+const spawnEventsRecord = (file, args, options) => new Promise((resolve) => {
+  const events = []
+  const chunks = []
+  const child = s['child-process'].spawn(file, args, options)
+  const guard = setTimeout(() => resolve({ events, stdout: chunks.join(''), timedOut: true }), 3000)
+  child.stdout.on('data', (chunk) => chunks.push(String(chunk)))
+  child.on('error', (e) => events.push(['error', e.name ?? null, e.code ?? null]))
+  child.on('close', (code, signal) => {
+    events.push(['close', code, signal])
+    clearTimeout(guard)
+    resolve({ events, stdout: chunks.join('') })
+  })
+})
+
+sharedCases.push(
+  { name: "child-process.execFile AbortSignal already aborted reports AbortError", run: () => execRecord('/bin/sh', ['-c', 'echo ok'], { signal: abortedSignal() }), expected: {"error":{"name":"AbortError","code":"ABORT_ERR","killed":null,"signal":null,"message":"The operation was aborted"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.execFile AbortSignal aborted mid-run reports AbortError", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortSoonSignal(100) }), expected: {"error":{"name":"AbortError","code":"ABORT_ERR","killed":null,"signal":null,"message":"The operation was aborted"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.spawn AbortSignal already aborted emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'echo ok'], { signal: abortedSignal() }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
+  { name: "child-process.spawn AbortSignal aborted mid-run emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortSoonSignal(100) }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2434,6 +2457,7 @@ export const gapCases = [
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
   { name: 'child-process stdio ignore', run: () => s['child-process'].spawn('true', [], { stdio: 'ignore' }) },
   { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
+  { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

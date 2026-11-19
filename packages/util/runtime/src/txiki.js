@@ -2918,6 +2918,12 @@ function maxBufferOf(opts) {
   return value
 }
 
+function signalOf(opts) {
+  const value = opts.signal
+  if (value !== undefined && typeof value?.addEventListener !== 'function') throw gapError('child-process signal ' + String(value))
+  return value
+}
+
 function maxBufferError(stream) {
   const error = new RangeError(stream + ' maxBuffer length exceeded')
   error.code = 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
@@ -2993,15 +2999,19 @@ function startProcess(file, argv, { cwd, env, uid, gid, stdio = ['pipe', 'pipe',
   }
 }
 
-async function captureExecFile({ process: child, error }, cmd, { timeout, killSignal, maxBuffer }) {
+async function captureExecFile({ process: child, error }, cmd, { timeout, killSignal, maxBuffer, signal }) {
   if (child === undefined) return { error: Object.assign(error, { cmd }), stdout: new Uint8Array(), stderr: new Uint8Array() }
   let killed = false
+  let aborted = false
   const stop = () => signalChild(child, killSignal)
   const timer = timeout > 0 ? setTimeout(() => { killed = true; stop() }, timeout) : undefined
+  const onAbort = () => { aborted = true; stop() }
+  signal?.addEventListener('abort', onAbort, { once: true })
   const [out, err, status] = await Promise.all([readCapped(child.stdout, maxBuffer, stop), readCapped(child.stderr, maxBuffer, stop), child.wait()])
   clearTimeout(timer)
+  signal?.removeEventListener('abort', onAbort)
   const overflow = out.overflowed ? 'stdout' : err.overflowed ? 'stderr' : undefined
-  const failure = overflow === undefined ? exitFailure(cmd, err.bytes, status, killed) : maxBufferError(overflow)
+  const failure = aborted ? abortError(signal) : overflow === undefined ? exitFailure(cmd, err.bytes, status, killed) : maxBufferError(overflow)
   return { error: failure, stdout: out.bytes, stderr: err.bytes }
 }
 
@@ -3013,15 +3023,16 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer' && key !== 'signal') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
   const timeout = timeoutOf(opts)
   const killSignal = killSignalOf(opts)
   const maxBuffer = maxBufferOf(opts)
+  const signal = signalOf(opts)
   const shelled = shellArguments(file, argv, opts.shell)
-  captureExecFile(startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal, maxBuffer }).then(({ error, stdout, stderr }) => {
+  captureExecFile(signal?.aborted ? { error: abortError(signal) } : startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal, maxBuffer, signal }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
@@ -3090,6 +3101,8 @@ class ChildProcess extends Emitter {
   #stdout
   #stderr
   #timer
+  #signal
+  #onAbort
   killed = false
 
   constructor(file, argv, options) {
@@ -3108,7 +3121,22 @@ class ChildProcess extends Emitter {
     this.#stdout = inStdout ? null : openPipe(started.process.stdout)
     this.#stderr = inStderr ? null : openPipe(started.process.stderr)
     if (options.timeout > 0) this.#timer = setTimeout(() => this.kill(options.killSignal), options.timeout)
+    if (options.signal !== undefined) this.#watchAbort(options.signal, options.killSignal)
     setTimeout(() => this.#spawned(), 0)
+  }
+
+  #watchAbort(signal, killSignal) {
+    this.#signal = signal
+    this.#onAbort = () => {
+      this.emit('error', abortError(signal))
+      this.kill(killSignal)
+    }
+    if (signal.aborted) {
+      this.kill(killSignal)
+      setTimeout(() => this.emit('error', abortError(signal)), 0)
+    } else {
+      signal.addEventListener('abort', this.#onAbort, { once: true })
+    }
   }
 
   get pid() {
@@ -3147,6 +3175,7 @@ class ChildProcess extends Emitter {
   async #reap() {
     const status = await this.#process.wait()
     clearTimeout(this.#timer)
+    this.#signal?.removeEventListener('abort', this.#onAbort)
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
     this.emit('exit', code, signal)
@@ -3166,10 +3195,10 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio' && name !== 'signal')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
   const shelled = shellArguments(file, argv, opts.shell)
-  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts) })
+  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts), signal: signalOf(opts) })
 }
 
 export const txikiRuntime = {

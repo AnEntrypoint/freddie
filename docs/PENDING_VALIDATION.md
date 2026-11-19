@@ -1534,3 +1534,29 @@ Mutation evidence (saved good copy; the dev body runs the maxBuffer cases on txi
 Coverage: each maxBuffer case is red under at least one mutation, except the kill step (M6), which is uncovered.
 
 Regression (not a witness): txiki parity with gap assertions: shared 599, mismatches [], unexpectedGaps [], gaps 16, gapInactive 1. Node parity: 599/599.
+
+## fx split: child-process signal, Phase A (2026-11-19)
+
+Rank 7k in docs/fx-split.md. Probes: runs/analysis/five-node.mjs (deterministic) and the txiki probe through mcp-probe (gap for each signal case before the change).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: signalOf (AbortSignal-like or gap); execFile listens for abort while the child runs, kills with killSignal, and reports abortError; execFile does not start a child for an already-aborted signal; spawn's ChildProcess listens for abort, emits error and kills; an already-aborted signal kills at once and emits error on the next timer; the listener is removed on reap; spawn accepts the signal key | before: the 4 signal cases threw the gap; after: the 4 cases match on txiki (dev body) and Node; the gap case 'child-process signal abc' matches; txiki parity with gap assertions: shared 603, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1, 14433 ms; Node parity 603/603 |
+| test/parity-cases.js: 4 shared cases generated from five-node.out (two execFile, two spawn with the events record); 1 gap case (non-object signal) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the signal cases on txiki; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S1: execFile abort flag missing (mid-run error becomes the exit error) | 1 (execFile mid-run) |
+| S2: execFile abort without kill | 0: not observable (the child ends in 5 s and the callback still gets AbortError); recorded as uncovered |
+| S3: already-aborted execFile spawns the child | 1 (execFile pre-aborted) |
+| S4: spawn abort listener not wired | 2 (both spawn cases) |
+| S5: already-aborted spawn not killed | 1 (spawn pre-aborted) |
+| S6: spawn key gap restored | 2 (both spawn cases) |
+| S7: signal gap check removed | 1 (the gap case) |
+| S8: spawn abort error not emitted | 1 (spawn mid-run) |
+
+Coverage: every signal case is red under at least one mutation; S2 is the one uncovered mutation.
+
+Regression (not a witness): txiki parity with gap assertions: shared 603, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1. Node parity: 603/603.
