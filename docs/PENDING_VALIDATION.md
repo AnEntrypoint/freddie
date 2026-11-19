@@ -707,3 +707,14 @@ Open divergence 1 from the Phase B record, ranked first in docs/fx-split.md. The
 | src/txiki.js: Writable.write returns false on a destroyed stream and calls back a write after destroy with ERR_STREAM_DESTROYED; a failed write fails the queued callbacks with the same error; destroy flushes the queue with the stream's error or ERR_STREAM_DESTROYED; Emitter.prepend is added; pipe prepends its error listener, unpipes on error, and re-emits only with no other listener | the dev check passes all 41 stream cases under Node (dev-stream-node.out) and the same 41 under gm's txiki (dev-stream-txiki.out) | Node parity and txiki parity |
 | test/parity-cases.js: pipeFirstChunkFailure, pipeMultiChunkFailure, pipeDestroyWithoutError, writableQueuedAfterError, writableWriteAfterDestroy, writableDestroyInsideWrite, writableDestroyWithQueue; 7 shared cases from the probes | the same 7 match Node and txiki | Node parity and txiki parity |
 | docs/fx-split.md: the ranked list rewritten (items 1 to 3 and the held items H1 to H10 with their reopen evidence) | none | none |
+
+## fx split: Phase B for the pipe and write error paths (2026-11-19)
+
+Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken immediately before it. Readings (swap-in / swap-out KB/s): Node parity 20 / 0, txiki parity 80 / 0, Node contract 56 / 0, txiki contract 36 / 0.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 328/328 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.23 s process (881 ms in runParity) |
+| parity under gm's txiki (runs/analysis/parity-txiki-body.js) | shared 328, gapAsserted 3, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 1.95 s probe (1805 ms in runParity) |
+| node test/contract-node.js (not listed by the change; run as a check) | 115 names present across 25 subpaths; exit 0 | 0.07 s |
+| contract under gm's txiki (not listed by the change; run as a check) | present 115, missing []; exit 0 | 0.14 s probe |
