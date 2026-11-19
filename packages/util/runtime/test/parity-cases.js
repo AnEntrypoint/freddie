@@ -175,13 +175,21 @@ sharedCases.push(...ENV_PROBES.map(([name, input, expected]) => ({
   expected,
 })))
 
+sharedCases.push(
+  { name: 'crypto.randomBytes callback gets a Buffer of the size with a null error', run: () => new Promise((resolve) => { s.crypto.randomBytes(8, (error, buffer) => resolve([error, buffer.length, Buffer.isBuffer(buffer)])) }), expected: [null, 8, true] },
+  { name: 'crypto.randomBytes callback runs after the synchronous code and returns undefined', run: () => new Promise((resolve) => { const seq = []; const returned = s.crypto.randomBytes(1, () => seq.push('cb')); seq.push('sync'); globalThis.setTimeout(() => resolve([returned === undefined, seq]), 20) }), expected: [true, ['sync', 'cb']] },
+  { name: 'crypto.randomBytes without a callback returns a Buffer', run: () => Buffer.isBuffer(s.crypto.randomBytes(3)), expected: true },
+  { name: 'timers-promises setTimeout rejects with AbortError when the signal is already aborted', run: () => s['timers-promises'].setTimeout(10, 'v', { signal: AbortSignal.abort() }).then(() => 'resolved', (error) => [error.name, error.code, error.message]), expected: ['AbortError', 'ABORT_ERR', 'The operation was aborted'] },
+  { name: 'timers-promises setTimeout rejects a pending wait when its signal aborts', run: () => { const controller = new AbortController(); const pending = s['timers-promises'].setTimeout(1000, 'v', { signal: controller.signal }); controller.abort(); return pending.then(() => 'resolved', (error) => [error.name, error.code, error.message]) }, expected: ['AbortError', 'ABORT_ERR', 'The operation was aborted'] },
+  { name: 'timers-promises abort error carries the signal reason as its cause', run: () => { const reason = new Error('custom'); const controller = new AbortController(); const pending = s['timers-promises'].setTimeout(1000, 'v', { signal: controller.signal }); controller.abort(reason); return pending.then(() => 'resolved', (error) => error.cause === reason) }, expected: true },
+  { name: 'timers-promises setTimeout resolves when its signal never aborts', run: () => s['timers-promises'].setTimeout(5, 'ok', { signal: new AbortController().signal }), expected: 'ok' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
   { name: 'fs.promises.opendir', run: () => fsp.opendir('/tmp') },
   { name: 'crypto.createHash', run: () => s.crypto.createHash('sha256') },
-  { name: 'crypto.randomBytes with a callback', run: () => s.crypto.randomBytes(4, () => {}) },
-  { name: 'timers-promises setTimeout with an AbortSignal', run: () => s['timers-promises'].setTimeout(1, 0, { signal: {} }) },
   { name: 'StringDecoder latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },

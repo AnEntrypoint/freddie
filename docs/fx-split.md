@@ -330,7 +330,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, unwatchFile, watchFile, writeFileSync, writeSync | txiki file APIs are async only |
 | fs.promises | opendir; access with a mode other than F_OK; writeFile with a flag other than w or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no append or mode option; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
-| crypto | createHash; randomBytes with a callback | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
+| crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
 | util | parseArgs | no equivalent in txiki or the web platform |
@@ -342,7 +342,6 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | async_hooks | AsyncLocalStorage | txiki has no async context |
 | vm | Script, createContext, runInContext | not mapped |
 | http, https, zlib, inspector, dns/promises | all members | tjs.serve and tjs.lookup have other shapes; zlib is not mapped |
-| timers/promises | setTimeout with an AbortSignal | not implemented |
 | string_decoder | any encoding except utf8 | only utf8 is streamed |
 
 Mapped without a gap: path (the tjs:path default object), url file-URL conversion (built on URL), util.promisify, util.TextDecoder, util.inspect (tjs:utils, so its output format differs from Node's), util.types.isPromise, perf_hooks.performance, timers/promises setTimeout and scheduler, crypto.randomUUID and randomBytes, net.isIP (tjs:ipaddr.isValid), os.homedir, os.tmpdir, os.availableParallelism, process.env, cwd, pid, ppid, execPath, argv, exit and kill, and a Buffer subset: from, alloc, allocUnsafe, concat, byteLength, compare, isBuffer, isView; toString for utf8, hex, base64, base64url, latin1, ascii and utf16le; equals, compare, copy, write, toJSON, slice as a view, and the UInt8, UInt16, UInt32, Int16, Int32, UIntLE and UIntBE accessors.
@@ -364,7 +363,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 |---|---|---|---|
 | 1 | Behaviour parity for the implemented surface | Probes already matched Node under txiki; only the shared suite was missing | test/parity-cases.js run under Node and under txiki, with the gap cases throwing (done in this change) |
 | 2 | util.isDeepStrictEqual and util.parseEnv in pure JS (done 2026-11-19: 91/91 parity under Node and txiki) | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
-| 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
+| 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal (done 2026-11-19: 98/98 parity under Node and txiki) | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
 | 4 | fs.promises.opendir | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
 | 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | Web globals exist in txiki (probed); round trip not yet run | parity case that round-trips a string and checks the gzip magic bytes |
 | 6 | fs.promises.writeFile with flag a | Needs FileHandle append semantics confirmed | parity case that appends and reads back |

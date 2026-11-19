@@ -462,12 +462,13 @@ const fsPromises = withGaps('fs.promises', {
 })
 
 function randomBytes(size, callback) {
-  if (callback !== undefined) throw gapError('crypto.randomBytes with a callback')
   const bytes = new Uint8Array(size)
   for (let start = 0; start < size; start += RANDOM_CHUNK) {
     webCrypto.getRandomValues(bytes.subarray(start, start + RANDOM_CHUNK))
   }
-  return viewOf(bytes)
+  const buffer = viewOf(bytes)
+  if (callback === undefined) return buffer
+  globalThis.setTimeout(() => callback(null, buffer), 0)
 }
 
 function fileURLToPath(value) {
@@ -597,9 +598,27 @@ class StringDecoder {
   }
 }
 
+function abortError(signal) {
+  const error = new Error('The operation was aborted', { cause: signal.reason })
+  error.name = 'AbortError'
+  error.code = 'ABORT_ERR'
+  return error
+}
+
 function delay(milliseconds, value, options) {
-  if (options?.signal !== undefined) throw gapError('timers/promises setTimeout with an AbortSignal')
-  return new Promise((resolve) => globalThis.setTimeout(() => resolve(value), milliseconds))
+  const signal = options?.signal
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(abortError(signal))
+    const onAbort = () => {
+      globalThis.clearTimeout(timer)
+      reject(abortError(signal))
+    }
+    const timer = globalThis.setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve(value)
+    }, milliseconds)
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
 }
 
 const scheduler = {

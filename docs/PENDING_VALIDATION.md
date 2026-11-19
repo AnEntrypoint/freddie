@@ -316,3 +316,13 @@ Ranked item 2 in docs/fx-split.md. Both functions are pure JS in src/txiki.js. i
 | packages/util/runtime/src/txiki.js: isDeepStrictEqual and parseEnv replace their gap entries | node --check passes; the txiki module loads | parity-txiki under gm: 91/91 shared cases, 15/15 gaps |
 | packages/util/runtime/test/parity-cases.js: 31 EQUALITY_PROBES and 13 ENV_PROBES, expected values from Node's output | node --check passes | parity-node: 91/91 |
 | docs/fx-split.md: gap table row for util drops both names; ranked row 2 marked done | grep shows the new rows | none |
+
+## fx split: crypto.randomBytes callback and timers/promises AbortSignal (2026-11-19)
+
+Ranked item 3 in docs/fx-split.md. randomBytes with a callback fills the bytes synchronously and calls back on a later turn with (null, Buffer), returning undefined, as Node does. timers/promises setTimeout honours an AbortSignal: an already-aborted or later-aborted signal rejects with an AbortError (name AbortError, code ABORT_ERR, message The operation was aborted) whose cause is the signal reason; a signal that never aborts resolves normally.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: randomBytes takes a callback; abortError and delay honour an AbortSignal | node --check passes | parity-txiki under gm: 98/98 shared cases, 13/13 gaps |
+| packages/util/runtime/test/parity-cases.js: 7 new shared cases for the callback order, Buffer shape, abort rejection, abort cause identity, and a non-aborted resolve; the two gap entries removed | node --check passes | parity-node: 98/98 |
+| docs/fx-split.md: crypto row drops randomBytes; the timers/promises row is removed from the gap table; ranked row 3 marked done | grep shows the rows | none |
