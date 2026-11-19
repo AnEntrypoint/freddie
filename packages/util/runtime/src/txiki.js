@@ -2906,9 +2906,12 @@ const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
 
 const KILL_SIGNALS = ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP', 'SIGUSR1', 'SIGUSR2', 'SIGQUIT', 'SIGALRM', 'SIGPIPE', 'SIGABRT']
 
+const LINUX_SIGNAL_NUMBERS = { 1: 'SIGHUP', 2: 'SIGINT', 3: 'SIGQUIT', 6: 'SIGABRT', 9: 'SIGKILL', 10: 'SIGUSR1', 12: 'SIGUSR2', 13: 'SIGPIPE', 14: 'SIGALRM', 15: 'SIGTERM' }
+
 function killSignalOf(opts) {
-  const signal = opts.killSignal ?? 'SIGTERM'
-  if (!KILL_SIGNALS.includes(signal)) throw gapError('child-process killSignal ' + String(signal))
+  const requested = opts.killSignal ?? 'SIGTERM'
+  const signal = typeof requested === 'number' && osPlatform === 'linux' ? LINUX_SIGNAL_NUMBERS[requested] : requested
+  if (!KILL_SIGNALS.includes(signal)) throw gapError('child-process killSignal ' + String(requested))
   return signal
 }
 

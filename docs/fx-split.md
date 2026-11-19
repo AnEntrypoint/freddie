@@ -686,6 +686,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 7i. os.platform and process.platform: done 2026-11-19, owner decision (derive from the runtime's real OS; nothing hard-coded). The value comes from uname -s, read once at module load and mapped through a fixed table of Node's names (Linux, Darwin, FreeBSD, OpenBSD, SunOS, AIX); an unknown name or a missing uname leaves the gap. Verified on Linux only (see the platform section).
 7j. child-process.execFile maxBuffer: done 2026-11-19 (see the maxBuffer section). Stdout and stderr are read as streams and counted; past the limit the child is killed, the reader is cancelled, and the callback gets a RangeError with code ERR_CHILD_PROCESS_STDIO_MAXBUFFER and the output truncated to the limit. The default is 1 MiB, as in Node. A non-number or negative value stays a gap. spawn has no maxBuffer in Node, so spawn keeps its gap.
 7k. child-process signal (AbortSignal) on execFile and spawn: done 2026-11-19 (see the signal section). A value without addEventListener stays a gap. Abort kills the child with killSignal; execFile reports AbortError (ABORT_ERR); spawn emits error then close. Already-aborted signals kill at once on spawn and are not started on execFile.
+7l. child-process killSignal as a number: done 2026-11-19 on Linux (see the killSignal section). Numbers in the Linux table map to the ten names txiki accepts; any other number, and any number on a non-Linux host, stays a gap.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -883,3 +884,13 @@ Design: execFile registers an abort listener while the child runs; on abort it k
 Not verified: the case where the child ignores the kill (the execFile callback still returns on exit, since it waits for the child); Windows.
 
 Mutation S2 (execFile aborts without killing) is not red: the callback still gets AbortError after the child finishes (5 s here); only the timing differs, which no case asserts.
+
+## child-process killSignal as a number under txiki (2026-11-19)
+
+Probe on txiki (through mcp-probe): numeric killSignal threw the gap (killSignalOf accepts only names). Node probe: runs/analysis/five-node.mjs (deterministic). Node: killSignal 9 gives signal SIGKILL, 2 gives SIGINT, 15 gives SIGTERM (execFile, timeout 100 ms, exec sleep 5); spawn with 9 closes with (null, SIGKILL); killSignal 9 and 'SIGKILL' give the same result.
+
+Design: LINUX_SIGNAL_NUMBERS maps the Linux numbers (1, 2, 3, 6, 9, 10, 12, 13, 14, 15) to the names txiki accepts (the ten in KILL_SIGNALS). The map is used only when osPlatform is 'linux' (the value derived in the platform step). Any other number stays a gap, with the same gap message as before, which now names the value.
+
+Not verified: non-Linux numbers (macOS and BSD numbers differ for SIGUSR1, SIGUSR2 and others; no such host here, so those stay gaps); ChildProcess.kill(number) (a separate gap, unchanged).
+
+Mutation K3 (the platform guard removed) is not red: on this Linux host, the numbers map the same way with or without the guard, so the guard is not observable here.

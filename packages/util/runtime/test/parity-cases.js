@@ -2441,6 +2441,14 @@ sharedCases.push(
   { name: "child-process.spawn AbortSignal aborted mid-run emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortSoonSignal(100) }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
 )
 
+sharedCases.push(
+  { name: "child-process.execFile numeric killSignal 9 kills with SIGKILL", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 9 }), expected: {"error":{"name":"Error","code":null,"killed":true,"signal":"SIGKILL","message":"Command failed: /bin/sh -c exec sleep 5"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.execFile numeric killSignal 2 kills with SIGINT", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 2 }), expected: {"error":{"name":"Error","code":null,"killed":true,"signal":"SIGINT","message":"Command failed: /bin/sh -c exec sleep 5"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.execFile numeric killSignal 15 kills with SIGTERM", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 15 }), expected: {"error":{"name":"Error","code":null,"killed":true,"signal":"SIGTERM","message":"Command failed: /bin/sh -c exec sleep 5"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.execFile numeric killSignal 9 matches the SIGKILL name", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 'SIGKILL' }), expected: {"error":{"name":"Error","code":null,"killed":true,"signal":"SIGKILL","message":"Command failed: /bin/sh -c exec sleep 5"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.spawn numeric killSignal 9 closes with SIGKILL", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 9 }), expected: {"events":[["close",null,"SIGKILL"]],"stdout":""} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2458,6 +2466,7 @@ export const gapCases = [
   { name: 'child-process stdio ignore', run: () => s['child-process'].spawn('true', [], { stdio: 'ignore' }) },
   { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
+  { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

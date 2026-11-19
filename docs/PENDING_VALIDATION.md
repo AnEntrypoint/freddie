@@ -1560,3 +1560,25 @@ Mutation evidence (saved good copy; the dev body runs the signal cases on txiki;
 Coverage: every signal case is red under at least one mutation; S2 is the one uncovered mutation.
 
 Regression (not a witness): txiki parity with gap assertions: shared 603, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1. Node parity: 603/603.
+
+## fx split: child-process killSignal as a number, Phase A (2026-11-19)
+
+Rank 7l in docs/fx-split.md. Probes: runs/analysis/five-node.mjs (deterministic) and the txiki probe through mcp-probe (gap for each numeric case before the change).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: LINUX_SIGNAL_NUMBERS (ten Linux numbers mapped to the KILL_SIGNALS names); killSignalOf maps a number only when osPlatform is 'linux'; any other value keeps the gap, now with the value in the message | before: the 5 numeric cases threw the gap; after: the 5 numeric cases match on txiki (dev body) and Node; the gap case 'child-process killSignal 99' matches; txiki parity with gap assertions: shared 608, mismatches [], unexpectedGaps [], gaps 18, gapInactive 1, 15121 ms; Node parity 608/608 |
+| test/parity-cases.js: 5 shared cases generated from five-node.out (execFile 9, 2, 15 and the 'SIGKILL' name; spawn 9); 1 gap case (99, outside the table) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the numeric cases on txiki; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| K1: table entry 9 mapped to SIGTERM | 2 (execFile 9 and spawn 9) |
+| K2: numeric branch removed (numbers gapped again) | 4 (the numeric cases with a number) |
+| K3: platform guard removed | 0: not observable on Linux; recorded as uncovered |
+| K4: entry 15 missing | 1 (execFile 15) |
+
+Coverage: each numeric case is red under at least one mutation; K3 is the one uncovered mutation (the Linux-only guard cannot be tested on this host).
+
+Regression (not a witness): txiki parity with gap assertions: shared 608, mismatches [], unexpectedGaps [], gaps 18, gapInactive 1. Node parity: 608/608.
