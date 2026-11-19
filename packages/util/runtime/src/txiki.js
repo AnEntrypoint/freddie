@@ -2189,6 +2189,22 @@ class Readable extends Emitter {
     return destination
   }
 
+  unshift(chunk, encoding) {
+    if (this.#endEmitted) {
+      this.destroy(nodeError('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event'))
+      return false
+    }
+    if (this.#destroyed) return false
+    let data = chunk
+    if (typeof chunk === 'string') {
+      const from = encodingOf(encoding)
+      if (this.#decoder === null) data = Buffer.from(chunk, from)
+      else data = from === this.#encoding ? chunk : Buffer.from(chunk, from).toString(this.#encoding)
+    }
+    if (data.length > 0) this.#addChunk(data, true)
+    return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
+  }
+
   setEncoding(encoding) {
     const name = encodingOf(encoding)
     const decoder = new StringDecoder(name)
@@ -2275,12 +2291,13 @@ class Readable extends Emitter {
     return this
   }
 
-  #addChunk(bytes) {
+  #addChunk(bytes, addToFront = false) {
     if (this.#flowing === true && this.#length === 0 && !this.#sync && this.listenerCount('data') > 0) {
       this.emit('data', bytes)
     } else {
       this.#length += bytes.length
-      this.#buffer.push(bytes)
+      if (addToFront) this.#buffer.unshift(bytes)
+      else this.#buffer.push(bytes)
       if (this.#needReadable) this.#emitReadable()
     }
     this.#maybeReadMore()
@@ -2430,7 +2447,7 @@ class Readable extends Emitter {
     destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, ['unshift', 'wrap'])
+declareGaps('stream.Readable', Readable, ['wrap'])
 
 class PassThrough extends Readable {
   #writable

@@ -863,3 +863,17 @@ The Writable cork section above listed two mutations. Each of its nine cases nee
 | backlog of two or more writes goes to _writev | writev disabled |
 
 Each of these mutations was applied, run under gm's txiki, and restored; the restores are checked by grep (the mutation markers and the original lines are present). One note: the end-does-not-flush restore failed the first time because the edit left a blank line; it was then restored with the exact text. The three mutations that ran after it were not affected, because their red results are read per case group, and the end-group red comes from the separate end mutation. (The first pass read the end-group result as red for three mutations that did not touch end; that was the unrestored end mutation, and the attribution above uses only the runs in which it was not in place.)
+
+## fx split: Readable.unshift (2026-11-19)
+
+Ranked item 5, third of the six: Readable.unshift. Probes: runs/analysis/stream-gaps-node.mjs (front insert, the hex string, the empty chunk, read after push(null), the Buffer and string under setEncoding) and stream-gaps2-node.mjs and stream-gaps3-node.mjs (the return value in four states, the error after the end event with its message, the Buffer and string under setEncoding). Expectations are the probe output.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Readable.unshift(chunk, encoding): an error after the end event (destroy with ERR_STREAM_UNSHIFT_AFTER_END_EVENT), false once destroyed, a string is decoded with its encoding (or converted to the decoder encoding when setEncoding is set), empty chunks add nothing, the return value is !ended && (length < hwm || length === 0); #addChunk takes a front flag; the name leaves the gap list | dev: 8 of 8 match Node (dev-unshift-node.out), and txiki total 8 with failing [] (dev-unshift-txiki.out) | Node parity and txiki parity |
+| test/parity-cases.js: 8 unshift cases from the probe output | the same cases | Node parity and txiki parity |
+| Mutation: unshift throws, all 8 unshift cases red; restored and checked with grep | /tmp/mut3-unshift.out | none |
+
+Regression (not a witness): the stream dev cases on Node 83 of 83 with no DIFF, and txiki 81 with failing [] (regress3-node.out, regress3-txiki.out).
+
+Not measured, so not claimed: unshift(null), unshift on a destroyed stream beyond the return value, and unshift while a decoder is set with a chunk other than a string or Buffer.

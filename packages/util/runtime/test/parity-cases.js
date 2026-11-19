@@ -945,6 +945,89 @@ async function readableBase64Split() {
   return log
 }
 
+async function readableUnshiftFront() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.push('b')
+  r.unshift('a')
+  r.push(null)
+  r.on('data', (c) => log.push('data ' + c))
+  await wait(10)
+  return log
+}
+
+function readableUnshiftReturns() {
+  const fresh = new s.stream.Readable({ read() {} })
+  const afterPush = new s.stream.Readable({ read() {} })
+  afterPush.push('a')
+  const afterEnd = new s.stream.Readable({ read() {} })
+  afterEnd.push(null)
+  const empty = new s.stream.Readable({ read() {} })
+  return [fresh.unshift('x'), afterPush.unshift('x'), afterEnd.unshift('x'), empty.unshift(Buffer.alloc(0))]
+}
+
+async function readableUnshiftHexString() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.unshift('6869', 'hex')
+  r.push(null)
+  r.on('data', (c) => log.push('data ' + c))
+  await wait(10)
+  return log
+}
+
+function readableUnshiftBeforeEndAllowed() {
+  const r = new s.stream.Readable({ read() {} })
+  r.push(null)
+  r.unshift('x')
+  return String(r.read())
+}
+
+async function readableUnshiftAfterEndEmitted() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.on('error', (e) => log.push('error ' + e.code + ' ' + e.message))
+  r.on('data', () => {})
+  r.on('end', () => log.push('ret ' + r.unshift('x')))
+  r.push('a')
+  r.push(null)
+  await wait(10)
+  return log
+}
+
+async function readableUnshiftEmptyChunk() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.push('b')
+  r.unshift(Buffer.alloc(0))
+  r.push(null)
+  r.on('data', (c) => log.push('data ' + c))
+  await wait(10)
+  return log
+}
+
+async function readableUnshiftBufferWithEncoding() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('hex')
+  r.unshift(Buffer.from('hi'))
+  r.push(null)
+  r.on('data', (c) => log.push('data ' + typeof c + ' ' + c))
+  await wait(10)
+  return log
+}
+
+async function readableUnshiftStringWithEncodingSet() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('hex')
+  r.unshift('hi')
+  r.push(null)
+  r.on('data', (c) => log.push('data ' + typeof c + ' ' + c))
+  await wait(10)
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -1115,6 +1198,14 @@ export const sharedCases = [
   { name: 'stream Readable.setEncoding with an unknown encoding throws TypeError ERR_UNKNOWN_ENCODING', run: () => readableSetEncodingInvalid(), expected: "TypeError ERR_UNKNOWN_ENCODING Unknown encoding: bogus" },
   { name: 'stream Readable.setEncoding: read(n) counts characters, not bytes', run: () => readableReadNWithEncoding(), expected: ["string","hé","llo"] },
   { name: 'stream Readable.setEncoding base64: a partial group is held until its bytes arrive, and the rest is flushed at end', run: () => streamSettle(readableBase64Split()), expected: ["data AQID","data BAU="] },
+  { name: 'stream Readable.unshift puts a chunk before buffered data', run: () => streamSettle(readableUnshiftFront()), expected: ["data a","data b"] },
+  { name: 'stream Readable.unshift returns false only after the stream has ended', run: () => readableUnshiftReturns(), expected: [true,true,false,true] },
+  { name: 'stream Readable.unshift with a hex string decodes it to bytes first', run: () => streamSettle(readableUnshiftHexString()), expected: ["data hi"] },
+  { name: 'stream Readable.unshift before the end event: the chunk is readable after push(null)', run: () => readableUnshiftBeforeEndAllowed(), expected: "x" },
+  { name: 'stream Readable.unshift after the end event emits ERR_STREAM_UNSHIFT_AFTER_END_EVENT', run: () => streamSettle(readableUnshiftAfterEndEmitted()), expected: ["ret false","error ERR_STREAM_UNSHIFT_AFTER_END_EVENT stream.unshift() after end event"] },
+  { name: 'stream Readable.unshift of an empty chunk adds nothing', run: () => streamSettle(readableUnshiftEmptyChunk()), expected: ["data b"] },
+  { name: 'stream Readable.unshift of a Buffer with setEncoding set is read as utf8 text, not decoded', run: () => streamSettle(readableUnshiftBufferWithEncoding()), expected: ["data string hi"] },
+  { name: 'stream Readable.unshift of a string with setEncoding set is converted to the decoder encoding', run: () => streamSettle(readableUnshiftStringWithEncodingSet()), expected: ["data string 6869"] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
