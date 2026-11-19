@@ -2585,8 +2585,14 @@ class FileReadStream extends Readable {
 }
 
 function createReadStream(path, options) {
-  assertNoOptions('fs.createReadStream', typeof options === 'string' ? { encoding: options } : options, [])
-  return new FileReadStream(path)
+  const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
+  assertNoOptions('fs.createReadStream', opts, ['encoding'])
+  if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
+    throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
+  }
+  const stream = new FileReadStream(path)
+  if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
+  return stream
 }
 
 function execFileArguments(args, options, callback) {

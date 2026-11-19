@@ -2057,6 +2057,37 @@ sharedCases.push(
   { name: "child-process.spawn stderr is the same Readable on each access", run: () => { const child = s['child-process'].spawn('sh', ['-c', 'exit 0']); return child.stderr === child.stderr }, expected: true },
 )
 
+const readStreamOutcome = (stream) => new Promise((resolve) => {
+  const events = []
+  const chunks = []
+  stream.on('data', (chunk) => {
+    events.push('data')
+    chunks.push(chunk)
+  })
+  stream.on('end', () => events.push('end'))
+  stream.on('error', (error) => events.push(['error', error.code, error.syscall, error.path?.endsWith('missing.txt') ?? null]))
+  stream.on('close', () => {
+    events.push('close')
+    resolve({
+      events,
+      chunkTypes: [...new Set(chunks.map((chunk) => typeof chunk))],
+      text: chunks.every((chunk) => typeof chunk === 'string') ? chunks.join('') : Buffer.concat(chunks).toString(),
+    })
+  })
+})
+
+sharedCases.push(
+  { name: "fs.createReadStream encoding as a string yields strings", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); return readStreamOutcome(s.fs.createReadStream(file, 'utf8')) }, expected: {"events":["data","end","close"],"chunkTypes":["string"],"text":"hello\n"} },
+  { name: "fs.createReadStream encoding in an options object yields strings", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); return readStreamOutcome(s.fs.createReadStream(file, { encoding: 'utf8' })) }, expected: {"events":["data","end","close"],"chunkTypes":["string"],"text":"hello\n"} },
+  { name: "fs.createReadStream encoding keeps a multibyte character whole across chunks", run: async () => { const { file } = await streamFile('multi.txt', 'é'.repeat(40000)); return readStreamOutcome(s.fs.createReadStream(file, 'utf8')).then((o) => ({ chunkTypes: o.chunkTypes, text: o.text === 'é'.repeat(40000), replacement: o.text.includes('\ufffd'), last: o.events.at(-1) })) }, expected: {"chunkTypes":["string"],"text":true,"replacement":false,"last":"close"} },
+  { name: "fs.createReadStream encoding hex yields hex text", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); return readStreamOutcome(s.fs.createReadStream(file, { encoding: 'hex' })) }, expected: {"events":["data","end","close"],"chunkTypes":["string"],"text":"68656c6c6f0a"} },
+  { name: "fs.createReadStream without an encoding yields Buffers", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); return readStreamOutcome(s.fs.createReadStream(file)) }, expected: {"events":["data","end","close"],"chunkTypes":["object"],"text":"hello\n"} },
+  { name: "fs.createReadStream encoding null yields Buffers", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); return readStreamOutcome(s.fs.createReadStream(file, { encoding: null })) }, expected: {"events":["data","end","close"],"chunkTypes":["object"],"text":"hello\n"} },
+  { name: "fs.createReadStream encoding on an empty file ends without data", run: async () => { const { file } = await streamFile('empty.txt', ''); return readStreamOutcome(s.fs.createReadStream(file, 'utf8')) }, expected: {"events":["end","close"],"chunkTypes":[],"text":""} },
+  { name: "fs.createReadStream encoding on a missing file emits ENOENT then close", run: async () => { const { dir } = await streamFile('present.txt', ''); return readStreamOutcome(s.fs.createReadStream(dir + '/missing.txt', 'utf8')) }, expected: {"events":[["error","ENOENT","open",true],"close"],"chunkTypes":[],"text":""} },
+  { name: "fs.createReadStream rejects an unknown encoding with ERR_INVALID_ARG_VALUE", run: async () => { const { file } = await streamFile('text.txt', 'hello\n'); try { s.fs.createReadStream(file, 'no-such-encoding'); return { thrown: null } } catch (error) { return { thrown: { code: error.code, name: error.name, message: error.message } } } }, expected: {"thrown":{"code":"ERR_INVALID_ARG_VALUE","name":"TypeError","message":"The argument 'encoding' is invalid encoding. Received 'no-such-encoding'"}} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash sha3-256', run: () => s.crypto.createHash('sha3-256') },
@@ -2066,7 +2097,6 @@ export const gapCases = [
   { name: 'stream.Readable option highWaterMark', run: () => new s.stream.Readable({ highWaterMark: 1 }) },
   { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
   { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
-  { name: 'fs.createReadStream option encoding', run: () => s.fs.createReadStream('/nonexistent-freddie-stream/x', 'utf8') },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },

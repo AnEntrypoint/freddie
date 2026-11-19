@@ -665,15 +665,15 @@ Design choices, each with its reason:
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
 
 
-## Declared gaps outside the stream group, ranked (2026-11-19, after child-process stdout)
+## Declared gaps outside the stream group, ranked (2026-11-19, after fs.createReadStream encoding)
 
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
 1. child-process.spawn stdout: done 2026-11-19 (see the stdout section).
 2. child-process.spawn stderr: done 2026-11-19 (see the stderr section).
 3. child-process option cwd: execFile done 2026-11-19 (see the cwd section); spawn done 2026-11-19 (see the spawn cwd section). exec is held: it is not a name in src/txiki.js or test/contract-names.js, so there is no function to add the option to. Reopen: a contract change adding exec.
-4. util.parseArgs() with no args: reachable. Node's default is process.argv.slice(2), and the runtime already sets process.argv, so only a mapping probe is needed.
-5. fs.createReadStream option encoding: reachable. Readable.setEncoding is done, so the option can call it.
+4. util.parseArgs() with no args: held. Node's default is process.argv.slice(2). The txiki mapping process.argv = [exePath, ...tjs.args] has no script entry under gm-core: process.argv is [gm-core] with no user arguments (runs/analysis/parseargs-argv-txiki.out), so slice(2) and slice(1) both give [] and the probe cannot tell which one tjs.args needs. Reopen: a txiki run with user arguments showing whether tjs.args starts with the script (gm-core started with arguments, not reachable through the current harness).
+5. fs.createReadStream option encoding: done 2026-11-19 (see the createReadStream section).
 6. crypto.createHash sha3-256, and the other algorithms beyond md5, sha1, sha256 and sha512: reachable by a pure-JS Keccak port with Node's digests as the oracle. Not probed yet.
 7. child-process.spawn stdin: reachable only if tjs.spawn's stdin pipe is a writable. Not probed.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
@@ -718,3 +718,17 @@ Probe runs/analysis/child-spawn-cwd-node.mjs, run twice with identical output. N
 Design: spawn and execFile share startProcess in src/txiki.js, so the two follow the same rules. ENOENT and the other asynchronous codes become an error object that carries Node's syscall, path and spawnargs, and the ChildProcess reports it through an error event followed by close -2 (no spawn event). Any other code throws synchronously. execFile adds cmd to its error object, which Node's execFile also has; spawn's error does not carry cmd.
 
 Not verified: EACCES, EAGAIN, EMFILE and ENFILE (the asynchronous list comes from Node's source, not a probe); errno numbers; a missing directory that is reached through a symlink.
+
+## fs.createReadStream option encoding under txiki (2026-11-19)
+
+Probe runs/analysis/create-read-stream-encoding-node.mjs, run twice with identical output (the temporary directory in the error message is replaced by <dir>). Node measured:
+
+- a string argument and an options object with encoding utf8 both yield string chunks, then end and close;
+- a multibyte file read with utf8 yields strings with no replacement characters, split across several chunks;
+- encoding hex yields hex text; no encoding and encoding null yield Buffer chunks;
+- an empty file emits end and close with no data; a missing file emits an error (code ENOENT, syscall open) and then close;
+- an unknown encoding throws synchronously as a TypeError with code ERR_INVALID_ARG_VALUE and the message "The argument 'encoding' is invalid encoding. Received '<name>'". The runtime's own encodingOf throws ERR_UNKNOWN_ENCODING, so createReadStream checks the name itself.
+
+Design: createReadStream validates the encoding the way Node does, then calls setEncoding on the FileReadStream it already returns. Only the encoding key is accepted; start, end, highWaterMark and the rest still throw the gap error.
+
+Not verified: base64 and latin1 as file encodings; start and end; a file descriptor argument; a symlinked path; the encoding of a stream that is paused and then resumed.

@@ -1034,3 +1034,26 @@ Case reading: each of the six spawn cwd cases is red under at least one mutation
 Regression (not a witness): Node parity 412 of 412 (2495 ms). txiki parity with gap assertions: shared 412, gapAsserted 0, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3981 ms). No gap case is asserted now.
 
 Not verified: EACCES, EAGAIN, EMFILE and ENFILE timing, errno numbers, and a missing directory reached through a symlink.
+
+## fx split: fs.createReadStream option encoding (2026-11-19)
+
+Rank 5 of the ranked list in docs/fx-split.md. Rank 4 (util.parseArgs with no args) was probed first and held: see its line there.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: createReadStream checks the encoding name (ERR_INVALID_ARG_VALUE TypeError, Node's message) and calls setEncoding on the FileReadStream; only the encoding key is accepted | pre-change on txiki: 8 of 12 encoding cases red (gap throw), 12 of 12 SAME on Node; after the change: 12 of 12 on txiki; the stream group is clean on txiki (failing []) and Node's stream group matches 92 of 92 | Node parity and txiki parity with gap assertions |
+| test/parity-cases.js: 9 cases from the probe output (the old gap case is replaced); readStreamOutcome helper records events, chunk types and text | the same runs | the same |
+
+Mutation evidence (each applied to the saved good file, run through the createReadStream dev body, restored; each restore checked with cmp against the saved copy, and git status shows only the changed files):
+
+| Mutation | createReadStream cases red |
+|---|---|
+| Ka: setEncoding is never called | string argument; options object; multibyte split; hex |
+| Kb: the gap throw is restored for encoding | string argument; options object; multibyte split; hex; null; empty file; missing file; unknown encoding |
+| Kc: setEncoding always uses latin1 | multibyte split; hex |
+| Kd: the unknown-encoding error has the wrong code | unknown encoding |
+| Kf: utf8 is forced when no encoding is given | no encoding (Buffers); encoding null (Buffers) |
+
+Regression (not a witness): Node parity 421 of 421 (2986 ms). txiki parity with gap assertions: shared 421, gapAsserted 0, gaps 11, gapInactive 1, mismatches [], unexpectedGaps [] (4931 ms).
+
+Not verified: base64 and latin1 file encodings beyond the one mutation, start and end, file descriptors, symlinks, and pause and resume with an encoding set.
