@@ -2295,16 +2295,16 @@ sharedCases.push(
   { name: "child-process.spawn shell expands env", run: () => envSpawnOutcome('echo $FOO', [], { shell: true, env: { FOO: 'bar' } }), expected: {"stdout":"bar\n","code":0,"signal":null} },
   { name: "child-process.spawn shell joins args with spaces", run: () => envSpawnOutcome('echo', ['x', 'y'], { shell: true }), expected: {"stdout":"x y\n","code":0,"signal":null} },
   { name: "child-process.execFile timeout leaves no timer after a normal exit", run: async () => {
-    const outcome = await execFileOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 100 })
-    await delayed(300)
+    const outcome = await execFileOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 1000 })
+    await delayed(1300)
     return outcome
   }, expected: {"error":null,"stdout":"ok\n","stderr":""} },
 )
 
 sharedCases.push(
   { name: "child-process.spawn timeout leaves no timer after close", run: async () => {
-    const outcome = await timedSpawnOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 100 })
-    await delayed(300)
+    const outcome = await timedSpawnOutcome('/bin/sh', ['-c', 'echo ok'], { timeout: 1000 })
+    await delayed(1300)
     return outcome
   }, expected: {"stdout":"ok\n","code":0,"signal":null,"killed":false} },
 )
@@ -2385,6 +2385,16 @@ sharedCases.push(
   { name: "child-process.spawn without detached stays in the parent session", run: async () => envSpawnOutcome('/bin/sh', ['-c', SESSION_SCRIPT], { env: { PARENT_SID: await parentSession() } }), expected: {"stdout":"sid_is_pid=no pgrp_is_pid=no same_session=yes\n","code":0,"signal":null} },
 )
 
+const stdioSpawnOutcome = (file, args, options) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options)
+  child.on('close', (code, signal) => resolve({ pipes: [child.stdin === null, child.stdout === null, child.stderr === null], code, signal }))
+})
+
+sharedCases.push(
+  { name: "child-process.spawn stdio inherit leaves stdin, stdout and stderr null and shares the parent fds", run: () => stdioSpawnOutcome('/bin/sh', ['-c', "[ \"$(readlink /proc/$$/fd/0)\" = \"$(readlink /proc/$PPID/fd/0)\" ] && [ \"$(readlink /proc/$$/fd/1)\" = \"$(readlink /proc/$PPID/fd/1)\" ]"], { stdio: 'inherit' }), expected: {"pipes":[true,true,true],"code":0,"signal":null} },
+  { name: "child-process.spawn stdio array keeps stdout inherited and stdin and stderr piped", run: () => stdioSpawnOutcome('/bin/sh', ['-c', "[ \"$(readlink /proc/$$/fd/1)\" = \"$(readlink /proc/$PPID/fd/1)\" ]"], { stdio: ['pipe', 'inherit', 'pipe'] }), expected: {"pipes":[false,true,false],"code":0,"signal":null} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2401,6 +2411,7 @@ export const gapCases = [
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
+  { name: 'child-process stdio ignore', run: () => s['child-process'].spawn('true', [], { stdio: 'ignore' }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

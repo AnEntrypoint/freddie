@@ -2909,6 +2909,13 @@ function idOption(opts, key) {
   return value
 }
 
+function stdioOf(opts) {
+  const stdio = opts.stdio ?? 'pipe'
+  const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : stdio
+  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => kind !== 'pipe' && kind !== 'inherit')) throw gapError('child-process stdio ' + String(stdio))
+  return list
+}
+
 function shellArguments(file, argv, shell) {
   if (shell === undefined || shell === false) return { file, argv }
   if (shell !== true) throw gapError('child-process shell ' + String(shell))
@@ -2919,9 +2926,9 @@ function processEnv(env) {
   return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
 }
 
-function startProcess(file, argv, { cwd, env, uid, gid, stdin = false } = {}) {
-  const options = { stdout: 'pipe', stderr: 'pipe' }
-  if (stdin) options.stdin = 'pipe'
+function startProcess(file, argv, { cwd, env, uid, gid, stdio = ['pipe', 'pipe', 'pipe'], stdin = false } = {}) {
+  const options = { stdout: stdio[1], stderr: stdio[2] }
+  if (stdin) options.stdin = stdio[0]
   if (cwd !== undefined) options.cwd = cwd
   if (env !== undefined) options.env = processEnv(env)
   if (uid !== undefined) options.uid = uid
@@ -3032,17 +3039,18 @@ class ChildProcess extends Emitter {
   constructor(file, argv, options) {
     super()
     const started = startProcess(file, argv, { ...options, stdin: true })
+    const [inStdin, inStdout, inStderr] = options.stdio.map((kind) => kind === 'inherit')
     if (started.error !== undefined) {
-      this.#stdin = discardingWritable()
-      this.#stdout = closedPipe()
-      this.#stderr = closedPipe()
+      this.#stdin = inStdin ? null : discardingWritable()
+      this.#stdout = inStdout ? null : closedPipe()
+      this.#stderr = inStderr ? null : closedPipe()
       setTimeout(() => this.#fail(started.error), 0)
       return
     }
     this.#process = started.process
-    this.#stdin = openWritable(started.process.stdin)
-    this.#stdout = openPipe(started.process.stdout)
-    this.#stderr = openPipe(started.process.stderr)
+    this.#stdin = inStdin ? null : openWritable(started.process.stdin)
+    this.#stdout = inStdout ? null : openPipe(started.process.stdout)
+    this.#stderr = inStderr ? null : openPipe(started.process.stderr)
     if (options.timeout > 0) this.#timer = setTimeout(() => this.kill(options.killSignal), options.timeout)
     setTimeout(() => this.#spawned(), 0)
   }
@@ -3056,11 +3064,11 @@ class ChildProcess extends Emitter {
   }
 
   get stdout() {
-    return this.#stdout.readable
+    return this.#stdout === null ? null : this.#stdout.readable
   }
 
   get stderr() {
-    return this.#stderr.readable
+    return this.#stderr === null ? null : this.#stderr.readable
   }
 
   kill(signal = 'SIGTERM') {
@@ -3086,10 +3094,11 @@ class ChildProcess extends Emitter {
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
     this.emit('exit', code, signal)
-    for (const pipe of [this.#stdout, this.#stderr]) {
+    const pipes = [this.#stdout, this.#stderr].filter((pipe) => pipe !== null)
+    for (const pipe of pipes) {
       if (pipe.readable.readableFlowing === null) pipe.readable.resume()
     }
-    await Promise.all([this.#stdout.ended, this.#stderr.ended])
+    await Promise.all(pipes.map((pipe) => pipe.ended))
     this.emit('close', code, signal)
   }
 
@@ -3101,10 +3110,10 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
   const shelled = shellArguments(file, argv, opts.shell)
-  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') })
+  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts) })
 }
 
 export const txikiRuntime = {

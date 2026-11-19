@@ -1440,3 +1440,32 @@ Coverage: both cases are red under a mutation (uncovered []). Defect found durin
 Regression (not a witness): txiki parity with gap assertions: shared 587, mismatches [], unexpectedGaps [], gaps 16, gapInactive 1, 12282 ms. Node parity: 587/587.
 
 Not verified: detached with a process group kill; setsid wrapper behaviour beyond the session check.
+
+## fx split: child-process stdio, Phase A (2026-11-19)
+
+Rank 7h in docs/fx-split.md. Probes: runs/analysis/child-detached-stdio-node.mjs (deterministic) and the inline txiki probe (/tmp/detached-stdio-txiki.json; routing read from the child's fd targets).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: startProcess takes a stdio triple; stdioOf normalises spawn's stdio ('pipe' or 'inherit' as a string or three-entry array, else the gap); ChildProcess nulls inherited streams and #reap waits only on piped ones; spawn accepts the stdio key | before: stdio threw the gap; after: the 2 stdio cases match on txiki (dev body) and Node; the 'ignore' gap case matches; txiki parity with gap assertions: shared 589, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1, 14164 ms; Node parity 589/589 |
+| test/parity-cases.js: 2 stdio cases generated from child-detached-stdio-node.out (inherit: the three streams null and fds equal; array: stdout inherited, stdin and stderr piped, fd 1 equal); 1 gap case (stdio 'ignore') | the same runs |
+
+Same commit, a test-margin fix (recorded here so the history is clear): the two timer cases used a 100 ms timeout. One run failed with the child killed by the timer before it ran (`sh -c 'echo ok'`), while vmstat showed swap-in activity; the rerun passed. The timeout is now 1000 ms and the wait 1300 ms (the Node probe child-timer-node.mjs was regenerated with the same values; expected values unchanged). Mutation S8 (execFile timer left armed) still aborts the run; S9 (spawn timer left armed) still stays green.
+
+Mutation evidence (saved good copy; each restore checked with cmp, git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| S1: inherit forced to pipe | 3 (both stdio cases and the ignore gap case) |
+| S2: stdin inherit ignored | 1 (the inherit case) |
+| S3: stdout inherit ignored | 2 (both stdio cases) |
+| S4: spawn stdio key gap restored | 3 (both cases and the gap case) |
+| S5: stdio value gap removed | 1 (the ignore gap case) |
+| S6: a null stdout reported as undefined | 2 (both cases) |
+| S7: #reap waits on the null streams | run hangs or aborts (no result file; the null stream is dereferenced at close) |
+
+Coverage: each stdio case and the gap case is red under at least one mutation (uncovered []). S7 is a hang, not a per-case red, and is recorded as such.
+
+Regression (not a witness): txiki parity with gap assertions: shared 589, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1. Node parity: 589/589.
+
+Not verified: 'ignore'; the ENOENT path with inherit; reading from an inherited stdin.
