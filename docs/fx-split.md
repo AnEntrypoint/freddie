@@ -421,7 +421,7 @@ Ranked (pure JS over the existing runtime):
 | Rank | Name | Pure JS or native | Status |
 |---|---|---|---|
 | 1 | http.validateHeaderValue | pure JS: a regex check of the value (tab, 0x20-0x7e, 0x80-0xff allowed) and the two Node error codes | done 2026-11-19: 13 parity cases, Node and txiki agree |
-| 2 | os.release | pure JS: read /proc/sys/kernel/osrelease, which equals Node's os.release() on this host (checked). Linux only; on other platforms it needs a gap decision | open |
+| 2 | os.release | pure JS: read /proc/sys/kernel/osrelease once at module load (txiki reads are async, and os.release is synchronous), then return the cached value. Linux only; a missing file makes os.release the documented gap | done 2026-11-19 on Linux: 4 parity cases, Node and txiki agree; the non-Linux gap is asserted when active, which this Linux host never triggers |
 | 3 | fs.watchFile and fs.unwatchFile | pure JS: stat polling over tjs.stat with timers; the listener receives current and previous stats as in Node. Verification needs timed file changes | open |
 
 Excluded, with the reason:
@@ -442,3 +442,8 @@ Excluded, with the reason:
 - inspector.Session: native.
 
 Counts: 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypto, 4 stream, 2 module, 4 child-process, 2 os, 1 worker-threads, 1 async-hooks, 3 vm, 2 http, 7 zlib, 1 inspector: 49.
+
+
+## os.release under txiki (2026-11-19)
+
+txiki's file reads are async and os.release is synchronous, so the release is read once when the txiki module loads (a top-level await of tjs.readFile on /proc/sys/kernel/osrelease, trailing newline removed) and os.release returns the cached string. A missing file (ENOENT, the error txiki gives on a non-Linux host) makes os.release the documented gap; any other read error is rethrown at load. The parity cases compare os.release with the file read through the runtime's fs-promises, and check its shape. The gap entry for os.release runs only when the gap is active (its applies predicate); on this Linux host it is inactive and is counted as such. The non-Linux branch has not been run on a non-Linux host.

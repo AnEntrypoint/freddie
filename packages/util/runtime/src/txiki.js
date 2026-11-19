@@ -883,6 +883,14 @@ const processObject = withGaps('process', {
   ppid: tjs.ppid,
 })
 
+const osRelease = await tjs.readFile('/proc/sys/kernel/osrelease').then(
+  (bytes) => utf8Decoder.decode(bytes).trimEnd(),
+  (error) => {
+    if (error.code === 'ENOENT') return undefined
+    throw error
+  },
+)
+
 export const txikiRuntime = {
   fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants }),
   fsPromises,
@@ -915,7 +923,8 @@ export const txikiRuntime = {
     homedir: () => tjs.homeDir,
     tmpdir: () => tjs.tmpDir,
     networkInterfaces,
-    ...gapFunctions('os', ['platform', 'release']),
+    ...gapFunctions('os', ['platform']),
+    release: osRelease === undefined ? gapFunction('os.release') : () => osRelease,
   }),
   workerThreads: withGaps('worker_threads', {
     MessageChannel: globalThis.MessageChannel,

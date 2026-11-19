@@ -357,6 +357,13 @@ sharedCases.push(
   { name: 'http.validateHeaderValue does not check the header name', run: () => [headerValueOutcome('bad name', 'ok'), headerValueOutcome('', 'x')], expected: ['valid', 'valid'] },
 )
 
+sharedCases.push(
+  { name: 'os.release equals the kernel release file with its newline removed', run: async () => s.os.release() === (await fsp.readFile('/proc/sys/kernel/osrelease', 'utf8')).trimEnd(), expected: true },
+  { name: 'os.release is one line of printable text without spaces', run: () => /^[\x21-\x7e]+$/.test(s.os.release()), expected: true },
+  { name: 'os.release starts with a kernel version number', run: () => /^\d+\.\d+/.test(s.os.release()), expected: true },
+  { name: 'os.release returns the same value on every call', run: () => s.os.release() === s.os.release(), expected: true },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
@@ -372,6 +379,7 @@ export const gapCases = [
   { name: 'zlib.gzip', run: () => s.zlib.gzip(Buffer.alloc(0), () => {}) },
   { name: 'zlib.gunzip', run: () => s.zlib.gunzip(Buffer.alloc(0), () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
+  { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
 
 const gapMessage = (name) => '@freddie/freddie-runtime: txiki.js has no ' + name + ', see docs/fx-split.md (txiki gaps)'
@@ -400,15 +408,22 @@ export async function runParity(label, withGaps) {
     if (JSON.stringify(canon(got)) !== JSON.stringify(canon(expected))) mismatches.push({ name, got, expected })
   }
   const unexpectedGaps = []
+  let gapApplied = 0
+  let gapInactive = 0
   if (withGaps) {
-    for (const { name, run } of gapCases) {
+    for (const { name, run, applies } of gapCases) {
+      if (applies !== undefined && !applies()) {
+        gapInactive += 1
+        continue
+      }
+      gapApplied += 1
       const { thrown } = await outcomeOf(run)
       if (thrown !== gapMessage(name)) unexpectedGaps.push({ name, message: thrown ?? 'resolved' })
     }
   }
   const elapsedMs = Math.round(performance.now() - started)
-  const summary = { label, shared: sharedCases.length, gapAsserted, gaps: withGaps ? gapCases.length : 0, mismatches, unexpectedGaps, elapsedMs }
-  console.log(label + ': ' + (sharedCases.length - mismatches.length) + '/' + sharedCases.length + ' shared cases match; ' + (withGaps ? gapCases.length - unexpectedGaps.length : 0) + '/' + (withGaps ? gapCases.length : 0) + ' gaps throw the documented message; ' + elapsedMs + ' ms')
+  const summary = { label, shared: sharedCases.length, gapAsserted, gaps: gapApplied, gapInactive, mismatches, unexpectedGaps, elapsedMs }
+  console.log(label + ': ' + (sharedCases.length - mismatches.length) + '/' + sharedCases.length + ' shared cases match; ' + (gapApplied - unexpectedGaps.length) + '/' + gapApplied + ' gaps throw the documented message; ' + elapsedMs + ' ms')
   if (mismatches.length > 0 || unexpectedGaps.length > 0) throw new Error(label + ' parity failed: ' + JSON.stringify({ mismatches, unexpectedGaps }))
   return summary
 }

@@ -448,3 +448,13 @@ The txiki gap names were ranked by pure-JS feasibility in docs/fx-split.md under
 | contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.24 s probe |
 | contract gap names under gm's txiki | 48 of the 111 non-default names (was 49): http.validateHeaderValue left the list; the diff against the previous list shows only that name | 0.28 s probe |
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 172, gapAsserted 5, gaps 14, mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.60 s probe, 323 ms in runParity |
+
+## fx split: os.release under txiki (2026-11-19)
+
+Ranked item 2 in docs/fx-split.md. os.release reads /proc/sys/kernel/osrelease once at txiki module load and returns the cached value. Missing file: the documented gap.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: top-level read of /proc/sys/kernel/osrelease (ENOENT gives undefined, other errors rethrow); os.release is the cached value, or the gap when the read found no file; gapFunctions drops os.release | node --check passes | txiki contract present 115; gap names 47 (was 48) |
+| test/parity-cases.js: 4 shared cases comparing os.release with the file read through fs-promises, and shape checks; a gap entry for os.release with an applies predicate; runParity skips inactive gaps and reports gapApplied and gapInactive | node --check passes | Node parity 176/176; txiki parity 176/176, gapInactive 1 |
+| docs/fx-split.md: ranked row 2 marked done with the Linux caveat; section for os.release | grep shows the row | none |
