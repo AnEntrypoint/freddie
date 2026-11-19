@@ -337,3 +337,14 @@ Ranked item 4 in docs/fx-split.md, the third item of this stage. opendir awaits 
 | packages/util/runtime/test/parity-cases.js: 4 cases (Dir reads and close, async iterator and break, ENOENT, ENOTDIR) and the gap entry removed | node --check passes | parity-node: 102/102 |
 | docs/fx-split.md: fs.promises gap row drops opendir; ranked row 4 marked done; the behaviour-differences subsection | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-parity-items-1-to-3.md: the Agent Note for the three items | none | none |
+
+## fx split: Phase B for ranked items 1 to 3 (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 114 names present across 25 subpaths; exit 0 | 0.09 s |
+| node test/parity-node.js | 102/102 shared cases match; exit 0 | 0.24 s process, 85 ms in runParity |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 114, missing [] | 0.17 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 102, gaps 12, mismatches [], unexpectedGaps [] | 0.37 s probe, 209 ms in runParity |
+
+Defect found and fixed in Phase B: txiki's Dir read after the end called the iterator again, and txiki's iterator returns undefined there, so read threw. Dir now records exhaustion and returns null.
