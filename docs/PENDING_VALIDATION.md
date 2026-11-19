@@ -393,3 +393,15 @@ Decision, recorded in docs/fx-split.md under "zlib gzip and gunzip under txiki".
 | packages/util/runtime/src/txiki.js: the stream codec removed; gzip and gunzip return to the gap list | node --check passes | txiki contract present 115; the gap list includes zlib.gzip and zlib.gunzip |
 | packages/util/runtime/test/parity-cases.js: each zlib case carries a gap field; runParity asserts the exact documented gap message for gap-field cases and for gapCases; zlib.gzip and zlib.gunzip gap entries added; the StringDecoder gap case relabelled to the documented name | node --check passes | txiki parity: 0 mismatches, 0 unexpected gaps, 5 gap-asserted |
 | docs/fx-split.md: zlib section rewritten as the decision and its reason; zlib row in the gap table; ranked row 5 marked as gaps | grep shows the rows | none |
+
+## fx split: Phase B for the zlib gap decision (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.12 s |
+| node test/parity-node.js | 112/112 shared cases match; 0 gaps; exit 0 | 0.17 s process, 68 ms in runParity |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.17 s probe |
+| contract gap names under gm's txiki (probe reads each member's function name, calls nothing) | 51 of the 111 non-default names are gaps; the other 4 are default exports | 0.20 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 112, gapAsserted 5, gaps 13, mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.48 s probe, 299 ms in runParity |
+
+Gap names in the txiki contract (51): fs.accessSync fs.closeSync fs.createReadStream fs.existsSync fs.lstatSync fs.mkdirSync fs.mkdtempSync fs.openSync fs.readFileSync fs.readSync fs.readdirSync fs.readlinkSync fs.realpathSync fs.rmSync fs.statSync fs.symlinkSync fs.unlinkSync fs.unwatchFile fs.watchFile fs.writeFileSync fs.writeSync crypto.createHash stream.PassThrough stream.Readable stream.Writable stream.pipeline util.parseArgs module.createRequire module.stripTypeScriptTypes child-process.execFile child-process.execFileSync child-process.spawn child-process.spawnSync os.networkInterfaces os.platform os.release worker-threads.Worker async-hooks.AsyncLocalStorage vm.Script vm.createContext vm.runInContext http.createServer http.validateHeaderValue zlib.brotliCompress zlib.createZstdDecompress zlib.gunzip zlib.gzip zlib.zstdCompress zlib.zstdDecompress zlib.zstdDecompressSync inspector.Session.
