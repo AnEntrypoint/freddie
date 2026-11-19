@@ -356,14 +356,76 @@ async function mkdir(path, options = {}) {
   await tjs.makeDir(path, { recursive: options.recursive === true, mode })
 }
 
+async function statFor(path, dereference) {
+  try {
+    return statsOf(await (dereference ? tjs.stat(path) : tjs.lstat(path)))
+  } catch (error) {
+    throw fsPathError(error, dereference ? 'stat' : 'lstat', path)
+  }
+}
+
+function cpError(code, errno, message) {
+  return Object.assign(new Error(message), { code, errno, syscall: 'cp' })
+}
+
+function cpNonDirToDir(source, destination) {
+  const message = 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ' + destination + ' with non-directory ' + source + ') ' + destination
+  return cpError('ERR_FS_CP_NON_DIR_TO_DIR', 20, message)
+}
+
+function cpDirToNonDir(source, destination) {
+  const message = 'Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ' + destination + ' with directory ' + source + ') ' + destination
+  return cpError('ERR_FS_CP_DIR_TO_NON_DIR', 21, message)
+}
+
+function cpSameFile(destination) {
+  return cpError('ERR_FS_CP_EINVAL', 22, 'Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ' + destination)
+}
+
+async function copyLink(source, destination, destinationEntry) {
+  const target = tjsPath.resolve(tjsPath.dirname(source), await tjs.readLink(source))
+  if (destinationEntry?.isSymbolicLink()) await unlink(destination)
+  await symlink(target, destination)
+}
+
 async function cp(source, destination, options = {}) {
-  const entry = statsOf(await tjs.lstat(source))
-  if (entry.isSymbolicLink()) throw gapError('fs.promises.cp of a symbolic link')
-  if (!entry.isDirectory()) return tjs.copyFile(source, destination)
-  if (options.recursive !== true) throw new Error('fs.promises.cp: ' + source + ' is a directory; pass { recursive: true }')
-  await mkdir(destination, { recursive: true })
-  for (const name of await readdir(source)) {
-    await cp(tjsPath.join(source, name), tjsPath.join(destination, name), options)
+  const dereference = options.dereference === true
+  const sourceEntry = await statFor(source, dereference)
+  const destinationEntry = await statFor(destination, dereference).catch(() => null)
+  if (destinationEntry?.isDirectory() && !sourceEntry.isDirectory()) throw cpNonDirToDir(source, destination)
+  if (sourceEntry.isDirectory() && destinationEntry !== null && !destinationEntry.isDirectory()) throw cpDirToNonDir(source, destination)
+  if (sourceEntry.isDirectory() && options.recursive !== true) throw new Error('fs.promises.cp: ' + source + ' is a directory; pass { recursive: true }')
+  await mkdir(tjsPath.dirname(destination), { recursive: true })
+  if (sourceEntry.isSymbolicLink()) return copyLink(source, destination, destinationEntry)
+  if (sourceEntry.isDirectory()) {
+    await mkdir(destination, { recursive: true })
+    for (const name of await readdir(source)) {
+      await cp(tjsPath.join(source, name), tjsPath.join(destination, name), options)
+    }
+    return
+  }
+  if (destinationEntry !== null && (await realpath(source)) === (await realpath(destination).catch(() => null))) throw cpSameFile(destination)
+  return tjs.copyFile(source, destination)
+}
+
+function linkError(error, target, path) {
+  if (error.code !== 'EEXIST') return error
+  return Object.assign(new Error("EEXIST: file already exists, symlink '" + target + "' -> '" + path + "'"), { errno: -17, code: 'EEXIST', syscall: 'symlink', path: target, dest: path })
+}
+
+async function symlink(target, path) {
+  try {
+    await tjs.symlink(target, path)
+  } catch (error) {
+    throw linkError(error, target, path)
+  }
+}
+
+async function readlink(path) {
+  try {
+    return await tjs.readLink(path)
+  } catch (error) {
+    throw fsPathError(error, 'readlink', path)
   }
 }
 
@@ -510,8 +572,10 @@ const fsPromises = withGaps('fs.promises', {
   opendir,
   readFile,
   readdir,
+  readlink,
   realpath,
   rename,
+  symlink,
   rm,
   stat,
   truncate,
@@ -1647,9 +1711,9 @@ function bytesOf(chunk, encoding = 'utf8') {
   return typeof chunk === 'string' ? Buffer.from(chunk, encoding) : chunk
 }
 
-function fsOpenError(error, path) {
+function fsPathError(error, syscall, path) {
   if (error.code !== 'ENOENT') return error
-  return Object.assign(new Error("ENOENT: no such file or directory, open '" + path + "'"), { errno: -2, code: 'ENOENT', syscall: 'open', path })
+  return Object.assign(new Error("ENOENT: no such file or directory, " + syscall + " '" + path + "'"), { errno: -2, code: 'ENOENT', syscall, path })
 }
 
 class Writable extends Emitter {
@@ -1982,7 +2046,7 @@ class FileReadStream extends Readable {
         this.emit('open', handle.fileno())
         this.emit('ready')
       },
-      (error) => this.destroy(fsOpenError(error, path)),
+      (error) => this.destroy(fsPathError(error, 'open', path)),
     )
   }
 

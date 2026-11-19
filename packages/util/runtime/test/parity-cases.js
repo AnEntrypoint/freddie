@@ -233,6 +233,68 @@ async function fsScenario() {
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
+async function cpLinkScenario() {
+  const dir = await fsp.mkdtemp('/tmp/cp-link-')
+  const at = (name) => dir + '/' + name
+  const shown = (text) => String(text).split(dir).join('ROOT')
+  const describe = async (path) => {
+    const entry = await fsp.lstat(path)
+    if (entry.isSymbolicLink()) return { type: 'link', target: shown(await fsp.readlink(path)) }
+    if (entry.isDirectory()) return { type: 'dir' }
+    return { type: 'file', text: await fsp.readFile(path, 'utf8') }
+  }
+  const attempt = async (run) => {
+    try { return await run() } catch (error) { return { error: error.code, message: shown(error.message) } }
+  }
+  await fsp.writeFile(at('real.txt'), 'REAL')
+  await fsp.symlink('real.txt', at('rel-link'))
+  await fsp.symlink(at('real.txt'), at('abs-link'))
+  await fsp.symlink('missing.txt', at('dangling'))
+  await fsp.mkdir(at('d'))
+  await fsp.writeFile(at('d/inner.txt'), 'INNER')
+  await fsp.symlink('d', at('dir-link'))
+  await fsp.mkdir(at('tree'))
+  await fsp.writeFile(at('tree/a.txt'), 'A')
+  await fsp.symlink('a.txt', at('tree/ln'))
+  await fsp.mkdir(at('tree/sub'))
+  await fsp.symlink('../a.txt', at('tree/sub/up'))
+  await fsp.symlink('missing.txt', at('tree/dangling'))
+  await fsp.writeFile(at('existing-file'), 'OLD')
+  await fsp.symlink('real.txt', at('existing-link'))
+  await fsp.symlink('real.txt', at('ex-link'))
+  await fsp.mkdir(at('dd'))
+  await fsp.mkdir(at('src-d'))
+  await fsp.writeFile(at('plain'), 'x')
+  const out = {}
+  out.fileLinkRelative = await attempt(async () => { await fsp.cp(at('rel-link'), at('o1')); return describe(at('o1')) })
+  out.fileLinkAbsolute = await attempt(async () => { await fsp.cp(at('abs-link'), at('o2')); return describe(at('o2')) })
+  out.danglingLink = await attempt(async () => { await fsp.cp(at('dangling'), at('o3')); return describe(at('o3')) })
+  out.dirLinkNoRecursive = await attempt(async () => { await fsp.cp(at('dir-link'), at('o4')); return describe(at('o4')) })
+  out.dirLinkRecursive = await attempt(async () => { await fsp.cp(at('dir-link'), at('o5'), { recursive: true }); return describe(at('o5')) })
+  out.treeRecursive = await attempt(async () => {
+    await fsp.cp(at('tree'), at('o6'), { recursive: true })
+    return { ln: await describe(at('o6/ln')), up: await describe(at('o6/sub/up')), dangling: await describe(at('o6/dangling')), a: await describe(at('o6/a.txt')) }
+  })
+  out.fileLinkDereference = await attempt(async () => { await fsp.cp(at('rel-link'), at('o7'), { dereference: true }); return describe(at('o7')) })
+  out.treeDereference = await attempt(async () => {
+    await fsp.cp(at('tree'), at('o8'), { recursive: true, dereference: true })
+    return { ln: await describe(at('o8/ln')) }
+  })
+  out.overwriteExistingFile = await attempt(async () => { await fsp.cp(at('rel-link'), at('existing-file')); return describe(at('existing-file')) })
+  out.overwriteExistingLink = await attempt(async () => { await fsp.cp(at('abs-link'), at('existing-link')); return describe(at('existing-link')) })
+  out.linkParentMissing = await attempt(async () => { await fsp.cp(at('rel-link'), at('p2/x')); return describe(at('p2/x')) })
+  out.plainFileParentMissing = await attempt(async () => { await fsp.cp(at('real.txt'), at('p1/x')); return describe(at('p1/x')) })
+  out.dereferenceDanglingFile = await attempt(async () => { await fsp.cp(at('dangling'), at('o9'), { dereference: true }); return 'unexpected' })
+  out.dereferenceExistingLinkDest = await attempt(async () => { await fsp.cp(at('rel-link'), at('ex-link'), { dereference: true }); return 'unexpected' })
+  out.linkIntoDirectory = await attempt(async () => { await fsp.cp(at('rel-link'), at('dd')); return 'unexpected' })
+  out.linkDereferenceIntoDirectory = await attempt(async () => { await fsp.cp(at('rel-link'), at('dd'), { dereference: true }); return 'unexpected' })
+  out.plainFileIntoDirectory = await attempt(async () => { await fsp.cp(at('real.txt'), at('dd')); return 'unexpected' })
+  out.directoryIntoFile = await attempt(async () => { await fsp.cp(at('src-d'), at('plain'), { recursive: true }); return 'unexpected' })
+  out.missingSource = await attempt(async () => { await fsp.cp(at('nope'), at('o10')); return 'unexpected' })
+  await fsp.rm(dir, { recursive: true, force: true })
+  return out
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -280,6 +342,27 @@ export const sharedCases = [
   { name: 'net.isIP', run: () => [s.net.isIP('10.0.0.1'), s.net.isIP('::1'), s.net.isIP('nope')], expected: [4, 6, 0] },
   { name: 'os values', run: () => [typeof s.os.homedir(), typeof s.os.tmpdir(), s.os.availableParallelism() > 0], expected: ['string', 'string', true] },
   { name: 'process basics', run: () => [typeof proc.env, typeof proc.cwd(), typeof proc.pid, Array.isArray(proc.argv), typeof proc.kill, typeof proc.exit], expected: ['object', 'string', 'number', true, 'function', 'function'] },
+  { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
+    fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
+    fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
+    danglingLink: { type: 'link', target: 'ROOT/missing.txt' },
+    dirLinkNoRecursive: { type: 'link', target: 'ROOT/d' },
+    dirLinkRecursive: { type: 'link', target: 'ROOT/d' },
+    treeRecursive: { ln: { type: 'link', target: 'ROOT/tree/a.txt' }, up: { type: 'link', target: 'ROOT/tree/a.txt' }, dangling: { type: 'link', target: 'ROOT/tree/missing.txt' }, a: { type: 'file', text: 'A' } },
+    fileLinkDereference: { type: 'file', text: 'REAL' },
+    treeDereference: { error: 'ENOENT', message: "ENOENT: no such file or directory, stat 'ROOT/tree/dangling'" },
+    overwriteExistingFile: { error: 'EEXIST', message: "EEXIST: file already exists, symlink 'ROOT/real.txt' -> 'ROOT/existing-file'" },
+    overwriteExistingLink: { type: 'link', target: 'ROOT/real.txt' },
+    linkParentMissing: { type: 'link', target: 'ROOT/real.txt' },
+    plainFileParentMissing: { type: 'file', text: 'REAL' },
+    dereferenceDanglingFile: { error: 'ENOENT', message: "ENOENT: no such file or directory, stat 'ROOT/dangling'" },
+    dereferenceExistingLinkDest: { error: 'ERR_FS_CP_EINVAL', message: 'Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/ex-link' },
+    linkIntoDirectory: { error: 'ERR_FS_CP_NON_DIR_TO_DIR', message: 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ROOT/dd with non-directory ROOT/rel-link) ROOT/dd' },
+    linkDereferenceIntoDirectory: { error: 'ERR_FS_CP_NON_DIR_TO_DIR', message: 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ROOT/dd with non-directory ROOT/rel-link) ROOT/dd' },
+    plainFileIntoDirectory: { error: 'ERR_FS_CP_NON_DIR_TO_DIR', message: 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ROOT/dd with non-directory ROOT/real.txt) ROOT/dd' },
+    directoryIntoFile: { error: 'ERR_FS_CP_DIR_TO_NON_DIR', message: 'Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ROOT/plain with directory ROOT/src-d) ROOT/plain' },
+    missingSource: { error: 'ENOENT', message: "ENOENT: no such file or directory, lstat 'ROOT/nope'" },
+  } },
   { name: 'fs.promises scenario in a scratch directory', run: fsScenario, expected: {
     text: 'hello', bytes: 5, stat: [true, false, 5, 'number'], dirIsDir: true,
     entries: [['a.txt', true], ['x', false]], copied: true, removed: 'ENOENT',

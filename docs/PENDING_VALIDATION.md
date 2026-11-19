@@ -651,3 +651,14 @@ Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken
 | parity under gm's txiki | shared 304, gapAsserted 3, gaps 16 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 1.45 s probe (1253 ms in runParity) |
 | contract under gm's txiki | present 115, missing []; exit 0 | 0.14 s probe |
 | contract gap names under gm's txiki | gapCount 35, unchanged (StringDecoder was never a contract gap name); exit 0 | 0.14 s probe |
+
+## fx split: fs.promises.cp of a symbolic link under txiki (2026-11-19)
+
+Queue item 1 (cp of a symbolic link). The Node 24 oracle probes are runs/analysis/cp-link-node.mjs, cp-link-node2.mjs and cp-probe3-node.mjs (untracked). Rules recorded from them: a link copies as a link; a relative target is rewritten to an absolute path resolved against the source directory; dereference follows the link; EEXIST when a link replaces a regular file; ENOENT for a dangling dereference; the destination parent is created; a non-directory over a directory raises ERR_FS_CP_NON_DIR_TO_DIR and a directory over a non-directory raises ERR_FS_CP_DIR_TO_NON_DIR; the same file raises ERR_FS_CP_EINVAL; a missing source raises ENOENT from lstat.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: cp reads the source with lstat (stat under dereference), copies links with readLink and symlink, creates the destination parent, and raises the Node cp errors; fs.promises.readlink and fs.promises.symlink are added on top of tjs.readLink and tjs.symlink (argument order target then path, checked against the probe); the gap for a symbolic link is removed | the dev check of the new parity case passes under Node (27 expectations match Node) and under gm's txiki (same 27) | Node parity and txiki parity |
+| src/fs-promises.js: re-exports readlink and symlink | none beyond the parity case | Node parity |
+| test/parity-cases.js: cpLinkScenario and one shared case with 27 expectations taken from the probes | the Node dev check and the txiki dev check agree | Node parity and txiki parity |
+| Not ported: the ERR_FS_CP_EINVAL check for a link copied into its own subdirectory, and the inode comparison for hard links (the same-file check compares realpaths instead). The dereferenced same-file case is probed and matches | none | none; an open divergence until a probe covers it |
