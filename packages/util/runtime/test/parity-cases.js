@@ -1028,6 +1028,138 @@ async function readableUnshiftStringWithEncodingSet() {
   return log
 }
 
+class WrapOld {
+  constructor(log) {
+    this.log = log
+    this.listeners = {}
+  }
+
+  on(name, fn) {
+    ;(this.listeners[name] ??= []).push(fn)
+    return this
+  }
+
+  emit(name, ...args) {
+    for (const fn of this.listeners[name] ?? []) fn(...args)
+  }
+
+  pause() {
+    this.log.push('old pause')
+    return this
+  }
+
+  resume() {
+    this.log.push('old resume')
+    return this
+  }
+}
+
+async function readableWrapData() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  const ret = r.wrap(old)
+  log.push('returns same ' + (ret === r))
+  r.on('data', (c) => log.push('data ' + typeof c + ' ' + c))
+  r.on('end', () => log.push('end'))
+  old.emit('data', Buffer.from('a'))
+  old.emit('data', 'b')
+  old.emit('end')
+  await wait(10)
+  return log
+}
+
+async function readableWrapError() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  r.on('error', (e) => log.push('error ' + e.message))
+  old.emit('error', new Error('boom'))
+  await wait(10)
+  return log
+}
+
+async function readableWrapClose() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  r.on('close', () => log.push('r close'))
+  old.emit('close')
+  await wait(10)
+  log.push('destroyed ' + r.destroyed)
+  return log
+}
+
+async function readableWrapPausesWhenFull() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  old.emit('data', Buffer.alloc(70000))
+  log.push('pushed buffered ' + r.readableLength)
+  return log
+}
+
+async function readableWrapResumesOnRead() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  old.emit('data', Buffer.alloc(70000))
+  r.on('data', (c) => log.push('data ' + c.length))
+  await wait(10)
+  return log
+}
+
+function readableWrapSmallDoesNotPause() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  old.emit('data', Buffer.alloc(100))
+  log.push('buffered ' + r.readableLength)
+  return log
+}
+
+async function readableWrapEndWithoutConsumer() {
+  const log = []
+  const old = new WrapOld(log)
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  r.on('end', () => log.push('end'))
+  old.emit('data', Buffer.from('z'))
+  old.emit('end')
+  await wait(10)
+  log.push('ended pending ' + r.readableEnded)
+  r.read()
+  await wait(10)
+  return log
+}
+
+function readableWrapForwardsMethods() {
+  const old = { hello(x) { return 'hi ' + x }, on() { return this }, value: 3 }
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(old)
+  return [typeof r.hello, r.hello ? r.hello('there') : null, typeof r.value]
+}
+
+function readableWrapClassMethodsNotForwarded() {
+  class Plain {
+    hello() {
+      return 'hi'
+    }
+
+    on() {
+      return this
+    }
+  }
+  const r = new s.stream.Readable({ read() {} })
+  r.wrap(new Plain())
+  return typeof r.hello
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -1206,6 +1338,15 @@ export const sharedCases = [
   { name: 'stream Readable.unshift of an empty chunk adds nothing', run: () => streamSettle(readableUnshiftEmptyChunk()), expected: ["data b"] },
   { name: 'stream Readable.unshift of a Buffer with setEncoding set is read as utf8 text, not decoded', run: () => streamSettle(readableUnshiftBufferWithEncoding()), expected: ["data string hi"] },
   { name: 'stream Readable.unshift of a string with setEncoding set is converted to the decoder encoding', run: () => streamSettle(readableUnshiftStringWithEncodingSet()), expected: ["data string 6869"] },
+  { name: 'stream Readable.wrap: data from the old stream is pushed as Buffers, and its end ends the stream; wrap returns the stream', run: () => streamSettle(readableWrapData()), expected: ["returns same true","data object a","data object b","end"] },
+  { name: 'stream Readable.wrap: an error on the old stream is emitted on the stream', run: () => streamSettle(readableWrapError()), expected: ["error boom"] },
+  { name: 'stream Readable.wrap: a close on the old stream destroys the stream', run: () => streamSettle(readableWrapClose()), expected: ["r close","destroyed true"] },
+  { name: 'stream Readable.wrap: a push that reaches the high-water mark pauses the old stream', run: () => streamSettle(readableWrapPausesWhenFull()), expected: ["old pause","pushed buffered 70000"] },
+  { name: 'stream Readable.wrap: the first read after a pause resumes the old stream', run: () => streamSettle(readableWrapResumesOnRead()), expected: ["old pause","old resume","data 70000"] },
+  { name: 'stream Readable.wrap: a small push does not pause the old stream', run: () => readableWrapSmallDoesNotPause(), expected: ["buffered 100"] },
+  { name: 'stream Readable.wrap: the end is not emitted until the stream is read, then readableEnded is true', run: () => streamSettle(readableWrapEndWithoutConsumer()), expected: ["ended pending false","end"] },
+  { name: 'stream Readable.wrap: function properties of the old stream are forwarded, values are not', run: () => readableWrapForwardsMethods(), expected: ["function","hi there","undefined"] },
+  { name: 'stream Readable.wrap: class methods of the old stream are not forwarded (they are not enumerable)', run: () => readableWrapClassMethodsNotForwarded(), expected: "undefined" },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },

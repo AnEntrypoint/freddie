@@ -2099,6 +2099,18 @@ class Readable extends Emitter {
     return this.#flowing
   }
 
+  get readableEnded() {
+    return this.#endEmitted
+  }
+
+  get readableLength() {
+    return this.#length
+  }
+
+  get destroyed() {
+    return this.#destroyed
+  }
+
   isPaused() {
     return this.#paused === true || (this.#paused !== false && this.#flowing === false)
   }
@@ -2203,6 +2215,29 @@ class Readable extends Emitter {
     }
     if (data.length > 0) this.#addChunk(data, true)
     return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
+  }
+
+  wrap(stream) {
+    let paused = false
+    stream.on('data', (chunk) => {
+      if (!this.push(chunk) && typeof stream.pause === 'function') {
+        paused = true
+        stream.pause()
+      }
+    })
+    stream.on('end', () => this.push(null))
+    stream.on('error', (error) => this.destroy(error))
+    stream.on('close', () => this.destroy())
+    this._read = () => {
+      if (paused && typeof stream.resume === 'function') {
+        paused = false
+        stream.resume()
+      }
+    }
+    for (const key in stream) {
+      if (this[key] === undefined && typeof stream[key] === 'function') this[key] = (...args) => stream[key](...args)
+    }
+    return this
   }
 
   setEncoding(encoding) {
@@ -2447,7 +2482,6 @@ class Readable extends Emitter {
     destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, ['wrap'])
 
 class PassThrough extends Readable {
   #writable

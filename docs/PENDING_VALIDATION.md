@@ -877,3 +877,15 @@ Ranked item 5, third of the six: Readable.unshift. Probes: runs/analysis/stream-
 Regression (not a witness): the stream dev cases on Node 83 of 83 with no DIFF, and txiki 81 with failing [] (regress3-node.out, regress3-txiki.out).
 
 Not measured, so not claimed: unshift(null), unshift on a destroyed stream beyond the return value, and unshift while a decoder is set with a chunk other than a string or Buffer.
+
+## fx split: Readable.wrap, with readableEnded, readableLength and destroyed (2026-11-19)
+
+Ranked item 5, last of the six: Readable.wrap. Probes: runs/analysis/stream-gaps2-node.mjs (data, end, error, close, pause and resume, the end without a consumer) and runs/analysis/wrap-hwm-node.mjs (the same pause and resume with a 70000-byte chunk, because txiki has no highWaterMark option; the first probe used 16 bytes, which txiki cannot construct). The method-forwarding rule was measured in stream-gaps3-node.mjs. Expectations are the probe output.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Readable.wrap listens for data, end, error and close on the old stream, pauses it when a push returns false and resumes it on the next read, and forwards the function-valued enumerable properties of the old stream that the stream lacks; Readable gets the readableEnded, readableLength and destroyed getters (the probes read them); the last Readable gap name leaves the gap list | dev: 9 of 9 wrap cases match Node (dev-wrap-node.out), and txiki 9 with failing [] (dev-wrap-txiki2.out, after the getters were added); regression: stream dev cases Node 92 of 92 with no DIFF, txiki 90 with failing [] (regress4-*.out) | Node parity and txiki parity |
+| test/parity-cases.js: 9 wrap cases from the probe output | the same cases | Node parity and txiki parity |
+| Mutation: wrap throws, all 9 wrap cases red; restored and checked by grep | /tmp/mut4-wrap.out | none |
+
+Not measured, so not claimed: the wrap destroy event (the probe's old stream has no destroy emitter), a wrap over a stream whose resume is missing when paused, and Writable.destroyed, Writable.writableLength, writableEnded and writableFinished, which txiki also lacks; they are not declared gaps, so they are recorded here.
