@@ -628,3 +628,14 @@ Each run started after a reading below 1000 KB/s for both swap-in and swap-out, 
 Note: the txiki parity probe exits 0 even when runParity throws inside the body, because the body catches the error. The witness is the summary: mismatches [] and unexpectedGaps [] with no "parity failed" line.
 
 Earlier in this step, a debugging run found that txiki's FileHandle.read returned a non-positive value at end of file, which the first version treated as data. The fix (count > 0) is in the committed code, and the witnesses above are from the fixed code.
+
+## fx split: StringDecoder encodings under txiki (2026-11-19)
+
+Reachable item 1 in the ranked list at the end of docs/fx-split.md.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: StringDecoder keeps utf8 on TextDecoder and decodes the other encodings through CODECS, with Node's carry rules: a base64 or base64url remainder of 1 or 2 bytes; a utf16le odd byte; a utf16le high surrogate at the end of a write. end() flushes the carried bytes as Node does. The gap for non-utf8 encodings is removed | node --check passes; Node parity 304/304 (the 42 new cases generated from the Node probe runs/analysis/sd-node.mjs) | txiki parity with mismatches [] and unexpectedGaps []; Node and txiki contract and gap-name probes |
+| test/parity-cases.js: decoderBytes and decoderParts helpers; 40 cases (6 encodings: latin1, ascii, hex, base64, base64url, utf16le, plus the aliases binary and ucs2, each over 5 chunkings) with expectations from the Node probe; the base64 end-only case; the unknown-encoding case; the gap case for latin1 removed | Node parity 304/304 | txiki parity |
+| docs/fx-split.md: the string_decoder row marked done, and the ranked list of reachable work with held items H1 to H10 and their reopen evidence | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-string-decoder.md: Agent Note | none | none |

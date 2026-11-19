@@ -342,7 +342,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | vm | Script, createContext, runInContext | not mapped |
 | http (createServer), https, inspector, dns/promises | createServer and all other members | tjs.serve and tjs.lookup have other shapes; validateHeaderValue is implemented in pure JS |
 | zlib | gzip | txiki CompressionStream and DecompressionStream throw "not a function" for every valid format in this build; gzip stays a gap, see the zlib section. gunzip is an owned pure-JS inflate (2026-11-19) |
-| string_decoder | any encoding except utf8 | only utf8 is streamed |
+| string_decoder | none | done 2026-11-19: every encoding Node accepts is decoded with Node's carry rules (see the string_decoder section) |
 
 Mapped without a gap: path (the tjs:path default object), url file-URL conversion (built on URL), util.promisify, util.TextDecoder, util.inspect (tjs:utils, so its output format differs from Node's), util.types.isPromise, perf_hooks.performance, timers/promises setTimeout and scheduler, crypto.randomUUID and randomBytes, net.isIP (tjs:ipaddr.isValid), os.homedir, os.tmpdir, os.availableParallelism, process.env, cwd, pid, ppid, execPath, argv, exit and kill, and a Buffer subset: from, alloc, allocUnsafe, concat, byteLength, compare, isBuffer, isView; toString for utf8, hex, base64, base64url, latin1, ascii and utf16le; equals, compare, copy, write, toJSON, slice as a view, and the UInt8, UInt16, UInt32, Int16, Int32, UIntLE and UIntBE accessors.
 
@@ -622,3 +622,27 @@ Verified under txiki (shared cases, Node expectations): sync and async writes wi
 Not verified: non-string, non-Buffer chunks (TypeError); objectMode; writes after destroy; backpressure through pipe and drain timing; the readable event and read(); async iteration; error with no listener in a pipeline; reads and destroys during open; encodings other than utf8 for string chunks.
 
 Measured under gm's txiki (Phase B witnesses in docs/PENDING_VALIDATION.md): the gap-name count is 35 (was 40); the contract reports 115 present with nothing missing.
+
+## Reachable work, ranked (2026-11-19, after streams)
+
+Ranked by how close each item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change. Items 1 to 5 are reachable. Items H1 to H10 are the held items: they cover the 35 gap names the txiki contract still lists, plus the held behaviour gaps, and each line says the evidence that would reopen it.
+
+1. StringDecoder for latin1, ascii, hex, base64, base64url, utf16le and ucs2. Pure JS, done in this change: Node's carry rules are ported and checked against Node's split output (42 cases). Verified under Node and txiki.
+2. fs.promises.cp of a symbolic link. Reachable: tjs has readLink and symlink (in the tjs member list). Needs a Node probe of cp over a tree with a link, to fix the link's target and whether cp copies the link or its target.
+3. Stream backpressure in pipe. Pure JS over the stream classes: pause the source when write returns false, resume on drain. Needs a Node probe with chunks above the 64 KiB highWaterMark into a slow Writable.
+4. Readable read() and the readable event. Pure JS. Needs Node probes of read(n) and the order of readable and end events; the ordering is the risk.
+5. buffer.constants and the fs.constants O_* values. Constants only, checked against Node on this Linux host. Low value: O_* flags are not usable with tjs.open unless mapped.
+
+Held (each names the evidence that would reopen it):
+- H1. fs.promises.access with R_OK, W_OK or X_OK. txiki has no access-with-mode call in its 52 members. Reopen: a tjs permission primitive, or a witness that a mode-bit check matches Node for owner, group and other under this host's uid.
+- H2. fs.promises.writeFile with mode. Needs the process umask, which the 52 members do not expose. Reopen: a txiki umask read, or a witness of the masked creation mode.
+- H3. zlib.gzip byte parity (open). Owner decision to port zlib's deflate. Reopen: that decision, or a caller that depends on Node's compressed bytes.
+- H4. http.createServer (1 gap name). Owner decision on the server API; tjs.serve has another shape. Reopen: the owner's design for it.
+- H5. os.platform (1 gap name) and the process members. Owner direction: fx supplies the platform. Reopen: fx platform decision.
+- H6. module.createRequire (1 gap name). fx: needs a CommonJS loader the txiki build lacks. Reopen: a CommonJS loader in fx or txiki.
+- H7. module.stripTypeScriptTypes (1 gap name). Needs a TypeScript parser, a dependency. Reopen: an approved dependency.
+- H8. Sync fs (18 gap names) and child_process execFileSync and spawnSync (2). Native: the 52 tjs members have no sync variant. Reopen: a txiki build exposing a blocking file or spawn call.
+- H9. zlib brotli and zstd (5 gap names). Native: CompressionStream throws "not a function" for valid formats. Reopen: a txiki build with a brotli or zstd backend.
+- H10. vm (3), worker_threads.Worker (1), async_hooks.AsyncLocalStorage (1), inspector.Session (1). Native or fx: a separate realm, Node's Worker API, async context and inspector. Reopen: a txiki realm, worker, async-context or inspector API.
+
+Gap-name count: 35 = H8 (20) + H9 (5) + H10 (6) + H4 (1) + H5 (1) + H6 (1) + H7 (1).
