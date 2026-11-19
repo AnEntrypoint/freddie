@@ -591,17 +591,16 @@ async function unlink(path) {
   await tjs.remove(path)
 }
 
+const WRITE_FILE_FLAGS = ['w', 'wx', 'w+', 'wx+', 'a', 'ax', 'a+', 'ax+', 'r+']
+
 async function writeFile(path, data, options) {
   const encoding = typeof options === 'string' ? options : options?.encoding
   const flag = options?.flag ?? 'w'
-  if (flag !== 'w' && flag !== 'a') throw gapError('fs.promises.writeFile with flag ' + flag)
-  if (options?.mode !== undefined) throw gapError('fs.promises.writeFile with mode')
+  if (!WRITE_FILE_FLAGS.includes(flag)) throw gapError('fs.promises.writeFile with flag ' + flag)
+  const mode = options?.mode ?? 0o666
+  if (typeof mode !== 'number') throw gapError('fs.promises.writeFile with mode ' + String(mode))
   const bytes = typeof data === 'string' ? CODECS[encodingOf(encoding)].encode(data) : data
-  if (flag === 'w') {
-    await tjs.writeFile(path, bytes)
-    return
-  }
-  const handle = await tjs.open(path, 'a')
+  const handle = await tjs.open(path, flag, mode)
   try {
     let offset = 0
     while (offset < bytes.length) offset += await handle.write(bytes.subarray(offset))

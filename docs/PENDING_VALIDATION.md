@@ -1334,3 +1334,39 @@ Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 1 of 1: s
 Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
 
 Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only.
+
+## fx split: fs.promises.writeFile flags and mode, Phase A (2026-11-19)
+
+Rank 7e in docs/fx-split.md. Probes: runs/analysis/write-flags-node.mjs (deterministic, umask 22) and the inline txiki probe (/tmp/wf-txiki.json, 21 operations, matching Node on all 22 operations once the ax+ case was added).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: writeFile accepts flags w, wx, w+, wx+, a, ax, a+, ax+, r+ and a numeric mode; every flag goes through tjs.open(path, flag, mode) and a write loop; other flags and string modes stay gaps | before: flag other than w/a and any mode threw the gap; after: 23 writeFile cases (22 generated from write-flags-node.out plus ax+ existing) and 5 existing writeFile cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 577, mismatches [], unexpectedGaps [], gaps 13, gapInactive 1, 11970 ms; Node parity 577/577 |
+| test/parity-cases.js: 23 cases generated from the Node output (new file per case, including EEXIST, ENOENT, appends, r+ overwrite, mode 0o600 on creation, mode ignored on an existing file, default mode); 2 gap cases (flag rs+, mode '0600') | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs all writeFile cases and gap cases and writes full results to /tmp/wf-mut-result.json; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| M1: flag ignored (always w) | 14 |
+| M2: mode ignored (always 0o666) | 4 |
+| M3: wx not exclusive | 2 |
+| M4: ax not exclusive | 1 |
+| M5: wx+ not exclusive | 1 |
+| M6: ax+ not exclusive | 1 |
+| M7: r+ treated as w | 3 |
+| M8: flag gate restored to w and a | 15 |
+| M9: mode gate restored | 7 |
+| M10: mode applied to an existing file too | 13 |
+| M11: w does not truncate | 3 |
+| M12: flag gap check removed | 1 (the rs+ gap case) |
+| M13: mode gap check removed | 1 (the mode gap case) |
+| M14: a does not create | 7 |
+
+Coverage: every case is red under at least one mutation (uncovered []).
+
+Two harness notes from this stretch: the first version of the two gap cases called s.fs.promises, which does not exist on the txiki side, so they threw a TypeError rather than the gap message (corrected to s['fs-promises'], the same handle as fsp). A first mutation pass also left "fs.promises.writeFile flag a creates a missing file" uncovered; M14 covers it.
+
+Regression (not a witness): txiki parity with gap assertions: shared 577, mismatches [], unexpectedGaps [], gaps 13, gapInactive 1. Node parity: 577/577.
+
+Not verified: flags rs+, as, as+; string modes; umask other than 022.

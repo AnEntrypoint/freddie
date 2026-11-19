@@ -2309,6 +2309,46 @@ sharedCases.push(
   }, expected: {"stdout":"ok\n","code":0,"signal":null,"killed":false} },
 )
 
+const writeFlagOutcome = (setup, run) => withScratch(async (dir) => {
+  for (const s of setup) await fsp.writeFile(dir + '/' + s.file, s.data, { flag: s.flag, mode: s.mode })
+  const file = dir + '/' + run.file
+  try {
+    await fsp.writeFile(file, run.data, { flag: run.flag, mode: run.mode })
+  } catch (error) {
+    return { error: error.code }
+  }
+  return { content: await fsp.readFile(file, 'utf8'), mode: ((await fsp.stat(file)).mode & 0o777).toString(8) }
+})
+
+sharedCases.push(
+  { name: "fs.promises.writeFile w new creates", run: () => writeFlagOutcome([], {"file":"f","data":"hello","flag":"w"}), expected: {"content":"hello","mode":"644"} },
+  { name: "fs.promises.writeFile w existing truncates", run: () => writeFlagOutcome([{"file":"f","data":"longer text","flag":"w"}], {"file":"f","data":"short","flag":"w"}), expected: {"content":"short","mode":"644"} },
+  { name: "fs.promises.writeFile wx new creates", run: () => writeFlagOutcome([], {"file":"f","data":"x","flag":"wx"}), expected: {"content":"x","mode":"644"} },
+  { name: "fs.promises.writeFile wx existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"old","flag":"w"}], {"file":"f","data":"new","flag":"wx"}), expected: {"error":"EEXIST"} },
+  { name: "fs.promises.writeFile wx+ existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"old","flag":"w"}], {"file":"f","data":"new","flag":"wx+"}), expected: {"error":"EEXIST"} },
+  { name: "fs.promises.writeFile w+ existing truncates", run: () => writeFlagOutcome([{"file":"f","data":"longer text","flag":"w"}], {"file":"f","data":"short","flag":"w+"}), expected: {"content":"short","mode":"644"} },
+  { name: "fs.promises.writeFile a existing appends", run: () => writeFlagOutcome([{"file":"f","data":"base","flag":"w"}], {"file":"f","data":"add","flag":"a"}), expected: {"content":"baseadd","mode":"644"} },
+  { name: "fs.promises.writeFile a new creates", run: () => writeFlagOutcome([], {"file":"f","data":"add","flag":"a"}), expected: {"content":"add","mode":"644"} },
+  { name: "fs.promises.writeFile a+ existing appends", run: () => writeFlagOutcome([{"file":"f","data":"base","flag":"w"}], {"file":"f","data":"add","flag":"a+"}), expected: {"content":"baseadd","mode":"644"} },
+  { name: "fs.promises.writeFile ax new creates", run: () => writeFlagOutcome([], {"file":"f","data":"add","flag":"ax"}), expected: {"content":"add","mode":"644"} },
+  { name: "fs.promises.writeFile ax existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"base","flag":"w"}], {"file":"f","data":"add","flag":"ax"}), expected: {"error":"EEXIST"} },
+  { name: "fs.promises.writeFile ax+ new creates", run: () => writeFlagOutcome([], {"file":"f","data":"add","flag":"ax+"}), expected: {"content":"add","mode":"644"} },
+  { name: "fs.promises.writeFile r+ overwrites from start", run: () => writeFlagOutcome([{"file":"f","data":"abcdef","flag":"w"}], {"file":"f","data":"XY","flag":"r+"}), expected: {"content":"XYcdef","mode":"644"} },
+  { name: "fs.promises.writeFile r+ missing ENOENT", run: () => writeFlagOutcome([], {"file":"f","data":"XY","flag":"r+"}), expected: {"error":"ENOENT"} },
+  { name: "fs.promises.writeFile r+ longer data grows", run: () => writeFlagOutcome([{"file":"f","data":"abc","flag":"w"}], {"file":"f","data":"WXYZ","flag":"r+"}), expected: {"content":"WXYZ","mode":"644"} },
+  { name: "fs.promises.writeFile w mode 0o600 new", run: () => writeFlagOutcome([], {"file":"f","data":"m","flag":"w","mode":384}), expected: {"content":"m","mode":"600"} },
+  { name: "fs.promises.writeFile wx mode 0o600 new", run: () => writeFlagOutcome([], {"file":"f","data":"m","flag":"wx","mode":384}), expected: {"content":"m","mode":"600"} },
+  { name: "fs.promises.writeFile a mode 0o600 new", run: () => writeFlagOutcome([], {"file":"f","data":"m","flag":"a","mode":384}), expected: {"content":"m","mode":"600"} },
+  { name: "fs.promises.writeFile w mode ignored when file exists", run: () => writeFlagOutcome([{"file":"f","data":"old","flag":"w","mode":420}], {"file":"f","data":"new","flag":"w","mode":384}), expected: {"content":"new","mode":"644"} },
+  { name: "fs.promises.writeFile r+ mode missing ENOENT", run: () => writeFlagOutcome([], {"file":"f","data":"XY","flag":"r+","mode":384}), expected: {"error":"ENOENT"} },
+  { name: "fs.promises.writeFile wx mode existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"old","flag":"w","mode":420}], {"file":"f","data":"new","flag":"wx","mode":384}), expected: {"error":"EEXIST"} },
+  { name: "fs.promises.writeFile w default mode new", run: () => writeFlagOutcome([], {"file":"f","data":"d","flag":"w"}), expected: {"content":"d","mode":"644"} },
+)
+
+sharedCases.push(
+  { name: "fs.promises.writeFile ax+ existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"base","flag":"w"}], {"file":"f","data":"add","flag":"ax+"}), expected: {"error":"EEXIST"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2320,6 +2360,8 @@ export const gapCases = [
   { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
+  { name: 'fs.promises.writeFile with flag rs+', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { flag: 'rs+' }) },
+  { name: 'fs.promises.writeFile with mode 0600', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: '0600' }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
