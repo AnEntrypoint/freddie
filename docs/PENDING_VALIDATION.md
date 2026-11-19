@@ -500,3 +500,13 @@ Ranked item 1 among the 45 remaining gap names (ranked list in docs/fx-split.md,
 | test/parity-cases.js: 26 shared cases for the four digests on four inputs, chunked update, Buffer and hex input, base64 and latin1 digests, default Buffer, upper-case name, update with a number, digest twice, update after digest; gap case crypto.createHash sha3-256 replaces the old whole-name gap case | node --check passes | txiki gap names 44 (was 45) |
 | docs/fx-split.md: the ranked list of the 45 remaining gap names with each line's class; the crypto gap row and the owner-decision bullet now record the implementation | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-crypto-createhash.md: Agent Note | none | none |
+
+## fx split: Phase B for crypto.createHash (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.16 s |
+| node test/parity-node.js (final), and earlier runs | 207/207 shared cases match; exit 0 (819 ms in runParity) | 1.01 s process |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.29 s probe |
+| contract gap names under gm's txiki | 44 of the non-default names (was 45): crypto.createHash left the list | 0.29 s probe |
+| parity under gm's txiki, final run (probe with the rebuilt gm-core) | shared 207, gapAsserted 5, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 (1236 ms in runParity). Three earlier runs on the same tree: 1113, 1108, 1127 ms in runParity, all mismatches [] and exit 0 | 1.53 s probe |
