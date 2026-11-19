@@ -327,7 +327,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 
 | Area | Names that throw | Why txiki has no equivalent |
 |---|---|---|
-| fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, unwatchFile, watchFile, writeFileSync, writeSync | txiki file APIs are async only |
+| fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync | txiki file APIs are async only |
 | fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or a, or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no mode option; append is tjs.open with a; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
 | crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
@@ -422,7 +422,7 @@ Ranked (pure JS over the existing runtime):
 |---|---|---|---|
 | 1 | http.validateHeaderValue | pure JS: a regex check of the value (tab, 0x20-0x7e, 0x80-0xff allowed) and the two Node error codes | done 2026-11-19: 13 parity cases, Node and txiki agree |
 | 2 | os.release | pure JS: read /proc/sys/kernel/osrelease once at module load (txiki reads are async, and os.release is synchronous), then return the cached value. Linux only; a missing file makes os.release the documented gap | done 2026-11-19 on Linux: 4 parity cases, Node and txiki agree; the non-Linux gap is asserted when active, which this Linux host never triggers |
-| 3 | fs.watchFile and fs.unwatchFile | pure JS: stat polling over tjs.stat with timers; the listener receives current and previous stats as in Node. Verification needs timed file changes | open |
+| 3 | fs.watchFile and fs.unwatchFile | pure JS: stat polling over tjs.stat with timers; the listener receives current and previous stats as in Node. Verification needs timed file changes | done 2026-11-19: 5 timing-bounded parity cases, Node and txiki agree; see the watchFile section |
 
 Excluded, with the reason:
 
@@ -447,3 +447,18 @@ Counts: 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypt
 ## os.release under txiki (2026-11-19)
 
 txiki's file reads are async and os.release is synchronous, so the release is read once when the txiki module loads (a top-level await of tjs.readFile on /proc/sys/kernel/osrelease, trailing newline removed) and os.release returns the cached string. A missing file (ENOENT, the error txiki gives on a non-Linux host) makes os.release the documented gap; any other read error is rethrown at load. The parity cases compare os.release with the file read through the runtime's fs-promises, and check its shape. The gap entry for os.release runs only when the gap is active (its applies predicate); on this Linux host it is inactive and is counted as such. The non-Linux branch has not been run on a non-Linux host.
+
+
+## fs.watchFile and fs.unwatchFile under txiki (2026-11-19)
+
+Node's watchFile fires its listener in two ways, and txiki now does the same. A file that exists at the first poll sets the baseline and is silent until a stat field changes. A path that is missing at the first poll fires once with zeroed stats for both curr and prev, and creating the file then fires with real current stats and zero previous stats. The fields compared for a change are dev, mode, nlink, uid, gid, ino, size, mtimeMs, ctimeMs and birthtimeMs; atime is not compared, as in libuv's poller.
+
+Decisions:
+
+- Missing paths are not an error. Node reports zeroed stats, not an error code, and txiki reports the same. ENOENT and ENOTDIR are the only stat errors read as missing; other stat errors reject the poll.
+- Sub-millisecond timestamps: Node's mtimeMs carries fractional milliseconds, and tjs.stat gives Date values at millisecond resolution. The shared cases compare times through Date values and integer fields only, so no field is declared a gap. fs.stat already has this precision, so it is recorded here rather than asserted as a gap.
+- watchFile returns undefined. Node returns a StatWatcher with ref and unref; txiki does not provide one.
+- The interval is taken from the first watchFile call for a path, and the default is Node's 5007 ms.
+- The txiki gap list drops fs.watchFile and fs.unwatchFile: 47 becomes 45.
+
+The timing-based shared cases set a 20 ms interval, wait a bounded number of intervals before each change, and fail with a count message after 2000 ms if no event arrives. Each case removes its watcher in a finally block, so a failing case cannot keep the process alive.

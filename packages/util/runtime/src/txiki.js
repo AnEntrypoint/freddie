@@ -9,7 +9,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'createReadStream', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'unwatchFile', 'watchFile', 'writeFileSync', 'writeSync']
+const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'createReadStream', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -891,8 +891,90 @@ const osRelease = await tjs.readFile('/proc/sys/kernel/osrelease').then(
   },
 )
 
+const STAT_WATCH_DEFAULT_INTERVAL = 5007
+const STAT_WATCH_COMPARED_FIELDS = ['dev', 'mode', 'nlink', 'uid', 'gid', 'ino', 'size', 'mtimeMs', 'ctimeMs', 'birthtimeMs']
+const statWatchers = new Map()
+
+function zeroRawStat() {
+  return {
+    dev: 0,
+    mode: 0,
+    nlink: 0,
+    uid: 0,
+    gid: 0,
+    rdev: 0,
+    blksize: 0,
+    ino: 0,
+    size: 0,
+    blocks: 0,
+    atim: new Date(0),
+    mtim: new Date(0),
+    ctim: new Date(0),
+    birthtim: new Date(0),
+    ...Object.fromEntries(FILE_TYPE_FLAGS.map((flag) => [flag, false])),
+  }
+}
+
+async function statOrNull(path) {
+  try {
+    return statsOf(await tjs.stat(path))
+  } catch (error) {
+    if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error
+    return null
+  }
+}
+
+function statsDiffer(a, b) {
+  return STAT_WATCH_COMPARED_FIELDS.some((field) => a[field] !== b[field])
+}
+
+async function pollStatWatcher(path, entry) {
+  if (entry.polling) return
+  entry.polling = true
+  let found
+  try {
+    found = await statOrNull(path)
+  } finally {
+    entry.polling = false
+  }
+  if (statWatchers.get(path) !== entry) return
+  const curr = found ?? statsOf(zeroRawStat())
+  if (entry.prev === undefined) {
+    entry.prev = curr
+    if (found !== null) return
+  } else if (!statsDiffer(entry.prev, curr)) {
+    return
+  }
+  const prev = entry.prev
+  entry.prev = curr
+  for (const listener of [...entry.listeners]) listener(curr, prev)
+}
+
+function watchFile(path, options, listener) {
+  const fn = typeof options === 'function' ? options : listener
+  const interval = typeof options === 'function' ? STAT_WATCH_DEFAULT_INTERVAL : (options?.interval ?? STAT_WATCH_DEFAULT_INTERVAL)
+  let entry = statWatchers.get(path)
+  if (entry === undefined) {
+    entry = { listeners: new Set(), prev: undefined, polling: false, timer: undefined }
+    entry.timer = setInterval(() => pollStatWatcher(path, entry), interval)
+    statWatchers.set(path, entry)
+  }
+  entry.listeners.add(fn)
+}
+
+function unwatchFile(path, listener) {
+  const entry = statWatchers.get(path)
+  if (entry === undefined) return
+  if (listener !== undefined) {
+    entry.listeners.delete(listener)
+    if (entry.listeners.size > 0) return
+  }
+  clearInterval(entry.timer)
+  statWatchers.delete(path)
+}
+
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

@@ -468,3 +468,14 @@ Ranked item 2 in docs/fx-split.md. os.release reads /proc/sys/kernel/osrelease o
 | contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.32 s probe |
 | contract gap names under gm's txiki | 47 of the 111 non-default names (was 48): os.release left the list on Linux | 0.21 s probe |
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 176, gapAsserted 5, gaps 14 applied, gapInactive 1 (the non-Linux os.release gap, not active here), mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.52 s probe, 306 ms in runParity |
+
+## fx split: fs.watchFile and fs.unwatchFile under txiki (2026-11-19)
+
+Ranked item 3 in docs/fx-split.md. Both leave the sync-fs gap list; the decisions are in the watchFile section of docs/fx-split.md.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: watchFile and unwatchFile are implemented in pure JS by stat polling over tjs.stat, with setInterval; a missing path reads as zeroed stats (ENOENT and ENOTDIR only); the watcher table is keyed by path and unwatchFile stops the interval when the last listener leaves; both are removed from FS_SYNC_NAMES and exported on fs | node --check passes | txiki contract present 115, missing []; gap names 45 (was 47) |
+| test/parity-cases.js: 5 shared cases, each with a 20 ms interval and a 2000 ms deadline: the Node-shaped current and previous stats after a change; unwatch stopping events; a missing path giving one zeroed event; a path reporting once it appears; silence while unchanged. The helpers remove each watcher in a finally block | node --check passes; Node parity 181/181 | txiki parity 181/181, mismatches [], unexpectedGaps []; Node parity 181/181 |
+| docs/fx-split.md: ranked row 3 marked done; the fs (sync) gap row drops the two names; a section with the decisions (missing path, sub-ms precision, return value, interval) | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-fs-watchfile.md: the Agent Note for the change | none | none |

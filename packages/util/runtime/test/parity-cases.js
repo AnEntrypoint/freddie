@@ -364,6 +364,151 @@ sharedCases.push(
   { name: 'os.release returns the same value on every call', run: () => s.os.release() === s.os.release(), expected: true },
 )
 
+const WATCH_INTERVAL_MS = 20
+const WATCH_DEADLINE_MS = 2000
+const STAT_NUMBER_FIELDS = ['dev', 'mode', 'nlink', 'uid', 'gid', 'rdev', 'blksize', 'ino', 'size', 'blocks', 'atimeMs', 'mtimeMs', 'ctimeMs', 'birthtimeMs']
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function untilEvents(events, count) {
+  const deadline = performance.now() + WATCH_DEADLINE_MS
+  while (events.length < count) {
+    if (performance.now() > deadline) throw new Error(events.length + ' of ' + count + ' watchFile events within ' + WATCH_DEADLINE_MS + ' ms')
+    await sleep(5)
+  }
+  return events
+}
+
+async function watchFor(file, body) {
+  const events = []
+  const listener = (curr, prev) => events.push({ curr, prev })
+  s.fs.watchFile(file, { interval: WATCH_INTERVAL_MS }, listener)
+  try {
+    return await body(events)
+  } finally {
+    s.fs.unwatchFile(file, listener)
+  }
+}
+
+async function withTempDir(body) {
+  const dir = await fsp.mkdtemp('/tmp/watch-')
+  try {
+    return await body(dir)
+  } finally {
+    await fsp.rm(dir, { recursive: true })
+  }
+}
+
+const statShape = (stats) => ({
+  numbers: STAT_NUMBER_FIELDS.every((field) => typeof stats[field] === 'number'),
+  dates: [stats.atime, stats.mtime, stats.ctime, stats.birthtime].every((date) => date instanceof Date),
+  isFile: typeof stats.isFile === 'function',
+})
+
+sharedCases.push(
+  {
+    name: 'fs.watchFile reports Node-shaped current and previous stats after a change',
+    run: () => withTempDir(async (dir) => {
+      const file = dir + '/a.txt'
+      await fsp.writeFile(file, 'one')
+      return watchFor(file, async (events) => {
+        await sleep(WATCH_INTERVAL_MS * 4)
+        await fsp.writeFile(file, 'longer content')
+        const [{ curr, prev }] = await untilEvents(events, 1)
+        const onDisk = await fsp.stat(file)
+        return {
+          curr: statShape(curr),
+          prev: statShape(prev),
+          currSize: curr.size,
+          prevSize: prev.size,
+          currIsFile: curr.isFile(),
+          prevIsFile: prev.isFile(),
+          currIno: curr.ino === onDisk.ino,
+          currMode: curr.mode === onDisk.mode,
+        }
+      })
+    }),
+    expected: {
+      curr: { numbers: true, dates: true, isFile: true },
+      prev: { numbers: true, dates: true, isFile: true },
+      currSize: 14,
+      prevSize: 3,
+      currIsFile: true,
+      prevIsFile: true,
+      currIno: true,
+      currMode: true,
+    },
+  },
+  {
+    name: 'fs.unwatchFile stops further watchFile events',
+    run: () => withTempDir(async (dir) => {
+      const file = dir + '/a.txt'
+      await fsp.writeFile(file, 'one')
+      const events = []
+      const listener = (curr) => events.push(curr)
+      s.fs.watchFile(file, { interval: WATCH_INTERVAL_MS }, listener)
+      try {
+        await sleep(WATCH_INTERVAL_MS * 4)
+        await fsp.writeFile(file, 'two two')
+        await untilEvents(events, 1)
+      } finally {
+        s.fs.unwatchFile(file, listener)
+      }
+      const beforeLater = events.length
+      await fsp.writeFile(file, 'three three three')
+      await sleep(WATCH_INTERVAL_MS * 8)
+      return { beforeLater, afterLater: events.length }
+    }),
+    expected: { beforeLater: 1, afterLater: 1 },
+  },
+  {
+    name: 'fs.watchFile on a missing path reports one zeroed event, as Node does',
+    run: () => withTempDir((dir) => watchFor(dir + '/nope.txt', async (events) => {
+      await untilEvents(events, 1)
+      await sleep(WATCH_INTERVAL_MS * 4)
+      const [{ curr, prev }] = events
+      return {
+        count: events.length,
+        currSize: curr.size,
+        currMtimeMs: curr.mtimeMs,
+        currNlink: curr.nlink,
+        currIno: curr.ino,
+        currIsFile: curr.isFile(),
+        currMtimeIsEpoch: curr.mtime.getTime() === 0,
+        prevSize: prev.size,
+        prevIsFile: prev.isFile(),
+      }
+    })),
+    expected: { count: 1, currSize: 0, currMtimeMs: 0, currNlink: 0, currIno: 0, currIsFile: false, currMtimeIsEpoch: true, prevSize: 0, prevIsFile: false },
+  },
+  {
+    name: 'fs.watchFile reports a path once it appears after being missing',
+    run: () => withTempDir((dir) => {
+      const file = dir + '/late.txt'
+      return watchFor(file, async (events) => {
+        await untilEvents(events, 1)
+        await fsp.writeFile(file, 'hello')
+        await untilEvents(events, 2)
+        const [, { curr, prev }] = events
+        return { count: events.length, currSize: curr.size, currIsFile: curr.isFile(), prevSize: prev.size, prevIsFile: prev.isFile() }
+      })
+    }),
+    expected: { count: 2, currSize: 5, currIsFile: true, prevSize: 0, prevIsFile: false },
+  },
+  {
+    name: 'fs.watchFile stays silent while the file is unchanged',
+    run: () => withTempDir(async (dir) => {
+      const file = dir + '/a.txt'
+      await fsp.writeFile(file, 'one')
+      return watchFor(file, async (events) => {
+        await sleep(WATCH_INTERVAL_MS * 8)
+        return events.length
+      })
+    }),
+    expected: 0,
+  },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
