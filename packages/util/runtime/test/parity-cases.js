@@ -2580,6 +2580,10 @@ sharedCases.push(
   { name: 'fs.createReadStream flags wx on an existing file fails with EEXIST and keeps it', run: () => flagsOutcome('wx'), expected: ['error EEXIST Error', 'close', 'file "abcdefghij"'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream mode 0o600 leaves an existing file unchanged', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); const before = (await fsp.stat(file)).mode & 0o777; const events = await streamEvents(s.fs.createReadStream(file, { mode: 0o600 })); const after = (await fsp.stat(file)).mode & 0o777; return [...events, before === after ? 'mode unchanged' : 'mode changed to ' + after.toString(8)] }, expected: ['data abcdefghij', 'close', 'mode unchanged'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

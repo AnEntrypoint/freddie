@@ -1969,3 +1969,13 @@ Witness (once, under timeout 150, PID captured with `$!`, exit 0 by itself):
 | txiki contract (PID 1603330, exit 0) | 7 | present 117, missing [] | 0.18 s |
 
 No process of mine was left after the run (ps shows none). No source was changed in this stretch, so no restore was needed.
+
+## fx split: createReadStream mode (7w), Phase A (2026-11-20)
+
+Node recheck on a clear sample (slot 7 of its job; PID 1609748, exit 0; output runs/analysis/createreadstream-mode-autoclose-node.out): a file written at 644 read with mode 0o600 stays 644; a file at 640 read with mode 0o777 stays 640. mode has no effect on an existing file.
+
+Change (Phase A): src/txiki.js accepts 'mode' in createReadStream (no effect). test/parity-cases.js: shared case 'fs.createReadStream mode 0o600 leaves an existing file unchanged' (the events plus whether the mode before and after the read is the same; expected ['data abcdefghij', 'close', 'mode unchanged']). The check compares before and after, not a fixed 644, because the umask of the host decides the creation mode.
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check MO-1 (mode removed from the accepted options, so the read throws the gap).
+
+Correction to the earlier records (the flags and signal sections above and fx-split 7u/7v): the autoClose: false result in the earlier options probe does not reproduce in the variant probe (runs/analysis/createreadstream-autoclose-variants-node.out). See the autoClose section.

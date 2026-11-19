@@ -2955,7 +2955,7 @@ const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx']
 
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
-  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags'])
+  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode'])
   if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   const flags = opts.flags ?? 'r'
   if (!READ_STREAM_FLAGS.includes(flags)) throw gapError('fs.createReadStream flags ' + String(flags))
