@@ -1531,6 +1531,115 @@ function execFile(file, args, options, callback) {
   })
 }
 
+function spawnArguments(args, options) {
+  if (!Array.isArray(args)) return { argv: [], opts: args ?? {} }
+  return { argv: args, opts: options ?? {} }
+}
+
+function startChild(file, argv) {
+  try {
+    return { process: tjs.spawn([file, ...argv], { stdout: 'pipe', stderr: 'pipe' }) }
+  } catch (error) {
+    return { error }
+  }
+}
+
+class ChildProcess {
+  #process
+  #exited = false
+  #listeners = new Map()
+  killed = false
+
+  constructor(file, argv, cmd) {
+    const started = startChild(file, argv)
+    if (started.error !== undefined) {
+      const error = started.error.code === 'ENOENT' ? missingCommandError(file, cmd) : started.error
+      setTimeout(() => this.#fail(error), 0)
+      return
+    }
+    this.#process = started.process
+    setTimeout(() => this.#spawned(), 0)
+  }
+
+  get pid() {
+    return this.#process?.pid
+  }
+
+  get stdin() {
+    throw gapError('child-process.spawn stdin stream')
+  }
+
+  get stdout() {
+    throw gapError('child-process.spawn stdout stream')
+  }
+
+  get stderr() {
+    throw gapError('child-process.spawn stderr stream')
+  }
+
+  kill(signal = 'SIGTERM') {
+    if (this.#process === undefined || this.#exited) return false
+    try {
+      this.#process.kill(signal)
+    } catch (error) {
+      if (error instanceof RangeError) throw gapError('child-process.spawn kill with signal ' + signal)
+      throw error
+    }
+    this.killed = true
+    return true
+  }
+
+  on(name, listener) {
+    this.#listenersOf(name).push(listener)
+    return this
+  }
+
+  once(name, listener) {
+    const list = this.#listenersOf(name)
+    const wrapped = (...args) => {
+      list.splice(list.indexOf(wrapped), 1)
+      listener(...args)
+    }
+    list.push(wrapped)
+    return this
+  }
+
+  #listenersOf(name) {
+    if (!this.#listeners.has(name)) this.#listeners.set(name, [])
+    return this.#listeners.get(name)
+  }
+
+  #emit(name, ...args) {
+    for (const listener of [...this.#listenersOf(name)]) listener(...args)
+  }
+
+  #spawned() {
+    this.#emit('spawn')
+    this.#reap()
+  }
+
+  async #reap() {
+    const process = this.#process
+    const [, , status] = await Promise.all([process.stdout.bytes(), process.stderr.bytes(), process.wait()])
+    this.#exited = true
+    const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
+    this.#emit('exit', code, signal)
+    this.#emit('close', code, signal)
+  }
+
+  #fail(error) {
+    this.#emit('error', error)
+    this.#emit('close', -2, null)
+  }
+}
+
+function spawn(file, args, options) {
+  const { argv, opts } = spawnArguments(args, options)
+  const [key] = Object.keys(opts)
+  if (key !== undefined) throw gapError('child-process.spawn option ' + key)
+  return new ChildProcess(file, argv, [file, ...argv].join(' '))
+}
+
 export const txikiRuntime = {
   fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
   fsPromises,
@@ -1556,7 +1665,7 @@ export const txikiRuntime = {
   }),
   utilTypes: withGaps('util.types', { isPromise }),
   module: withGaps('module', gapFunctions('module', ['createRequire', 'stripTypeScriptTypes'])),
-  childProcess: withGaps('child_process', { execFile, ...gapFunctions('child_process', ['execFileSync', 'spawn', 'spawnSync']) }),
+  childProcess: withGaps('child_process', { execFile, spawn, ...gapFunctions('child_process', ['execFileSync', 'spawnSync']) }),
   os: withGaps('os', {
     availableParallelism,
     constants: withGaps('os.constants', {}),

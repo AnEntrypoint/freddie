@@ -334,7 +334,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
-| child_process | execFileSync, spawn, spawnSync | execFile is implemented in pure JS over tjs.spawn (2026-11-19, see the execFile section); tjs.spawn is async, so the sync forms are native |
+| child_process | execFileSync, spawnSync | execFile and spawn are implemented in pure JS over tjs.spawn (2026-11-19, see their sections); tjs.spawn is synchronous, so the sync forms of execFile and spawn need native blocking I/O |
 | os | platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
 | process | platform, arch, version, versions, exitCode, stdout, stderr, stdin, on, off, send, and every other member not in txiki.js | no JS-level platform; stdio is web streams; signals not mapped |
 | worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
@@ -431,7 +431,7 @@ Excluded, with the reason:
 - crypto.createHash: done 2026-11-19 for md5, sha1, sha256 and sha512, in an owned pure-JS implementation (see the ranked section below). Other algorithms are a declared gap.
 - module.stripTypeScriptTypes: owner decision (needs a TypeScript parser, a dependency).
 - module.createRequire: fx. It needs a CommonJS loader, which the txiki build does not provide.
-- child-process.execFile: done 2026-11-19 (see the execFile section). child-process.spawn: owner decision.
+- child-process.execFile and child-process.spawn: done 2026-11-19 (see their sections).
 - os.platform: fx supplies the platform (excluded by the owner's direction).
 - worker-threads.Worker: native. tjs.Worker is not Node's worker API.
 - async-hooks.AsyncLocalStorage: native. txiki has no async context to propagate.
@@ -473,7 +473,7 @@ The 45 names still declared as gaps, ranked by how close each is to a verified p
 3. zlib.gzip: pure JS deflate, but compressed bytes differ from Node's zlib unless the algorithm is reproduced. Only a round trip is verifiable, so byte parity needs a decision.
 4. fs.createReadStream: pure JS over tjs.open and read. Needs the stream design.
 5. child-process.execFile: done 2026-11-19 (pure JS over tjs.spawn, see the execFile section).
-6. child-process.spawn: pure JS over tjs.spawn. Needs the ChildProcess event and stdio model.
+6. child-process.spawn: done 2026-11-19 (pure JS over tjs.spawn; stdio streams stay gaps, see the spawn section).
 7. stream.Readable: pure JS. Needs the owner's stream design.
 8. stream.Writable: pure JS. Needs the owner's stream design.
 9. stream.PassThrough: pure JS. Needs the owner's stream design.
@@ -560,3 +560,22 @@ Decisions, each reversible, with its reason:
 Verified (Node oracle, all through the parity suite): stdout and stderr capture; nonzero exit; encoding buffer; SIGTERM; SIGKILL with partial stdout; empty command; missing command; callback ordering; callback omitted; the cwd gap. Not verified: stdin, large output, timing under load, and Windows. The gap check asserts the cwd gap message.
 
 zlib.gzip byte parity remains open, as recorded in the zlib.gzip section above.
+
+
+## child-process.spawn under txiki (2026-11-19)
+
+spawn is a present name. src/txiki.js returns a ChildProcess over tjs.spawn. Node is the oracle for every shared case in test/parity-cases.js.
+
+Finding that shaped the design: tjs.spawn is synchronous in this build. It returns the process at once, with pid, kill and wait, and it throws ENOENT synchronously for a missing command. So pid and kill work immediately, as Node's do, and no before-start gap is needed.
+
+Decisions, each reversible, with its reason:
+
+- Events are delivered asynchronously with setTimeout(0), as Node delivers them after the call returns. The order is spawn, then exit, then close. A missing command emits error (code ENOENT, message "spawn <file> ENOENT") and then close with code -2, as Node does. Reason: a listener attached after spawn() returns must still see every event.
+- exit and close fire after the child's stdout and stderr pipes end, not at process exit. Reason: the pipes are drained so a chatty child cannot block; the output is discarded because the stream getters are gaps. Difference: if the child leaves a grandchild holding a pipe open, exit waits for that grandchild. Node emits exit at process exit.
+- pid and kill(signal) are synchronous, as in Node. kill accepts signal names, returns true when the signal is sent and false once the child has exited or failed to start, and sets killed. A signal name txiki rejects with RangeError becomes the documented gap message "child-process.spawn kill with signal <name>". Node throws ERR_UNKNOWN_SIGNAL for an unknown name instead, so the messages differ; this path is not verified by a shared case.
+- stdin, stdout and stderr getters throw the documented gap messages. Reason: Node's streams need a stream design, which is an open owner decision; a silent undefined would hide the gap. Asserted in the gap check through the shared gap cases.
+- Options: any option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (cwd, env, stdio and the rest need verified mappings).
+- on and once are the only listener methods. Node's ChildProcess is a full EventEmitter; off, emit and the rest are not provided. Reason: no caller here needs them; adding them later is reversible.
+- error with no listener is silent here, where Node throws. Difference, recorded.
+
+Verified (Node oracle): exit code and close order; SIGTERM from kill after the spawn event, returning true and setting killed; missing command error and close; a numeric pid after the spawn event; kill before the spawn event returns true, as in Node; the gap cases for stdout, option cwd. Not verified: grandchild pipes, output content, unknown signal names, and listeners that throw.

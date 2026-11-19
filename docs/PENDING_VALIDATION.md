@@ -554,3 +554,14 @@ Ranked item 5 in docs/fx-split.md. execFile is implemented in pure JS over tjs.s
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 234, gapAsserted 5, gaps 13 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 4.16 s probe (1368 ms in runParity) |
 | contract under gm's txiki | present 115, missing [] | 0.52 s probe |
 | contract gap names under gm's txiki | 42 of the non-default names (was 43): child-process.execFile left the list (child-process.execFileSync and child-process.spawn stay as gaps). zlib.gzip stays a gap | 0.18 s probe |
+
+## fx split: child-process.spawn under txiki (2026-11-19)
+
+Ranked item 6 in docs/fx-split.md. spawn is a pure-JS ChildProcess over tjs.spawn, checked against Node.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: startChild (tjs.spawn, with a synchronous throw turned into a value); ChildProcess with synchronous pid and kill (names, RangeError to a gap); on and once; spawn, exit and close delivered after setTimeout(0); a missing command as error then close -2; stdin, stdout and stderr throw the gap messages; any option throws the gap message; spawn is exported and spawnSync and execFileSync stay gaps | node --check passes; Node parity 242/242 | txiki parity 242 shared, gapAsserted 7, mismatches [] |
+| test/parity-cases.js: 8 spawn cases from Node's spawn output (exit then close; SIGTERM after the spawn event; missing command; numeric pid after spawn; kill before spawn returns true; pid is a number before spawn; stdout gap; option cwd gap); the old child_process.spawn gap line is removed, because the name is implemented | node --check passes | txiki gap names 41 (was 42) |
+| docs/fx-split.md: the spawn section with each decision and its reason, including the synchronous tjs.spawn finding; the child_process row, the owner-decision bullet and ranked item 6 updated | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-child-process-spawn.md: Agent Note | none | none |

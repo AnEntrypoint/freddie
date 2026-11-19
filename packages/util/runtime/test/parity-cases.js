@@ -602,6 +602,29 @@ sharedCases.push(
   { name: 'child-process.execFile runs without a callback and returns', run: () => { s['child-process'].execFile('sh', ['-c', 'exit 0']); return 'returned' }, expected: 'returned' },
 )
 
+const spawnOutcome = (file, args, options, step) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options ?? {})
+  const events = []
+  child.on('spawn', () => { events.push('spawn'); if (step) events.push(['step', step(child)]) })
+  child.on('exit', (code, signal) => events.push(['exit', code, signal]))
+  child.on('error', (error) => events.push(['error', error.code, error.message]))
+  child.on('close', (code, signal) => resolve({ events, code, signal }))
+})
+
+const killStep = (child) => [child.kill('SIGTERM'), child.killed]
+const pidStep = (child) => typeof child.pid
+
+sharedCases.push(
+  { name: "child-process.spawn reports exit then close with the exit code", run: () => spawnOutcome('sh', ['-c', 'exit 3']), expected: {"events":["spawn",["exit",3,null]],"code":3,"signal":null} },
+  { name: "child-process.spawn kills with SIGTERM after it starts", run: () => spawnOutcome('sh', ['-c', 'exec sleep 5'], undefined, killStep), expected: {"events":["spawn",["step",[true,true]],["exit",null,"SIGTERM"]],"code":null,"signal":"SIGTERM"} },
+  { name: "child-process.spawn reports a missing command with error then close", run: () => spawnOutcome('no-such-command-xyz', []), expected: {"events":[["error","ENOENT","spawn no-such-command-xyz ENOENT"]],"code":-2,"signal":null} },
+  { name: "child-process.spawn exposes a numeric pid after the spawn event", run: () => spawnOutcome('sh', ['-c', 'exit 0'], undefined, pidStep), expected: {"events":["spawn",["step","number"],["exit",0,null]],"code":0,"signal":null} },
+  { name: "child-process.spawn kill before the spawn event returns true", run: () => s['child-process'].spawn('sh', ['-c', 'exec sleep 1']).kill('SIGTERM'), expected: true },
+  { name: "child-process.spawn pid is a number before the spawn event", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).pid, expected: "number" },
+  { name: "child-process.spawn stdout is a declared gap", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).stdout, expected: "object", gap: "child-process.spawn stdout stream" },
+  { name: "child-process.spawn option cwd is a declared gap", run: () => spawnOutcome('sh', ['-c', 'pwd'], { cwd: '/' }), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null}, gap: "child-process.spawn option cwd" },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
@@ -610,7 +633,6 @@ export const gapCases = [
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },
   { name: 'process.exitCode', run: () => proc.exitCode },
-  { name: 'child_process.spawn', run: () => s['child-process'].spawn('x') },
   { name: 'stream.Readable', run: () => new s.stream.Readable() },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
