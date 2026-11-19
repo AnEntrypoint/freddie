@@ -1668,3 +1668,20 @@ Mutation evidence (saved good copy; the dev body runs the stdio cases on txiki; 
 Coverage: every stdio case is red under at least one mutation.
 
 Regression (not a witness): txiki parity with gap assertions: shared 623, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1. Node parity: 623/623.
+
+## Phase B: child-process stdio 'ignore' and execFile stdio (cafe0989), 2026-11-19
+
+Gate: `vmstat 1 2`, second sample (si, so, KB/s), with `ps` checked for build jobs (zig, cargo, rustc, clang, gcc, ninja, make, tsc). Readings in order, second sample each: 164/0, 1168/0 (closed), 76/0, 136/6272 (closed), 6328/16900 (closed), 80/0 (open) at the start; then 436/0 (open, Node witnesses started); 76/2568 (closed, after the Node witnesses); 768/3048 (closed, before the txiki parity wait); 676/0 (open, txiki parity started); 100/0 (open, txiki contract started); 384/0 (open, after). The build-job check was empty at every reading.
+
+Other peers' load seen in the ps snapshots: a gm-core worker (about 44% CPU) and chromium renderers and a playwriter process, none of them build jobs.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 623/623 shared cases match; 0/0 gaps throw the documented message; 8167 ms | 8.26 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 623, gapAsserted 0 (structural), gaps 20, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 15106 | 15.40 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.10 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.16 s |
+
+Probe runs in this stretch (all bounded, all ended by themselves; no probe was restarted under a new PID): the txiki stdio probe (timeout 120, about 15 s before the poll returned); the txiki flood probe (timeout 120); the txiki mutation loop (each probe timeout 120, 5 probes); the txiki regression (timeout 150, about 15 s); the Phase B txiki witnesses (timeout 150 and 120). The mcp-probe poll loop (runs/analysis, gitignored) was reduced from 40 polls to 3, so a stuck run ends in about 3 minutes rather than 40.
+
+Not verified: the txiki witnesses ran in one run each; macOS and Windows.
