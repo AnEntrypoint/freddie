@@ -512,6 +512,44 @@ const fsPromises = withGaps('fs.promises', {
   writeFile,
 })
 
+function bytesOf(input) {
+  return typeof input === 'string' ? utf8Encoder.encode(input) : input
+}
+
+function concatBytes(chunks) {
+  const out = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.length, 0))
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out
+}
+
+async function transformBytes(stream, input) {
+  const writer = stream.writable.getWriter()
+  const written = writer.write(input).then(() => writer.close())
+  const reader = stream.readable.getReader()
+  const chunks = []
+  for (let next = await reader.read(); !next.done; next = await reader.read()) chunks.push(next.value)
+  await written
+  return viewOf(concatBytes(chunks))
+}
+
+function runCodec(makeStream, input, callback) {
+  Promise.resolve()
+    .then(() => transformBytes(makeStream(), bytesOf(input)))
+    .then((output) => callback(null, output), (error) => callback(error))
+}
+
+function gzip(input, callback) {
+  runCodec(() => new CompressionStream('gzip'), input, callback)
+}
+
+function gunzip(input, callback) {
+  runCodec(() => new DecompressionStream('gzip'), input, callback)
+}
+
 function randomBytes(size, callback) {
   const bytes = new Uint8Array(size)
   for (let start = 0; start < size; start += RANDOM_CHUNK) {
@@ -734,7 +772,9 @@ export const txikiRuntime = {
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
     constants: withGaps('zlib.constants', {}),
-    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
+    gunzip,
+    gzip,
+    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
   }),
   inspector: withGaps('inspector', { Session: gapClass('inspector.Session') }),
   stringDecoder: withGaps('string_decoder', { StringDecoder }),

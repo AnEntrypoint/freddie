@@ -348,3 +348,17 @@ Ranked item 4 in docs/fx-split.md, the third item of this stage. opendir awaits 
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 102, gaps 12, mismatches [], unexpectedGaps [] | 0.37 s probe, 209 ms in runParity |
 
 Defect found and fixed in Phase B: txiki's Dir read after the end called the iterator again, and txiki's iterator returns undefined there, so read threw. Dir now records exhaustion and returns null.
+
+## fx split: zlib.gzip and gunzip through CompressionStream (2026-11-19): blocked
+
+Ranked item 5 in docs/fx-split.md. Phase A changes:
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: bytesOf, concatBytes, transformBytes, runCodec, gzip and gunzip callback forms; zlib export gains gunzip and gzip, and gzip leaves the gap list | node --check passes | txiki contract present 115; txiki parity: the five zlib cases fail with "not a function" (see below) |
+| packages/util/runtime/src/zlib.js: export gunzip | node --check passes; Node contract 115 names | Node contract 115 names present across 25 subpaths |
+| packages/util/runtime/test/contract-names.js: gunzip added to the zlib list | node --check passes | contract count 115 |
+| packages/util/runtime/test/parity-cases.js: five zlib shared cases; the zlib.gzip gap entry removed | node --check passes | Node parity 107/107; txiki parity 102/107 with the five zlib cases failing |
+| docs/fx-split.md: zlib section with the cause; ranked row 5 marked blocked; zlib removed from the http row of the gap table | grep shows the rows | none |
+
+Node witnesses are recorded in the Phase B section below.

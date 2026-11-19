@@ -341,7 +341,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
 | async_hooks | AsyncLocalStorage | txiki has no async context |
 | vm | Script, createContext, runInContext | not mapped |
-| http, https, zlib, inspector, dns/promises | all members | tjs.serve and tjs.lookup have other shapes; zlib is not mapped |
+| http, https, inspector, dns/promises | all members | tjs.serve and tjs.lookup have other shapes |
 | string_decoder | any encoding except utf8 | only utf8 is streamed |
 
 Mapped without a gap: path (the tjs:path default object), url file-URL conversion (built on URL), util.promisify, util.TextDecoder, util.inspect (tjs:utils, so its output format differs from Node's), util.types.isPromise, perf_hooks.performance, timers/promises setTimeout and scheduler, crypto.randomUUID and randomBytes, net.isIP (tjs:ipaddr.isValid), os.homedir, os.tmpdir, os.availableParallelism, process.env, cwd, pid, ppid, execPath, argv, exit and kill, and a Buffer subset: from, alloc, allocUnsafe, concat, byteLength, compare, isBuffer, isView; toString for utf8, hex, base64, base64url, latin1, ascii and utf16le; equals, compare, copy, write, toJSON, slice as a view, and the UInt8, UInt16, UInt32, Int16, Int32, UIntLE and UIntBE accessors.
@@ -365,7 +365,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 2 | util.isDeepStrictEqual and util.parseEnv in pure JS (done 2026-11-19: 91/91 parity under Node and txiki) | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
 | 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal (done 2026-11-19: 98/98 parity under Node and txiki) | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
 | 4 | fs.promises.opendir (done 2026-11-19: 102/102 parity under Node and txiki) | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
-| 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | Web globals exist in txiki (probed); round trip not yet run | parity case that round-trips a string and checks the gzip magic bytes |
+| 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | blocked: the globals exist but throw "not a function" for every valid format in this txiki build (see the zlib section at the end) | parity cases for the round trip, header bytes, trailer, empty input and bad input |
 | 6 | fs.promises.writeFile with flag a | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
 | 7 | os.networkInterfaces | tjs.system.networkInterfaces shape unknown | a probe of its shape, then a parity case against Node's shape |
 | 8 | util.parseArgs | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
@@ -382,3 +382,23 @@ Found by the parity run: gm's txiki loader does not resolve symlinks to one real
 - txiki's readDir iterator returns undefined on a call after exhaustion instead of { done: true }. Dir records exhaustion and returns null from then on, so the iterator is never called past its end.
 - crypto.randomBytes with a callback fills the bytes synchronously and calls back from a setTimeout(0) turn. Node calls back from its thread pool, so the ordering of the callback is the same but the timing is not.
 - util.isDeepStrictEqual and util.parseEnv are pure-JS reimplementations of Node's semantics and grammar. They are checked by the 102 shared cases in test/parity-cases.js, not against Node's full test suite. Edge cases outside those cases (WeakMap, Proxy, getters with side effects, unusual dotenv quoting) are unverified.
+
+
+## zlib gzip and gunzip through CompressionStream (2026-11-19): blocked in this txiki build
+
+Implemented in src/txiki.js: zlib.gzip(input, callback) and zlib.gunzip(input, callback), the callback forms Node has, over new CompressionStream('gzip') and new DecompressionStream('gzip'). gunzip is added to the zlib contract, so the contract is 115 names. brotli and zstd stay gaps.
+
+Observed under gm's txiki (probe with the rebuilt gm-core):
+
+- typeof CompressionStream and typeof DecompressionStream are both "function", and String() of each is "[native code]".
+- new CompressionStream and new DecompressionStream throw TypeError "not a function" for gzip, deflate and deflate-raw.
+- An unknown format, such as "bogus", throws "Unsupported compression format: 'bogus'". So the format check runs, and the failure happens after it.
+- A call with no format throws "Unsupported compression format: 'undefined'".
+
+Cause, as far as this checkout shows: the native compressor behind the valid formats is not available in this txiki build. The txiki build source is not in this checkout, so the missing piece is inferred from the symptom. The same class of gap is recorded for tjs:hashing above (excluded from the vendored build).
+
+Effect: five shared cases in test/parity-cases.js fail under txiki: the round trip, the header bytes, the trailer, the empty input, and the bad input. Four fail with "not a function". The bad-input case has no code, because the stream error carries none, so it reports undefined, not Z_DATA_ERROR. Under Node all five pass. The txiki parity run exits non-zero until this is settled. No gap was added to hide them.
+
+What settles it: a txiki build that includes its zlib backend (fx's build). Then re-run node test/parity-node.js and the gm txiki parity probe. Once the stream works, check the bad-input case: Node's Z_DATA_ERROR code may need mapping from the stream's error, which is not verified.
+
+Not taken: a pure-JS deflate and inflate. That is either an owned codec of several hundred lines or a new dependency. Both are owner decisions.

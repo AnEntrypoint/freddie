@@ -229,6 +229,17 @@ sharedCases.push(
   { name: 'fs.promises.opendir rejects a file with ENOTDIR', run: async () => { const root = await fsp.mkdtemp('/tmp/opendir-'); await fsp.writeFile(root + '/f', 'x'); const code = await fsp.opendir(root + '/f').then(() => 'resolved', (error) => error.code); await fsp.rm(root, { recursive: true, force: true }); return code }, expected: 'ENOTDIR' },
 )
 
+const zlibGzip = (input) => new Promise((resolve, reject) => s.zlib.gzip(input, (error, output) => (error ? reject(error) : resolve(output))))
+const zlibGunzip = (input) => new Promise((resolve, reject) => s.zlib.gunzip(input, (error, output) => (error ? reject(error) : resolve(output))))
+
+sharedCases.push(
+  { name: 'zlib.gzip then gunzip round-trips a string', run: async () => (await zlibGunzip(await zlibGzip(Buffer.from('hello hello')))).toString(), expected: 'hello hello' },
+  { name: 'zlib.gzip header bytes match Node (magic, deflate, zero mtime, XFL 0, OS 3)', run: async () => Array.from((await zlibGzip(Buffer.from('hello hello'))).subarray(0, 10)), expected: [31, 139, 8, 0, 0, 0, 0, 0, 0, 3] },
+  { name: 'zlib.gzip trailer records the input length', run: async () => Array.from((await zlibGzip(Buffer.from('abc'))).subarray(-4)), expected: [3, 0, 0, 0] },
+  { name: 'zlib.gzip of empty input is 20 bytes and gunzips to empty', run: async () => [(await zlibGzip(Buffer.alloc(0))).length, (await zlibGunzip(await zlibGzip(Buffer.alloc(0)))).length], expected: [20, 0] },
+  { name: 'zlib.gunzip rejects bytes that are not gzip with Z_DATA_ERROR', run: () => zlibGunzip(Buffer.from('nope')).then(() => 'resolved', (error) => error.code), expected: 'Z_DATA_ERROR' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
@@ -240,7 +251,6 @@ export const gapCases = [
   { name: 'child_process.spawn', run: () => s['child-process'].spawn('x') },
   { name: 'stream.Readable', run: () => new s.stream.Readable() },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
-  { name: 'zlib.gzip', run: () => s.zlib.gzip() },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
 ]
 

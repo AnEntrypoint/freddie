@@ -16,7 +16,7 @@ export const contract = {
   "vm": ['Script', 'createContext', 'runInContext'],
   "http": ['createServer', 'validateHeaderValue', 'default'],
   "https": ['default'],
-  "zlib": ['brotliCompress', 'constants', 'createZstdDecompress', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync', 'default'],
+  "zlib": ['brotliCompress', 'constants', 'createZstdDecompress', 'gunzip', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync', 'default'],
   "inspector": ['Session'],
   "string-decoder": ['StringDecoder'],
   "perf-hooks": ['performance'],
