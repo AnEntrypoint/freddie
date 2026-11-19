@@ -812,7 +812,7 @@ Not verified: a path string as shell (gap); args containing spaces or shell meta
 
 Reachability (before any implementation): tjs.open(path, flag, mode) was probed on 21 operations (inline dev body, output in /tmp/wf-txiki.json). Results: wx and ax and wx+ on an existing file give EEXIST; r+ overwrites from the start without truncating and gives ENOENT on a missing file; a and a+ append; a new a/ax/ax+ creates; mode 0o600 is applied on creation for w, wx and a; a mode on an existing file is ignored; the default mode is 644 under umask 022.
 
-Node probe: runs/analysis/write-flags-node.mjs (run with --no-deprecation, twice, identical output; umask 22 recorded in the output). Node gives the same results as the txiki probe for all 22 operations (the 23rd, ax+ on an existing file, is EEXIST on Node and in the case file).
+Node probe: runs/analysis/write-flags-node.mjs (run with --no-deprecation, twice, identical output; umask 22 recorded in the output). Node gives the same results as the txiki probe for all 22 operations; the 23rd, ax+ on an existing file, is EEXIST on Node and is checked by the case file.
 
 Design: writeFile validates the flag against WRITE_FILE_FLAGS = w, wx, w+, wx+, a, ax, a+, ax+, r+ (anything else is the gap), and the mode against the number type (default 0o666). Every flag goes through tjs.open(path, flag, mode) and a write loop, replacing the old tjs.writeFile path for w.
 

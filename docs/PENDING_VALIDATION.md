@@ -1337,7 +1337,7 @@ Not verified in Phase B: one run per witness; the txiki parity run is on the gm-
 
 ## fx split: fs.promises.writeFile flags and mode, Phase A (2026-11-19)
 
-Rank 7e in docs/fx-split.md. Probes: runs/analysis/write-flags-node.mjs (deterministic, umask 22) and the inline txiki probe (/tmp/wf-txiki.json, 21 operations, matching Node on all 22 operations once the ax+ case was added).
+Rank 7e in docs/fx-split.md. Probes: runs/analysis/write-flags-node.mjs (deterministic, umask 22) and the inline txiki probe (/tmp/wf-txiki.json, 22 operations, matching Node on all 22; the ax+ existing case was added after that probe and is checked by the parity run).
 
 | Change | Phase A evidence |
 |---|---|
@@ -1370,3 +1370,20 @@ Two harness notes from this stretch: the first version of the two gap cases call
 Regression (not a witness): txiki parity with gap assertions: shared 577, mismatches [], unexpectedGaps [], gaps 13, gapInactive 1. Node parity: 577/577.
 
 Not verified: flags rs+, as, as+; string modes; umask other than 022.
+
+## Phase B: fs.promises.writeFile flags and mode (8bd86e95), 2026-11-19
+
+Correction in this record: the Phase A text said the txiki probe covered 21 operations. It covered 22 (the ax+ existing case was added afterwards and is checked by the parity run).
+
+Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 1 of 1: si 368 KB/s, so 0 KB/s.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 577/577 shared cases match; 0/0 gaps throw the documented message; 5220 ms | 5.32 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 577, gapAsserted 0 (structural: it counts shared entries with a gap field), gaps 13, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 12149 | 12.31 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.10 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.14 s |
+
+Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
+
+Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only; default-mode cases assume umask 022.
