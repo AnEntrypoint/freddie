@@ -1319,3 +1319,18 @@ Coverage: all 10 shell and timer cases are red under at least one mutation, exce
 Regression (not a witness): txiki parity with gap assertions: shared 554, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1. Node parity: 554/554.
 
 Not verified: shell as a path string; shell metacharacters beyond the cases; the DEP0190 warning.
+
+## Phase B: child-process shell (731b2754), 2026-11-19
+
+Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 1 of 1: si 32 KB/s, so 0 KB/s.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 554/554 shared cases match; 0/0 gaps throw the documented message; 5214 ms | 5.31 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 554, gapAsserted 0 (structural: it counts shared entries with a gap field), gaps 11, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 11702 | 11.87 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.11 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.19 s |
+
+Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
+
+Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only.
