@@ -889,3 +889,18 @@ Ranked item 5, last of the six: Readable.wrap. Probes: runs/analysis/stream-gaps
 | Mutation: wrap throws, all 9 wrap cases red; restored and checked by grep | /tmp/mut4-wrap.out | none |
 
 Not measured, so not claimed: the wrap destroy event (the probe's old stream has no destroy emitter), a wrap over a stream whose resume is missing when paused, and Writable.destroyed, Writable.writableLength, writableEnded and writableFinished, which txiki also lacks; they are not declared gaps, so they are recorded here.
+
+## Phase B: Writable surface, Readable setEncoding, unshift and wrap (2026-11-19)
+
+Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/s, taken immediately before it (the gate's poll count is in the log).
+
+| Witness | Reading (swap-in / swap-out KB/s) | Result | Wall time |
+|---|---|---|---|
+| node test/parity-node.js | 624 / 0 (53 polls) | 385/385 shared cases match; 0/0 gaps throw the documented message; exit 0 | 4.13 s process (1913 ms in runParity) |
+| parity under gm's txiki, with gap assertions (runs/analysis/parity-txiki-body.js) | 504 / 0 (49 polls) | shared 385, gapAsserted 3, gaps 12, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 4.17 s probe (3752 ms in runParity) |
+| node test/contract-node.js | 888 / 0 (5 polls) | 117 names present across 25 subpaths; exit 0 | 0.20 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 608 / 0 (1 poll) | present 117, missing []; exit 0 | 0.19 s |
+
+The gap count fell from 13 to 12 with the removal of stream.Writable.cork; no stream gap name remains declared.
+
+Commits covered: 43abb221 (Writable surface), d72cc142 (setEncoding), 262cef9b (unshift), 7ec42357 (wrap). Each has its Phase A evidence and mutation record above.
