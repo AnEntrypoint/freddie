@@ -340,7 +340,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
 | async_hooks | AsyncLocalStorage | txiki has no async context |
 | vm | Script, createContext, runInContext | not mapped |
-| http, https, inspector, dns/promises | all members | tjs.serve and tjs.lookup have other shapes |
+| http (createServer), https, inspector, dns/promises | createServer and all other members | tjs.serve and tjs.lookup have other shapes; validateHeaderValue is implemented in pure JS |
 | zlib | gzip, gunzip | txiki CompressionStream and DecompressionStream throw "not a function" for every valid format in this build; gaps, see the zlib section |
 | string_decoder | any encoding except utf8 | only utf8 is streamed |
 
@@ -410,3 +410,35 @@ util.parseArgs. Implemented in pure JS in src/txiki.js for the common forms: sho
 Gap: util.parseArgs without args. Node reads process.argv when args is omitted. txiki has no JS-level argv equal to Node's, so args is required, and omitting it throws the documented gap message (asserted in the gap cases).
 
 Not covered: config validation of option definitions (the documented contract is trusted, not re-checked), and any parseArgs option beyond those listed above.
+
+
+## Remaining txiki gap names, ranked by pure-JS feasibility (2026-11-19)
+
+The 49 gap names are classified by what closing each would need. Only names that need no owner decision and no fx change are ranked. The rest are listed with the reason they are excluded.
+
+Ranked (pure JS over the existing runtime):
+
+| Rank | Name | Pure JS or native | Status |
+|---|---|---|---|
+| 1 | http.validateHeaderValue | pure JS: a regex check of the value (tab, 0x20-0x7e, 0x80-0xff allowed) and the two Node error codes | done 2026-11-19: 13 parity cases, Node and txiki agree |
+| 2 | os.release | pure JS: read /proc/sys/kernel/osrelease, which equals Node's os.release() on this host (checked). Linux only; on other platforms it needs a gap decision | open |
+| 3 | fs.watchFile and fs.unwatchFile | pure JS: stat polling over tjs.stat with timers; the listener receives current and previous stats as in Node. Verification needs timed file changes | open |
+
+Excluded, with the reason:
+
+- Sync fs (18 names: accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync): native. tjs file calls are all async, so blocking I/O needs a native change.
+- fs.createReadStream, stream.Readable, stream.Writable, stream.PassThrough, stream.pipeline: owner decision. Node streams are not web streams, so the design needs choosing.
+- crypto.createHash: owner decision. A synchronous digest needs either an owned SHA implementation or a dependency; tjs:hashing is not in the vendored build, and Web Crypto digest is async only.
+- module.stripTypeScriptTypes: owner decision (needs a TypeScript parser, a dependency).
+- module.createRequire: fx. It needs a CommonJS loader, which the txiki build does not provide.
+- child-process.execFile and child-process.spawn: owner decision. tjs.spawn exists, but its result is not Node's ChildProcess, so the process model needs choosing. execFileSync and spawnSync are native (blocking).
+- os.platform: fx supplies the platform (excluded by the owner's direction).
+- worker-threads.Worker: native. tjs.Worker is not Node's worker API.
+- async-hooks.AsyncLocalStorage: native. txiki has no async context to propagate.
+- vm.Script, vm.createContext, vm.runInContext: native or fx. They need a separate realm.
+- http.createServer: owner decision. tjs.serve has a different shape, so the server API needs designing.
+- zlib.gzip and zlib.gunzip: owner decision. Closing them in pure JS means an owned deflate and inflate, or a dependency.
+- zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: owner decision and native. Brotli and zstd are not realistic in pure JS here.
+- inspector.Session: native.
+
+Counts: 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypto, 4 stream, 2 module, 4 child-process, 2 os, 1 worker-threads, 1 async-hooks, 3 vm, 2 http, 7 zlib, 1 inspector: 49.

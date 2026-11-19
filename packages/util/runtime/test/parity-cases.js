@@ -329,6 +329,34 @@ sharedCases.push(
   { name: 'os.networkInterfaces every entry has a string address and family and a boolean internal', run: () => Object.values(s.os.networkInterfaces()).flat().every((entry) => typeof entry.address === 'string' && typeof entry.family === 'string' && typeof entry.internal === 'boolean'), expected: true },
 )
 
+function headerValueOutcome(name, value) {
+  try {
+    s.http.validateHeaderValue(name, value)
+    return 'valid'
+  } catch (error) {
+    return [error.name, error.code, error.message]
+  }
+}
+
+const UNDEFINED_VALUE = ['TypeError', 'ERR_HTTP_INVALID_HEADER_VALUE', 'Invalid value "undefined" for header "x-test"']
+const INVALID_CHAR = ['TypeError', 'ERR_INVALID_CHAR', 'Invalid character in header content ["x-test"]']
+
+sharedCases.push(
+  { name: 'http.validateHeaderValue accepts printable ASCII', run: () => headerValueOutcome('x-test', 'value'), expected: 'valid' },
+  { name: 'http.validateHeaderValue accepts a horizontal tab', run: () => headerValueOutcome('x-test', 'a\tb'), expected: 'valid' },
+  { name: 'http.validateHeaderValue accepts obs-text above 0x7f up to 0xff', run: () => headerValueOutcome('x-test', 'caf\xe9'), expected: 'valid' },
+  { name: 'http.validateHeaderValue accepts an empty string', run: () => headerValueOutcome('x-test', ''), expected: 'valid' },
+  { name: 'http.validateHeaderValue accepts null because only undefined is rejected', run: () => headerValueOutcome('x-test', null), expected: 'valid' },
+  { name: 'http.validateHeaderValue coerces numbers and objects before checking', run: () => [headerValueOutcome('x-test', 5), headerValueOutcome('x-test', {})], expected: ['valid', 'valid'] },
+  { name: 'http.validateHeaderValue rejects undefined with ERR_HTTP_INVALID_HEADER_VALUE', run: () => headerValueOutcome('x-test', undefined), expected: UNDEFINED_VALUE },
+  { name: 'http.validateHeaderValue rejects a line feed with ERR_INVALID_CHAR', run: () => headerValueOutcome('x-test', 'a\nb'), expected: INVALID_CHAR },
+  { name: 'http.validateHeaderValue rejects a carriage return with ERR_INVALID_CHAR', run: () => headerValueOutcome('x-test', 'a\rb'), expected: INVALID_CHAR },
+  { name: 'http.validateHeaderValue rejects a NUL byte with ERR_INVALID_CHAR', run: () => headerValueOutcome('x-test', 'a\x00b'), expected: INVALID_CHAR },
+  { name: 'http.validateHeaderValue rejects DEL with ERR_INVALID_CHAR', run: () => headerValueOutcome('x-test', 'a\x7fb'), expected: INVALID_CHAR },
+  { name: 'http.validateHeaderValue rejects a code point above 0xff with ERR_INVALID_CHAR', run: () => headerValueOutcome('x-test', 'aĀb'), expected: INVALID_CHAR },
+  { name: 'http.validateHeaderValue does not check the header name', run: () => [headerValueOutcome('bad name', 'ok'), headerValueOutcome('', 'x')], expected: ['valid', 'valid'] },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },

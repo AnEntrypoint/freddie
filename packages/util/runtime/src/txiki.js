@@ -560,11 +560,18 @@ function promisify(original) {
 
 const DOTENV_LINE = /^\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?$/gm
 
+const INVALID_HEADER_CHAR = /[^\t\x20-\x7e\x80-\xff]/
+
+function validateHeaderValue(name, value) {
+  if (value === undefined) throw codedTypeError('ERR_HTTP_INVALID_HEADER_VALUE', 'Invalid value "undefined" for header "' + name + '"')
+  if (INVALID_HEADER_CHAR.test(value)) throw codedTypeError('ERR_INVALID_CHAR', 'Invalid character in header content ["' + name + '"]')
+}
+
 function hasOwnKey(object, key) {
   return Object.prototype.hasOwnProperty.call(object, key)
 }
 
-function parseArgsError(code, message) {
+function codedTypeError(code, message) {
   const error = new TypeError(message)
   error.code = code
   return error
@@ -592,11 +599,11 @@ function unknownOptionMessage(rawName, allowPositionals) {
 function valueToken(args, index, name, option, rawName, strict, tokens) {
   const next = args[index + 1]
   if (next === undefined) {
-    if (strict) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' argument missing")
+    if (strict) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' argument missing")
     tokens.push({ kind: 'option', name, rawName, index })
     return 0
   }
-  if (strict && next.startsWith('-')) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', ambiguousValueMessage(rawName, name, option))
+  if (strict && next.startsWith('-')) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', ambiguousValueMessage(rawName, name, option))
   tokens.push({ kind: 'option', name, rawName, index, value: next, inlineValue: false })
   return 1
 }
@@ -618,7 +625,7 @@ function longToken(args, index, options, strict, allowNegative, tokens) {
   }
   const option = options[name]
   if (inline !== undefined) {
-    if (option.type === 'boolean' && strict) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' does not take an argument")
+    if (option.type === 'boolean' && strict) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' does not take an argument")
     tokens.push({ kind: 'option', name, rawName, index, value: inline, inlineValue: true })
     return 0
   }
@@ -674,7 +681,7 @@ function tokenizeArgs(args, options, strict, allowNegative) {
 
 function storeOptionToken(token, options, strict, allowPositionals, values) {
   if (!hasOwnKey(options, token.name)) {
-    if (strict) throw parseArgsError('ERR_PARSE_ARGS_UNKNOWN_OPTION', unknownOptionMessage(token.rawName, allowPositionals))
+    if (strict) throw codedTypeError('ERR_PARSE_ARGS_UNKNOWN_OPTION', unknownOptionMessage(token.rawName, allowPositionals))
     values[token.name] = token.value ?? true
     return
   }
@@ -697,7 +704,7 @@ function parseArgs(config = {}) {
   for (const token of tokens) {
     if (token.kind === 'option-terminator') continue
     if (token.kind === 'positional') {
-      if (!allowPositionals) throw parseArgsError('ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL', "Unexpected argument '" + token.value + "'. This command does not take positional arguments")
+      if (!allowPositionals) throw codedTypeError('ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL', "Unexpected argument '" + token.value + "'. This command does not take positional arguments")
       positionals.push(token.value)
       continue
     }
@@ -918,7 +925,7 @@ export const txikiRuntime = {
   }),
   asyncHooks: withGaps('async_hooks', { AsyncLocalStorage: gapClass('async_hooks.AsyncLocalStorage') }),
   vm: withGaps('vm', { Script: gapClass('vm.Script'), ...gapFunctions('vm', ['createContext', 'runInContext']) }),
-  http: withGaps('http', gapFunctions('http', ['createServer', 'validateHeaderValue'])),
+  http: withGaps('http', { validateHeaderValue, ...gapFunctions('http', ['createServer']) }),
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
     constants: withGaps('zlib.constants', {}),
