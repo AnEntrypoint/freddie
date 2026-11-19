@@ -185,10 +185,53 @@ sharedCases.push(
   { name: 'timers-promises setTimeout resolves when its signal never aborts', run: () => s['timers-promises'].setTimeout(5, 'ok', { signal: new AbortController().signal }), expected: 'ok' },
 )
 
+async function opendirScenario() {
+  const root = await fsp.mkdtemp('/tmp/opendir-')
+  await fsp.writeFile(root + '/a.txt', 'x')
+  await fsp.mkdir(root + '/sub')
+  const dir = await fsp.opendir(root)
+  const out = { className: dir.constructor.name, pathMatches: dir.path === root }
+  const entries = []
+  for (let entry = await dir.read(); entry !== null; entry = await dir.read()) entries.push([entry.name, entry.isFile(), entry.isDirectory()])
+  out.entries = entries.sort(byName)
+  out.afterEnd = await dir.read()
+  await dir.close()
+  out.closeAgain = await dir.close().then(() => 'resolved', (error) => [error.name, error.code, error.message])
+  out.readAfterClose = await dir.read().then(() => 'resolved', (error) => error.code)
+  await fsp.rm(root, { recursive: true, force: true })
+  return out
+}
+
+async function opendirIterateScenario() {
+  const root = await fsp.mkdtemp('/tmp/opendir-')
+  await fsp.writeFile(root + '/b.txt', 'x')
+  await fsp.mkdir(root + '/d')
+  const dir = await fsp.opendir(root)
+  const names = []
+  for await (const entry of dir) names.push([entry.name, entry.isDirectory()])
+  const afterEnd = await dir.read().then(() => 'open', (error) => error.code)
+  const early = await fsp.opendir(root)
+  for await (const entry of early) break
+  const afterBreak = await early.read().then(() => 'open', (error) => error.code)
+  await fsp.rm(root, { recursive: true, force: true })
+  return { names: names.sort(byName), afterEnd, afterBreak }
+}
+
+sharedCases.push(
+  { name: 'fs.promises.opendir Dir reads Dirents then null, and closes', run: opendirScenario, expected: {
+    className: 'Dir', pathMatches: true, entries: [['a.txt', true, false], ['sub', false, true]], afterEnd: null,
+    closeAgain: ['Error', 'ERR_DIR_CLOSED', 'Directory handle was closed'], readAfterClose: 'ERR_DIR_CLOSED',
+  } },
+  { name: 'fs.promises.opendir async iterator yields every entry and closes at the end', run: opendirIterateScenario, expected: {
+    names: [['b.txt', false], ['d', true]], afterEnd: 'ERR_DIR_CLOSED', afterBreak: 'ERR_DIR_CLOSED',
+  } },
+  { name: 'fs.promises.opendir rejects a missing path with ENOENT', run: () => fsp.opendir('/tmp/no-such-dir-for-parity').then(() => 'resolved', (error) => error.code), expected: 'ENOENT' },
+  { name: 'fs.promises.opendir rejects a file with ENOTDIR', run: async () => { const root = await fsp.mkdtemp('/tmp/opendir-'); await fsp.writeFile(root + '/f', 'x'); const code = await fsp.opendir(root + '/f').then(() => 'resolved', (error) => error.code); await fsp.rm(root, { recursive: true, force: true }); return code }, expected: 'ENOTDIR' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
-  { name: 'fs.promises.opendir', run: () => fsp.opendir('/tmp') },
   { name: 'crypto.createHash', run: () => s.crypto.createHash('sha256') },
   { name: 'StringDecoder latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },

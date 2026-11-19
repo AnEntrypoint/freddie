@@ -328,7 +328,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | Area | Names that throw | Why txiki has no equivalent |
 |---|---|---|
 | fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, unwatchFile, watchFile, writeFileSync, writeSync | txiki file APIs are async only |
-| fs.promises | opendir; access with a mode other than F_OK; writeFile with a flag other than w or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no append or mode option; link copy not defined |
+| fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no append or mode option; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
 | crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
@@ -364,7 +364,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 1 | Behaviour parity for the implemented surface | Probes already matched Node under txiki; only the shared suite was missing | test/parity-cases.js run under Node and under txiki, with the gap cases throwing (done in this change) |
 | 2 | util.isDeepStrictEqual and util.parseEnv in pure JS (done 2026-11-19: 91/91 parity under Node and txiki) | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
 | 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal (done 2026-11-19: 98/98 parity under Node and txiki) | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
-| 4 | fs.promises.opendir | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
+| 4 | fs.promises.opendir (done 2026-11-19: 102/102 parity under Node and txiki) | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
 | 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | Web globals exist in txiki (probed); round trip not yet run | parity case that round-trips a string and checks the gzip magic bytes |
 | 6 | fs.promises.writeFile with flag a | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
 | 7 | os.networkInterfaces | tjs.system.networkInterfaces shape unknown | a probe of its shape, then a parity case against Node's shape |
@@ -375,3 +375,10 @@ Needs an owner decision or fx, so not ranked: process.platform and os.platform (
 Found by the parity run: txiki's Buffer had a static isView that Node's Buffer does not have, so code that calls it would run under txiki and fail under Node. The suite cannot see extra members; the fix is in the Phase B commit.
 
 Found by the parity run: gm's txiki loader does not resolve symlinks to one real path. Installing through the root link and importing the subpaths through packages/ produced two runtime.js instances, and only the installed one was seen. Entries must install and import through the same path. fx's loader needs realpath-equal module identity.
+
+### Behaviour differences found in items 1 to 3 (2026-11-19)
+
+- fs.promises.opendir returns a Dir built on tjs.readDir. txiki's directory iterator has no return(), so Dir.close only stops the Dir from reading; the native directory handle is released when the iterator is collected, not at close. Node releases it at close.
+- txiki's readDir iterator returns undefined on a call after exhaustion instead of { done: true }. Dir records exhaustion and returns null from then on, so the iterator is never called past its end.
+- crypto.randomBytes with a callback fills the bytes synchronously and calls back from a setTimeout(0) turn. Node calls back from its thread pool, so the ordering of the callback is the same but the timing is not.
+- util.isDeepStrictEqual and util.parseEnv are pure-JS reimplementations of Node's semantics and grammar. They are checked by the 102 shared cases in test/parity-cases.js, not against Node's full test suite. Edge cases outside those cases (WeakMap, Proxy, getters with side effects, unusual dotenv quoting) are unverified.

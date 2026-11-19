@@ -393,6 +393,57 @@ async function readFile(path, options) {
   return encoding === undefined || encoding === null ? bytes : bytes.toString(encoding)
 }
 
+function closedDirError() {
+  const error = new Error('Directory handle was closed')
+  error.code = 'ERR_DIR_CLOSED'
+  return error
+}
+
+class Dir {
+  #path
+  #entries
+  #closed = false
+  #exhausted = false
+
+  constructor(path, entries) {
+    this.#path = path
+    this.#entries = entries
+  }
+
+  get path() {
+    return this.#path
+  }
+
+  async read() {
+    if (this.#closed) throw closedDirError()
+    if (this.#exhausted) return null
+    const next = await this.#entries.next()
+    if (next.done) {
+      this.#exhausted = true
+      return null
+    }
+    return direntOf(next.value)
+  }
+
+  async close() {
+    if (this.#closed) throw closedDirError()
+    this.#closed = true
+  }
+
+  async *[Symbol.asyncIterator]() {
+    try {
+      for (let entry = await this.read(); entry !== null; entry = await this.read()) yield entry
+    } finally {
+      if (!this.#closed) await this.close()
+    }
+  }
+}
+
+async function opendir(path) {
+  const entries = await tjs.readDir(path)
+  return new Dir(path, entries[Symbol.asyncIterator]())
+}
+
 async function readdir(path, options) {
   const withFileTypes = options?.withFileTypes === true
   const entries = []
@@ -449,7 +500,7 @@ const fsPromises = withGaps('fs.promises', {
   mkdir,
   mkdtemp,
   open,
-  opendir: gapFunction('fs.promises.opendir'),
+  opendir,
   readFile,
   readdir,
   realpath,

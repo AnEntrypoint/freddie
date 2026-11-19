@@ -326,3 +326,14 @@ Ranked item 3 in docs/fx-split.md. randomBytes with a callback fills the bytes s
 | packages/util/runtime/src/txiki.js: randomBytes takes a callback; abortError and delay honour an AbortSignal | node --check passes | parity-txiki under gm: 98/98 shared cases, 13/13 gaps |
 | packages/util/runtime/test/parity-cases.js: 7 new shared cases for the callback order, Buffer shape, abort rejection, abort cause identity, and a non-aborted resolve; the two gap entries removed | node --check passes | parity-node: 98/98 |
 | docs/fx-split.md: crypto row drops randomBytes; the timers/promises row is removed from the gap table; ranked row 3 marked done | grep shows the rows | none |
+
+## fx split: fs.promises.opendir with Dir (2026-11-19)
+
+Ranked item 4 in docs/fx-split.md, the third item of this stage. opendir awaits tjs.readDir, so a missing path rejects with ENOENT and a file with ENOTDIR, as Node does. Dir has path, read (a Dirent or null at the end), close (a second close rejects with ERR_DIR_CLOSED), and an async iterator that closes the Dir when it finishes or breaks. read after close rejects with ERR_DIR_CLOSED. The differences are listed in docs/fx-split.md under "Behaviour differences found in items 1 to 3".
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: closedDirError, the Dir class, and opendir replace the fs.promises.opendir gap | node --check passes | parity-txiki under gm: 102/102 shared cases, 12/12 gaps |
+| packages/util/runtime/test/parity-cases.js: 4 cases (Dir reads and close, async iterator and break, ENOENT, ENOTDIR) and the gap entry removed | node --check passes | parity-node: 102/102 |
+| docs/fx-split.md: fs.promises gap row drops opendir; ranked row 4 marked done; the behaviour-differences subsection | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-parity-items-1-to-3.md: the Agent Note for the three items | none | none |
