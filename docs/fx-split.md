@@ -595,3 +595,5 @@ Choices, each reversible:
 Verified (Phase A, by reading the code; Node runs decide the rest): the five zlib cases that had a gap field lost it, so header, trailer and round trip are shared cases. Three cases are added: empty round trip, a 70000-byte round trip across two stored blocks, and a trailer of [112, 17, 1, 0] for length 70000.
 
 Not matched or not verified: compressed bytes, Node's output length, and any input that Node's compressor treats differently. Byte parity remains the owner's decision.
+
+Measured under gm's txiki (2026-11-19): the gap-name count is 40 (was 41), and the contract reports 115 present with nothing missing. Phase B witnesses are in docs/PENDING_VALIDATION.md.

@@ -587,3 +587,17 @@ Ranked item 5 in docs/fx-split.md. zlib.gzip is a pure-JS stored-block encoder; 
 | test/parity-cases.js: zlib.gzip round trip, header bytes and trailer lose the gap field and become shared; empty input checks the round trip only (the length 20 expectation is removed, because stored output differs in length); new cases: a 70000-byte round trip across two stored blocks and a trailer of [112, 17, 1, 0]; four gap fields removed | grep shows the cases | see Phase B |
 | docs/fx-split.md: the stored-block section, the ranked item 5 row, the superseded markers on the earlier zlib decisions | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-zlib-gzip-stored.md: Agent Note | none | none |
+
+## fx split: Phase B for zlib.gzip as stored blocks (2026-11-19)
+
+Each run started only after a reading that was below 1000 KB/s for both swap-in and swap-out. Two earlier reruns in this step did not wait: the txiki contract started at swap-in 1272 KB/s, and the gap-name run started at swap-out 73640 KB/s. Their results matched (present 115, missing []; gapCount 40), but they are not witnesses. The witnesses are the gated reruns below.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js (gate 228 / 0 KB/s, swap-in / swap-out) | 244/244 shared cases match; 0/0 gaps throw the documented message; exit 0 | 0.93 s process (801 ms in runParity) |
+| node test/contract-node.js (gate 416 / 0 KB/s) | 115 names present across 25 subpaths; exit 0 | 0.12 s |
+| parity under gm's txiki (gate 8 / 0 KB/s) | shared 244, gapAsserted 3, gaps 11 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 1.54 s probe (1329 ms in runParity) |
+| contract under gm's txiki, gated rerun (gate 448 / 0 KB/s) | present 115, missing []; exit 0 | 0.53 s probe |
+| contract gap names under gm's txiki, gated rerun (gate 336 / 28 KB/s) | gapCount 40 (was 41); zlib.gzip absent from the list; exit 0 | 0.33 s probe |
+
+Caveat: the parity probe exited 0 on an earlier run in this step whose summary still reported unexpectedGaps (zlib.gzip resolved, from the gap entry removed afterwards). Exit 0 alone is therefore not the witness; the summary's mismatches [] and unexpectedGaps [] are. The witness above is the run after that entry was removed.
