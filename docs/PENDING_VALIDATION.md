@@ -306,3 +306,13 @@ Local commit as lanmower, not pushed. The top ranked open item in docs/fx-split.
 Defect found and fixed: txiki's Buffer had a static isView that Node's Buffer does not have. Node's parity run failed on the case that used Buffer.isView, so the case was corrected to ArrayBuffer.isView, and a new case asserts typeof Buffer.isView is undefined. The txiki implementation no longer defines it. Before the fix, the txiki side would have passed the old case and missed the extra member; the new case fails on it.
 
 Loader note: the txiki witness must install and import through the same path. Installing through node_modules/@freddie/freddie-runtime and importing through packages/ gave two runtime instances, and the subpaths saw an uninstalled one.
+
+## fx split: util.isDeepStrictEqual and util.parseEnv in pure JS (2026-11-19)
+
+Ranked item 2 in docs/fx-split.md. Both functions are pure JS in src/txiki.js. isDeepStrictEqual compares prototypes, own enumerable keys including symbols, Date time, RegExp source and flags, Error name and message, boxed primitives, typed-array and ArrayBuffer bytes, and Map and Set members, with cycle detection. parseEnv follows Node's dotenv grammar: an optional export prefix, single, double and backtick quotes, double-quoted escapes and multi-line values, inline comments, and last-wins duplicates.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: isDeepStrictEqual and parseEnv replace their gap entries | node --check passes; the txiki module loads | parity-txiki under gm: 91/91 shared cases, 15/15 gaps |
+| packages/util/runtime/test/parity-cases.js: 31 EQUALITY_PROBES and 13 ENV_PROBES, expected values from Node's output | node --check passes | parity-node: 91/91 |
+| docs/fx-split.md: gap table row for util drops both names; ranked row 2 marked done | grep shows the new rows | none |

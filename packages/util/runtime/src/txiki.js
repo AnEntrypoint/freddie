@@ -495,6 +495,79 @@ function promisify(original) {
   })
 }
 
+const DOTENV_LINE = /^\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?$/gm
+
+function parseEnv(content) {
+  const env = {}
+  const text = String(content).replace(/\r\n?/g, '\n')
+  for (const match of text.matchAll(DOTENV_LINE)) {
+    const raw = (match[2] ?? '').trim()
+    const value = raw.replace(/^(['"`])([\s\S]*)\1$/, '$2')
+    env[match[1]] = raw[0] === '"' ? value.replace(/\\n/g, '\n').replace(/\\r/g, '\r') : value
+  }
+  return env
+}
+
+function sameBytes(left, right) {
+  const leftBytes = new Uint8Array(left.buffer ?? left, left.byteOffset ?? 0, left.byteLength)
+  const rightBytes = new Uint8Array(right.buffer ?? right, right.byteOffset ?? 0, right.byteLength)
+  return leftBytes.length === rightBytes.length && leftBytes.every((byte, index) => byte === rightBytes[index])
+}
+
+function sameValueFields(left, right) {
+  if (left instanceof Date) return Object.is(left.getTime(), right.getTime())
+  if (left instanceof RegExp) return left.source === right.source && left.flags === right.flags
+  if (left instanceof Error) return left.name === right.name && left.message === right.message
+  if (left instanceof Number || left instanceof String || left instanceof Boolean) return Object.is(left.valueOf(), right.valueOf())
+  if (left instanceof ArrayBuffer) return sameBytes(left, right)
+  if (ArrayBuffer.isView(left)) return sameBytes(left, right)
+  return true
+}
+
+function sameMap(left, right, seen) {
+  if (left.size !== right.size) return false
+  for (const [key, value] of left) {
+    if (right.has(key)) {
+      if (!deepEqual(value, right.get(key), seen)) return false
+      continue
+    }
+    const matched = [...right].some(([otherKey, otherValue]) => deepEqual(key, otherKey, seen) && deepEqual(value, otherValue, seen))
+    if (!matched) return false
+  }
+  return true
+}
+
+function sameSet(left, right, seen) {
+  if (left.size !== right.size) return false
+  return [...left].every((value) => right.has(value) || [...right].some((other) => deepEqual(value, other, seen)))
+}
+
+function sameEnumerableProperties(left, right, seen) {
+  const enumerableKeys = (object) => Reflect.ownKeys(object).filter((key) => Object.prototype.propertyIsEnumerable.call(object, key))
+  const keys = enumerableKeys(left)
+  if (keys.length !== enumerableKeys(right).length) return false
+  return keys.every((key) => Object.prototype.propertyIsEnumerable.call(right, key) && deepEqual(left[key], right[key], seen))
+}
+
+function deepEqual(left, right, seen) {
+  if (Object.is(left, right)) return true
+  if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false
+  if (Object.getPrototypeOf(left) !== Object.getPrototypeOf(right)) return false
+  if (Object.prototype.toString.call(left) !== Object.prototype.toString.call(right)) return false
+  const partners = seen.get(left) ?? new Set()
+  if (partners.has(right)) return true
+  partners.add(right)
+  seen.set(left, partners)
+  if (!sameValueFields(left, right)) return false
+  if (left instanceof Map && !sameMap(left, right, seen)) return false
+  if (left instanceof Set && !sameSet(left, right, seen)) return false
+  return sameEnumerableProperties(left, right, seen)
+}
+
+function isDeepStrictEqual(left, right) {
+  return deepEqual(left, right, new Map())
+}
+
 function isPromise(value) {
   return value instanceof Promise
 }
@@ -564,7 +637,9 @@ export const txikiRuntime = {
   util: withGaps('util', {
     TextDecoder: globalThis.TextDecoder,
     inspect: tjsInspect,
-    ...gapFunctions('util', ['isDeepStrictEqual', 'parseArgs', 'parseEnv']),
+    ...gapFunctions('util', ['parseArgs']),
+    isDeepStrictEqual,
+    parseEnv,
     promisify,
   }),
   utilTypes: withGaps('util.types', { isPromise }),

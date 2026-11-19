@@ -111,14 +111,76 @@ export const sharedCases = [
   } },
 ]
 
+const BT = String.fromCharCode(96)
+
+const EQUALITY_PROBES = [
+  ['primitives', () => [1, 1], true],
+  ['strings', () => ['a', 'b'], false],
+  ['NaN', () => [NaN, NaN], true],
+  ['signed zero', () => [0, -0], false],
+  ['nested objects', () => [{ a: [1, { b: 2 }] }, { a: [1, { b: 2 }] }], true],
+  ['nested difference', () => [{ a: [1, { b: 2 }] }, { a: [1, { b: 3 }] }], false],
+  ['array length', () => [[1, 2], [1, 2, 3]], false],
+  ['prototype', () => [{}, Object.create(null)], false],
+  ['undefined key', () => [{ a: undefined }, {}], false],
+  ['key order', () => [{ a: 1, b: 2 }, { b: 2, a: 1 }], true],
+  ['cyclic', () => { const x = { name: 'a' }; x.self = x; const y = { name: 'a' }; y.self = y; return [x, y] }, true],
+  ['equal dates', () => [new Date(5), new Date(5)], true],
+  ['different dates', () => [new Date(5), new Date(6)], false],
+  ['equal regexes', () => [/a/gi, /a/gi], true],
+  ['regex flags', () => [/a/g, /a/i], false],
+  ['equal maps', () => [new Map([['k', { v: 1 }]]), new Map([['k', { v: 1 }]])], true],
+  ['different maps', () => [new Map([['k', 1]]), new Map([['k', 2]])], false],
+  ['equal sets', () => [new Set([1, 'x']), new Set([1, 'x'])], true],
+  ['different sets', () => [new Set([1]), new Set([2])], false],
+  ['equal typed arrays', () => [new Uint8Array([1, 2]), new Uint8Array([1, 2])], true],
+  ['different typed arrays', () => [new Uint8Array([1, 2]), new Uint8Array([1, 3])], false],
+  ['typed array against array', () => [new Uint8Array([1]), [1]], false],
+  ['boxed against primitive', () => [new Number(1), 1], false],
+  ['equal boxed', () => [new Number(1), new Number(1)], true],
+  ['equal errors', () => [new Error('x'), new Error('x')], true],
+  ['different errors', () => [new Error('x'), new Error('y')], false],
+  ['equal array buffers', () => [new Uint8Array([7]).buffer, new Uint8Array([7]).buffer], true],
+  ['symbol keys', () => [{ [Symbol.for('s')]: 1 }, { [Symbol.for('s')]: 2 }], false],
+  ['null against object', () => [null, {}], false],
+  ['same function', () => { const fn = () => 1; return [fn, fn] }, true],
+  ['different functions', () => [() => 1, () => 1], false],
+]
+
+const ENV_PROBES = [
+  ['plain pairs', 'A=1\nB=two', { A: '1', B: 'two' }],
+  ['comments and blank lines', '\n\n# comment\nA=1\n\n', { A: '1' }],
+  ['surrounding whitespace', '  A  =  x  ', { A: 'x' }],
+  ['quote styles', 'A="quoted value"\nB=\'single $x\'\nC=' + BT + 'tick' + BT, { A: 'quoted value', B: 'single $x', C: 'tick' }],
+  ['escaped newline in double quotes', 'A="line1\\nline2"', { A: 'line1\nline2' }],
+  ['multi-line double quotes', 'A="multi\nline"', { A: 'multi\nline' }],
+  ['inline comments', 'A=1 # trailing\nB="x" # trailing', { A: '1', B: 'x' }],
+  ['export prefix', 'export A=1', { A: '1' }],
+  ['empty values', 'A=\nEMPTY=""', { A: '', EMPTY: '' }],
+  ['key without equals', 'A', {}],
+  ['equals inside value', 'A=1=2', { A: '1=2' }],
+  ['CRLF line endings', 'A=a\r\nB=b', { A: 'a', B: 'b' }],
+  ['duplicate keys keep the last', 'A=1\nA=2', { A: '2' }],
+]
+
+sharedCases.push(...EQUALITY_PROBES.map(([name, pair, expected]) => ({
+  name: 'util.isDeepStrictEqual ' + name,
+  run: () => { const [left, right] = pair(); return s.util.isDeepStrictEqual(left, right) },
+  expected,
+})))
+
+sharedCases.push(...ENV_PROBES.map(([name, input, expected]) => ({
+  name: 'util.parseEnv ' + name,
+  run: () => s.util.parseEnv(input),
+  expected,
+})))
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
   { name: 'fs.promises.opendir', run: () => fsp.opendir('/tmp') },
   { name: 'crypto.createHash', run: () => s.crypto.createHash('sha256') },
   { name: 'crypto.randomBytes with a callback', run: () => s.crypto.randomBytes(4, () => {}) },
-  { name: 'util.isDeepStrictEqual', run: () => s.util.isDeepStrictEqual(1, 1) },
-  { name: 'util.parseEnv', run: () => s.util.parseEnv('A=1') },
   { name: 'timers-promises setTimeout with an AbortSignal', run: () => s['timers-promises'].setTimeout(1, 0, { signal: {} }) },
   { name: 'StringDecoder latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },

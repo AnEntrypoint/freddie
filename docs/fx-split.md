@@ -333,7 +333,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | crypto | createHash; randomBytes with a callback | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
-| util | isDeepStrictEqual, parseArgs, parseEnv | no equivalent in txiki or the web platform |
+| util | parseArgs | no equivalent in txiki or the web platform |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
 | child_process | execFile, execFileSync, spawn, spawnSync | tjs.spawn exists, but its result is not Node's ChildProcess |
 | os | networkInterfaces, platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
@@ -363,7 +363,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | Rank | Item | Why this rank | Needed for a verified result |
 |---|---|---|---|
 | 1 | Behaviour parity for the implemented surface | Probes already matched Node under txiki; only the shared suite was missing | test/parity-cases.js run under Node and under txiki, with the gap cases throwing (done in this change) |
-| 2 | util.isDeepStrictEqual and util.parseEnv in pure JS | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
+| 2 | util.isDeepStrictEqual and util.parseEnv in pure JS (done 2026-11-19: 91/91 parity under Node and txiki) | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
 | 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
 | 4 | fs.promises.opendir | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
 | 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | Web globals exist in txiki (probed); round trip not yet run | parity case that round-trips a string and checks the gzip magic bytes |
