@@ -341,7 +341,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | async_hooks | AsyncLocalStorage | txiki has no async context |
 | vm | Script, createContext, runInContext | not mapped |
 | http (createServer), https, inspector, dns/promises | createServer and all other members | tjs.serve and tjs.lookup have other shapes; validateHeaderValue is implemented in pure JS |
-| zlib | gzip, gunzip | txiki CompressionStream and DecompressionStream throw "not a function" for every valid format in this build; gaps, see the zlib section |
+| zlib | gzip | txiki CompressionStream and DecompressionStream throw "not a function" for every valid format in this build; gzip stays a gap, see the zlib section. gunzip is an owned pure-JS inflate (2026-11-19) |
 | string_decoder | any encoding except utf8 | only utf8 is streamed |
 
 Mapped without a gap: path (the tjs:path default object), url file-URL conversion (built on URL), util.promisify, util.TextDecoder, util.inspect (tjs:utils, so its output format differs from Node's), util.types.isPromise, perf_hooks.performance, timers/promises setTimeout and scheduler, crypto.randomUUID and randomBytes, net.isIP (tjs:ipaddr.isValid), os.homedir, os.tmpdir, os.availableParallelism, process.env, cwd, pid, ppid, execPath, argv, exit and kill, and a Buffer subset: from, alloc, allocUnsafe, concat, byteLength, compare, isBuffer, isView; toString for utf8, hex, base64, base64url, latin1, ascii and utf16le; equals, compare, copy, write, toJSON, slice as a view, and the UInt8, UInt16, UInt32, Int16, Int32, UIntLE and UIntBE accessors.
@@ -386,7 +386,7 @@ Found by the parity run: gm's txiki loader does not resolve symlinks to one real
 
 ## zlib gzip and gunzip under txiki (2026-11-19): gaps, decided
 
-Decision: zlib.gzip and zlib.gunzip are gaps under txiki. They are not present names. Each throws the documented gap message when called: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)", and the same with zlib.gunzip.
+Decision (zlib.gunzip superseded 2026-11-19, see the gunzip section below; zlib.gzip still a gap): zlib.gzip and zlib.gunzip are gaps under txiki. They are not present names. Each throws the documented gap message when called: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)", and the same with zlib.gunzip.
 
 Reason: under gm's txiki, the CompressionStream and DecompressionStream globals exist but throw TypeError "not a function" for every valid format (gzip, deflate, deflate-raw). Only an unknown format is validated ("Unsupported compression format: 'bogus'"), so the native compressor behind valid formats is missing from this build. The txiki build source is not in this checkout, so the missing component is inferred from that symptom. A zlib implementation over these streams could only throw that error, so a gap states the actual state. Callers get the documented message instead of a raw TypeError.
 
@@ -437,7 +437,7 @@ Excluded, with the reason:
 - async-hooks.AsyncLocalStorage: native. txiki has no async context to propagate.
 - vm.Script, vm.createContext, vm.runInContext: native or fx. They need a separate realm.
 - http.createServer: owner decision. tjs.serve has a different shape, so the server API needs designing.
-- zlib.gzip and zlib.gunzip: owner decision. Closing them in pure JS means an owned deflate and inflate, or a dependency.
+- zlib.gzip: owner decision. Its bytes differ from Node's deflate unless the algorithm is reproduced, so byte parity is the owner's call. zlib.gunzip is done (see the gunzip section).
 - zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: owner decision and native. Brotli and zstd are not realistic in pure JS here.
 - inspector.Session: native.
 
@@ -469,7 +469,7 @@ The timing-based shared cases set a 20 ms interval, wait a bounded number of int
 The 45 names still declared as gaps, ranked by how close each is to a verified pure-JS result over the existing runtime. Closeness means: a result we can check exactly against Node, with no native change and no decision left open. Each line says whether the work is pure JS or needs a native change; where a decision or fx is also needed, the line says so.
 
 1. crypto.createHash: pure JS. md5, sha1, sha256 and sha512 are implemented and checked against Node. Other algorithms are a declared gap.
-2. zlib.gunzip: pure JS. An owned inflate, checked exactly against Node-produced gzip fixtures.
+2. zlib.gunzip: pure JS. Done 2026-11-19: an owned inflate, checked exactly against Node fixtures (see the gunzip section).
 3. zlib.gzip: pure JS deflate, but compressed bytes differ from Node's zlib unless the algorithm is reproduced. Only a round trip is verifiable, so byte parity needs a decision.
 4. fs.createReadStream: pure JS over tjs.open and read. Needs the stream design.
 5. child-process.execFile: pure JS over tjs.spawn with a callback. Needs the process-model decision (output buffering and the ChildProcess shape).
@@ -515,3 +515,20 @@ The 45 names still declared as gaps, ranked by how close each is to a verified p
 45. inspector.Session: native.
 
 Counts: 14 lines that are pure JS or need a decision, fx or dependency (1 to 14); 31 lines that need a native change (15 to 45).
+
+
+## zlib gunzip under txiki (2026-11-19): pure-JS inflate
+
+zlib.gunzip is a present name. src/txiki.js implements RFC 1951 inflate and RFC 1952 gzip framing in pure JS, with a CRC-32 check. Node is the oracle for every shared case in test/parity-cases.js:
+
+- Fixtures are Node's gzipSync output: a stored block (level 0), a fixed-Huffman block (Z_FIXED), two dynamic-Huffman blocks (a skewed-word text of 800 and of 3000 words; the generator asserts BTYPE 2 for each), and a multi-member stream.
+- Header flags: FNAME, and FEXTRA with FCOMMENT and FHCRC, are set by patching Node's bytes; the expectations are Node's gunzipSync output for the patched bytes.
+- Malformed input: trailing garbage, a corrupt CRC, a corrupt length, a truncated stream, non-gzip bytes and empty input. Each expectation is Node's error code and message for the same bytes.
+- Input types: strings, typed arrays and ArrayBuffer are accepted. Any other type throws synchronously with Node's "chunk" message. The callback is delivered after the synchronous code.
+
+Decisions:
+
+- Bytes after a member must start another gzip member, as in Node. Anything else raises "incorrect header check".
+- Errors carry code and errno (Z_DATA_ERROR -3, Z_BUF_ERROR -5), as Node's do.
+- Not checked against Node: the messages for other malformed streams (invalid block type, invalid distance, invalid code). They exist, but no fixture produces them, so they are unverified.
+- zlib.gzip remains a gap. Its bytes differ from Node's deflate, and the byte-parity decision stays with the owner.

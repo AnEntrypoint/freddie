@@ -1226,6 +1226,265 @@ function createHash(algorithm) {
   return new Hash(name)
 }
 
+const DEFLATE_LENGTH_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258]
+const DEFLATE_LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0]
+const DEFLATE_DISTANCE_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577]
+const DEFLATE_DISTANCE_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13]
+const CODE_LENGTH_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]
+const CRC32_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let value = index
+  for (let bit = 0; bit < 8; bit++) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
+  return value >>> 0
+})
+
+function crc32(bytes) {
+  let crc = 0xffffffff
+  for (const byte of bytes) crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8)
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+function zlibError(message, code, errno) {
+  const error = new Error(message)
+  error.code = code
+  error.errno = errno
+  return error
+}
+
+const dataError = (message) => zlibError(message, 'Z_DATA_ERROR', -3)
+const truncatedError = () => zlibError('unexpected end of file', 'Z_BUF_ERROR', -5)
+
+function buildHuffman(lengths) {
+  const counts = new Array(16).fill(0)
+  for (const length of lengths) counts[length]++
+  const offsets = new Array(16).fill(0)
+  for (let length = 1; length < 15; length++) offsets[length + 1] = offsets[length] + counts[length]
+  const symbols = new Array(lengths.length)
+  lengths.forEach((length, symbol) => {
+    if (length !== 0) symbols[offsets[length]++] = symbol
+  })
+  return { counts, symbols }
+}
+
+const FIXED_LITERAL = buildHuffman([...new Array(144).fill(8), ...new Array(112).fill(9), ...new Array(24).fill(7), ...new Array(8).fill(8)])
+const FIXED_DISTANCE = buildHuffman(new Array(30).fill(5))
+
+class InflateReader {
+  constructor(bytes, position) {
+    this.bytes = bytes
+    this.position = position
+    this.bitBuffer = 0
+    this.bitCount = 0
+  }
+
+  byte() {
+    if (this.position >= this.bytes.length) throw truncatedError()
+    return this.bytes[this.position++]
+  }
+
+  bits(count) {
+    let value = 0
+    for (let i = 0; i < count; i++) {
+      if (this.bitCount === 0) {
+        this.bitBuffer = this.byte()
+        this.bitCount = 8
+      }
+      value |= (this.bitBuffer & 1) << i
+      this.bitBuffer >>>= 1
+      this.bitCount--
+    }
+    return value
+  }
+
+  alignToByte() {
+    this.bitBuffer = 0
+    this.bitCount = 0
+  }
+}
+
+class InflateSink {
+  constructor() {
+    this.bytes = new Uint8Array(4096)
+    this.length = 0
+  }
+
+  push(byte) {
+    if (this.length === this.bytes.length) {
+      const grown = new Uint8Array(this.bytes.length * 2)
+      grown.set(this.bytes)
+      this.bytes = grown
+    }
+    this.bytes[this.length++] = byte
+  }
+
+  copyBack(distance, count) {
+    for (let i = 0; i < count; i++) this.push(this.bytes[this.length - distance])
+  }
+
+  output() {
+    return this.bytes.slice(0, this.length)
+  }
+}
+
+function decodeSymbol(reader, huffman) {
+  let code = 0
+  let first = 0
+  let index = 0
+  for (let length = 1; length <= 15; length++) {
+    code |= reader.bits(1)
+    const count = huffman.counts[length]
+    if (code - count < first) return huffman.symbols[index + (code - first)]
+    index += count
+    first += count
+    first <<= 1
+    code <<= 1
+  }
+  throw dataError('invalid code')
+}
+
+function readDynamicTables(reader) {
+  const literalCount = reader.bits(5) + 257
+  const distanceCount = reader.bits(5) + 1
+  const codeLengthCount = reader.bits(4) + 4
+  if (literalCount > 286 || distanceCount > 30) throw dataError('too many length or distance symbols')
+  const codeLengths = new Array(19).fill(0)
+  for (let i = 0; i < codeLengthCount; i++) codeLengths[CODE_LENGTH_ORDER[i]] = reader.bits(3)
+  const codeLengthCode = buildHuffman(codeLengths)
+  const lengths = []
+  const repeat = (value, count) => {
+    for (let i = 0; i < count; i++) lengths.push(value)
+  }
+  while (lengths.length < literalCount + distanceCount) {
+    const symbol = decodeSymbol(reader, codeLengthCode)
+    if (symbol < 16) {
+      lengths.push(symbol)
+    } else if (symbol === 16) {
+      if (lengths.length === 0) throw dataError('invalid bit length repeat')
+      repeat(lengths[lengths.length - 1], 3 + reader.bits(2))
+    } else if (symbol === 17) {
+      repeat(0, 3 + reader.bits(3))
+    } else {
+      repeat(0, 11 + reader.bits(7))
+    }
+  }
+  if (lengths.length > literalCount + distanceCount) throw dataError('invalid bit length repeat')
+  return {
+    literal: buildHuffman(lengths.slice(0, literalCount)),
+    distance: buildHuffman(lengths.slice(literalCount)),
+  }
+}
+
+function inflateStored(reader, sink) {
+  reader.alignToByte()
+  const length = reader.byte() | (reader.byte() << 8)
+  const complement = reader.byte() | (reader.byte() << 8)
+  if ((length ^ 0xffff) !== complement) throw dataError('invalid stored block lengths')
+  for (let i = 0; i < length; i++) sink.push(reader.byte())
+}
+
+function inflateCodes(reader, sink, literal, distance) {
+  for (;;) {
+    const symbol = decodeSymbol(reader, literal)
+    if (symbol < 256) {
+      sink.push(symbol)
+    } else if (symbol === 256) {
+      return
+    } else {
+      const lengthCode = symbol - 257
+      if (lengthCode >= DEFLATE_LENGTH_BASE.length) throw dataError('invalid literal/length code')
+      const length = DEFLATE_LENGTH_BASE[lengthCode] + reader.bits(DEFLATE_LENGTH_EXTRA[lengthCode])
+      const distanceCode = decodeSymbol(reader, distance)
+      if (distanceCode >= DEFLATE_DISTANCE_BASE.length) throw dataError('invalid distance code')
+      const back = DEFLATE_DISTANCE_BASE[distanceCode] + reader.bits(DEFLATE_DISTANCE_EXTRA[distanceCode])
+      if (back > sink.length) throw dataError('invalid distance too far back')
+      sink.copyBack(back, length)
+    }
+  }
+}
+
+function inflateBlocks(reader, sink) {
+  for (;;) {
+    const last = reader.bits(1)
+    const type = reader.bits(2)
+    if (type === 0) {
+      inflateStored(reader, sink)
+    } else if (type === 1) {
+      inflateCodes(reader, sink, FIXED_LITERAL, FIXED_DISTANCE)
+    } else if (type === 2) {
+      const tables = readDynamicTables(reader)
+      inflateCodes(reader, sink, tables.literal, tables.distance)
+    } else {
+      throw dataError('invalid block type')
+    }
+    if (last) return
+  }
+}
+
+function skipZeroTerminated(reader) {
+  let byte
+  do {
+    byte = reader.byte()
+  } while (byte !== 0)
+}
+
+function readUint32LittleEndian(reader) {
+  return (reader.byte() | (reader.byte() << 8) | (reader.byte() << 16) | (reader.byte() << 24)) >>> 0
+}
+
+function gunzipMember(bytes, offset, sink) {
+  if (bytes.length - offset < 2) throw truncatedError()
+  if (bytes[offset] !== 0x1f || bytes[offset + 1] !== 0x8b) throw dataError('incorrect header check')
+  const reader = new InflateReader(bytes, offset + 2)
+  if (reader.byte() !== 8) throw dataError('unknown compression method')
+  const flags = reader.byte()
+  for (let i = 0; i < 6; i++) reader.byte()
+  if (flags & 4) {
+    const extraLength = reader.byte() | (reader.byte() << 8)
+    for (let i = 0; i < extraLength; i++) reader.byte()
+  }
+  if (flags & 8) skipZeroTerminated(reader)
+  if (flags & 16) skipZeroTerminated(reader)
+  if (flags & 2) {
+    const headerCrc = reader.byte() | (reader.byte() << 8)
+    if (headerCrc !== (crc32(bytes.subarray(offset, reader.position - 2)) & 0xffff)) throw dataError('header crc mismatch')
+  }
+  const start = sink.length
+  inflateBlocks(reader, sink)
+  reader.alignToByte()
+  const member = sink.bytes.subarray(start, sink.length)
+  if (readUint32LittleEndian(reader) !== crc32(member)) throw dataError('incorrect data check')
+  if (readUint32LittleEndian(reader) !== member.length) throw dataError('incorrect length check')
+  return reader.position
+}
+
+function gunzipBytes(bytes) {
+  const sink = new InflateSink()
+  let offset = 0
+  do {
+    offset = gunzipMember(bytes, offset, sink)
+  } while (offset < bytes.length)
+  return sink.output()
+}
+
+function zlibInput(data) {
+  if (typeof data === 'string') return Buffer.from(data)
+  if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+  if (data instanceof ArrayBuffer) return new Uint8Array(data)
+  throw codedTypeError('ERR_INVALID_ARG_TYPE', 'The "chunk" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
+}
+
+function gunzip(buffer, options, callback) {
+  const done = typeof options === 'function' ? options : callback
+  const input = zlibInput(buffer)
+  let output
+  let failure
+  try {
+    output = Buffer.from(gunzipBytes(input))
+  } catch (error) {
+    failure = error
+  }
+  setTimeout(() => (failure === undefined ? done(null, output) : done(failure)), 0)
+}
+
 export const txikiRuntime = {
   fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
   fsPromises,
@@ -1273,7 +1532,8 @@ export const txikiRuntime = {
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
     constants: withGaps('zlib.constants', {}),
-    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'gunzip', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
+    gunzip,
+    ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
   }),
   inspector: withGaps('inspector', { Session: gapClass('inspector.Session') }),
   stringDecoder: withGaps('string_decoder', { StringDecoder }),

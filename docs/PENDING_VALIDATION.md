@@ -510,3 +510,14 @@ Ranked item 1 among the 45 remaining gap names (ranked list in docs/fx-split.md,
 | contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.29 s probe |
 | contract gap names under gm's txiki | 44 of the non-default names (was 45): crypto.createHash left the list | 0.29 s probe |
 | parity under gm's txiki, final run (probe with the rebuilt gm-core) | shared 207, gapAsserted 5, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 (1236 ms in runParity). Three earlier runs on the same tree: 1113, 1108, 1127 ms in runParity, all mismatches [] and exit 0 | 1.53 s probe |
+
+## fx split: zlib.gunzip under txiki (2026-11-19)
+
+Ranked item 2 in docs/fx-split.md. zlib.gunzip is an owned pure-JS inflate and gzip framing parser, checked against Node.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: gunzip (callback form, asynchronous delivery) over an owned RFC 1951 inflate (stored, fixed and dynamic blocks), RFC 1952 header parsing (FEXTRA, FNAME, FCOMMENT, FHCRC) and trailer checks (CRC-32, length); multi-member streams; errors with Node's codes and messages for the cases below; zlib.gzip stays a gap | node --check passes; Node parity 222/222 before the flag cases were added; see the Phase B table for the final run | txiki parity (see the Phase B table) |
+| test/parity-cases.js: 11 fixture cases from Node's zlib output (stored, fixed, two dynamic, multi-member, trailing garbage, corrupt CRC, corrupt length, truncated, non-gzip bytes, empty input); 2 header-flag cases from Node's gunzipSync on patched bytes; 4 further cases (callback order, options argument, ArrayBuffer input, synchronous ERR_INVALID_ARG_TYPE); the existing bad-magic case loses its gap field; the zlib.gunzip gap case is removed | node --check passes | txiki gap names 43 (was 44) |
+| docs/fx-split.md: the gap-table row, the owner-decision bullet, ranked item 2 marked done, and a gunzip section with the decisions | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-zlib-gunzip.md: Agent Note | none | none |
