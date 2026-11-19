@@ -2377,6 +2377,14 @@ sharedCases.push(
   { name: "child-process.execFile gid of another group throws EPERM", run: async () => thrownBy(async () => execFileOutcome('id', ['-g'], { gid: (await ownIds()).gid + 1 })), expected: {"threw":{"code":"EPERM","syscall":"spawn","message":"spawn EPERM"}} },
 )
 
+const parentSession = async () => (await execFileOutcome('/bin/sh', ['-c', 'cut -d" " -f6 /proc/$1/stat', 'sh', String(proc.pid)], {})).stdout.trim()
+
+const SESSION_SCRIPT = "S=$(cut -d\" \" -f6 /proc/$$/stat); P=$(cut -d\" \" -f5 /proc/$$/stat); echo \"sid_is_pid=$([ \"$S\" = \"$$\" ] && echo yes || echo no) pgrp_is_pid=$([ \"$P\" = \"$$\" ] && echo yes || echo no) same_session=$([ \"$S\" = \"$PARENT_SID\" ] && echo yes || echo no)\""
+
+sharedCases.push(
+  { name: "child-process.spawn without detached stays in the parent session", run: async () => envSpawnOutcome('/bin/sh', ['-c', SESSION_SCRIPT], { env: { PARENT_SID: await parentSession() } }), expected: {"stdout":"sid_is_pid=no pgrp_is_pid=no same_session=yes\n","code":0,"signal":null} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2392,6 +2400,7 @@ export const gapCases = [
   { name: 'fs.promises.writeFile with mode 0600', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: '0600' }) },
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
+  { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

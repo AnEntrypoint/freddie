@@ -1417,3 +1417,26 @@ Coverage: all 11 cases are red under at least one mutation (uncovered []).
 Regression (not a witness): txiki parity with gap assertions: shared 586, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1. Node parity: 586/586.
 
 Not verified: supplementary groups; the root id; a valid uid without a passwd entry.
+
+## fx split: child-process detached (held), Phase A evidence (2026-11-19)
+
+Rank 7g in docs/fx-split.md. Probes: runs/analysis/child-detached-stdio-node.mjs (deterministic) and the inline txiki probe (/tmp/detached-stdio-txiki.json).
+
+| Change | Phase A evidence |
+|---|---|
+| test/parity-cases.js: one case that a child without detached stays in the parent's session (the session script run through spawn, PARENT_SID from the test process via a child shell, fixed to use $$); one gap case for spawn option detached | the same runs |
+
+No source change: detached stays a gap because txiki ignores the option.
+
+Mutation evidence (saved good copy; the dev body runs the detached cases and the gap case; each restore checked with cmp, git status shows only the test file):
+
+| Mutation | Cases red |
+|---|---|
+| D1: every spawn wrapped in setsid | 1 (the session case: sid_is_pid yes, same_session no) |
+| D2: detached key allowed (no gap) | 1 (the gap case) |
+
+Coverage: both cases are red under a mutation (uncovered []). Defect found during this change, not in the product code: a replace with a '$$' in the replacement collapsed the shell pid to '$', so the session script read /proc/$/stat; the fix uses split/join (replace treats '$$' as a literal '$' in its replacement string). The session case was red on the good code before the fix, and green after it.
+
+Regression (not a witness): txiki parity with gap assertions: shared 587, mismatches [], unexpectedGaps [], gaps 16, gapInactive 1, 12282 ms. Node parity: 587/587.
+
+Not verified: detached with a process group kill; setsid wrapper behaviour beyond the session check.
