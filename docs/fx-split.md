@@ -354,3 +354,25 @@ Checked under gm's pinned txiki in Phase B: makeDir with recursive, remove with 
 Loader limit for fx: gm's run_code loader (native/components/quickjs/engine.cpp, load_module_from_disk) reads each import specifier as a literal path. It does not resolve package names or package exports subpaths. So the agent packages that import @freddie/freddie-runtime/* by name, and Cordis (which imports @freddie/cosmokit), cannot load there. Leaf agent modules with relative imports do load and run. fx's embedded loader must resolve package names and exports maps for the agent side to run as a package graph.
 
 The contract test lives in packages/util/runtime/test. contract-names.js lists 114 names across 25 subpaths, generated from the subpath files. contract-node.js installs the Node runtime and contract-txiki.js installs the txiki runtime; each checks every listed name. They run as node test/contract-node.js and tjs test/contract-txiki.js. The txiki entry needs no import map, because the subpaths use relative imports. This host has no standalone tjs CLI; the txiki check ran inside gm's pinned txiki (run_code), which loads the same files.
+
+
+## Open runtime items, ranked (2026-11-19)
+
+Items that need no owner decision and no credential, ranked by how close each is to a verified result. Each row names what it needs before it counts as done.
+
+| Rank | Item | Why this rank | Needed for a verified result |
+|---|---|---|---|
+| 1 | Behaviour parity for the implemented surface | Probes already matched Node under txiki; only the shared suite was missing | test/parity-cases.js run under Node and under txiki, with the gap cases throwing (done in this change) |
+| 2 | util.isDeepStrictEqual and util.parseEnv in pure JS | Node is the oracle; no host dependency | parity cases for equal, unequal, nested and cyclic values, and for quoted and multi-line env text |
+| 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
+| 4 | fs.promises.opendir | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
+| 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | Web globals exist in txiki (probed); round trip not yet run | parity case that round-trips a string and checks the gzip magic bytes |
+| 6 | fs.promises.writeFile with flag a | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
+| 7 | os.networkInterfaces | tjs.system.networkInterfaces shape unknown | a probe of its shape, then a parity case against Node's shape |
+| 8 | util.parseArgs | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
+
+Needs an owner decision or fx, so not ranked: process.platform and os.platform (fx supplies the platform), sync fs (txiki has no sync file API), child_process (process model decision), stream classes (web streams are not Node streams; design decision), vm, worker_threads, AsyncLocalStorage, http, zlib brotli and zstd, and crypto.createHash (no equivalent or a dependency decision).
+
+Found by the parity run: txiki's Buffer had a static isView that Node's Buffer does not have, so code that calls it would run under txiki and fail under Node. The suite cannot see extra members; the fix is in the Phase B commit.
+
+Found by the parity run: gm's txiki loader does not resolve symlinks to one real path. Installing through the root link and importing the subpaths through packages/ produced two runtime.js instances, and only the installed one was seen. Entries must install and import through the same path. fx's loader needs realpath-equal module identity.

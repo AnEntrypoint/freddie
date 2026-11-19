@@ -282,3 +282,14 @@ pnpm install exited 0, and node_modules/@freddie/freddie-runtime is a pnpm link 
 | publint | PASS | pnpm run publint exit 0, All good! |
 
 Needs the rebuilt gm-core: the run_code loader resolves bare imports from the project root (b4f85a4). The gm server running in the session before this rebuild still resolves them from the process directory, so the txiki rows were run through a rebuilt gm-core binary over MCP stdio.
+
+
+## fx split Phase A: behaviour parity suite (2026-11-19)
+
+Local commit as lanmower, not pushed. The top ranked open item in docs/fx-split.md.
+
+| Change | Phase B witness |
+|---|---|
+| packages/util/runtime/test/parity-cases.js: 46 shared cases over the implemented surface and 17 gap cases | node test/parity-node.js prints 46/46 shared cases match; under gm's txiki, runParity('txiki', true) reports 46/46 and 17/17 |
+| packages/util/runtime/test/parity-node.js and parity-txiki.js: the Node and txiki entries | both entries exit 0 with their line printed, each with wall time |
+| docs/fx-split.md: the ranked open items | none; the ranking is the record |
