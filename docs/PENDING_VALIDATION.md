@@ -293,3 +293,16 @@ Local commit as lanmower, not pushed. The top ranked open item in docs/fx-split.
 | packages/util/runtime/test/parity-cases.js: 46 shared cases over the implemented surface and 17 gap cases | node test/parity-node.js prints 46/46 shared cases match; under gm's txiki, runParity('txiki', true) reports 46/46 and 17/17 |
 | packages/util/runtime/test/parity-node.js and parity-txiki.js: the Node and txiki entries | both entries exit 0 with their line printed, each with wall time |
 | docs/fx-split.md: the ranked open items | none; the ranking is the record |
+
+## fx split Phase B: behaviour parity suite (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 47/47 shared cases match; exit 0 | 0.11 s process, 23 ms in runParity |
+| runParity('txiki', true) under gm's pinned txiki, through the rebuilt gm-core over MCP stdio | 47/47 shared cases match, 17/17 gaps throw the documented message, mismatches [] | 0.29 s probe, 115 ms in runParity |
+| node test/contract-node.js | 114 names present across 25 subpaths; exit 0 | 0.08 s |
+| contract under gm's txiki | present 114, missing [] | probe run, same process as the parity witness |
+
+Defect found and fixed: txiki's Buffer had a static isView that Node's Buffer does not have. Node's parity run failed on the case that used Buffer.isView, so the case was corrected to ArrayBuffer.isView, and a new case asserts typeof Buffer.isView is undefined. The txiki implementation no longer defines it. Before the fix, the txiki side would have passed the old case and missed the extra member; the new case fails on it.
+
+Loader note: the txiki witness must install and import through the same path. Installing through node_modules/@freddie/freddie-runtime and importing through packages/ gave two runtime instances, and the subpaths saw an uninstalled one.
