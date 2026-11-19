@@ -1707,7 +1707,7 @@ Mutation evidence (saved good copy /tmp/stage1-good-txiki.js; each run through m
 | S1M4: PassThrough highWaterMark not forwarded to the write side | 1 (write true, expected false) |
 | S1M5: Readable encoding option ignored | 3 (hex on Readable, hex on PassThrough, utf8 multibyte) |
 
-Coverage: every new shared case is red under at least one mutation, except 'stream.Writable objectMode passes objects and numbers to _write' and 'stream.Writable highWaterMark 5' (the latter is red under S1M3). The objects case is not red under any of the five mutations: its _write receives the same chunks with or without the objectMode branch, so it is a regression witness for the object chunk path, not a mutation witness. Recorded here, not hidden.
+Coverage: seven of the eight new shared cases are red under at least one mutation. 'stream.Writable objectMode passes objects and numbers to _write' is not red under any of the five mutations: its _write receives the same chunks with or without the objectMode branch, so it is a regression witness for the object chunk path, not a mutation witness.
 
 ## fx split: fs.createReadStream start, end and highWaterMark, Phase A (2026-11-19)
 
