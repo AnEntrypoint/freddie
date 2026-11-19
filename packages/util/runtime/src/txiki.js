@@ -2912,6 +2912,43 @@ function killSignalOf(opts) {
   return signal
 }
 
+function maxBufferOf(opts) {
+  const value = opts.maxBuffer ?? 1024 * 1024
+  if (typeof value !== 'number' || !(value >= 0)) throw gapError('child-process maxBuffer ' + String(value))
+  return value
+}
+
+function maxBufferError(stream) {
+  const error = new RangeError(stream + ' maxBuffer length exceeded')
+  error.code = 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+  return error
+}
+
+function signalChild(child, signal) {
+  try {
+    child.kill(signal)
+  } catch (error) {
+    if (error.code !== 'ESRCH') throw error
+  }
+}
+
+async function readCapped(stream, limit, onOverflow) {
+  const reader = stream.getReader()
+  const chunks = []
+  let length = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) return { bytes: concatBytes(chunks), overflowed: false }
+    chunks.push(value)
+    length += value.length
+    if (length > limit) {
+      onOverflow()
+      reader.cancel().catch(() => {})
+      return { bytes: concatBytes(chunks).subarray(0, limit), overflowed: true }
+    }
+  }
+}
+
 function timeoutOf(opts) {
   const timeout = opts.timeout ?? 0
   if (typeof timeout !== 'number' || timeout < 0) throw gapError('child-process timeout ' + String(timeout))
@@ -2956,13 +2993,16 @@ function startProcess(file, argv, { cwd, env, uid, gid, stdio = ['pipe', 'pipe',
   }
 }
 
-async function captureExecFile({ process: child, error }, cmd, { timeout, killSignal }) {
+async function captureExecFile({ process: child, error }, cmd, { timeout, killSignal, maxBuffer }) {
   if (child === undefined) return { error: Object.assign(error, { cmd }), stdout: new Uint8Array(), stderr: new Uint8Array() }
   let killed = false
-  const timer = timeout > 0 ? setTimeout(() => { killed = true; child.kill(killSignal) }, timeout) : undefined
-  const [stdout, stderr, status] = await Promise.all([child.stdout.bytes(), child.stderr.bytes(), child.wait()])
+  const stop = () => signalChild(child, killSignal)
+  const timer = timeout > 0 ? setTimeout(() => { killed = true; stop() }, timeout) : undefined
+  const [out, err, status] = await Promise.all([readCapped(child.stdout, maxBuffer, stop), readCapped(child.stderr, maxBuffer, stop), child.wait()])
   clearTimeout(timer)
-  return { error: exitFailure(cmd, stderr, status, killed), stdout, stderr }
+  const overflow = out.overflowed ? 'stdout' : err.overflowed ? 'stderr' : undefined
+  const failure = overflow === undefined ? exitFailure(cmd, err.bytes, status, killed) : maxBufferError(overflow)
+  return { error: failure, stdout: out.bytes, stderr: err.bytes }
 }
 
 function decodeExecOutput(bytes, encoding) {
@@ -2973,14 +3013,15 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
   const timeout = timeoutOf(opts)
   const killSignal = killSignalOf(opts)
+  const maxBuffer = maxBufferOf(opts)
   const shelled = shellArguments(file, argv, opts.shell)
-  captureExecFile(startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal }).then(({ error, stdout, stderr }) => {
+  captureExecFile(startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal, maxBuffer }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }

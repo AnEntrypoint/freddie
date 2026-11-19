@@ -1509,3 +1509,28 @@ Coverage: all 3 cases are red under at least one mutation (uncovered []).
 Limit, recorded: a hard-coded 'linux' would pass all three cases on this Linux host, because the Linux value is also the derived one. The uname agreement case is the one that would catch it on a macOS host (uname -s would then read Darwin); that host was not available, so this is unmeasured.
 
 Regression (not a witness): txiki parity with gap assertions: shared 592, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1. Node parity: 592/592.
+
+## fx split: child-process.execFile maxBuffer, Phase A (2026-11-19)
+
+Rank 7j in docs/fx-split.md. Probes: runs/analysis/five-node.mjs (deterministic; the maxBuffer cases) and the txiki probe (through mcp-probe; the key-check gap for each case).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: maxBufferOf (default 1 MiB, non-number or negative gap); maxBufferError (RangeError, ERR_CHILD_PROCESS_STDIO_MAXBUFFER); signalChild (kill ignoring ESRCH); readCapped (counted reader, kills and cancels on overflow, returns the truncated bytes); captureExecFile takes maxBuffer and reports the overflow; execFile accepts the maxBuffer key | before: every maxBuffer case threw the gap; after: the 7 shared maxBuffer cases match on txiki (dev body) and Node; the gap case 'child-process maxBuffer abc' matches; txiki parity with gap assertions: shared 599, mismatches [], unexpectedGaps [], gaps 16, gapInactive 1, 15094 ms; Node parity 599/599 |
+| test/parity-cases.js: 7 shared cases generated from five-node.out (the execRecord helper calls execFile and records error shape, stdout length, stdout head); 1 gap case (non-number maxBuffer) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the maxBuffer cases on txiki; each restore checked with cmp; git status shows only the two changed files; names listed once):
+
+| Mutation | Cases red |
+|---|---|
+| M1: overflow ignored | 5 (the overflow, large, default and zero cases) |
+| M2: default limit unbounded | 1 (the default 1 MiB case) |
+| M3: output not truncated to the limit | 5 (the overflow cases) |
+| M4: key gap restored | 5 shared cases and the gap case |
+| M5: wrong error code | 4 (the overflow cases) |
+| M6: no kill on overflow | 0: not observable (the cancel closes the pipe and the child exits by EPIPE; the error does not expose the signal); recorded as uncovered |
+| M7: no cancel on overflow | run hangs (no result, the probe's timeout); the defect this step fixes |
+
+Coverage: each maxBuffer case is red under at least one mutation, except the kill step (M6), which is uncovered.
+
+Regression (not a witness): txiki parity with gap assertions: shared 599, mismatches [], unexpectedGaps [], gaps 16, gapInactive 1. Node parity: 599/599.

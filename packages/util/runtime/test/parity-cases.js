@@ -2403,6 +2403,21 @@ sharedCases.push(
   { name: "os.platform and the uname -s kernel name agree", run: async () => ({ platform: s.os.platform(), kernel: await kernelUname() }), expected: { platform: "linux", kernel: "Linux" } },
 )
 
+const execErrorShape = (error) => (error == null ? null : { name: error.name ?? null, code: error.code ?? null, killed: error.killed ?? null, signal: error.signal ?? null, message: String(error.message).split('\n')[0].slice(0, 120) })
+const execRecord = (file, args, options) => new Promise((resolve) => {
+  s['child-process'].execFile(file, args, options, (error, stdout, stderr) => resolve({ error: execErrorShape(error), stdoutLength: String(stdout).length, stdout: String(stdout).slice(0, 40), stderr: String(stderr).slice(0, 40) }))
+})
+
+sharedCases.push(
+  { name: "child-process.execFile maxBuffer at the limit keeps the output", run: () => execRecord('/bin/sh', ['-c', 'printf abc'], { maxBuffer: 3 }), expected: {"error":null,"stdoutLength":3,"stdout":"abc","stderr":""} },
+  { name: "child-process.execFile maxBuffer exceeded reports RangeError and truncates stdout", run: () => execRecord('/bin/sh', ['-c', 'printf abcdef'], { maxBuffer: 3 }), expected: {"error":{"name":"RangeError","code":"ERR_CHILD_PROCESS_STDIO_MAXBUFFER","killed":null,"signal":null,"message":"stdout maxBuffer length exceeded"},"stdoutLength":3,"stdout":"abc","stderr":""} },
+  { name: "child-process.execFile maxBuffer large output stops at the limit", run: () => execRecord('/bin/sh', ['-c', 'head -c 100000 /dev/zero'], { maxBuffer: 1000 }), expected: {"error":{"name":"RangeError","code":"ERR_CHILD_PROCESS_STDIO_MAXBUFFER","killed":null,"signal":null,"message":"stdout maxBuffer length exceeded"},"stdoutLength":1000,"stdout":"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000","stderr":""} },
+  { name: "child-process.execFile default maxBuffer keeps small output", run: () => execRecord('/bin/sh', ['-c', 'printf abc'], {}), expected: {"error":null,"stdoutLength":3,"stdout":"abc","stderr":""} },
+  { name: "child-process.execFile default maxBuffer is 1 MiB", run: () => execRecord('/bin/sh', ['-c', 'head -c 2000000 /dev/zero'], {}), expected: {"error":{"name":"RangeError","code":"ERR_CHILD_PROCESS_STDIO_MAXBUFFER","killed":null,"signal":null,"message":"stdout maxBuffer length exceeded"},"stdoutLength":1048576,"stdout":"\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000","stderr":""} },
+  { name: "child-process.execFile maxBuffer Infinity never overflows", run: () => execRecord('/bin/sh', ['-c', 'printf abcdef'], { maxBuffer: Infinity }), expected: {"error":null,"stdoutLength":6,"stdout":"abcdef","stderr":""} },
+  { name: "child-process.execFile maxBuffer 0 reports RangeError with empty stdout", run: () => execRecord('/bin/sh', ['-c', 'printf abc'], { maxBuffer: 0 }), expected: {"error":{"name":"RangeError","code":"ERR_CHILD_PROCESS_STDIO_MAXBUFFER","killed":null,"signal":null,"message":"stdout maxBuffer length exceeded"},"stdoutLength":0,"stdout":"","stderr":""} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2418,6 +2433,7 @@ export const gapCases = [
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
   { name: 'child-process stdio ignore', run: () => s['child-process'].spawn('true', [], { stdio: 'ignore' }) },
+  { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
