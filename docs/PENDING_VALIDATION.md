@@ -1989,3 +1989,19 @@ Discrepancy, not resolved: the earlier options probe (runs/analysis/createreadst
 Change (Phase A): src/txiki.js: FileReadStream takes the option; _afterEnd is skipped when it is false; an open error is emitted without a destroy when it is false; createReadStream accepts a boolean (other values gapped). test/parity-cases.js: collectFor (events for a fixed time, then destroy) and two shared cases: 'autoClose false reads the data and never emits close' (expected ['data abcdefghij', 'end']) and 'autoClose false on a missing file emits ENOENT and no close' (expected ['error ENOENT Error']).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red checks AC-1 (autoClose removed from the accepted options: both cases red), AC-2 (open-error destroy kept: the missing-file case red), AC-3 (_afterEnd not gated: the data case red), and MO-1 (mode removed from the accepted options: the mode case red).
+
+## Phase B (partial window): createReadStream mode and autoClose (71d39db8, c0607f04), 2026-11-20
+
+One bounded window, 687 s, 21 samples at 30 s (`vmstat 1 2`, second sample = gate; `top -bn2 -d1` second frame, %CPU 20 or more or RES 1 GB or more; gm-core with `--handshake` excluded by full command line). Clear samples: slots 7, 8 and 9 only. The other 18 were closed (zig builds and tests of another peer; chromium gpu-process at 400 to 937% CPU; fx builds; claude sessions at 20 to 54%; si up to 3524 KB/s). No probe started on a closed sample, and closed samples have no ledger line.
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| Node parity (PID 1615603, exit 0) | 7 | node: 674/674 shared cases match; 0/0 gaps throw the documented message; 9473 ms | 9.56 s |
+| txiki parity, committed source (PID 1616505, exit 0) | 8 | shared 674, gaps 21, mismatches [] (so both autoClose cases and the mode case pass on txiki) | 14.45 s |
+| MO-1: mode removed from the accepted options (PID 1622044, exit 0) | 9 | red: 'fs.createReadStream mode 0o600 leaves an existing file unchanged' threw 'txiki.js has no fs.createReadStream option mode'. Restored: RESTORED_IDENTICAL | 14.84 s |
+
+Not run in this window (the window ended with no clear sample after slot 9): AC-1 (autoClose removed from the accepted options), AC-2 (open-error destroy kept), AC-3 (end path ungated), the Node contract and the txiki contract. They are still to run; no push has been made, because the push waits on every listed witness.
+
+Restore: /tmp/stageI-good-txiki.js is the committed source; after MO-1, `cmp` gave identical files and `git status --short` was empty. No process of mine was left running.
+
+Longest step: the txiki parity run (14.45 s). The longest wait was the closed gate (18 of 21 samples).
