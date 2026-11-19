@@ -2472,6 +2472,27 @@ sharedCases.push(
   { name: "crypto.createHash sha256 outputLength 32 creates at createHash", run: () => hashOutcome(() => { s.crypto.createHash('sha256', { outputLength: 32 }); return 'created' }), expected: "created" },
 )
 
+const spawnCollect = (file, args, options) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args, options)
+  const out = []
+  const err = []
+  child.stdout?.on('data', (chunk) => out.push(String(chunk)))
+  child.stderr?.on('data', (chunk) => err.push(String(chunk)))
+  child.on('close', (code, signal) => resolve({ stdout: out.join('').replace(/socket:\[\d+\]/g, 'socket:[N]'), stderr: err.join('').replace(/socket:\[\d+\]/g, 'socket:[N]'), code, signal, pipes: [child.stdin === null, child.stdout === null, child.stderr === null] }))
+})
+const execCapture = (file, args, options) => new Promise((resolve) => {
+  s['child-process'].execFile(file, args, options, (error, stdout, stderr) => resolve({ error: execErrorShape(error), stdout: String(stdout), stderr: String(stderr) }))
+})
+
+sharedCases.push(
+  { name: "child-process.spawn stdio ignore leaves all three streams null and exits 0", run: () => spawnCollect('/bin/sh', ['-c', 'echo hi; echo err 1>&2'], { stdio: 'ignore' }), expected: {"stdout":"","stderr":"","code":0,"signal":null,"pipes":[true,true,true]} },
+  { name: "child-process.spawn stdio ignore on stdin and stderr gives fd 0 and fd 2 /dev/null", run: () => spawnCollect('/bin/sh', ['-c', 'readlink /proc/$$/fd/0; readlink /proc/$$/fd/2'], { stdio: ['ignore', 'pipe', 'ignore'] }), expected: {"stdout":"/dev/null\n/dev/null\n","stderr":"","code":0,"signal":null,"pipes":[true,false,true]} },
+  { name: "child-process.spawn stdio ignore on stdout gives fd 1 a socket as in Node", run: () => spawnCollect('/bin/sh', ['-c', 'readlink /proc/$$/fd/1 >&2; readlink /proc/$$/fd/2 >&2'], { stdio: ['pipe', 'ignore', 'pipe'] }), expected: {"stdout":"","stderr":"socket:[N]\nsocket:[N]\n","code":0,"signal":null,"pipes":[false,true,false]} },
+  { name: "child-process.spawn stdio ignore on stdout does not block a 300000-byte flood", run: () => spawnCollect('/bin/sh', ['-c', 'head -c 300000 /dev/zero'], { stdio: ['pipe', 'ignore', 'pipe'] }), expected: {"stdout":"","stderr":"","code":0,"signal":null,"pipes":[false,true,false]} },
+  { name: "child-process.execFile stdio ignore is accepted and stdout is still captured, as in Node", run: () => execCapture('/bin/sh', ['-c', 'echo hi'], { stdio: 'ignore' }), expected: {"error":null,"stdout":"hi\n","stderr":""} },
+  { name: "child-process.execFile stdio inherit is accepted and both streams are captured, as in Node", run: () => execCapture('/bin/sh', ['-c', 'echo hi; echo err 1>&2'], { stdio: 'inherit' }), expected: {"error":null,"stdout":"hi\n","stderr":"err\n"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -2485,7 +2506,7 @@ export const gapCases = [
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
-  { name: 'child-process stdio ignore', run: () => s['child-process'].spawn('true', [], { stdio: 'ignore' }) },
+  { name: 'child-process stdio foo', run: () => s['child-process'].spawn('/bin/sh', ['-c', 'echo ok'], { stdio: 'foo' }) },
   { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },

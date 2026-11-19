@@ -689,6 +689,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 7l. child-process killSignal as a number: done 2026-11-19 on Linux (see the killSignal section). Numbers in the Linux table map to the ten names txiki accepts; any other number, and any number on a non-Linux host, stays a gap.
 7m. child-process windowsHide: done 2026-11-19 as a no-op on Linux (see the windowsHide section). Boolean values are accepted on execFile and spawn and change nothing; any other value stays a gap.
 7n. crypto.createHash outputLength on non-XOF algorithms: done 2026-11-19 (see the outputLength section). Equal to the digest size is accepted; any other value throws ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH at createHash, as in Node. SHAKE (XOF) algorithms with outputLength stay a gap; a non-number value stays a gap.
+7o. child-process stdio 'ignore' (spawn) and stdio on execFile: done 2026-11-19 (see the stdio ignore section). 'ignore' per slot leaves that stream null on the parent side; stdin and stderr become /dev/null in the child; stdout gives the child a socket, as Node does. execFile accepts a stdio key and ignores it, as Node does. Other stdio values stay a gap.
 8. process.exitCode: held. The property is pure JS, but Node applies it at natural exit, and tjs exposes only exit(code) with no exit hook (runs/analysis/tjs-surface-body.js lists the members). Reopen: a txiki hook that runs when the event loop drains.
 9. os.platform and process.platform: held by the owner's direction (fx supplies the platform). Reopen: the owner or fx providing it.
 10. fs sync family (18 names) and child_process execFileSync and spawnSync: held, H8. Reopen: a blocking file or spawn call in txiki.
@@ -916,3 +917,13 @@ Design: createHash accepts the outputLength key. A number equal to the digest si
 Found by the txiki regression, not the dev body: shake256 (in txiki's hash table) with outputLength 8 threw the digest-length error, not the gap, because the first version of the check did not exclude XOFs. Fixed with the shake gap; the regression is clean after the fix.
 
 Not verified: SHAKE with outputLength (gap); Node's behaviour for outputLength on other XOF names (none in txiki).
+
+## child-process stdio 'ignore' under txiki (2026-11-19)
+
+Probe on txiki (through mcp-probe; the raw tjs.spawn and the runtime wrapper): raw tjs.spawn with stdin 'ignore' and stderr 'ignore' gives fd 0 and fd 2 at /dev/null; with stdout 'ignore' the child's fd 1 is a socket (not /dev/null), and a 300000-byte flood to it exits 0 without blocking. The runtime wrapper gapped every stdio 'ignore' form and gapped execFile's stdio key.
+
+Node probe: runs/analysis/stdioignore-node.mjs (run twice; differs only in socket inode numbers, which the cases normalise to socket:[N]): stdio 'ignore' leaves child.stdin, child.stdout and child.stderr null, exit 0; ['ignore','pipe','ignore'] gives fd 0 and fd 2 /dev/null; ['pipe','ignore','pipe'] gives fd 1 a socket; the 300000-byte flood exits 0. execFile ignores stdio: with 'ignore' it still captures 'hi\n'; with 'inherit' (runs/analysis/stdioinherit-execfile-node.mjs) it captures stdout 'hi\n' and stderr 'err\n' and does not print them.
+
+Design: stdioOf accepts 'ignore' per slot; the ChildProcess null rule is now "any slot that is not a pipe" (the old inherit-only rule renamed noStdin, noStdout, noStderr); startProcess passes 'ignore' to tjs as-is. execFile takes the stdio key and does nothing with it, as Node does.
+
+Not verified: whether the child can read from an ignored stdin (fd 0 is /dev/null, so a read gets EOF; checked by fd target only, not by a read); Windows.

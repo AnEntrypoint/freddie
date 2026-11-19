@@ -1645,3 +1645,26 @@ Wall times are single runs in sequence. The txiki times include the mcp-probe la
 Harness note (affects how the txiki witnesses were obtained, not their result): in this session the gm host returned a background stub for run_code, and the probe exited before the body's result arrived, so the txiki witnesses printed no result. runs/analysis/mcp-probe.mjs (gitignored, not part of the repo) was changed to send resources/read for skill://gm/SKILL.md before the body, and, when run_code returns a background job, to poll gm.job_status until the job finishes and print the final output. The witness command is unchanged; the probe's poll loop is what delivers the result.
 
 Not verified: macOS (the platform cases were verified on Linux only); Windows; one run per witness.
+
+## fx split: child-process stdio 'ignore' and execFile stdio, Phase A (2026-11-19)
+
+Rank 7o in docs/fx-split.md (the first reachable item in the ranked list of the previous REPORT). Probes: runs/analysis/stdioignore-node.mjs (deterministic apart from socket inode numbers, normalised in the cases), runs/analysis/stdioinherit-execfile-node.mjs (deterministic), and the txiki probe through mcp-probe (gap for each form before the change, plus the raw tjs fd targets).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: stdioOf accepts 'ignore' per slot; ChildProcess treats any non-pipe slot as absent (noStdin, noStdout, noStderr); execFile accepts the stdio key and ignores it | before: the 3 'ignore' forms and the execFile key threw the gap; after: the 6 new cases match on txiki (dev body) and Node; the gap 'child-process stdio foo' matches; txiki parity with gap assertions: shared 623, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1, 15482 ms; Node parity 623/623 |
+| test/parity-cases.js: 6 shared cases generated from the Node probes (spawn ignore: three streams null and exit 0; ignore on stdin and stderr with fd targets; ignore on stdout with its socket target; the 300000-byte flood; execFile ignore; execFile inherit), with the socket inode normalised; a helper spawnCollect and execCapture; the gap 'child-process stdio ignore' replaced by 'child-process stdio foo' (still a gap) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the stdio cases on txiki; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| G1: 'ignore' treated as a piped slot | 4 (all four spawn ignore cases) |
+| G2: stdin 'ignore' passed as a pipe | 1 (the fd 0 case) |
+| G3: stderr 'ignore' passed as a pipe | 1 (the fd 0 and fd 2 case) |
+| G4: stdio value gap restored for 'ignore' | 4 (the four spawn ignore cases) |
+| G5: execFile stdio key gap restored | 2 (the two execFile cases) |
+
+Coverage: every stdio case is red under at least one mutation.
+
+Regression (not a witness): txiki parity with gap assertions: shared 623, mismatches [], unexpectedGaps [], gaps 20, gapInactive 1. Node parity: 623/623.

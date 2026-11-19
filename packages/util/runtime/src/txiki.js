@@ -2989,7 +2989,7 @@ function idOption(opts, key) {
 function stdioOf(opts) {
   const stdio = opts.stdio ?? 'pipe'
   const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : stdio
-  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => kind !== 'pipe' && kind !== 'inherit')) throw gapError('child-process stdio ' + String(stdio))
+  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => kind !== 'pipe' && kind !== 'inherit' && kind !== 'ignore')) throw gapError('child-process stdio ' + String(stdio))
   return list
 }
 
@@ -3042,7 +3042,7 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer' && key !== 'signal' && key !== 'windowsHide') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd' && key !== 'env' && key !== 'timeout' && key !== 'killSignal' && key !== 'shell' && key !== 'uid' && key !== 'gid' && key !== 'maxBuffer' && key !== 'signal' && key !== 'windowsHide' && key !== 'stdio') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
@@ -3128,18 +3128,18 @@ class ChildProcess extends Emitter {
   constructor(file, argv, options) {
     super()
     const started = startProcess(file, argv, { ...options, stdin: true })
-    const [inStdin, inStdout, inStderr] = options.stdio.map((kind) => kind === 'inherit')
+    const [noStdin, noStdout, noStderr] = options.stdio.map((kind) => kind !== 'pipe')
     if (started.error !== undefined) {
-      this.#stdin = inStdin ? null : discardingWritable()
-      this.#stdout = inStdout ? null : closedPipe()
-      this.#stderr = inStderr ? null : closedPipe()
+      this.#stdin = noStdin ? null : discardingWritable()
+      this.#stdout = noStdout ? null : closedPipe()
+      this.#stderr = noStderr ? null : closedPipe()
       setTimeout(() => this.#fail(started.error), 0)
       return
     }
     this.#process = started.process
-    this.#stdin = inStdin ? null : openWritable(started.process.stdin)
-    this.#stdout = inStdout ? null : openPipe(started.process.stdout)
-    this.#stderr = inStderr ? null : openPipe(started.process.stderr)
+    this.#stdin = noStdin ? null : openWritable(started.process.stdin)
+    this.#stdout = noStdout ? null : openPipe(started.process.stdout)
+    this.#stderr = noStderr ? null : openPipe(started.process.stderr)
     if (options.timeout > 0) this.#timer = setTimeout(() => this.kill(options.killSignal), options.timeout)
     if (options.signal !== undefined) this.#watchAbort(options.signal, options.killSignal)
     setTimeout(() => this.#spawned(), 0)
