@@ -623,15 +623,13 @@ Not verified: non-string, non-Buffer chunks (TypeError); objectMode; writes afte
 
 Measured under gm's txiki (Phase B witnesses in docs/PENDING_VALIDATION.md): the gap-name count is 35 (was 40); the contract reports 115 present with nothing missing.
 
-## Reachable work, ranked (2026-11-19, after streams)
+## Reachable work, ranked (2026-11-19, after queue items 1 to 4)
 
-Ranked by how close each item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change. Items 1 to 5 are reachable. Items H1 to H10 are the held items: they cover the 35 gap names the txiki contract still lists, plus the held behaviour gaps, and each line says the evidence that would reopen it.
+Ranked by user-visible effect, then by how close each item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change. Each item names the probe that measures it.
 
-1. StringDecoder for latin1, ascii, hex, base64, base64url, utf16le and ucs2. Pure JS, done in this change: Node's carry rules are ported and checked against Node's split output (42 cases). Verified under Node and txiki.
-2. fs.promises.cp of a symbolic link. Done (queue item 1, commit d3f91f67): links copy as links with relative targets resolved against the source directory; dereference follows them; the Node probes are runs/analysis/cp-link-node.mjs, cp-link-node2.mjs and cp-probe3-node.mjs. Open: the ERR_FS_CP_EINVAL check for a link copied into its own subdirectory.
-3. Stream backpressure in pipe. Done (queue item 2): the readable state machine is ported (sync, needReadable, emittedReadable, awaitDrain, readingMore), so pipe pauses on a false write and resumes on drain, as the Node probes in runs/analysis/pipe-node.mjs show. Open: pipe error handling (the destination error that unpipes the source) is not ported.
-4. Readable read() and the readable event. Done with item 3 (one state machine): read(n), the readable event, the push-after-end error, and the end order match the probes in runs/analysis/readable-node.mjs and stream-edge-node.mjs. Stream.Readable.read is no longer a gap name.
-5. buffer.constants and the fs.constants O_* values. Done (queue item 4): the 15 O_* flags and buffer.constants MAX_LENGTH and MAX_STRING_LENGTH match the Node probe runs/analysis/constants-node.mjs on this x86_64 Linux host. Caveat: the O_* values are the x86_64 ones; O_DIRECT and O_DIRECTORY differ on arm64, so an arm64 host needs its own table.
+1. pipe and write error paths: a destination error or destroy makes write return false (so pipe pauses the source before end), a write after destroy calls back with ERR_STREAM_DESTROYED, a failed write calls back every queued write with the same error, and the destination's error listener is prepended so it unpipes the source. Done in this change (queue item 5): probes runs/analysis/pipe-error-node.mjs and writable-error-node.mjs, writable-destroy-queue-node.mjs; 7 new shared cases, all matching Node and txiki.
+2. Readable public unpipe(dest) and unpipe(): the internal path already exists (pipe uses it); exposing it removes the Readable.unpipe gap name. Reachable: probes manual-unpipe-after-first-write and unpipe-all-no-pipes in runs/analysis/pipe-error-node.mjs show the pause, the unpipe event and the return value. Ready to build; not started.
+3. cp of a symbolic link into its own subdirectory (ERR_FS_CP_EINVAL) and the hard-link same-inode check. Reachable only if tjs.stat exposes ino and dev, which is not yet witnessed: the reopen evidence is a txiki witness that tjs.stat returns ino and dev, plus a Node probe of cp of a link into its own subdirectory. The same-file check currently compares realpaths.
 
 Held (each names the evidence that would reopen it):
 - H1. fs.promises.access with R_OK, W_OK or X_OK. txiki has no access-with-mode call in its 52 members. Reopen: a tjs permission primitive, or a witness that a mode-bit check matches Node for owner, group and other under this host's uid.

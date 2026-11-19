@@ -333,6 +333,96 @@ async function readableWithListener(setup) {
   return log
 }
 
+async function pipeFirstChunkFailure() {
+  const log = []
+  const r = new s.stream.Readable({ read() { this.push('a'); this.push(null) } })
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); cb(new Error('dest boom')) } })
+  r.on('pause', () => log.push('r pause'))
+  r.on('end', () => log.push('r end'))
+  w.on('error', (e) => log.push('w error ' + e.message))
+  w.on('close', () => log.push('w close'))
+  r.pipe(w)
+  await closedEvent(w)
+  return log
+}
+
+async function pipeMultiChunkFailure() {
+  const chunks = ['a', 'b', 'c']
+  const log = []
+  let calls = 0
+  const r = new s.stream.Readable({ read() { calls += 1; if (calls <= chunks.length) this.push(chunks[calls - 1]); else this.push(null) } })
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); setTimeout(() => cb(chunk.toString() === 'b' ? new Error('dest boom') : null), 1) } })
+  r.on('pause', () => log.push('r pause'))
+  r.on('resume', () => log.push('r resume'))
+  r.on('end', () => log.push('r end'))
+  r.on('close', () => log.push('r close'))
+  w.on('error', (e) => log.push('w error ' + e.message))
+  w.on('close', () => log.push('w close'))
+  r.pipe(w)
+  await closedEvent(w)
+  return log
+}
+
+async function pipeDestroyWithoutError() {
+  const log = []
+  const r = new s.stream.Readable({ read() { this.push('a'); this.push('b'); this.push(null) } })
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); w.destroy(); cb() } })
+  r.on('pause', () => log.push('r pause'))
+  r.on('end', () => log.push('r end'))
+  r.on('close', () => log.push('r close'))
+  w.on('close', () => log.push('w close'))
+  r.pipe(w)
+  await closedEvent(w)
+  return log
+}
+
+async function writableQueuedAfterError() {
+  const log = []
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('_write ' + chunk.toString()); setTimeout(() => cb(chunk.toString() === 'x' ? new Error('bad') : null), 2) } })
+  w.on('error', (e) => log.push('error ' + e.message))
+  w.on('close', () => log.push('close'))
+  w.write('x', (err) => log.push('cb x ' + (err ? err.message : 'ok')))
+  w.write('y', (err) => log.push('cb y ' + (err ? err.message : 'ok')))
+  w.write('z', (err) => log.push('cb z ' + (err ? err.message : 'ok')))
+  await closedEvent(w)
+  return log
+}
+
+async function writableWriteAfterDestroy() {
+  const log = []
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { cb() } })
+  w.on('error', (e) => log.push('error ' + e.code))
+  w.on('close', () => log.push('close'))
+  w.destroy()
+  const ret = w.write('q', (err) => log.push('cb ' + (err ? err.code + ' ' + err.message : 'ok')))
+  log.push('ret ' + ret)
+  await closedEvent(w)
+  return log
+}
+
+async function writableDestroyInsideWrite() {
+  const log = []
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('_write ' + chunk.toString()); w.destroy(); cb() } })
+  w.on('close', () => log.push('close'))
+  log.push('r1 ' + w.write('a'))
+  log.push('r2 ' + w.write('b', (err) => log.push('cb b ' + (err ? err.code : 'ok'))))
+  await closedEvent(w)
+  return log
+}
+
+async function writableDestroyWithQueue() {
+  const log = []
+  const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('_write ' + chunk.toString()); setTimeout(() => cb(), 2) } })
+  w.on('error', (e) => log.push('error ' + e.code))
+  w.on('close', () => log.push('close'))
+  w.write('a', (err) => log.push('cb a ' + (err ? err.code : 'ok')))
+  w.write('b', (err) => log.push('cb b ' + (err ? err.code : 'ok')))
+  setTimeout(() => w.destroy(), 0)
+  await closedEvent(w)
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -456,6 +546,13 @@ export const sharedCases = [
   })()), expected: ["data p","p end","p close"] },
   { name: 'fs.constants O_* flags match Node on this x86_64 Linux host', run: () => ['O_RDONLY', 'O_WRONLY', 'O_RDWR', 'O_CREAT', 'O_EXCL', 'O_NOCTTY', 'O_TRUNC', 'O_APPEND', 'O_NONBLOCK', 'O_DSYNC', 'O_DIRECT', 'O_DIRECTORY', 'O_NOFOLLOW', 'O_NOATIME', 'O_SYNC'].map((key) => s.fs.constants[key]), expected: [0, 1, 2, 64, 128, 256, 512, 1024, 2048, 4096, 16384, 65536, 131072, 262144, 1052672] },
   { name: 'buffer.constants MAX_LENGTH and MAX_STRING_LENGTH match Node', run: () => [s.buffer.constants.MAX_LENGTH, s.buffer.constants.MAX_STRING_LENGTH], expected: [9007199254740991, 536870888] },
+  { name: 'stream pipe: a destination error on the first write pauses the source before end, then the error reaches the listener', run: () => streamSettle(pipeFirstChunkFailure()), expected: ["write a","r pause","r end","w error dest boom","w close"] },
+  { name: 'stream pipe: a destination error on the second of three chunks stops the writes and pauses the source', run: () => streamSettle(pipeMultiChunkFailure()), expected: ["r resume","write a","r end","r close","write b","r pause","w error dest boom","w close"] },
+  { name: 'stream pipe: destroying the destination inside write pauses the source without ending it', run: () => streamSettle(pipeDestroyWithoutError()), expected: ["write a","r pause","w close"] },
+  { name: 'stream Writable: a failed write calls back every queued write with the same error, then error, then close', run: () => streamSettle(writableQueuedAfterError()), expected: ["_write x","cb x bad","cb y bad","cb z bad","error bad","close"] },
+  { name: 'stream Writable: a write after destroy returns false and calls back with ERR_STREAM_DESTROYED', run: () => streamSettle(writableWriteAfterDestroy()), expected: ["ret false","close","cb ERR_STREAM_DESTROYED Cannot call write after a stream was destroyed"] },
+  { name: 'stream Writable: destroy inside write makes the write return false and the later write fail', run: () => streamSettle(writableDestroyInsideWrite()), expected: ["_write a","r1 false","r2 false","close","cb b ERR_STREAM_DESTROYED"] },
+  { name: 'stream Writable: destroy with a write in flight closes first, then the in-flight callback runs and the queued one fails', run: () => streamSettle(writableDestroyWithQueue()), expected: ["_write a","close","cb a ok","cb b ERR_STREAM_DESTROYED"] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },

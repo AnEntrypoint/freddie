@@ -697,3 +697,13 @@ Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken
 | contract gap names under gm's txiki (runs/analysis/contract-gaps-body.js) | gapCount 35, unchanged; exit 0 | 0.16 s probe |
 
 The gap count fell from 16 to 14 because stream.Readable.read and fs.constants.O_RDONLY are no longer gap cases. The 35 contract gap names did not change.
+
+## fx split: pipe and write error paths under txiki (2026-11-19)
+
+Open divergence 1 from the Phase B record, ranked first in docs/fx-split.md. The Node 24 oracle probes are runs/analysis/pipe-error-node.mjs, writable-error-node.mjs and writable-destroy-queue-node.mjs (untracked). Rules recorded from them: a write that fails or lands on a destroyed stream returns false, so pipe pauses the source; a failed write calls back every queued write with the same error before the error event; a write after destroy calls back with ERR_STREAM_DESTROYED and emits nothing; a destroy with a write in flight emits close first, then the in-flight callback runs with its own result, then queued callbacks get ERR_STREAM_DESTROYED; pipe's destination error listener is prepended, unpipes the source, and re-emits only when no other error listener exists.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Writable.write returns false on a destroyed stream and calls back a write after destroy with ERR_STREAM_DESTROYED; a failed write fails the queued callbacks with the same error; destroy flushes the queue with the stream's error or ERR_STREAM_DESTROYED; Emitter.prepend is added; pipe prepends its error listener, unpipes on error, and re-emits only with no other listener | the dev check passes all 41 stream cases under Node (dev-stream-node.out) and the same 41 under gm's txiki (dev-stream-txiki.out) | Node parity and txiki parity |
+| test/parity-cases.js: pipeFirstChunkFailure, pipeMultiChunkFailure, pipeDestroyWithoutError, writableQueuedAfterError, writableWriteAfterDestroy, writableDestroyInsideWrite, writableDestroyWithQueue; 7 shared cases from the probes | the same 7 match Node and txiki | Node parity and txiki parity |
+| docs/fx-split.md: the ranked list rewritten (items 1 to 3 and the held items H1 to H10 with their reopen evidence) | none | none |

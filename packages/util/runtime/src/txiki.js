@@ -1703,6 +1703,10 @@ class Emitter {
     return true
   }
 
+  static prepend(emitter, name, listener) {
+    emitter.#listenersOf(name).unshift(listener)
+  }
+
   static detach(emitter, name, listener) {
     const list = emitter.#listenersOf(name)
     const index = list.indexOf(listener)
@@ -1740,6 +1744,10 @@ function fsPathError(error, syscall, path) {
   return Object.assign(new Error("ENOENT: no such file or directory, " + syscall + " '" + path + "'"), { errno: -2, code: 'ENOENT', syscall, path })
 }
 
+function destroyedError() {
+  return nodeError('ERR_STREAM_DESTROYED', 'Cannot call write after a stream was destroyed')
+}
+
 class Writable extends Emitter {
   #queue = []
   #writing = null
@@ -1749,6 +1757,7 @@ class Writable extends Emitter {
   #destroyed = false
   #needDrain = false
   #finishCallbacks = []
+  #failure = null
 
   constructor(options) {
     super()
@@ -1780,13 +1789,17 @@ class Writable extends Emitter {
       this.destroy(error)
       return false
     }
+    if (this.#destroyed) {
+      nextTick(() => callback?.(destroyedError()))
+      return false
+    }
     const bytes = bytesOf(chunk, encoding)
     this.#queue.push({ bytes, callback })
     this.#length += bytes.length
     const ok = this.#length < DEFAULT_HIGH_WATER_MARK
     if (!ok) this.#needDrain = true
     this.#drain()
-    return ok
+    return ok && !this.#destroyed
   }
 
   end(chunk, encoding, callback) {
@@ -1809,10 +1822,12 @@ class Writable extends Emitter {
   destroy(error) {
     if (this.#destroyed) return this
     this.#destroyed = true
+    if (error !== undefined && error !== null) this.#failure = error
     this._destroy(error, () => {
       if (error !== undefined && error !== null) nextTick(() => this.emit('error', error))
       nextTick(() => this.emit('close'))
     })
+    if (this.#writing === null) this.#failBuffered()
     return this
   }
 
@@ -1828,16 +1843,28 @@ class Writable extends Emitter {
     this.#length -= entry.bytes.length
     if (error) {
       nextTick(() => entry.callback?.(error))
+      this.#failure = error
+      this.#failBuffered()
       this.destroy(error)
       return
     }
     nextTick(() => entry.callback?.())
+    if (this.#destroyed) {
+      this.#failBuffered()
+      return
+    }
     this.#drain()
     if (this.#needDrain && this.#length === 0 && !this.#ending && !this.#destroyed) {
       this.#needDrain = false
       nextTick(() => this.emit('drain'))
     }
     this.#prefinish()
+  }
+
+  #failBuffered() {
+    const error = this.#failure ?? destroyedError()
+    for (const entry of this.#queue.splice(0)) nextTick(() => entry.callback?.(error))
+    this.#length = 0
   }
 
   #prefinish() {
@@ -1956,6 +1983,11 @@ class Readable extends Emitter {
     const onunpipe = (readable) => {
       if (readable === source) cleanup()
     }
+    const onerror = (error) => {
+      unpipe()
+      Emitter.detach(destination, 'error', onerror)
+      if (destination.listenerCount('error') === 0) destination.emit('error', error)
+    }
     const onclose = () => {
       Emitter.detach(destination, 'finish', onfinish)
       unpipe()
@@ -1981,6 +2013,7 @@ class Readable extends Emitter {
       Emitter.detach(destination, 'close', onclose)
       Emitter.detach(destination, 'finish', onfinish)
       Emitter.detach(destination, 'unpipe', onunpipe)
+      Emitter.detach(destination, 'error', onerror)
       if (ondrain !== null) Emitter.detach(destination, 'drain', ondrain)
       Emitter.detach(source, 'end', endFn)
       Emitter.detach(source, 'data', ondata)
@@ -1992,6 +2025,7 @@ class Readable extends Emitter {
     else source.on('end', endFn)
     destination.on('unpipe', onunpipe)
     source.on('data', ondata)
+    Emitter.prepend(destination, 'error', onerror)
     destination.on('close', onclose)
     destination.on('finish', onfinish)
     destination.emit('pipe', source)
