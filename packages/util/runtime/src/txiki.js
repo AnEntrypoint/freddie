@@ -825,17 +825,69 @@ function availableParallelism() {
 
 class StringDecoder {
   #decoder = new TextDecoder('utf-8', { ignoreBOM: true })
+  #encoding
+  #lastChar = new Uint8Array(4)
+  #lastNeed = 0
+  #lastTotal = 0
 
   constructor(encoding = 'utf8') {
-    if (encodingOf(encoding) !== 'utf8') throw gapError('StringDecoder for ' + String(encoding))
+    this.#encoding = encodingOf(encoding)
   }
 
   write(bytes) {
-    return this.#decoder.decode(bytes, { stream: true })
+    if (this.#encoding === 'utf8') return this.#decoder.decode(bytes, { stream: true })
+    let text = ''
+    let offset = 0
+    if (this.#lastNeed > 0) {
+      const count = Math.min(this.#lastNeed, bytes.length)
+      this.#lastChar.set(bytes.subarray(0, count), this.#lastTotal - this.#lastNeed)
+      this.#lastNeed -= count
+      if (this.#lastNeed > 0) return ''
+      text = CODECS[this.#encoding].decode(this.#lastChar.subarray(0, this.#lastTotal))
+      offset = count
+    }
+    return offset < bytes.length ? text + this.#text(bytes, offset) : text
   }
 
   end(bytes) {
-    return bytes === undefined ? this.#decoder.decode() : this.#decoder.decode(bytes)
+    if (this.#encoding === 'utf8') return bytes === undefined ? this.#decoder.decode() : this.#decoder.decode(bytes)
+    const text = bytes === undefined || bytes.length === 0 ? '' : this.write(bytes)
+    if (this.#lastNeed === 0) return text
+    return text + CODECS[this.#encoding].decode(this.#lastChar.subarray(0, this.#lastTotal - this.#lastNeed))
+  }
+
+  #text(bytes, offset) {
+    if (this.#encoding === 'utf16le') return this.#utf16Text(bytes, offset)
+    if (this.#encoding === 'base64' || this.#encoding === 'base64url') return this.#base64Text(bytes, offset)
+    return CODECS[this.#encoding].decode(bytes.subarray(offset))
+  }
+
+  #utf16Text(bytes, offset) {
+    if ((bytes.length - offset) % 2 === 1) {
+      this.#lastNeed = 1
+      this.#lastTotal = 2
+      this.#lastChar[0] = bytes[bytes.length - 1]
+      return CODECS.utf16le.decode(bytes.subarray(offset, bytes.length - 1))
+    }
+    const text = CODECS.utf16le.decode(bytes.subarray(offset))
+    const last = text.charCodeAt(text.length - 1)
+    if (last >= 0xd800 && last <= 0xdbff) {
+      this.#lastNeed = 2
+      this.#lastTotal = 4
+      this.#lastChar[0] = bytes[bytes.length - 2]
+      this.#lastChar[1] = bytes[bytes.length - 1]
+      return text.slice(0, -1)
+    }
+    return text
+  }
+
+  #base64Text(bytes, offset) {
+    const rest = (bytes.length - offset) % 3
+    if (rest === 0) return CODECS[this.#encoding].decode(bytes.subarray(offset))
+    this.#lastNeed = 3 - rest
+    this.#lastTotal = 3
+    this.#lastChar.set(bytes.subarray(bytes.length - rest), 0)
+    return CODECS[this.#encoding].decode(bytes.subarray(offset, bytes.length - rest))
   }
 }
 

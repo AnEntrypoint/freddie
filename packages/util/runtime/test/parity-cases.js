@@ -3,6 +3,18 @@ import { subpaths as s } from './subpaths.js'
 const { Buffer } = s.buffer
 const { StringDecoder } = s['string-decoder']
 const fsp = s['fs-promises']
+const decoderBytes = Buffer.from('68e96c6c6f20f09f98803dd800de7f80ff', 'hex')
+const decoderParts = (encoding, sizes) => {
+  const decoder = new StringDecoder(encoding)
+  const parts = []
+  let offset = 0
+  for (const size of sizes) {
+    parts.push(decoder.write(decoderBytes.subarray(offset, offset + size)))
+    offset += size
+  }
+  parts.push(decoder.end())
+  return parts
+}
 const streamSettle = (promise) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3000))])
 const closedEvent = (stream) => new Promise((resolve) => stream.on('close', resolve))
 const streamFile = async (name, bytes) => {
@@ -293,6 +305,48 @@ export const sharedCases = [
   { name: 'fs.createReadStream: a small file emits open, ready, data, end, then close', run: () => streamSettle(streamScenarios.createReadSmall()), expected: ["open number","ready","data hello stream","end","close"] },
   { name: 'fs.createReadStream: a 150000-byte file is read in 65536-byte chunks', run: () => streamSettle(streamScenarios.createReadLarge()), expected: ["data 65536","data 65536","data 18928","end","close"] },
   { name: 'fs.createReadStream: a missing file emits the Node ENOENT error, then close', run: () => streamSettle(streamScenarios.createReadMissing()), expected: ["error ENOENT -2 open ENOENT: no such file or directory, open '/nonexistent-freddie-stream/missing.txt'","close"] },
+  { name: 'StringDecoder latin1 whole matches Node', run: () => decoderParts('latin1', [17]), expected: ["héllo ð=Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder latin1 singles matches Node', run: () => decoderParts('latin1', Array(17).fill(1)), expected: ["h","é","l","l","o"," ","ð","","","","=","Ø","\u0000","Þ","","","ÿ",""] },
+  { name: 'StringDecoder latin1 split12_5 matches Node', run: () => decoderParts('latin1', [12, 5]), expected: ["héllo ð=Ø","\u0000Þÿ",""] },
+  { name: 'StringDecoder latin1 split11_6 matches Node', run: () => decoderParts('latin1', [11, 6]), expected: ["héllo ð=","Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder latin1 split3_14 matches Node', run: () => decoderParts('latin1', [3, 14]), expected: ["hél","lo ð=Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder ascii whole matches Node', run: () => decoderParts('ascii', [17]), expected: ["hillo p\u001f\u0018\u0000=X\u0000^\u0000",""] },
+  { name: 'StringDecoder ascii singles matches Node', run: () => decoderParts('ascii', Array(17).fill(1)), expected: ["h","i","l","l","o"," ","p","\u001f","\u0018","\u0000","=","X","\u0000","^","","\u0000","",""] },
+  { name: 'StringDecoder ascii split12_5 matches Node', run: () => decoderParts('ascii', [12, 5]), expected: ["hillo p\u001f\u0018\u0000=X","\u0000^\u0000",""] },
+  { name: 'StringDecoder ascii split11_6 matches Node', run: () => decoderParts('ascii', [11, 6]), expected: ["hillo p\u001f\u0018\u0000=","X\u0000^\u0000",""] },
+  { name: 'StringDecoder ascii split3_14 matches Node', run: () => decoderParts('ascii', [3, 14]), expected: ["hil","lo p\u001f\u0018\u0000=X\u0000^\u0000",""] },
+  { name: 'StringDecoder hex whole matches Node', run: () => decoderParts('hex', [17]), expected: ["68e96c6c6f20f09f98803dd800de7f80ff",""] },
+  { name: 'StringDecoder hex singles matches Node', run: () => decoderParts('hex', Array(17).fill(1)), expected: ["68","e9","6c","6c","6f","20","f0","9f","98","80","3d","d8","00","de","7f","80","ff",""] },
+  { name: 'StringDecoder hex split12_5 matches Node', run: () => decoderParts('hex', [12, 5]), expected: ["68e96c6c6f20f09f98803dd8","00de7f80ff",""] },
+  { name: 'StringDecoder hex split11_6 matches Node', run: () => decoderParts('hex', [11, 6]), expected: ["68e96c6c6f20f09f98803d","d800de7f80ff",""] },
+  { name: 'StringDecoder hex split3_14 matches Node', run: () => decoderParts('hex', [3, 14]), expected: ["68e96c","6c6f20f09f98803dd800de7f80ff",""] },
+  { name: 'StringDecoder base64 whole matches Node', run: () => decoderParts('base64', [17]), expected: ["aOlsbG8g8J+YgD3YAN5/","gP8="] },
+  { name: 'StringDecoder base64 singles matches Node', run: () => decoderParts('base64', Array(17).fill(1)), expected: ["","","aOls","","","bG8g","","","8J+Y","","","gD3Y","","","AN5/","","","gP8="] },
+  { name: 'StringDecoder base64 split12_5 matches Node', run: () => decoderParts('base64', [12, 5]), expected: ["aOlsbG8g8J+YgD3Y","AN5/","gP8="] },
+  { name: 'StringDecoder base64 split11_6 matches Node', run: () => decoderParts('base64', [11, 6]), expected: ["aOlsbG8g8J+Y","gD3YAN5/","gP8="] },
+  { name: 'StringDecoder base64 split3_14 matches Node', run: () => decoderParts('base64', [3, 14]), expected: ["aOls","bG8g8J+YgD3YAN5/","gP8="] },
+  { name: 'StringDecoder base64url whole matches Node', run: () => decoderParts('base64url', [17]), expected: ["aOlsbG8g8J-YgD3YAN5_","gP8"] },
+  { name: 'StringDecoder base64url singles matches Node', run: () => decoderParts('base64url', Array(17).fill(1)), expected: ["","","aOls","","","bG8g","","","8J-Y","","","gD3Y","","","AN5_","","","gP8"] },
+  { name: 'StringDecoder base64url split12_5 matches Node', run: () => decoderParts('base64url', [12, 5]), expected: ["aOlsbG8g8J-YgD3Y","AN5_","gP8"] },
+  { name: 'StringDecoder base64url split11_6 matches Node', run: () => decoderParts('base64url', [11, 6]), expected: ["aOlsbG8g8J-Y","gD3YAN5_","gP8"] },
+  { name: 'StringDecoder base64url split3_14 matches Node', run: () => decoderParts('base64url', [3, 14]), expected: ["aOls","bG8g8J-YgD3YAN5_","gP8"] },
+  { name: 'StringDecoder utf16le whole matches Node', run: () => decoderParts('utf16le', [17]), expected: ["汬⁯鿰肘😀聿",""] },
+  { name: 'StringDecoder utf16le singles matches Node', run: () => decoderParts('utf16le', Array(17).fill(1)), expected: ["","","","汬","","⁯","","鿰","","肘","","\ud83d","","\ude00","","聿","",""] },
+  { name: 'StringDecoder utf16le split12_5 matches Node', run: () => decoderParts('utf16le', [12, 5]), expected: ["汬⁯鿰肘","😀聿",""] },
+  { name: 'StringDecoder utf16le split11_6 matches Node', run: () => decoderParts('utf16le', [11, 6]), expected: ["汬⁯鿰肘","😀聿",""] },
+  { name: 'StringDecoder utf16le split3_14 matches Node', run: () => decoderParts('utf16le', [3, 14]), expected: ["","汬⁯鿰肘😀聿",""] },
+  { name: 'StringDecoder binary whole matches Node', run: () => decoderParts('binary', [17]), expected: ["héllo ð=Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder binary singles matches Node', run: () => decoderParts('binary', Array(17).fill(1)), expected: ["h","é","l","l","o"," ","ð","","","","=","Ø","\u0000","Þ","","","ÿ",""] },
+  { name: 'StringDecoder binary split12_5 matches Node', run: () => decoderParts('binary', [12, 5]), expected: ["héllo ð=Ø","\u0000Þÿ",""] },
+  { name: 'StringDecoder binary split11_6 matches Node', run: () => decoderParts('binary', [11, 6]), expected: ["héllo ð=","Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder binary split3_14 matches Node', run: () => decoderParts('binary', [3, 14]), expected: ["hél","lo ð=Ø\u0000Þÿ",""] },
+  { name: 'StringDecoder ucs2 whole matches Node', run: () => decoderParts('ucs2', [17]), expected: ["汬⁯鿰肘😀聿",""] },
+  { name: 'StringDecoder ucs2 singles matches Node', run: () => decoderParts('ucs2', Array(17).fill(1)), expected: ["","","","汬","","⁯","","鿰","","肘","","\ud83d","","\ude00","","聿","",""] },
+  { name: 'StringDecoder ucs2 split12_5 matches Node', run: () => decoderParts('ucs2', [12, 5]), expected: ["汬⁯鿰肘","😀聿",""] },
+  { name: 'StringDecoder ucs2 split11_6 matches Node', run: () => decoderParts('ucs2', [11, 6]), expected: ["汬⁯鿰肘","😀聿",""] },
+  { name: 'StringDecoder ucs2 split3_14 matches Node', run: () => decoderParts('ucs2', [3, 14]), expected: ["","汬⁯鿰肘😀聿",""] },
+  { name: 'StringDecoder rejects an unknown encoding', run: () => new StringDecoder('bogus'), expected: 'threw: Unknown encoding: bogus' },
+  { name: 'StringDecoder base64 end with only the bytes of a partial group', run: () => new StringDecoder('base64').end(Buffer.from('ab')), expected: "YWI=" },
 ]
 
 const BT = String.fromCharCode(96)
@@ -815,7 +869,6 @@ export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
   { name: 'crypto.createHash sha3-256', run: () => s.crypto.createHash('sha3-256') },
-  { name: 'StringDecoder for latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },
   { name: 'process.exitCode', run: () => proc.exitCode },
