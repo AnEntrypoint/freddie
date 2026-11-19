@@ -1469,3 +1469,18 @@ Coverage: each stdio case and the gap case is red under at least one mutation (u
 Regression (not a witness): txiki parity with gap assertions: shared 589, mismatches [], unexpectedGaps [], gaps 17, gapInactive 1. Node parity: 589/589.
 
 Not verified: 'ignore'; the ENOENT path with inherit; reading from an inherited stdin.
+
+## Phase B: child-process uid and gid, detached (evidence), and stdio (f8a2b447, 3c423f15, 5cbca548), 2026-11-19
+
+Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 51 of 51: si 332 KB/s, so 0 KB/s. The first poll read si 2404 KB/s.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 589/589 shared cases match; 0/0 gaps throw the documented message; 7536 ms | 7.65 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 589, gapAsserted 0 (structural: it counts shared entries with a gap field), gaps 17, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 14226 | 14.64 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.08 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.15 s |
+
+Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
+
+Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only; the stdio routing check is by fd target, not by text (see the stdio section).
