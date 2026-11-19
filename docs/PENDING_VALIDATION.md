@@ -372,3 +372,14 @@ Ranked item 6 in docs/fx-split.md. Flag a opens with tjs.open(path, 'a') and wri
 | packages/util/runtime/src/txiki.js: writeFile takes flag a through tjs.open with a write loop | node --check passes | txiki parity: the 5 append cases are not among the mismatches |
 | packages/util/runtime/test/parity-cases.js: 5 shared cases (new file, existing file, bytes unchanged, a 200000-byte buffer appended in full, the default flag still overwrites) and withScratch | node --check passes | Node parity 112/112 |
 | docs/fx-split.md: gap row now names flag w or a; the append note; ranked row 6 marked done | grep shows the rows | none |
+
+## fx split: Phase B for ranked items 5 and 6 (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths (gunzip added to zlib); exit 0 | 0.15 s |
+| node test/parity-node.js | 112/112 shared cases match; exit 0 | 0.32 s process, 166 ms in runParity |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.27 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | runParity throws "txiki parity failed" with 5 mismatches, all zlib: the round trip, header bytes, trailer, empty input and bad input; the 5 append cases pass; unexpectedGaps [] | 0.75 s probe |
+
+Item 5 (zlib over CompressionStream) is blocked by the txiki build, not by the code: the streams throw "not a function" for each valid format. The cause and what settles it are in docs/fx-split.md under the zlib section. The txiki parity run exits non-zero until then. Item 6 (writeFile flag a) passes under both runtimes.
