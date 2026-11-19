@@ -295,6 +295,44 @@ async function cpLinkScenario() {
   return out
 }
 
+async function pipeBackpressure(sizes, delay) {
+  const log = []
+  let calls = 0
+  const r = new s.stream.Readable({
+    read() {
+      calls += 1
+      log.push('read ' + calls)
+      if (calls <= sizes.length) this.push(Buffer.alloc(sizes[calls - 1], 96 + calls))
+      else this.push(null)
+    },
+  })
+  const w = new s.stream.Writable({
+    write(chunk, enc, cb) {
+      log.push('write ' + chunk.length)
+      setTimeout(() => { log.push('written ' + chunk.length); cb() }, delay)
+    },
+  })
+  r.on('pause', () => log.push('pause'))
+  r.on('resume', () => log.push('resume'))
+  w.on('drain', () => log.push('drain'))
+  r.on('end', () => log.push('end'))
+  r.on('close', () => log.push('r close'))
+  w.on('finish', () => log.push('finish'))
+  w.on('close', () => log.push('w close'))
+  r.pipe(w)
+  await closedEvent(w)
+  return log
+}
+
+async function readableWithListener(setup) {
+  const log = []
+  const r = setup(log)
+  r.on('end', () => log.push('end'))
+  r.on('close', () => log.push('close'))
+  await closedEvent(r)
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -342,6 +380,80 @@ export const sharedCases = [
   { name: 'net.isIP', run: () => [s.net.isIP('10.0.0.1'), s.net.isIP('::1'), s.net.isIP('nope')], expected: [4, 6, 0] },
   { name: 'os values', run: () => [typeof s.os.homedir(), typeof s.os.tmpdir(), s.os.availableParallelism() > 0], expected: ['string', 'string', true] },
   { name: 'process basics', run: () => [typeof proc.env, typeof proc.cwd(), typeof proc.pid, Array.isArray(proc.argv), typeof proc.kill, typeof proc.exit], expected: ['object', 'string', 'number', true, 'function', 'function'] },
+  { name: 'stream pipe: a 70000-byte chunk pauses the source until drain, then the source ends after the last drain', run: () => streamSettle(pipeBackpressure([70000, 70000, 70000], 5)), expected: ["read 1","resume","read 2","write 70000","pause","written 70000","drain","resume","read 3","write 70000","pause","written 70000","drain","resume","read 4","write 70000","pause","end","r close","written 70000","finish","w close"] },
+  { name: 'stream pipe: small chunks never pause and the destination pauses the source only after finish', run: () => streamSettle(pipeBackpressure([1000, 1000, 1000], 5)), expected: ["read 1","resume","read 2","write 1000","read 3","read 4","end","r close","written 1000","write 1000","written 1000","write 1000","written 1000","finish","pause","w close"] },
+  { name: 'stream pipe: four 40000-byte chunks pause after the second write and resume on drain', run: () => streamSettle(pipeBackpressure([40000, 40000, 40000, 40000], 5)), expected: ["read 1","resume","read 2","write 40000","read 3","pause","read 4","written 40000","write 40000","written 40000","drain","resume","read 5","write 40000","pause","end","r close","written 40000","write 40000","written 40000","finish","w close"] },
+  { name: 'stream pipe: one 200000-byte chunk pauses at once and the source ends before the write finishes', run: () => streamSettle(pipeBackpressure([200000], 5)), expected: ["read 1","resume","read 2","write 200000","pause","end","r close","written 200000","finish","w close"] },
+  { name: 'stream Writable: write returns false once 64 KiB is queued', run: () => {
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { setTimeout(cb, 5) } })
+    return [w.write(Buffer.alloc(40000)), w.write(Buffer.alloc(40000)), w.write(Buffer.alloc(1))]
+  }, expected: [true, false, false] },
+  { name: 'stream Readable: read() with no argument returns all buffered data in a readable listener', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push('abc'); this.push(null) } })
+    r.on('readable', () => { log.push('readable'); let c; while ((c = r.read()) !== null) log.push('read ' + c) })
+    return r
+  })), expected: ["readable","read abc","end","close"] },
+  { name: 'stream Readable: read(5) then read(3) then read() then read() returns null at the end', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push('hello world'); this.push(null) } })
+    r.once('readable', () => {
+      log.push('readable')
+      log.push('read5 ' + r.read(5))
+      log.push('read3 ' + r.read(3))
+      log.push('readAll ' + r.read())
+      log.push('readNull ' + r.read())
+    })
+    return r
+  })), expected: ["readable","read5 hello","read3  wo","readAll rld","readNull null","end","close"] },
+  { name: 'stream Readable: an ended stream with no data emits readable, then end, then close', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push(null) } })
+    r.on('readable', () => { log.push('readable'); log.push('read ' + r.read()) })
+    return r
+  })), expected: ["readable","read null","end","close"] },
+  { name: 'stream Readable: an async push emits readable again after the data', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { setTimeout(() => { this.push('x'); this.push(null) }, 5) } })
+    r.on('readable', () => { log.push('readable'); let c; while ((c = r.read()) !== null) log.push('read ' + c) })
+    return r
+  })), expected: ["readable","read x","readable","end","close"] },
+  { name: 'stream Readable: read(5) waits for more data and returns short only at the end', run: () => streamSettle(readableWithListener((log) => {
+    let calls = 0
+    const r = new s.stream.Readable({
+      read() {
+        calls += 1
+        log.push('_read ' + calls)
+        if (calls === 1) this.push('ab')
+        else if (calls === 2) setTimeout(() => { this.push('cdefg'); this.push(null) }, 5)
+      },
+    })
+    r.on('readable', () => { log.push('readable'); let c; while ((c = r.read(5)) !== null) log.push('read5 ' + c) })
+    return r
+  })), expected: ["_read 1","readable","_read 2","readable","read5 abcde","read5 fg","readable","end","close"] },
+  { name: 'stream Readable: read(5) on a short ended stream returns the short data, then null', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push('ab'); this.push(null) } })
+    r.once('readable', () => { log.push('readable'); log.push('read5 ' + r.read(5)); log.push('readNull ' + r.read()) })
+    return r
+  })), expected: ["readable","read5 ab","readNull null","end","close"] },
+  { name: 'stream Readable: a single pushed chunk emits readable, read, then end', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push('z'); this.push(null) } })
+    r.on('readable', () => { log.push('readable'); let c; while ((c = r.read()) !== null) log.push('read ' + c) })
+    return r
+  })), expected: ["readable","read z","end","close"] },
+  { name: 'stream Readable: a push after end emits ERR_STREAM_PUSH_AFTER_EOF and no end', run: () => streamSettle(readableWithListener((log) => {
+    const r = new s.stream.Readable({ read() { this.push('a'); this.push(null); this.push('late') } })
+    r.on('data', (c) => log.push('data ' + c.toString()))
+    r.on('error', (e) => log.push('error ' + e.code + ' ' + e.message))
+    return r
+  })), expected: ["data a","error ERR_STREAM_PUSH_AFTER_EOF stream.push() after EOF","close"] },
+  { name: 'stream pipe into a PassThrough emits the data, then end, then close', run: () => streamSettle((async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() { this.push('p'); this.push(null) } })
+    const p = new s.stream.PassThrough()
+    p.on('data', (c) => log.push('data ' + c.toString()))
+    p.on('end', () => log.push('p end'))
+    p.on('close', () => log.push('p close'))
+    r.pipe(p)
+    await closedEvent(p)
+    return log
+  })()), expected: ["data p","p end","p close"] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
@@ -959,7 +1071,6 @@ export const gapCases = [
   { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
   { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
   { name: 'fs.createReadStream option encoding', run: () => s.fs.createReadStream('/nonexistent-freddie-stream/x', 'utf8') },
-  { name: 'stream.Readable.read', run: () => new s.stream.Readable({ read() {} }).read() },
   { name: 'stream.Writable.cork', run: () => new s.stream.Writable().cork() },
   { name: 'stream.Readable.off', run: () => new s.stream.Readable().off('data', () => {}) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },

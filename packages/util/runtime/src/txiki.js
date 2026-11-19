@@ -1665,13 +1665,11 @@ class Emitter {
   }
 
   once(name, listener) {
-    const list = this.#listenersOf(name)
     const wrapped = (...args) => {
-      list.splice(list.indexOf(wrapped), 1)
+      Emitter.detach(this, name, wrapped)
       listener(...args)
     }
-    list.push(wrapped)
-    return this
+    return this.on(name, wrapped)
   }
 
   listenerCount(name) {
@@ -1683,6 +1681,12 @@ class Emitter {
     if (list.length === 0 && name === 'error') throw args[0]
     for (const listener of [...list]) listener(...args)
     return true
+  }
+
+  static detach(emitter, name, listener) {
+    const list = emitter.#listenersOf(name)
+    const index = list.indexOf(listener)
+    if (index !== -1) list.splice(index, 1)
   }
 
   #listenersOf(name) {
@@ -1731,6 +1735,10 @@ class Writable extends Emitter {
     assertNoOptions('stream.Writable', options, ['write', 'final'])
     if (options?.write !== undefined) this._write = options.write
     if (options?.final !== undefined) this._final = options.final
+  }
+
+  get writableNeedDrain() {
+    return !this.#ending && !this.#destroyed && this.#needDrain
   }
 
   _write(chunk, encoding, callback) {
@@ -1805,7 +1813,7 @@ class Writable extends Emitter {
     }
     nextTick(() => entry.callback?.())
     this.#drain()
-    if (this.#needDrain && this.#length === 0) {
+    if (this.#needDrain && this.#length === 0 && !this.#ending && !this.#destroyed) {
       this.#needDrain = false
       nextTick(() => this.emit('drain'))
     }
@@ -1836,21 +1844,32 @@ class Writable extends Emitter {
 }
 declareGaps('stream.Writable', Writable, [...EMITTER_GAP_METHODS, 'cork', 'setDefaultEncoding', 'uncork'])
 
+const kTransform = Symbol('transform')
+
 class Readable extends Emitter {
   #buffer = []
   #length = 0
-  #ended = false
-  #endScheduled = false
   #flowing = null
+  #paused = null
+  #ended = false
+  #endEmitted = false
   #reading = false
-  #sync = false
-  #flowScheduled = false
+  #sync = true
+  #needReadable = false
+  #emittedReadable = false
+  #readableListening = false
+  #resumeScheduled = false
+  #readingMore = false
   #destroyed = false
+  #closeEmitted = false
+  #pipes = []
+  #awaitDrain = new Set()
 
   constructor(options) {
     super()
     assertNoOptions('stream.Readable', options, ['read'])
     if (options?.read !== undefined) this._read = options.read
+    if (options?.[kTransform] === true) this.#sync = false
   }
 
   _read() {
@@ -1867,55 +1886,161 @@ class Readable extends Emitter {
 
   on(name, listener) {
     super.on(name, listener)
-    if (name === 'data' && this.#flowing !== false) this.resume()
+    if (name === 'data') {
+      this.#readableListening = this.listenerCount('readable') > 0
+      if (this.#flowing !== false) this.resume()
+    } else if (name === 'readable' && !this.#endEmitted && !this.#readableListening) {
+      this.#readableListening = true
+      this.#needReadable = true
+      this.#flowing = false
+      this.#emittedReadable = false
+      if (this.#length > 0) this.#emitReadable()
+      else if (!this.#reading) nextTick(() => this.read(0))
+    }
     return this
   }
 
   isPaused() {
-    return this.#flowing === false
+    return this.#paused === true || (this.#paused !== false && this.#flowing === false)
   }
 
   pause() {
-    this.#flowing = false
+    if (this.#flowing !== false) {
+      this.#flowing = false
+      this.emit('pause')
+    }
+    this.#paused = true
     return this
   }
 
   resume() {
     if (this.#flowing !== true) {
-      this.#flowing = true
-      nextTick(() => {
-        this.#callRead()
-        this.#flow()
-      })
+      this.#flowing = !this.#readableListening
+      this.#scheduleResume()
     }
+    this.#paused = false
     return this
   }
 
   pipe(destination, options) {
-    this.on('data', (chunk) => destination.write(chunk))
-    if (options?.end !== false) this.on('end', () => destination.end())
+    const source = this
+    const doEnd = options?.end !== false
+    let ondrain = null
+    let cleanedUp = false
+    const unpipe = () => source.#unpipe(destination)
+    const onend = () => destination.end()
+    const endFn = doEnd ? onend : unpipe
+    const ondata = (chunk) => {
+      if (destination.write(chunk) === false) pause()
+    }
+    const onunpipe = (readable) => {
+      if (readable === source) cleanup()
+    }
+    const onclose = () => {
+      Emitter.detach(destination, 'finish', onfinish)
+      unpipe()
+    }
+    const onfinish = () => {
+      Emitter.detach(destination, 'close', onclose)
+      unpipe()
+    }
+    const pause = () => {
+      if (!cleanedUp) {
+        source.#awaitDrain.add(destination)
+        source.pause()
+      }
+      if (ondrain === null) {
+        ondrain = () => {
+          source.#awaitDrain.delete(destination)
+          if (source.#awaitDrain.size === 0 && source.listenerCount('data') > 0) source.resume()
+        }
+        destination.on('drain', ondrain)
+      }
+    }
+    const cleanup = () => {
+      Emitter.detach(destination, 'close', onclose)
+      Emitter.detach(destination, 'finish', onfinish)
+      Emitter.detach(destination, 'unpipe', onunpipe)
+      if (ondrain !== null) Emitter.detach(destination, 'drain', ondrain)
+      Emitter.detach(source, 'end', endFn)
+      Emitter.detach(source, 'data', ondata)
+      cleanedUp = true
+      if (ondrain !== null && source.#awaitDrain.has(destination)) ondrain()
+    }
+    this.#pipes.push(destination)
+    if (this.#endEmitted) nextTick(endFn)
+    else source.on('end', endFn)
+    destination.on('unpipe', onunpipe)
+    source.on('data', ondata)
+    destination.on('close', onclose)
+    destination.on('finish', onfinish)
+    destination.emit('pipe', source)
+    if (destination.writableNeedDrain === true) {
+      if (this.#flowing === true) pause()
+    } else if (this.#flowing !== true) {
+      this.resume()
+    }
     return destination
   }
 
   push(chunk, encoding) {
-    this.#reading = false
     if (this.#destroyed) return false
     if (chunk === null) {
-      this.#ended = true
-      if (this.#flowing === true && this.#length === 0) this.#maybeEnd()
-      else this.#scheduleFlow()
+      this.#reading = false
+      this.#onEof()
+      return false
+    }
+    if (this.#ended) {
+      this.destroy(nodeError('ERR_STREAM_PUSH_AFTER_EOF', 'stream.push() after EOF'))
       return false
     }
     const bytes = bytesOf(chunk, encoding)
-    if (this.#flowing === true && this.#length === 0 && !this.#sync && this.listenerCount('data') > 0) {
-      this.emit('data', Buffer.from(bytes))
-      this.#scheduleFlow()
-      return true
+    this.#reading = false
+    if (bytes.length > 0) this.#addChunk(Buffer.from(bytes))
+    else this.#maybeReadMore()
+    return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
+  }
+
+  read(n) {
+    if (n === undefined) n = NaN
+    else if (!Number.isInteger(n)) n = Number.parseInt(n, 10)
+    const requested = n
+    if (n !== 0) this.#emittedReadable = false
+    if (n === 0 && this.#needReadable && (this.#length >= DEFAULT_HIGH_WATER_MARK || this.#ended)) {
+      if (this.#length === 0 && this.#ended) this.#endReadable()
+      else this.#emitReadable()
+      return null
     }
-    this.#buffer.push(bytes)
-    this.#length += bytes.length
-    this.#scheduleFlow()
-    return this.#length < DEFAULT_HIGH_WATER_MARK
+    n = this.#howMuchToRead(n)
+    if (n === 0 && this.#ended) {
+      if (this.#length === 0) this.#endReadable()
+      return null
+    }
+    let doRead = this.#needReadable
+    if (this.#length === 0 || this.#length - n < DEFAULT_HIGH_WATER_MARK) doRead = true
+    if (this.#ended || this.#reading || this.#destroyed) doRead = false
+    else if (doRead) {
+      this.#reading = true
+      this.#sync = true
+      if (this.#length === 0) this.#needReadable = true
+      this._read(DEFAULT_HIGH_WATER_MARK)
+      this.#sync = false
+      if (!this.#reading) n = this.#howMuchToRead(requested)
+    }
+    const ret = n > 0 ? this.#fromList(n) : null
+    if (ret === null) {
+      this.#needReadable = this.#length <= DEFAULT_HIGH_WATER_MARK
+      n = 0
+    } else {
+      this.#length -= n
+      this.#awaitDrain.clear()
+    }
+    if (this.#length === 0) {
+      if (!this.#ended) this.#needReadable = true
+      if (requested !== n && this.#ended) this.#endReadable()
+    }
+    if (ret !== null && !this.#closeEmitted) this.emit('data', ret)
+    return ret
   }
 
   destroy(error) {
@@ -1923,52 +2048,143 @@ class Readable extends Emitter {
     this.#destroyed = true
     this._destroy(error, () => {
       if (error !== undefined && error !== null) nextTick(() => this.emit('error', error))
-      nextTick(() => this.emit('close'))
+      nextTick(() => {
+        this.#closeEmitted = true
+        this.emit('close')
+      })
     })
     return this
   }
 
-  #callRead() {
-    if (this.#reading || this.#ended || this.#destroyed) return
-    this.#reading = true
-    this.#sync = true
-    this._read(DEFAULT_HIGH_WATER_MARK)
-    this.#sync = false
+  #addChunk(bytes) {
+    if (this.#flowing === true && this.#length === 0 && !this.#sync && this.listenerCount('data') > 0) {
+      this.emit('data', bytes)
+    } else {
+      this.#length += bytes.length
+      this.#buffer.push(bytes)
+      if (this.#needReadable) this.#emitReadable()
+    }
+    this.#maybeReadMore()
   }
 
-  #scheduleFlow() {
-    if (this.#flowScheduled) return
-    this.#flowScheduled = true
-    nextTick(() => {
-      this.#flowScheduled = false
-      this.#flow()
-    })
+  #onEof() {
+    if (this.#ended) return
+    this.#ended = true
+    if (this.#sync) {
+      this.#emitReadable()
+    } else {
+      this.#needReadable = false
+      this.#emittedReadable = true
+      this.#emitReadableNT()
+    }
+  }
+
+  #emitReadable() {
+    this.#needReadable = false
+    if (!this.#emittedReadable) {
+      this.#emittedReadable = true
+      nextTick(() => this.#emitReadableNT())
+    }
+  }
+
+  #emitReadableNT() {
+    if (!this.#destroyed && (this.#length > 0 || this.#ended)) {
+      this.emit('readable')
+      this.#emittedReadable = false
+    }
+    this.#needReadable = this.#flowing !== true && !this.#ended && this.#length <= DEFAULT_HIGH_WATER_MARK
+    this.#flow()
   }
 
   #flow() {
-    while (this.#flowing === true && !this.#destroyed) {
-      if (this.#length === 0) {
-        this.#callRead()
-        if (this.#length === 0) break
-      }
-      const bytes = this.#buffer.shift()
-      this.#length -= bytes.length
-      this.emit('data', Buffer.from(bytes))
-    }
-    this.#maybeEnd()
+    while (this.#flowing === true && this.read() !== null);
   }
 
-  #maybeEnd() {
-    if (this.#flowing !== true || !this.#ended || this.#length > 0 || this.#endScheduled) return
-    this.#endScheduled = true
-    nextTick(() => {
-      if (this.#destroyed) return
+  #scheduleResume() {
+    if (this.#resumeScheduled) return
+    this.#resumeScheduled = true
+    nextTick(() => this.#resumeNT())
+  }
+
+  #resumeNT() {
+    if (!this.#reading) this.read(0)
+    this.#resumeScheduled = false
+    this.emit('resume')
+    this.#flow()
+    if (this.#flowing === true && !this.#reading) this.read(0)
+  }
+
+  #maybeReadMore() {
+    if (this.#readingMore) return
+    this.#readingMore = true
+    nextTick(() => this.#maybeReadMoreNT())
+  }
+
+  #maybeReadMoreNT() {
+    while (!this.#reading && !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || (this.#flowing === true && this.#length === 0))) {
+      const length = this.#length
+      this.read(0)
+      if (length === this.#length) break
+    }
+    this.#readingMore = false
+  }
+
+  #howMuchToRead(n) {
+    if (n <= 0 || (this.#length === 0 && this.#ended)) return 0
+    if (Number.isNaN(n)) {
+      if (this.#flowing === true && this.#length > 0) return this.#buffer[0].length
+      return this.#length
+    }
+    if (n <= this.#length) return n
+    return this.#ended ? this.#length : 0
+  }
+
+  #fromList(n) {
+    if (this.#length === 0) return null
+    if (n >= this.#length) {
+      const all = this.#buffer.length === 1 ? this.#buffer[0] : Buffer.concat(this.#buffer, this.#length)
+      this.#buffer = []
+      return all
+    }
+    const parts = []
+    let need = n
+    while (need > 0) {
+      const head = this.#buffer[0]
+      if (need >= head.length) {
+        parts.push(this.#buffer.shift())
+        need -= head.length
+      } else {
+        parts.push(head.subarray(0, need))
+        this.#buffer[0] = head.subarray(need)
+        need = 0
+      }
+    }
+    return Buffer.concat(parts, n)
+  }
+
+  #endReadable() {
+    if (this.#endEmitted) return
+    this.#ended = true
+    nextTick(() => this.#endReadableNT())
+  }
+
+  #endReadableNT() {
+    if (!this.#destroyed && !this.#endEmitted && this.#length === 0) {
+      this.#endEmitted = true
       this.emit('end')
       this._afterEnd()
-    })
+    }
+  }
+
+  #unpipe(destination) {
+    const index = this.#pipes.indexOf(destination)
+    if (index === -1) return
+    this.#pipes.splice(index, 1)
+    if (this.#pipes.length === 0) this.pause()
+    destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'read', 'setEncoding', 'unpipe', 'unshift', 'wrap'])
+declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'setEncoding', 'unpipe', 'unshift', 'wrap'])
 
 class PassThrough extends Readable {
   #writable
@@ -1976,7 +2192,7 @@ class PassThrough extends Readable {
   #writeFinished = false
 
   constructor(options) {
-    super({ read() {} })
+    super({ read() {}, [kTransform]: true })
     assertNoOptions('stream.PassThrough', options, [])
     this.#writable = new Writable({
       write: (chunk, encoding, callback) => {
@@ -1993,6 +2209,10 @@ class PassThrough extends Readable {
       this.emit('finish')
       this.#closeWhenDone()
     })
+  }
+
+  get writableNeedDrain() {
+    return this.#writable.writableNeedDrain
   }
 
   write(chunk, encoding, callback) {

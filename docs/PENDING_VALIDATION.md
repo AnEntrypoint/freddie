@@ -662,3 +662,14 @@ Queue item 1 (cp of a symbolic link). The Node 24 oracle probes are runs/analysi
 | src/fs-promises.js: re-exports readlink and symlink | none beyond the parity case | Node parity |
 | test/parity-cases.js: cpLinkScenario and one shared case with 27 expectations taken from the probes | the Node dev check and the txiki dev check agree | Node parity and txiki parity |
 | Not ported: the ERR_FS_CP_EINVAL check for a link copied into its own subdirectory, and the inode comparison for hard links (the same-file check compares realpaths instead). The dereferenced same-file case is probed and matches | none | none; an open divergence until a probe covers it |
+
+## fx split: stream backpressure in pipe and Readable read() under txiki (2026-11-19)
+
+Queue items 2 and 3. Both use one readable state machine in src/txiki.js: sync (starts true, false for PassThrough), needReadable, emittedReadable, readingMore, a set of awaitDrain destinations, and the pipes list. The Node 24 oracle probes are runs/analysis/pipe-node.mjs (4 cases), readable-node.mjs (7 cases) and stream-edge-node.mjs (2 cases; the pipe-into-destination-error case is left out because its unpipe order is not ported). Writable.writableNeedDrain is added, Emitter.once goes through on, and Readable.read is removed from the gap list.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Readable port of read(n), the readable event, pipe with pause on a false write and resume on drain, unpipe on finish or close, the push-after-end error, and the PassThrough transform start (sync false) | the dev check passes the 34 stream cases under Node and the same 34 under gm's txiki | Node parity and txiki parity |
+| test/parity-cases.js: pipeBackpressure and readableWithListener helpers; 13 shared cases from the probes; the stream.Readable.read gap case removed | Node dev check: all 34 stream cases match Node | Node parity and txiki parity |
+| docs/fx-split.md: items 2, 3 and 4 of the ranked list marked done with their probe files | none | none |
+| Not ported: pipe error handling (the destination error listener that unpipes the source) and the public Readable.unpipe, which stays a gap name. The probe pipe-dest-error in runs/analysis/stream-edge-node.mjs shows a pause before end that this port does not reproduce, so that case is left out of the parity cases | none; an open divergence until probed and ported |

@@ -628,9 +628,9 @@ Measured under gm's txiki (Phase B witnesses in docs/PENDING_VALIDATION.md): the
 Ranked by how close each item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change. Items 1 to 5 are reachable. Items H1 to H10 are the held items: they cover the 35 gap names the txiki contract still lists, plus the held behaviour gaps, and each line says the evidence that would reopen it.
 
 1. StringDecoder for latin1, ascii, hex, base64, base64url, utf16le and ucs2. Pure JS, done in this change: Node's carry rules are ported and checked against Node's split output (42 cases). Verified under Node and txiki.
-2. fs.promises.cp of a symbolic link. Reachable: tjs has readLink and symlink (in the tjs member list). Needs a Node probe of cp over a tree with a link, to fix the link's target and whether cp copies the link or its target.
-3. Stream backpressure in pipe. Pure JS over the stream classes: pause the source when write returns false, resume on drain. Needs a Node probe with chunks above the 64 KiB highWaterMark into a slow Writable.
-4. Readable read() and the readable event. Pure JS. Needs Node probes of read(n) and the order of readable and end events; the ordering is the risk.
+2. fs.promises.cp of a symbolic link. Done (queue item 1, commit d3f91f67): links copy as links with relative targets resolved against the source directory; dereference follows them; the Node probes are runs/analysis/cp-link-node.mjs, cp-link-node2.mjs and cp-probe3-node.mjs. Open: the ERR_FS_CP_EINVAL check for a link copied into its own subdirectory.
+3. Stream backpressure in pipe. Done (queue item 2): the readable state machine is ported (sync, needReadable, emittedReadable, awaitDrain, readingMore), so pipe pauses on a false write and resumes on drain, as the Node probes in runs/analysis/pipe-node.mjs show. Open: pipe error handling (the destination error that unpipes the source) is not ported.
+4. Readable read() and the readable event. Done with item 3 (one state machine): read(n), the readable event, the push-after-end error, and the end order match the probes in runs/analysis/readable-node.mjs and stream-edge-node.mjs. Stream.Readable.read is no longer a gap name.
 5. buffer.constants and the fs.constants O_* values. Constants only, checked against Node on this Linux host. Low value: O_* flags are not usable with tjs.open unless mapped.
 
 Held (each names the evidence that would reopen it):
