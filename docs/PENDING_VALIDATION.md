@@ -1783,3 +1783,20 @@ Probes in this stretch: each Node probe and each txiki run (mcp-probe) was bound
 Longest step: the stage 3 mutation loop, dominated by gate waits (the loop sampled up to 25 times, 20 s apart, before each run). It was not timed separately. What was done about it: each run waited for an open reading and was bounded by timeout 150, and the job was polled rather than restarted.
 
 Not verified: the witnesses ran once each. The Node contract and txiki contract do not exercise the new options directly; the parity cases do.
+
+## Phase A: stream-level buffered limit of fs.createReadStream (witness for S2M5 and S2M2), 2026-11-19
+
+Gap from the previous report: the stream-level limit was red under no witness, because the suite only observed emitted data. This adds witnesses that read the stream's own buffer (readableLength) after one read(0) and a 150 ms wait. Node first: runs/analysis/stream-limits-node.mjs (exit 0, timeout 60). Its first version, without read(0), gave 0 for every case: Node does not read until asked, so the witness calls read(0). With read(0), Node gives: highWaterMark 4 gives 4; start 2 end 4 gives 3; end 2 alone gives 3; start 1, end 8, highWaterMark 3 gives 3; no options gives 10 (the whole small file).
+
+| Change | Phase A evidence |
+|---|---|
+| test/parity-cases.js: 5 witnesses (readableLength after read(0) and 150 ms) for the highWaterMark limit, the start and end limit, the end-alone limit, the start/end/highWaterMark limit, and a control with no options | Node parity 649/649 (8979 ms); txiki parity with gap assertions: shared 649, gaps 23, mismatches [] (the source is the committed stage-3 source, unchanged) |
+
+Mutation evidence (saved good copy /tmp/stageA-good-txiki.js; each run through mcp-probe with timeout 150 and an open window before it; restore checked with cmp; git status shows no change to txiki.js):
+
+| Mutation | Stream-level witnesses red |
+|---|---|
+| A-M1 (= S2M5): the stream-level highWaterMark not forwarded to the stream | 2: 'highWaterMark 4 limits the buffered bytes to 4' (got 10, expected 4) and 'start, end and highWaterMark limit the buffered bytes' (got 8, expected 3) |
+| A-M2 (= S2M2): the end limit ignored | 2: 'start and end limit the buffered bytes to the range' (got 8, expected 3) and 'end alone limits the buffered bytes' (got 10, expected 3); the data-level end cases are red as well |
+
+S2M5 is now covered (it was red under no witness before). The object-path mutation for the stage-1 case is recorded in its own section below.

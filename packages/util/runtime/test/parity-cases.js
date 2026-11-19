@@ -2536,6 +2536,16 @@ sharedCases.push(
   { name: 'fs.promises.writeFile string mode 0600 ignored when file exists', run: () => writeFlagOutcome([{ file: 'f', data: 'old', flag: 'w', mode: 420 }], { file: 'f', data: 'new', flag: 'w', mode: '0600' }), expected: { content: 'new', mode: '644' } },
 )
 
+const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+const bufferedAfterRead = async (options) => { const { file } = await streamFile('ten.txt', 'abcdefghij'); const rs = s.fs.createReadStream(file, options); rs.read(0); await sleepMs(150); const buffered = rs.readableLength; rs.destroy(); return buffered }
+sharedCases.push(
+  { name: 'fs.createReadStream highWaterMark 4 limits the buffered bytes to 4', run: () => bufferedAfterRead({ highWaterMark: 4 }), expected: 4 },
+  { name: 'fs.createReadStream start and end limit the buffered bytes to the range', run: () => bufferedAfterRead({ start: 2, end: 4 }), expected: 3 },
+  { name: 'fs.createReadStream end alone limits the buffered bytes', run: () => bufferedAfterRead({ end: 2 }), expected: 3 },
+  { name: 'fs.createReadStream start, end and highWaterMark limit the buffered bytes', run: () => bufferedAfterRead({ start: 1, end: 8, highWaterMark: 3 }), expected: 3 },
+  { name: 'fs.createReadStream without options buffers the whole small file', run: () => bufferedAfterRead(undefined), expected: 10 },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
