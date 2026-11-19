@@ -944,3 +944,29 @@ Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/
 | contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 240 / 0 (2 polls) | present 117, missing []; exit 0 | 0.17 s |
 
 Commit covered: 76ec239f (child-process.spawn stdout as a Readable), on top of c46fad29. The gap-assertion count fell from 3 to 2 because the stdout gap case is now a shared case. The two asserted gaps are the cwd cases on execFile and spawn, which are ranked 3 in docs/fx-split.md.
+
+## fx split: child-process.spawn stderr as a Readable (2026-11-19)
+
+Rank 2 of the ranked list of declared gaps outside the stream group (docs/fx-split.md). Probe: runs/analysis/child-stderr-node.mjs, run twice with identical output. The stderr probe matches the stdout probe on every measured point, so the stderr cases use the same expectations shape as the stdout cases.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: openPipe builds a Readable over a tjs pipe and pumps it from spawn; stdout and stderr each get one; close waits for both ends, and a stream with no consumer at exit is resumed and drained; stderr getter returns its Readable; stdin stays a gap getter | dev before the change: 25 child-process.spawn cases, Node 25 SAME; txiki red on the 8 stderr cases (and the cwd gap case, which the dev harness does not assert). After the change: txiki 25 total, failing only the cwd gap case | Node parity and txiki parity with gap assertions |
+| test/parity-cases.js: 10 stderr cases from the probe output (through pipeOutcome and pipesOutcome, which replace stdoutOutcome's body); the late read goes through lateRead, and its failure is a rejection, not an uncaught error | the same runs | the same |
+
+Mutation evidence (the mutated file is run through the stderr progress body; each restore is checked with cmp against the saved copy, and git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| M1: stderr getter throws the gap again | carries; 70000; setEncoding; nonzero exit; separate; stderr read with stdout unread; late read; same object |
+| M2: pump pushes empty buffers (shared pump, so stdout too) | carries; 70000; setEncoding; nonzero exit; separate; stdout read with stderr unread; stderr read with stdout unread |
+| M3: close waits for stdout only | carries; setEncoding; nonzero exit; separate |
+| M4: unconsumed streams are not resumed at exit | 70000; setEncoding; nonzero exit; stdout read with stderr unread; stderr read with stdout unread; no read and discard; late read |
+| M6: getter returns a new wrapper on each access | carries; 70000; setEncoding; nonzero exit; separate; stderr read with stdout unread; late read; same object |
+| M7: stderr pipe replaced by a closed pipe | carries; 70000; setEncoding; nonzero exit; separate; stderr read with stdout unread |
+
+Case reading: each of the 10 stderr cases is red under at least one mutation (the no-read discard case under M4; the same-object case under M1 and M6).
+
+Regression (not a witness): Node parity 402 of 402 (2487 ms). txiki parity with gap assertions: shared 402, gapAsserted 2, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3893 ms). The two asserted gaps are the cwd cases on execFile and spawn, which are still gaps.
+
+Not verified: stderr destroy, pause and resume while attached, the stderr close event, and stderr after a spawn failure.

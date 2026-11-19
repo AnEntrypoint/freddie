@@ -2648,27 +2648,58 @@ function startChild(file, argv) {
   }
 }
 
+function openPipe(stream) {
+  let release = null
+  const readable = new Readable({
+    read: () => {
+      const resume = release
+      release = null
+      resume?.()
+    },
+  })
+  const ended = new Promise((resolve) => readable.once('end', resolve))
+  const reader = stream.getReader()
+  const pump = async () => {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      const drained = new Promise((resolve) => {
+        release = resolve
+      })
+      if (!readable.push(Buffer.from(value)) && readable.readableFlowing !== null) await drained
+    }
+    readable.push(null)
+  }
+  pump().catch((error) => readable.destroy(error))
+  return { readable, ended }
+}
+
+function closedPipe() {
+  const readable = new Readable({ read() {} })
+  readable.push(null)
+  return { readable, ended: Promise.resolve() }
+}
+
 class ChildProcess extends Emitter {
   #process
   #exited = false
   #stdout
-  #stdoutEnded
-  #resumePump = null
+  #stderr
   killed = false
 
   constructor(file, argv, cmd) {
     super()
-    this.#stdout = new Readable({ read: () => this.#releasePump() })
     const started = startChild(file, argv)
     if (started.error !== undefined) {
       const error = started.error.code === 'ENOENT' ? missingCommandError(file, cmd) : started.error
-      this.#stdout.push(null)
+      this.#stdout = closedPipe()
+      this.#stderr = closedPipe()
       setTimeout(() => this.#fail(error), 0)
       return
     }
     this.#process = started.process
-    this.#stdoutEnded = new Promise((resolve) => this.#stdout.once('end', resolve))
-    this.#pumpStdout()
+    this.#stdout = openPipe(started.process.stdout)
+    this.#stderr = openPipe(started.process.stderr)
     setTimeout(() => this.#spawned(), 0)
   }
 
@@ -2681,11 +2712,11 @@ class ChildProcess extends Emitter {
   }
 
   get stdout() {
-    return this.#stdout
+    return this.#stdout.readable
   }
 
   get stderr() {
-    throw gapError('child-process.spawn stderr stream')
+    return this.#stderr.readable
   }
 
   kill(signal = 'SIGTERM') {
@@ -2705,36 +2736,15 @@ class ChildProcess extends Emitter {
     this.#reap()
   }
 
-  #pumpStdout() {
-    const reader = this.#process.stdout.getReader()
-    const pump = async () => {
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const drained = new Promise((resolve) => {
-          this.#resumePump = resolve
-        })
-        if (!this.#stdout.push(Buffer.from(value)) && this.#stdout.readableFlowing !== null) await drained
-      }
-      this.#stdout.push(null)
-    }
-    pump().catch((error) => this.#stdout.destroy(error))
-  }
-
-  #releasePump() {
-    const resume = this.#resumePump
-    this.#resumePump = null
-    resume?.()
-  }
-
   async #reap() {
-    const process = this.#process
-    const [, status] = await Promise.all([process.stderr.bytes(), process.wait()])
+    const status = await this.#process.wait()
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
     this.emit('exit', code, signal)
-    if (this.#stdout.readableFlowing === null) this.#stdout.resume()
-    await this.#stdoutEnded
+    for (const pipe of [this.#stdout, this.#stderr]) {
+      if (pipe.readable.readableFlowing === null) pipe.readable.resume()
+    }
+    await Promise.all([this.#stdout.ended, this.#stderr.ended])
     this.emit('close', code, signal)
   }
 

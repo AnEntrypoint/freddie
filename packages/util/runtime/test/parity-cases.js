@@ -1942,13 +1942,13 @@ const spawnOutcome = (file, args, options, step) => new Promise((resolve) => {
 const killStep = (child) => [child.kill('SIGTERM'), child.killed]
 const pidStep = (child) => typeof child.pid
 
-const stdoutOutcome = (file, args, options, encoding) => new Promise((resolve) => {
+const pipeOutcome = (which, file, args, options, encoding) => new Promise((resolve) => {
   const child = s['child-process'].spawn(file, args, options ?? {})
   const chunks = []
   const order = []
-  if (encoding !== undefined) child.stdout.setEncoding(encoding)
-  child.stdout.on('data', (chunk) => chunks.push(chunk))
-  child.stdout.on('end', () => order.push('end'))
+  if (encoding !== undefined) child[which].setEncoding(encoding)
+  child[which].on('data', (chunk) => chunks.push(chunk))
+  child[which].on('end', () => order.push('end'))
   child.on('close', (code, signal) => {
     order.push('close')
     resolve({
@@ -1958,17 +1958,43 @@ const stdoutOutcome = (file, args, options, encoding) => new Promise((resolve) =
       chunkTypes: [...new Set(chunks.map((chunk) => typeof chunk))],
       allBuffers: chunks.every((chunk) => Buffer.isBuffer(chunk)),
       endBeforeClose: order.join() === 'end,close',
-      readable: child.stdout instanceof s.stream.Readable,
+      readable: child[which] instanceof s.stream.Readable,
     })
   })
 })
 
-const lateStdoutRead = () => new Promise((resolve, reject) => {
-  const child = s['child-process'].spawn('sh', ['-c', 'printf late'])
+const stdoutOutcome = (file, args, options, encoding) => pipeOutcome('stdout', file, args, options, encoding)
+const stderrOutcome = (file, args, options, encoding) => pipeOutcome('stderr', file, args, options, encoding)
+
+const pipesOutcome = (file, args, attach) => new Promise((resolve) => {
+  const child = s['child-process'].spawn(file, args)
+  const collected = { stdout: null, stderr: null }
+  const order = []
+  for (const which of attach) {
+    const chunks = []
+    collected[which] = chunks
+    child[which].on('data', (chunk) => chunks.push(chunk))
+    child[which].on('end', () => order.push(which + ' end'))
+  }
+  child.on('close', (code, signal) => {
+    order.push('close')
+    resolve({
+      code,
+      signal,
+      stdout: collected.stdout && Buffer.concat(collected.stdout).toString(),
+      stderr: collected.stderr && Buffer.concat(collected.stderr).toString(),
+      endBeforeClose: attach.every((which) => order.indexOf(which + ' end') >= 0 && order.indexOf(which + ' end') < order.indexOf('close')),
+    })
+  })
+})
+
+const lateRead = (which) => new Promise((resolve, reject) => {
+  const script = which === 'stdout' ? 'printf late' : 'printf late >&2'
+  const child = s['child-process'].spawn('sh', ['-c', script])
   child.on('close', () => setTimeout(() => {
     try {
       const late = []
-      child.stdout.on('data', (chunk) => late.push(chunk))
+      child[which].on('data', (chunk) => late.push(chunk))
       setTimeout(() => resolve(Buffer.concat(late).toString()), 300)
     } catch (error) {
       reject(error)
@@ -1976,6 +2002,8 @@ const lateStdoutRead = () => new Promise((resolve, reject) => {
   }, 200))
 })
 
+const lateStdoutRead = () => lateRead('stdout')
+const lateStderrRead = () => lateRead('stderr')
 
 sharedCases.push(
   { name: "child-process.spawn reports exit then close with the exit code", run: () => spawnOutcome('sh', ['-c', 'exit 3']), expected: {"events":["spawn",["exit",3,null]],"code":3,"signal":null} },
@@ -1996,6 +2024,19 @@ sharedCases.push(
   { name: "child-process.spawn closes without a stdout read and discards 70000 bytes", run: () => streamSettle(spawnOutcome('sh', ['-c', 'head -c 70000 /dev/zero'])), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null} },
   { name: "child-process.spawn stdout read after close is empty", run: () => streamSettle(lateStdoutRead()), expected: "" },
   { name: "child-process.spawn stdout is the same Readable on each access", run: () => { const child = s['child-process'].spawn('sh', ['-c', 'exit 0']); return child.stdout === child.stdout }, expected: true },
+)
+
+sharedCases.push(
+  { name: "child-process.spawn stderr carries Buffer chunks and ends before close", run: () => streamSettle(stderrOutcome('sh', ['-c', 'printf err >&2'])), expected: {"code":0,"signal":null,"text":"err","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn stderr delivers 70000 bytes across chunks before close", run: () => streamSettle(stderrOutcome('sh', ['-c', 'head -c 70000 /dev/zero >&2']).then(({ text, ...rest }) => ({ ...rest, length: text.length }))), expected: {"code":0,"signal":null,"chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true,"length":70000} },
+  { name: "child-process.spawn stderr setEncoding utf8 yields strings", run: () => streamSettle(stderrOutcome('sh', ['-c', 'printf "h\\303\\251" >&2'], undefined, 'utf8')), expected: {"code":0,"signal":null,"text":"hé","chunkTypes":["string"],"allBuffers":false,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn stderr keeps output before a nonzero exit code", run: () => streamSettle(stderrOutcome('sh', ['-c', 'printf err >&2; exit 3'])), expected: {"code":3,"signal":null,"text":"err","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn stdout and stderr stay separate", run: () => streamSettle(pipesOutcome('sh', ['-c', 'printf out; printf err >&2'], ['stdout', 'stderr'])), expected: {"code":0,"signal":null,"stdout":"out","stderr":"err","endBeforeClose":true} },
+  { name: "child-process.spawn closes with stdout read and stderr unread", run: () => streamSettle(pipesOutcome('sh', ['-c', 'printf hi; head -c 70000 /dev/zero >&2'], ['stdout'])), expected: {"code":0,"signal":null,"stdout":"hi","stderr":null,"endBeforeClose":true} },
+  { name: "child-process.spawn closes with stderr read and stdout unread", run: () => streamSettle(pipesOutcome('sh', ['-c', 'printf hi; head -c 70000 /dev/zero >&2'], ['stderr']).then(({ stderr, ...rest }) => ({ ...rest, length: stderr.length }))), expected: {"code":0,"signal":null,"stdout":null,"endBeforeClose":true,"length":70000} },
+  { name: "child-process.spawn stderr closes without a read and discards 70000 bytes", run: () => streamSettle(spawnOutcome('sh', ['-c', 'head -c 70000 /dev/zero >&2'])), expected: {"events":["spawn",["exit",0,null]],"code":0,"signal":null} },
+  { name: "child-process.spawn stderr read after close is empty", run: () => streamSettle(lateStderrRead()), expected: "" },
+  { name: "child-process.spawn stderr is the same Readable on each access", run: () => { const child = s['child-process'].spawn('sh', ['-c', 'exit 0']); return child.stderr === child.stderr }, expected: true },
 )
 
 export const gapCases = [

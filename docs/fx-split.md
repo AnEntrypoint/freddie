@@ -571,9 +571,9 @@ Finding that shaped the design: tjs.spawn is synchronous in this build. It retur
 Decisions, each reversible, with its reason:
 
 - Events are delivered asynchronously with setTimeout(0), as Node delivers them after the call returns. The order is spawn, then exit, then close. A missing command emits error (code ENOENT, message "spawn <file> ENOENT") and then close with code -2, as Node does. Reason: a listener attached after spawn() returns must still see every event.
-- exit fires when the child exits, not at process exit. close fires after the stderr pipe ends and, once stdout has a consumer, after the stdout stream ends; with no consumer at exit, stdout is discarded (see the stdout section). Reason: the pipes are drained so a chatty child cannot block. Not verified against Node: a grandchild holding stderr open, which keeps close waiting.
+- exit fires when the child exits, not at process exit. close fires after both stdout and stderr have ended; a stream with no consumer at exit is drained and its data discarded (see the stdout and stderr sections). Reason: the pipes are drained so a chatty child cannot block. Not verified against Node: a grandchild holding stderr open, which keeps close waiting.
 - pid and kill(signal) are synchronous, as in Node. kill accepts signal names, returns true when the signal is sent and false once the child has exited or failed to start, and sets killed. A signal name txiki rejects with RangeError becomes the documented gap message "child-process.spawn kill with signal <name>". Node throws ERR_UNKNOWN_SIGNAL for an unknown name instead, so the messages differ; this path is not verified by a shared case.
-- stdin and stderr getters throw the documented gap messages. Not ported yet; stderr uses the same route as stdout (see the ranked list below). stdout is a Readable (see the stdout section).
+- stdin getter throws the documented gap message. Not ported yet. stdout and stderr are Readables (see their sections).
 - Options: any option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (cwd, env, stdio and the rest need verified mappings).
 - on and once are the only listener methods. Node's ChildProcess is a full EventEmitter; off, emit and the rest are not provided. Reason: no caller here needs them; adding them later is reversible.
 - error with no listener throws, as Node does: the shared Emitter rethrows it (changed 2026-11-19 with the stream change).
@@ -670,7 +670,7 @@ Not verified: destroy, pause and resume of the stdout stream while attached, the
 Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGaps members that throw) and in the gap cases of test/parity-cases.js. The stream group is out of this ranking: the six stream names are done, and the stream options (Readable and Writable highWaterMark and objectMode, PassThrough highWaterMark) belong to it. Ranked by user-visible effect, then by how close each reachable item is to a verified result. Reachable means no owner decision, no credential, no fx change and no native change.
 
 1. child-process.spawn stdout: done 2026-11-19 (see the stdout section).
-2. child-process.spawn stderr: reachable by the stdout route (tjs.spawn's stderr is a ProcessReadableStream). Not ported yet.
+2. child-process.spawn stderr: done 2026-11-19 (see the stderr section).
 3. child-process option cwd on execFile and spawn: reachable. A probe ran tjs.spawn with cwd '/' and it printed '/' and exited 0 (runs/analysis/spawn-facts-body.js). Not ported yet; env and the other options are not probed.
 4. util.parseArgs() with no args: reachable. Node's default is process.argv.slice(2), and the runtime already sets process.argv, so only a mapping probe is needed.
 5. fs.createReadStream option encoding: reachable. Readable.setEncoding is done, so the option can call it.
@@ -684,3 +684,11 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 13. module.createRequire: held, fx (it needs a CommonJS loader). Reopen: fx providing one.
 14. module.stripTypeScriptTypes: held, owner decision (a TypeScript parser is a dependency). Reopen: that decision.
 15. http.createServer: held, H4 (owner decision on the server API). Reopen: the owner's design for it.
+
+## child-process.spawn stderr under txiki (2026-11-19)
+
+stderr is a Readable fed by the same pump as stdout, through the shared openPipe helper in src/txiki.js. Probe runs/analysis/child-stderr-node.mjs, run twice with identical output.
+
+Does stderr match stdout? On every point the probe measured, yes: a default read gives Buffer chunks and end before close; 70000 bytes arrive whole; setEncoding('utf8') yields strings; a nonzero exit keeps the output; with no read, close fires and the output is discarded; a stream attached after close gets nothing; stdout and stderr stay separate; a read on one stream with the other unread still closes, and the unread stream's output is discarded. The stdout probe (runs/analysis/child-stdout-node.mjs) gives the same results, so no difference was found.
+
+Not verified: stderr destroy, pause and resume while attached, the stderr close event, and stderr after a spawn failure (the ENOENT path uses the same closed pipe as stdout, not compared with Node).
