@@ -1033,7 +1033,22 @@ const scheduler = {
   yield: () => delay(0),
 }
 
+const PLATFORM_BY_UNAME = { Linux: 'linux', Darwin: 'darwin', FreeBSD: 'freebsd', OpenBSD: 'openbsd', SunOS: 'sunos', AIX: 'aix' }
+
+async function kernelName() {
+  const child = tjs.spawn(['uname', '-s'], { stdout: 'pipe', stderr: 'pipe' })
+  const name = new TextDecoder().decode(await child.stdout.bytes()).trim()
+  await child.wait()
+  return name
+}
+
+const osPlatform = await kernelName().then(
+  (name) => (Object.hasOwn(PLATFORM_BY_UNAME, name) ? PLATFORM_BY_UNAME[name] : undefined),
+  () => undefined,
+)
+
 const processObject = withGaps('process', {
+  ...(osPlatform === undefined ? {} : { platform: osPlatform }),
   argv: [tjs.exePath, ...tjs.args],
   cwd: () => tjs.cwd,
   env: tjs.env,
@@ -3150,7 +3165,7 @@ export const txikiRuntime = {
     homedir: () => tjs.homeDir,
     tmpdir: () => tjs.tmpDir,
     networkInterfaces,
-    ...gapFunctions('os', ['platform']),
+    platform: osPlatform === undefined ? gapFunction('os.platform') : () => osPlatform,
     release: osRelease === undefined ? gapFunction('os.release') : () => osRelease,
   }),
   workerThreads: withGaps('worker_threads', {

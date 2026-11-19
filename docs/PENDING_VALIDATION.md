@@ -1484,3 +1484,28 @@ Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 51 of 51:
 Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
 
 Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only; the stdio routing check is by fd target, not by text (see the stdio section).
+
+## fx split: os.platform and process.platform, Phase A (2026-11-19)
+
+Rank 7i in docs/fx-split.md (owner decision). Probes: runs/analysis/platform-node.mjs (deterministic) and the inline txiki probe (/tmp/platform-txiki.json: no tjs.platform; /proc/sys/kernel/ostype and uname -s both read Linux).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: kernelName() spawns uname -s once at load; PLATFORM_BY_UNAME maps the name to Node's platform name; osPlatform feeds os.platform and process.platform; an unknown name or failed spawn leaves both gaps | before: os.platform and process.platform threw the gap; after: the 3 platform cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 592, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1, 14099 ms; Node parity 592/592 |
+| test/parity-cases.js: 3 cases generated from platform-node.out (os.platform 'linux', process.platform 'linux', and os.platform agreeing with uname -s 'Linux'); the two gap cases for os.platform and process.platform removed (they now resolve) | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the platform cases; each restore checked with cmp; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| P1: Linux mapped to freebsd | 3 |
+| P2: every kernel name mapped to darwin | 3 |
+| P3: process.platform removed (gap again) | 1 |
+| P4: os.platform gap restored | 2 |
+| P5: uname queried with -o (no match, so gap) | 3 |
+
+Coverage: all 3 cases are red under at least one mutation (uncovered []).
+
+Limit, recorded: a hard-coded 'linux' would pass all three cases on this Linux host, because the Linux value is also the derived one. The uname agreement case is the one that would catch it on a macOS host (uname -s would then read Darwin); that host was not available, so this is unmeasured.
+
+Regression (not a witness): txiki parity with gap assertions: shared 592, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1. Node parity: 592/592.

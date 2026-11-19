@@ -2395,11 +2395,17 @@ sharedCases.push(
   { name: "child-process.spawn stdio array keeps stdout inherited and stdin and stderr piped", run: () => stdioSpawnOutcome('/bin/sh', ['-c', "[ \"$(readlink /proc/$$/fd/1)\" = \"$(readlink /proc/$PPID/fd/1)\" ]"], { stdio: ['pipe', 'inherit', 'pipe'] }), expected: {"pipes":[false,true,false],"code":0,"signal":null} },
 )
 
+const kernelUname = async () => (await execFileOutcome('uname', ['-s'], {})).stdout.trim()
+
+sharedCases.push(
+  { name: "os.platform reports the kernel platform name", run: () => s.os.platform(), expected: "linux" },
+  { name: "process.platform reports the kernel platform name", run: () => proc.platform, expected: "linux" },
+  { name: "os.platform and the uname -s kernel name agree", run: async () => ({ platform: s.os.platform(), kernel: await kernelUname() }), expected: { platform: "linux", kernel: "Linux" } },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
-  { name: 'os.platform', run: () => s.os.platform() },
-  { name: 'process.platform', run: () => proc.platform },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'stream.Readable option highWaterMark', run: () => new s.stream.Readable({ highWaterMark: 1 }) },
   { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
