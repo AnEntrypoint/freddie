@@ -458,3 +458,13 @@ Ranked item 2 in docs/fx-split.md. os.release reads /proc/sys/kernel/osrelease o
 | src/txiki.js: top-level read of /proc/sys/kernel/osrelease (ENOENT gives undefined, other errors rethrow); os.release is the cached value, or the gap when the read found no file; gapFunctions drops os.release | node --check passes | txiki contract present 115; gap names 47 (was 48) |
 | test/parity-cases.js: 4 shared cases comparing os.release with the file read through fs-promises, and shape checks; a gap entry for os.release with an applies predicate; runParity skips inactive gaps and reports gapApplied and gapInactive | node --check passes | Node parity 176/176; txiki parity 176/176, gapInactive 1 |
 | docs/fx-split.md: ranked row 2 marked done with the Linux caveat; section for os.release | grep shows the row | none |
+
+## fx split: Phase B for os.release (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.14 s |
+| node test/parity-node.js | 176/176 shared cases match; exit 0 (two runs: 97 ms and 100 ms in runParity; one earlier run took 1231 ms inside runParity and was not reproduced) | 0.23 s process |
+| contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.32 s probe |
+| contract gap names under gm's txiki | 47 of the 111 non-default names (was 48): os.release left the list on Linux | 0.21 s probe |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 176, gapAsserted 5, gaps 14 applied, gapInactive 1 (the non-Linux os.release gap, not active here), mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.52 s probe, 306 ms in runParity |
