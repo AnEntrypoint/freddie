@@ -833,3 +833,33 @@ Ranked item 5 in docs/fx-split.md, taken first because it is the Writable surfac
 | src/txiki.js: Writable gains cork, uncork, writableCorked, setDefaultEncoding; writes buffer while corked; uncork and end flush through _write or, with two or more buffered and a writev option, through _writev; decodeStrings option; encodingOf throws with code ERR_UNKNOWN_ENCODING; the three names leave the Writable gap list | dev: 66 of 66 txiki stream cases pass with failing [] (verify-item1.out, after the mutation restore); Node dev 68 of 68 SAME (dev-item1-node.out) | Node parity and txiki parity |
 | test/parity-cases.js: 9 Writable cases from the probe output; the stream.Writable.cork gap case is removed | the same cases | Node parity and txiki parity |
 | Mutation: uncork without the flush makes 3 cork cases red; setDefaultEncoding ignoring the set value makes 2 cases red; each restored and checked | /tmp/mut-uncork.out and /tmp/mut-default.out | none |
+
+## fx split: Readable.setEncoding (2026-11-19)
+
+Ranked item 5, second of the six: Readable.setEncoding. Probe: runs/analysis/stream-gaps-node.mjs (utf8 split across pushes, hex on a Buffer, buffered data converted by setEncoding, the unknown-encoding error, read(n) counting characters, base64 holdback and end flush). The probe output sets every expectation.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Readable.setEncoding keeps a StringDecoder; push decodes, and an empty decoded string is not added; end flushes the decoder's rest; the buffer holds strings, and read and fromList join and slice by character | dev: 7 of 7 setEncoding cases match Node (dev-setenc-node.out) and txiki (dev-setenc-txiki.out, failing []) | Node parity and txiki parity |
+| test/parity-cases.js: 7 setEncoding cases from the probe output | the same cases | Node parity and txiki parity |
+| Mutation: push ignores the decoder, 3 cases red (utf8 split, hex on Buffer, base64); setEncoding throws, all 7 red; both restored and checked with grep | /tmp/mut-setenc.out and /tmp/mut2-setenc.out | none |
+
+Regression (not a witness): stream dev cases on Node 75 of 75 SAME, and on txiki 73 total with failing [] (regress2-node.out, regress2-txiki.out).
+
+## fx split: item 1 follow-up mutations (2026-11-19)
+
+The Writable cork section above listed two mutations. Each of its nine cases needs a red mutation, so these were run as well. Each case is covered by the mutation named for it:
+
+| Case | Red under |
+|---|---|
+| cork: writes buffer until uncork | uncork throws; cork throws |
+| cork: corked backlog goes to _writev | uncork throws; writev disabled |
+| cork: two cork calls | uncork throws; cork throws |
+| uncork without cork | uncork throws |
+| end uncorks a corked stream | cork throws; end does not flush |
+| setDefaultEncoding hex | setDefaultEncoding throws |
+| setDefaultEncoding decodeStrings false | setDefaultEncoding throws |
+| setDefaultEncoding unknown encoding | setDefaultEncoding throws; setDefaultEncoding without validation |
+| backlog of two or more writes goes to _writev | writev disabled |
+
+Each of these mutations was applied, run under gm's txiki, and restored; the restores are checked by grep (the mutation markers and the original lines are present). One note: the end-does-not-flush restore failed the first time because the edit left a blank line; it was then restored with the exact text. The three mutations that ran after it were not affected, because their red results are read per case group, and the end-group red comes from the separate end mutation. (The first pass read the end-group result as red for three mutations that did not touch end; that was the unrestored end mutation, and the attribution above uses only the runs in which it was not in place.)

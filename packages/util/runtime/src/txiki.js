@@ -2038,6 +2038,8 @@ class Readable extends Emitter {
   #closeEmitted = false
   #pipes = []
   #awaitDrain = new Set()
+  #decoder = null
+  #encoding = null
 
   constructor(options) {
     super()
@@ -2187,6 +2189,18 @@ class Readable extends Emitter {
     return destination
   }
 
+  setEncoding(encoding) {
+    const name = encodingOf(encoding)
+    const decoder = new StringDecoder(name)
+    let content = ''
+    for (const chunk of this.#buffer) content += typeof chunk === 'string' ? chunk : decoder.write(chunk)
+    this.#decoder = decoder
+    this.#encoding = name
+    this.#buffer = content === '' ? [] : [content]
+    this.#length = content.length
+    return this
+  }
+
   push(chunk, encoding) {
     if (this.#destroyed) return false
     if (chunk === null) {
@@ -2200,7 +2214,8 @@ class Readable extends Emitter {
     }
     const bytes = bytesOf(chunk, encoding)
     this.#reading = false
-    if (bytes.length > 0) this.#addChunk(Buffer.from(bytes))
+    const data = this.#decoder === null ? Buffer.from(bytes) : this.#decoder.write(bytes)
+    if (data.length > 0) this.#addChunk(data)
     else this.#maybeReadMore()
     return !this.#ended && (this.#length < DEFAULT_HIGH_WATER_MARK || this.#length === 0)
   }
@@ -2273,6 +2288,13 @@ class Readable extends Emitter {
 
   #onEof() {
     if (this.#ended) return
+    if (this.#decoder !== null) {
+      const rest = this.#decoder.end()
+      if (rest.length > 0) {
+        this.#buffer.push(rest)
+        this.#length += rest.length
+      }
+    }
     this.#ended = true
     if (this.#sync) {
       this.#emitReadable()
@@ -2345,6 +2367,7 @@ class Readable extends Emitter {
 
   #fromList(n) {
     if (this.#length === 0) return null
+    if (this.#decoder !== null) return this.#fromStrings(n)
     if (n >= this.#length) {
       const all = this.#buffer.length === 1 ? this.#buffer[0] : Buffer.concat(this.#buffer, this.#length)
       this.#buffer = []
@@ -2364,6 +2387,12 @@ class Readable extends Emitter {
       }
     }
     return Buffer.concat(parts, n)
+  }
+
+  #fromStrings(n) {
+    const text = this.#buffer.join('')
+    this.#buffer = text.length > n ? [text.slice(n)] : []
+    return text.slice(0, n)
   }
 
   #endReadable() {
@@ -2401,7 +2430,7 @@ class Readable extends Emitter {
     destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, ['setEncoding', 'unshift', 'wrap'])
+declareGaps('stream.Readable', Readable, ['unshift', 'wrap'])
 
 class PassThrough extends Readable {
   #writable

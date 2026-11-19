@@ -877,6 +877,74 @@ async function writableWritevBacklogNoCork() {
   return log
 }
 
+async function readableSetEncodingUtf8Split() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('utf8')
+  r.on('data', (c) => log.push('data ' + typeof c + ' ' + c))
+  r.push(Buffer.from([0xc3]))
+  r.push(Buffer.from([0xa9]))
+  r.push(null)
+  await wait(10)
+  return log
+}
+
+function readableSetEncodingReturnsThis() {
+  const r = new s.stream.Readable({ read() {} })
+  return r.setEncoding('utf8') === r
+}
+
+async function readableSetEncodingHexOnBuffer() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('hex')
+  r.on('data', (c) => log.push('data ' + typeof c + ' ' + c))
+  r.push(Buffer.from('hi'))
+  r.push(null)
+  await wait(10)
+  return log
+}
+
+function readableSetEncodingBuffered() {
+  const r = new s.stream.Readable({ read() {} })
+  r.push(Buffer.from('hi'))
+  r.setEncoding('hex')
+  const v = r.read()
+  return typeof v + ' ' + v
+}
+
+function readableSetEncodingInvalid() {
+  const r = new s.stream.Readable({ read() {} })
+  try {
+    r.setEncoding('bogus')
+    return 'ok'
+  } catch (error) {
+    return error.name + ' ' + error.code + ' ' + error.message
+  }
+}
+
+function readableReadNWithEncoding() {
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('utf8')
+  r.push(Buffer.from('héllo'))
+  r.push(null)
+  const a = r.read(2)
+  const b = r.read()
+  return [typeof a, a, b]
+}
+
+async function readableBase64Split() {
+  const log = []
+  const r = new s.stream.Readable({ read() {} })
+  r.setEncoding('base64')
+  r.on('data', (c) => log.push('data ' + c))
+  r.push(Buffer.from([1, 2]))
+  r.push(Buffer.from([3, 4, 5]))
+  r.push(null)
+  await wait(10)
+  return log
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -1040,6 +1108,13 @@ export const sharedCases = [
   { name: 'stream Writable.setDefaultEncoding with decodeStrings false passes the string and its encoding', run: () => streamSettle(writableSetDefaultEncodingNoDecode()), expected: ["_write string 6869 hex"] },
   { name: 'stream Writable.setDefaultEncoding with an unknown encoding throws ERR_UNKNOWN_ENCODING', run: () => writableSetDefaultEncodingInvalid(), expected: "ERR_UNKNOWN_ENCODING" },
   { name: 'stream Writable: a backlog of two or more writes goes to _writev when it is defined, one write goes to _write', run: () => streamSettle(writableWritevBacklogNoCork()), expected: ["_write a","writev b,c"] },
+  { name: 'stream Readable.setEncoding utf8: a character split across two pushes is emitted once, as a string', run: () => streamSettle(readableSetEncodingUtf8Split()), expected: ["data string é"] },
+  { name: 'stream Readable.setEncoding returns the stream', run: () => readableSetEncodingReturnsThis(), expected: true },
+  { name: 'stream Readable.setEncoding hex turns a pushed Buffer into a hex string', run: () => streamSettle(readableSetEncodingHexOnBuffer()), expected: ["data string 6869"] },
+  { name: 'stream Readable.setEncoding converts data already buffered, and read returns it as a string', run: () => readableSetEncodingBuffered(), expected: "string 6869" },
+  { name: 'stream Readable.setEncoding with an unknown encoding throws TypeError ERR_UNKNOWN_ENCODING', run: () => readableSetEncodingInvalid(), expected: "TypeError ERR_UNKNOWN_ENCODING Unknown encoding: bogus" },
+  { name: 'stream Readable.setEncoding: read(n) counts characters, not bytes', run: () => readableReadNWithEncoding(), expected: ["string","hé","llo"] },
+  { name: 'stream Readable.setEncoding base64: a partial group is held until its bytes arrive, and the rest is flushed at end', run: () => streamSettle(readableBase64Split()), expected: ["data AQID","data BAU="] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
