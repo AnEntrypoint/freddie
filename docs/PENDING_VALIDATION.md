@@ -741,3 +741,17 @@ Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken
 | contract under gm's txiki (runs/analysis/contract-txiki-body.js) | present 115, missing []; exit 0 | 0.30 s probe |
 
 Mutation check (a failing run of the txiki unpipe cases, not a witness): the public unpipe(destination) was changed to skip its internal call, and all 5 unpipe cases went red under gm's txiki (runs/analysis/dev-txiki-unpipe-body.js). The file was then restored with git checkout from the Phase A commit, and git status was clean. The txiki parity witness above ran on that same committed content.
+
+## fx split: cp into its own subdirectory and the hard-link inode check (2026-11-19)
+
+Ranked item 3 in docs/fx-split.md, reopened once tjs.stat was witnessed to return ino and dev. Probes (untracked, runs/analysis/): cp-subdir-hardlink-node.mjs (the link and hard-link cases), cp-selfcases-node.mjs (directory into its own subdirectory), stat-ino-body.js (txiki stat fields), cp-file-onto-link-node.mjs (the open file-onto-link divergence).
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: the same-file check compares ino and dev from statFor, replacing the realpath comparison; a directory copied into its own subdirectory raises ERR_FS_CP_EINVAL; a directory source whose link target is an ancestor of the destination link raises ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY; the link-to-link checks run only when the source link points at a directory | dev check: fs.promises.cp cases 3 of 3 match Node (dev-cp-node.out) and txiki total 3, failing [] (dev-cp-txiki.out) | Node parity and txiki parity; the mutation check (break the new check, its case must go red) |
+| test/parity-cases.js: cpSubdirScenario (10 expectations) and cpSelfDirScenario (2 expectations), both from the probe outputs above | the same cases match Node and txiki | Node parity and txiki parity |
+| docs/fx-split.md: ranked item 3 marked done, with the stat witness and the open file-onto-link divergence | none | none |
+
+Open divergence (not ported): a regular file copied over an existing link to a regular file. Node raised a raw readlink EINVAL on one run and succeeded on another; txiki copies through the link. Reopen with a Node run that gives one stable result.
+
+Contract name note: test/contract-names.js does not list fs-promises readlink or symlink, which the Readable and cp work added to src/fs-promises.js. The contract probe checks presence only, so it passes.
