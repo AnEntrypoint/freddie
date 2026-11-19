@@ -334,7 +334,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
-| child_process | execFile, execFileSync, spawn, spawnSync | tjs.spawn exists, but its result is not Node's ChildProcess |
+| child_process | execFileSync, spawn, spawnSync | execFile is implemented in pure JS over tjs.spawn (2026-11-19, see the execFile section); tjs.spawn is async, so the sync forms are native |
 | os | platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
 | process | platform, arch, version, versions, exitCode, stdout, stderr, stdin, on, off, send, and every other member not in txiki.js | no JS-level platform; stdio is web streams; signals not mapped |
 | worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
@@ -431,7 +431,7 @@ Excluded, with the reason:
 - crypto.createHash: done 2026-11-19 for md5, sha1, sha256 and sha512, in an owned pure-JS implementation (see the ranked section below). Other algorithms are a declared gap.
 - module.stripTypeScriptTypes: owner decision (needs a TypeScript parser, a dependency).
 - module.createRequire: fx. It needs a CommonJS loader, which the txiki build does not provide.
-- child-process.execFile and child-process.spawn: owner decision. tjs.spawn exists, but its result is not Node's ChildProcess, so the process model needs choosing. execFileSync and spawnSync are native (blocking).
+- child-process.execFile: done 2026-11-19 (see the execFile section). child-process.spawn: owner decision.
 - os.platform: fx supplies the platform (excluded by the owner's direction).
 - worker-threads.Worker: native. tjs.Worker is not Node's worker API.
 - async-hooks.AsyncLocalStorage: native. txiki has no async context to propagate.
@@ -472,7 +472,7 @@ The 45 names still declared as gaps, ranked by how close each is to a verified p
 2. zlib.gunzip: pure JS. Done 2026-11-19: an owned inflate, checked exactly against Node fixtures (see the gunzip section).
 3. zlib.gzip: pure JS deflate, but compressed bytes differ from Node's zlib unless the algorithm is reproduced. Only a round trip is verifiable, so byte parity needs a decision.
 4. fs.createReadStream: pure JS over tjs.open and read. Needs the stream design.
-5. child-process.execFile: pure JS over tjs.spawn with a callback. Needs the process-model decision (output buffering and the ChildProcess shape).
+5. child-process.execFile: done 2026-11-19 (pure JS over tjs.spawn, see the execFile section).
 6. child-process.spawn: pure JS over tjs.spawn. Needs the ChildProcess event and stdio model.
 7. stream.Readable: pure JS. Needs the owner's stream design.
 8. stream.Writable: pure JS. Needs the owner's stream design.
@@ -532,3 +532,31 @@ Decisions:
 - Errors carry code and errno (Z_DATA_ERROR -3, Z_BUF_ERROR -5), as Node's do.
 - Not checked against Node: the messages for other malformed streams (invalid block type, invalid distance, invalid code). They exist, but no fixture produces them, so they are unverified.
 - zlib.gzip remains a gap. Its bytes differ from Node's deflate, and the byte-parity decision stays with the owner.
+
+
+## zlib.gzip byte parity: decided open (2026-11-19)
+
+Decision: zlib.gzip stays a documented gap under txiki, asserted in the gap check. Byte parity with Node's deflate is recorded as open, not closed.
+
+Reason: Node's default output comes from zlib's deflate (lazy matching, hash chains, dynamic Huffman tree construction, block splitting). Reproducing its bytes exactly is a separate, large algorithm port, and no shipped caller needs it: the agent code paths that gzip only need a valid gzip stream. A round trip through Node's gunzip and the txiki gunzip verifies correctness without byte parity, so a partial implementation would add a surface that matches only some levels. Keeping the name a gap keeps the contract honest.
+
+What would reopen it: a caller that depends on Node's exact compressed bytes (for example a stored checksum over gzipped output), or a decision to port zlib's deflate. Until then the gap message stands: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)".
+
+
+## child-process.execFile under txiki (2026-11-19)
+
+execFile is a present name. src/txiki.js runs the command through tjs.spawn with stdout and stderr piped, waits for the exit, and then calls the callback with Node's (error, stdout, stderr) arguments. Node is the oracle for every shared case in test/parity-cases.js, and each expectation is Node's own output.
+
+Decisions, each reversible, with its reason:
+
+- Supported options: encoding only. Any other option key (cwd, env, timeout, maxBuffer, shell, stdio, signal, and the rest) throws synchronously with the documented gap message "txiki.js has no child-process.execFile option <key>". Reason: each needs a mapping onto tjs.spawn options that no test here verifies, and a silent ignore would change behaviour. cwd is asserted as a gap in the gap check.
+- Encoding: the default is utf8 (strings). encoding 'buffer' or null returns a Buffer. Any other encoding decodes the bytes with that name. Reason: Node's own default.
+- Return value: undefined. Node returns a ChildProcess with pid, kill and events. tjs.spawn is async, so no pid exists synchronously. Reason: the same precedent as watchFile's return value. This is a documented difference, not a gap case, because nothing can throw it.
+- Callback: optional. It is called once, after the child exits, never synchronously. Without a callback the outcome is discarded. Reason: Node's signature.
+- Exit failure: error.code is the exit status and error.signal is null. A termination by signal sets code to null and signal to the name txiki reports (it already gives the name, so no number map is needed). killed is false, because no timeout option exists. error.cmd is file and args joined with spaces. error.message is "Command failed: <cmd>" followed by a newline and the stderr text (utf8), as in Node.
+- Missing command: error.code is ENOENT, error.message is "spawn <file> ENOENT", error.cmd as above. txiki's own message ("ENOENT: no such file or directory") is replaced, because Node's text is the contract and the cmd field is needed.
+- Partial output: stdout and stderr are passed to the callback even when the command fails, as Node does.
+
+Verified (Node oracle, all through the parity suite): stdout and stderr capture; nonzero exit; encoding buffer; SIGTERM; SIGKILL with partial stdout; empty command; missing command; callback ordering; callback omitted; the cwd gap. Not verified: stdin, large output, timing under load, and Windows. The gap check asserts the cwd gap message.
+
+zlib.gzip byte parity remains open, as recorded in the zlib.gzip section above.

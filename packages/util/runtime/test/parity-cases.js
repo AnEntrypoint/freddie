@@ -569,6 +569,39 @@ sharedCases.push(
   { name: 'zlib.gunzip accepts an ArrayBuffer', run: () => new Promise((resolve, reject) => s.zlib.gunzip(Uint8Array.from(Buffer.from(FIXED_GZIP_HEX, 'hex')).buffer, (error, output) => (error ? reject(error) : resolve(output.toString('hex'))))), expected: '616263616263616263616263' },
 )
 
+const execText = (value) => (typeof value === 'string' ? value : 'buffer:' + value.toString('hex'))
+
+const execOutcome = (file, args, options) => new Promise((resolve) => {
+  s['child-process'].execFile(file, args, options ?? {}, (error, stdout, stderr) => resolve({
+    code: error?.code ?? null,
+    signal: error?.signal ?? null,
+    killed: error?.killed ?? null,
+    cmd: error?.cmd ?? null,
+    message: error?.message ?? null,
+    stdout: execText(stdout),
+    stderr: execText(stderr),
+  }))
+})
+
+const callbackOrder = () => new Promise((resolve) => {
+  const order = []
+  s['child-process'].execFile('sh', ['-c', 'exit 0'], () => { order.push('callback'); resolve(order) })
+  order.push('sync')
+})
+
+sharedCases.push(
+  { name: "child-process.execFile captures stdout and stderr", run: () => execOutcome('sh', ['-c', 'printf out; printf err >&2']), expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"out","stderr":"err"} },
+  { name: "child-process.execFile reports a nonzero exit as Node reports it", run: () => execOutcome('sh', ['-c', 'printf out; printf err >&2; exit 3']), expected: {"code":3,"signal":null,"killed":false,"cmd":"sh -c printf out; printf err >&2; exit 3","message":"Command failed: sh -c printf out; printf err >&2; exit 3\nerr","stdout":"out","stderr":"err"} },
+  { name: "child-process.execFile returns a Buffer for encoding buffer", run: () => execOutcome('sh', ['-c', 'printf hi'], { encoding: 'buffer' }), expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"buffer:6869","stderr":"buffer:"} },
+  { name: 'child-process.execFile reports a SIGTERM termination', run: () => execOutcome('sh', ['-c', 'kill -TERM $$']), expected: {"code":null,"signal":"SIGTERM","killed":false,"cmd":"sh -c kill -TERM $$","message":"Command failed: sh -c kill -TERM $$\n","stdout":"","stderr":""} },
+  { name: 'child-process.execFile keeps partial stdout on a SIGKILL termination', run: () => execOutcome('sh', ['-c', 'printf partial; kill -KILL $$']), expected: {"code":null,"signal":"SIGKILL","killed":false,"cmd":"sh -c printf partial; kill -KILL $$","message":"Command failed: sh -c printf partial; kill -KILL $$\n","stdout":"partial","stderr":""} },
+  { name: "child-process.execFile succeeds with empty output for an empty command", run: () => execOutcome('sh', ['-c', '']), expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"","stderr":""} },
+  { name: "child-process.execFile reports a missing command with ENOENT", run: () => execOutcome('no-such-command-xyz', []), expected: {"code":"ENOENT","signal":null,"killed":null,"cmd":"no-such-command-xyz","message":"spawn no-such-command-xyz ENOENT","stdout":"","stderr":""} },
+  { name: "child-process.execFile calls back after the synchronous code", run: () => callbackOrder(), expected: ["sync","callback"] },
+  { name: "child-process.execFile option cwd is a declared gap", run: () => execOutcome('sh', ['-c', 'pwd'], { cwd: '/' }), expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"/\n","stderr":""}, gap: "child-process.execFile option cwd" },
+  { name: 'child-process.execFile runs without a callback and returns', run: () => { s['child-process'].execFile('sh', ['-c', 'exit 0']); return 'returned' }, expected: 'returned' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },

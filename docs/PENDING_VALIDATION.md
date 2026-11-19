@@ -532,3 +532,14 @@ Ranked item 2 in docs/fx-split.md. zlib.gunzip is an owned pure-JS inflate and g
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 224, gapAsserted 4, gaps 13 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 1.33 s probe (1106 ms in runParity) |
 | contract under gm's txiki | present 115, missing [] | 0.18 s probe |
 | contract gap names under gm's txiki | 43 of the non-default names (was 44): zlib.gunzip left the list; zlib.gzip stays a gap | 0.21 s probe |
+
+## fx split: child-process.execFile under txiki (2026-11-19)
+
+Ranked item 5 in docs/fx-split.md. execFile is implemented in pure JS over tjs.spawn, checked against Node.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: execFile (callback form, optional callback; encoding option; any other option throws the gap message; errors shaped as Node's: exit code, signal name, ENOENT, cmd and "Command failed" message); captureExecFile, exitFailure, missingCommandError, decodeExecOutput and execFileArguments helpers; child_process exports execFile and keeps execFileSync, spawn and spawnSync as gaps | node --check passes | txiki parity 234 shared, mismatches [] |
+| test/parity-cases.js: 8 shared cases from Node's execFile output (stdout and stderr; nonzero exit; encoding buffer; SIGTERM; SIGKILL with partial stdout; empty command; missing command; callback ordering); 1 callback-optional case; 1 gap case for option cwd asserted in the gap check. The helpers execText, execOutcome and callbackOrder live above them | node --check passes; Node parity 234/234 | txiki gap names 42 (see the Phase B table) |
+| docs/fx-split.md: the execFile section with each decision and its reason; the child_process gap row; the owner-decision bullet and ranked item 5 marked done; the zlib.gzip byte-parity decision (kept a gap, byte parity open, with its reason) | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-child-process-execfile.md: Agent Note | none | none |

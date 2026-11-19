@@ -1485,6 +1485,52 @@ function gunzip(buffer, options, callback) {
   setTimeout(() => (failure === undefined ? done(null, output) : done(failure)), 0)
 }
 
+function execFileArguments(args, options, callback) {
+  if (typeof args === 'function') return { argv: [], opts: {}, done: args }
+  if (!Array.isArray(args)) return { argv: [], opts: args ?? {}, done: options }
+  if (typeof options === 'function') return { argv: args, opts: {}, done: options }
+  return { argv: args, opts: options ?? {}, done: callback }
+}
+
+function missingCommandError(file, cmd) {
+  return Object.assign(new Error('spawn ' + file + ' ENOENT'), { code: 'ENOENT', cmd })
+}
+
+function exitFailure(cmd, stderr, status) {
+  if (status.term_signal === null && status.exit_status === 0) return null
+  const error = new Error('Command failed: ' + cmd + '\n' + Buffer.from(stderr).toString('utf8'))
+  const cause = status.term_signal === null ? { code: status.exit_status, signal: null } : { code: null, signal: status.term_signal }
+  return Object.assign(error, cause, { killed: false, cmd })
+}
+
+async function captureExecFile(file, argv, cmd) {
+  let child
+  try {
+    child = await tjs.spawn([file, ...argv], { stdout: 'pipe', stderr: 'pipe' })
+  } catch (error) {
+    return { error: error.code === 'ENOENT' ? missingCommandError(file, cmd) : error, stdout: new Uint8Array(), stderr: new Uint8Array() }
+  }
+  const [stdout, stderr, status] = await Promise.all([child.stdout.bytes(), child.stderr.bytes(), child.wait()])
+  return { error: exitFailure(cmd, stderr, status), stdout, stderr }
+}
+
+function decodeExecOutput(bytes, encoding) {
+  const buffer = Buffer.from(bytes)
+  return encoding === null || encoding === 'buffer' ? buffer : buffer.toString(encoding)
+}
+
+function execFile(file, args, options, callback) {
+  const { argv, opts, done } = execFileArguments(args, options, callback)
+  for (const key of Object.keys(opts)) {
+    if (key !== 'encoding') throw gapError('child-process.execFile option ' + key)
+  }
+  const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
+  const cmd = [file, ...argv].join(' ')
+  captureExecFile(file, argv, cmd).then(({ error, stdout, stderr }) => {
+    if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
+  })
+}
+
 export const txikiRuntime = {
   fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
   fsPromises,
@@ -1510,7 +1556,7 @@ export const txikiRuntime = {
   }),
   utilTypes: withGaps('util.types', { isPromise }),
   module: withGaps('module', gapFunctions('module', ['createRequire', 'stripTypeScriptTypes'])),
-  childProcess: withGaps('child_process', gapFunctions('child_process', ['execFile', 'execFileSync', 'spawn', 'spawnSync'])),
+  childProcess: withGaps('child_process', { execFile, ...gapFunctions('child_process', ['execFileSync', 'spawn', 'spawnSync']) }),
   os: withGaps('os', {
     availableParallelism,
     constants: withGaps('os.constants', {}),
