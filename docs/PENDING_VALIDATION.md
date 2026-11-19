@@ -786,3 +786,15 @@ The contract list did not name readlink or symlink, which the Readable and cp wo
 |---|---|---|
 | test/contract-names.js: fs-promises gains readlink and symlink | the contract probe: Node 117 names present, exit 0; txiki present 117, missing [] | Node contract and txiki contract |
 | Mutation: src/fs-promises.js with the readlink export removed | Node contract exits 1 with "node is missing: fs-promises.readlink"; txiki contract reports "present":116,"missing":["fs-promises.readlink"] (its probe exits 0, the missing list is the red result); the file was restored and git status shows only contract-names.js | none |
+
+## fx split: stream Emitter surface and a flaky destroy case (2026-11-19)
+
+Ranked item 4 in docs/fx-split.md: the Emitter methods that Readable and Writable declared as gaps (addListener, prependListener, off, removeListener, removeAllListeners, listeners, eventNames). Probes (untracked, runs/analysis/): emitter-node.mjs (addListener flows, off, once listeners by function, listeners unwrapping, eventNames, prepend order, removeAllListeners events, finish via addListener, readable removal resetting flowing), emitter2-node.mjs (prependListener does not flow, off/removeAll of readable reset flowing after a tick, removeAllListeners() event order), writable-destroy-sync-node.mjs (the flaky case, below).
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: Emitter gains addListener, prependListener, off, removeListener, removeAllListeners, listeners, eventNames; once records the original listener; detach drops an empty list; Readable.removeListener and removeAllListeners schedule updateReadableListening after a tick for readable; Readable gets the readableFlowing getter; the seven Emitter names are no longer declared gaps on Readable or Writable | dev: stream Emitter 16 of 16 match Node (dev-emitter-node.out) and txiki total 16, failing [] (/tmp/dev-emitter-txiki.out); mutation (removeListener made a no-op): 8 Emitter cases red, restored and checked with git diff | Node parity and txiki parity |
+| test/parity-cases.js: 16 Emitter cases from the probe outputs | the same cases | Node parity and txiki parity |
+| test/parity-cases.js: the destroy-with-write-in-flight case calls destroy() synchronously (its 2 ms write timer and a 0 ms destroy timer raced) | Node: writable-destroy-sync-node.mjs gives the saved expectation 10 of 10; dev check Node 10 of 10 SAME (it was 9 of 10 before); txiki 3 of 3 SAME | Node parity and txiki parity |
+
+Regression check (not a witness): all stream and child dev cases on Node: 59 of 59 stream and 18 of 18 child match. On txiki, 75 cases with 3 reported as failing: the three child-process gap cases (execFile option cwd, spawn stdout, spawn option cwd). The dev harness does not assert gap cases; the parity runner does, in Phase B.

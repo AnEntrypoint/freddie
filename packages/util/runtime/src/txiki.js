@@ -1687,7 +1687,6 @@ function gzip(buffer, options, callback) {
 }
 
 const DEFAULT_HIGH_WATER_MARK = 65536
-const EMITTER_GAP_METHODS = ['addListener', 'eventNames', 'listeners', 'off', 'prependListener', 'removeAllListeners', 'removeListener']
 const tickQueue = []
 let tickPending = false
 
@@ -1707,6 +1706,14 @@ function nextTick(callback) {
   Promise.resolve().then(runTicks)
 }
 
+function lastListenerIndex(list, listener) {
+  for (let index = list.length - 1; index >= 0; index -= 1) {
+    const original = list[index].listener
+    if (list[index] === listener || (original !== undefined && original === listener)) return index
+  }
+  return -1
+}
+
 class Emitter {
   #listeners = new Map()
 
@@ -1720,11 +1727,56 @@ class Emitter {
       Emitter.detach(this, name, wrapped)
       listener(...args)
     }
+    wrapped.listener = listener
     return this.on(name, wrapped)
   }
 
   listenerCount(name) {
     return this.#listenersOf(name).length
+  }
+
+  addListener(name, listener) {
+    return this.on(name, listener)
+  }
+
+  prependListener(name, listener) {
+    this.#listenersOf(name).unshift(listener)
+    return this
+  }
+
+  off(name, listener) {
+    return this.removeListener(name, listener)
+  }
+
+  removeListener(name, listener) {
+    const list = this.#listeners.get(name)
+    if (list === undefined) return this
+    const index = lastListenerIndex(list, listener)
+    if (index === -1) return this
+    const [entry] = list.splice(index, 1)
+    if (list.length === 0) this.#listeners.delete(name)
+    this.emit('removeListener', name, entry.listener ?? entry)
+    return this
+  }
+
+  removeAllListeners(name) {
+    if (name === undefined) {
+      for (const key of [...this.#listeners.keys()]) {
+        if (key !== 'removeListener') this.removeAllListeners(key)
+      }
+      return this.removeAllListeners('removeListener')
+    }
+    const list = this.#listeners.get(name)
+    if (list !== undefined) for (const entry of [...list].reverse()) this.removeListener(name, entry)
+    return this
+  }
+
+  listeners(name) {
+    return (this.#listeners.get(name) ?? []).map((entry) => entry.listener ?? entry)
+  }
+
+  eventNames() {
+    return [...this.#listeners].filter(([, list]) => list.length > 0).map(([name]) => name)
   }
 
   emit(name, ...args) {
@@ -1739,9 +1791,11 @@ class Emitter {
   }
 
   static detach(emitter, name, listener) {
-    const list = emitter.#listenersOf(name)
+    const list = emitter.#listeners.get(name)
+    if (list === undefined) return
     const index = list.indexOf(listener)
     if (index !== -1) list.splice(index, 1)
+    if (list.length === 0) emitter.#listeners.delete(name)
   }
 
   #listenersOf(name) {
@@ -1920,7 +1974,7 @@ class Writable extends Emitter {
     })
   }
 }
-declareGaps('stream.Writable', Writable, [...EMITTER_GAP_METHODS, 'cork', 'setDefaultEncoding', 'uncork'])
+declareGaps('stream.Writable', Writable, ['cork', 'setDefaultEncoding', 'uncork'])
 
 const kTransform = Symbol('transform')
 
@@ -1976,6 +2030,29 @@ class Readable extends Emitter {
       else if (!this.#reading) nextTick(() => this.read(0))
     }
     return this
+  }
+
+  removeListener(name, listener) {
+    super.removeListener(name, listener)
+    if (name === 'readable') nextTick(() => this.#updateReadableListening())
+    return this
+  }
+
+  removeAllListeners(name) {
+    super.removeAllListeners(name)
+    if (name === 'readable' || name === undefined) nextTick(() => this.#updateReadableListening())
+    return this
+  }
+
+  #updateReadableListening() {
+    this.#readableListening = this.listenerCount('readable') > 0
+    if (this.#resumeScheduled && this.#paused === false) this.#flowing = true
+    else if (this.listenerCount('data') > 0) this.resume()
+    else if (!this.#readableListening) this.#flowing = null
+  }
+
+  get readableFlowing() {
+    return this.#flowing
   }
 
   isPaused() {
@@ -2282,7 +2359,7 @@ class Readable extends Emitter {
     destination.emit('unpipe', this)
   }
 }
-declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'setEncoding', 'unshift', 'wrap'])
+declareGaps('stream.Readable', Readable, ['setEncoding', 'unshift', 'wrap'])
 
 class PassThrough extends Readable {
   #writable

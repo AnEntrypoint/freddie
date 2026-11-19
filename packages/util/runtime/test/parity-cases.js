@@ -417,7 +417,7 @@ async function writableDestroyWithQueue() {
   w.on('close', () => log.push('close'))
   w.write('a', (err) => log.push('cb a ' + (err ? err.code : 'ok')))
   w.write('b', (err) => log.push('cb b ' + (err ? err.code : 'ok')))
-  setTimeout(() => w.destroy(), 0)
+  w.destroy()
   await closedEvent(w)
   await new Promise((resolve) => setTimeout(resolve, 10))
   return log
@@ -612,6 +612,169 @@ async function cpFileOntoLinkScenario() {
   return out
 }
 
+const emitterReadable = () => {
+  let n = 0
+  return new s.stream.Readable({ read() { n += 1; this.push(n <= 2 ? 'c' + n : null) } })
+}
+
+async function emitterAddListenerFlows() {
+  const log = []
+  const r = emitterReadable()
+  const ret = r.addListener('data', (c) => log.push('data ' + String(c)))
+  log.push('ret same ' + (ret === r))
+  await wait(20)
+  log.push('flowing ' + r.readableFlowing)
+  return log
+}
+
+async function emitterOnFlows() {
+  const log = []
+  const r = emitterReadable()
+  r.on('data', (c) => log.push('data ' + String(c)))
+  await wait(20)
+  log.push('flowing ' + r.readableFlowing)
+  return log
+}
+
+async function emitterPrependDataDoesNotFlow() {
+  const log = []
+  const r = emitterReadable()
+  r.prependListener('data', (c) => log.push('data ' + String(c)))
+  await wait(20)
+  log.push('flowing ' + r.readableFlowing)
+  return log
+}
+
+function emitterOffRemoves() {
+  const log = []
+  const r = emitterReadable()
+  const f = () => log.push('f')
+  r.on('x', f)
+  const ret = r.off('x', f)
+  log.push('ret same ' + (ret === r))
+  log.push('count ' + r.listenerCount('x'))
+  r.emit('x')
+  return log
+}
+
+function emitterRemoveOnceByOriginal() {
+  const log = []
+  const r = emitterReadable()
+  const f = () => log.push('f')
+  r.once('x', f)
+  r.removeListener('x', f)
+  log.push('count ' + r.listenerCount('x'))
+  r.emit('x')
+  return log
+}
+
+function emitterListenersUnwrapsOnce() {
+  const r = emitterReadable()
+  const f = () => {}
+  const g = () => {}
+  r.once('x', f)
+  r.on('x', g)
+  const list = r.listeners('x')
+  return [list.length, list[0] === f, list[1] === g]
+}
+
+function emitterListenersReturnsCopy() {
+  const r = emitterReadable()
+  r.on('x', () => {})
+  r.listeners('x').push(() => {})
+  return r.listenerCount('x')
+}
+
+function emitterEventNamesOnlyWithListeners() {
+  const r = emitterReadable()
+  const f = () => {}
+  r.on('a', f)
+  r.once('b', () => {})
+  r.on('c', () => {})
+  r.off('a', f)
+  return r.eventNames()
+}
+
+function emitterPrependOrder() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { cb() } })
+  w.on('x', () => log.push('a'))
+  const ret = w.prependListener('x', () => log.push('b'))
+  log.push('ret same ' + (ret === w))
+  w.emit('x')
+  return log
+}
+
+function emitterRemoveAllNamedEmitsRemoveListener() {
+  const log = []
+  const r = emitterReadable()
+  r.on('removeListener', (name) => log.push('removed event ' + name))
+  r.on('x', () => {})
+  r.on('x', () => {})
+  const ret = r.removeAllListeners('x')
+  log.push('ret same ' + (ret === r))
+  log.push('count ' + r.listenerCount('x'))
+  return log
+}
+
+function emitterRemoveAllEmitsInKeyOrder() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { cb() } })
+  w.on('a', () => {})
+  w.on('removeListener', (name) => log.push('removeListener ' + name))
+  w.on('b', () => {})
+  w.removeAllListeners()
+  log.push('names ' + JSON.stringify(w.eventNames()))
+  return log
+}
+
+async function emitterWritableAddListenerFinish() {
+  const log = []
+  const w = new s.stream.Writable({ write(c, e, cb) { cb() } })
+  w.addListener('finish', () => log.push('finish'))
+  w.end('x')
+  await wait(20)
+  return log
+}
+
+async function emitterReadableListenerRemovalResetsFlowing() {
+  const log = []
+  const r = emitterReadable()
+  const f = () => {}
+  r.on('readable', f)
+  log.push('flowing before ' + r.readableFlowing)
+  r.removeListener('readable', f)
+  await wait(10)
+  log.push('flowing after ' + r.readableFlowing)
+  return log
+}
+
+async function emitterOffReadableResetsFlowing() {
+  const log = []
+  const r = emitterReadable()
+  const f = () => {}
+  r.on('readable', f)
+  r.off('readable', f)
+  await wait(10)
+  log.push('flowing ' + r.readableFlowing)
+  return log
+}
+
+async function emitterRemoveAllReadableResetsFlowing() {
+  const log = []
+  const r = emitterReadable()
+  r.on('readable', () => {})
+  r.removeAllListeners('readable')
+  await wait(10)
+  log.push('flowing ' + r.readableFlowing)
+  return log
+}
+
+function emitterAddListenerReturnsThis() {
+  const r = emitterReadable()
+  return r.addListener('x', () => {}) === r
+}
+
 export const sharedCases = [
   { name: 'path.join', run: () => s.path.join('/a', 'b', '../c.txt'), expected: '/a/c.txt' },
   { name: 'path.basename', run: () => s.path.basename('/x/y/z.md', '.md'), expected: 'z' },
@@ -750,6 +913,22 @@ export const sharedCases = [
   { name: 'fs.promises.cp: links into their own source subdirectory, links onto a hard link, and the hard-link inode check report Node errors', run: () => cpSubdirScenario(), expected: {"linkDirIntoOwnSubdirNew":{"type":"link","target":"ROOT/D"},"linkIntoSubdirOfTargetExistingDest":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/existing-into-sub"},"destLinkPointsAtSrcSubdirExisting":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/dest-sub-link"},"destLinkPointsAtSrcExistingSameTarget":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D) ROOT/dest-same-link"},"srcDirIntoLinkToItsSubdir":{"error":"ERR_FS_CP_DIR_TO_NON_DIR","message":"Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ROOT/linkSub with directory ROOT/D) ROOT/linkSub"},"srcLinkToSubdirOverDirLinkOfParent":{"error":"ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY","message":"Cannot overwrite symlink in subdirectory of self: cp returned EINVAL (cannot overwrite ROOT/D with ROOT/D/sub) ROOT/dest-parent-link"},"hardLinkSameInode":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/hard.txt"},"hardLinkSrcIsDestOtherName":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/a.txt"},"plainDistinctFilesControl":{"type":"file","text":"BBBB"},"dereferenceHardLinkSameInode":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/hard.txt"}} },
   { name: 'fs.promises.cp: a directory into its own subdirectory reports ERR_FS_CP_EINVAL, new and existing', run: () => cpSelfDirScenario(), expected: {"intoOwnSubdirRecursive":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub) ROOT/D/sub"},"intoOwnExistingSubdirRecursive":{"error":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (cannot copy ROOT/D to a subdirectory of self ROOT/D/sub2) ROOT/D/sub2"}} },
   { name: 'fs.promises.cp: a file copied onto an existing link replaces the link, and an overwrite unlinks the destination so a hard-linked sibling keeps its content', run: () => cpFileOntoLinkScenario(), expected: {"plainRelLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"plainAbsLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"plainLinkToItself":{"ok":true,"dstIsLink":false,"dstText":"AAAA","a":"AAAA"},"plainDanglingLink":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"ERR ENOENT"},"plainLinkToDirectory":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"ERR ENOENT"},"derefRelLinkToOtherFile":{"ok":true,"dstIsLink":false,"dstText":"BBBB","a":"AAAA"},"derefLinkToItself":{"ok":false,"code":"ERR_FS_CP_EINVAL","message":"Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ROOT/l"},"derefDanglingLink":{"ok":true,"dstIsLink":true,"dstText":null,"a":"ERR ENOENT"},"derefDanglingLinkTargetText":"BBBB","plainOverwriteHardLinkSibling":{"sibling":"OLD","dst":"SRC","inodeChanged":true}} },
+  { name: 'stream Emitter: addListener on a Readable starts the flow, as on does', run: () => streamSettle(emitterAddListenerFlows()), expected: ["ret same true","data c1","data c2","flowing true"] },
+  { name: 'stream Emitter: on("data") starts the flow', run: () => streamSettle(emitterOnFlows()), expected: ["data c1","data c2","flowing true"] },
+  { name: 'stream Emitter: prependListener("data") does not start the flow', run: () => streamSettle(emitterPrependDataDoesNotFlow()), expected: ["flowing null"] },
+  { name: 'stream Emitter: off removes the listener and returns the stream', run: () => emitterOffRemoves(), expected: ["ret same true","count 0"] },
+  { name: 'stream Emitter: removeListener finds a once listener by its original function', run: () => emitterRemoveOnceByOriginal(), expected: ["count 0"] },
+  { name: 'stream Emitter: listeners returns the original functions, not once wrappers', run: () => emitterListenersUnwrapsOnce(), expected: [2,true,true] },
+  { name: 'stream Emitter: listeners returns a copy', run: () => emitterListenersReturnsCopy(), expected: 1 },
+  { name: 'stream Emitter: eventNames lists only names that still have a listener', run: () => emitterEventNamesOnlyWithListeners(), expected: ["b","c"] },
+  { name: 'stream Emitter: prependListener puts the listener first', run: () => emitterPrependOrder(), expected: ["ret same true","b","a"] },
+  { name: 'stream Emitter: removeAllListeners(name) emits removeListener for each listener', run: () => emitterRemoveAllNamedEmitsRemoveListener(), expected: ["removed event x","removed event x","ret same true","count 0"] },
+  { name: 'stream Emitter: removeAllListeners() removes names in key order and the removeListener listeners last', run: () => emitterRemoveAllEmitsInKeyOrder(), expected: ["removeListener a","removeListener b","names []"] },
+  { name: 'stream Emitter: addListener on a Writable receives finish', run: () => streamSettle(emitterWritableAddListenerFinish()), expected: ["finish"] },
+  { name: 'stream Emitter: removing the last readable listener resets flowing to null after a tick', run: () => streamSettle(emitterReadableListenerRemovalResetsFlowing()), expected: ["flowing before false","flowing after null"] },
+  { name: 'stream Emitter: off("readable") resets flowing to null after a tick', run: () => streamSettle(emitterOffReadableResetsFlowing()), expected: ["flowing null"] },
+  { name: 'stream Emitter: removeAllListeners("readable") resets flowing to null after a tick', run: () => streamSettle(emitterRemoveAllReadableResetsFlowing()), expected: ["flowing null"] },
+  { name: 'stream Emitter: addListener returns the stream', run: () => emitterAddListenerReturnsThis(), expected: true },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
