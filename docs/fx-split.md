@@ -549,7 +549,7 @@ execFile is a present name. src/txiki.js runs the command through tjs.spawn with
 
 Decisions, each reversible, with its reason:
 
-- Supported options: encoding only. Any other option key (cwd, env, timeout, maxBuffer, shell, stdio, signal, and the rest) throws synchronously with the documented gap message "txiki.js has no child-process.execFile option <key>". Reason: each needs a mapping onto tjs.spawn options that no test here verifies, and a silent ignore would change behaviour. cwd is asserted as a gap in the gap check.
+- Supported options: encoding and cwd (cwd: see the cwd section). Any other option key (env, timeout, maxBuffer, shell, stdio, signal, and the rest) throws synchronously with the documented gap message "txiki.js has no child-process.execFile option <key>". Reason: each needs a mapping onto tjs.spawn options that no test here verifies, and a silent ignore would change behaviour. cwd is asserted as a gap in the gap check.
 - Encoding: the default is utf8 (strings). encoding 'buffer' or null returns a Buffer. Any other encoding decodes the bytes with that name. Reason: Node's own default.
 - Return value: undefined. Node returns a ChildProcess with pid, kill and events. tjs.spawn is async, so no pid exists synchronously. Reason: the same precedent as watchFile's return value. This is a documented difference, not a gap case, because nothing can throw it.
 - Callback: optional. It is called once, after the child exits, never synchronously. Without a callback the outcome is discarded. Reason: Node's signature.
@@ -671,7 +671,7 @@ Scope: the gap names declared in src/txiki.js (gapFunction, gapClass, and withGa
 
 1. child-process.spawn stdout: done 2026-11-19 (see the stdout section).
 2. child-process.spawn stderr: done 2026-11-19 (see the stderr section).
-3. child-process option cwd on execFile and spawn: reachable. A probe ran tjs.spawn with cwd '/' and it printed '/' and exited 0 (runs/analysis/spawn-facts-body.js). Not ported yet; env and the other options are not probed.
+3. child-process option cwd: execFile done 2026-11-19 (see the cwd section). spawn is still a gap: reachable by the same tjs.spawn option (runs/analysis/spawn-facts-body.js printed '/' for cwd '/'), not ported yet. exec is held: it is not a name in src/txiki.js or test/contract-names.js, so there is no function to add the option to. Reopen: a contract change adding exec.
 4. util.parseArgs() with no args: reachable. Node's default is process.argv.slice(2), and the runtime already sets process.argv, so only a mapping probe is needed.
 5. fs.createReadStream option encoding: reachable. Readable.setEncoding is done, so the option can call it.
 6. crypto.createHash sha3-256, and the other algorithms beyond md5, sha1, sha256 and sha512: reachable by a pure-JS Keccak port with Node's digests as the oracle. Not probed yet.
@@ -692,3 +692,17 @@ stderr is a Readable fed by the same pump as stdout, through the shared openPipe
 Does stderr match stdout? On every point the probe measured, yes: a default read gives Buffer chunks and end before close; 70000 bytes arrive whole; setEncoding('utf8') yields strings; a nonzero exit keeps the output; with no read, close fires and the output is discarded; a stream attached after close gets nothing; stdout and stderr stay separate; a read on one stream with the other unread still closes, and the unread stream's output is discarded. The stdout probe (runs/analysis/child-stdout-node.mjs) gives the same results, so no difference was found.
 
 Not verified: stderr destroy, pause and resume while attached, the stderr close event, and stderr after a spawn failure (the ENOENT path uses the same closed pipe as stdout, not compared with Node).
+
+## child-process.execFile option cwd under txiki (2026-11-19)
+
+Probe runs/analysis/child-cwd-node.mjs, run twice with identical output. Node measured (runs/analysis/child-cwd-node.out):
+
+- a cwd of '/' runs in that directory; a directory holding a marker file runs the command there; cwd '.' and an undefined cwd both run in the current directory;
+- a missing directory reports through the callback as ENOENT, with message 'spawn sh ENOENT' and cmd 'sh -c pwd', and empty stdout and stderr;
+- a cwd that names a file throws synchronously as ENOTDIR, with message 'spawn ENOTDIR' and syscall 'spawn', and the callback is never called.
+
+Design, with reasons: tjs.spawn throws both errors synchronously (runs/analysis/spawn-cwd-errors-body.js: ENOENT and ENOTDIR for a missing directory and a file, and a valid cwd exits 0). execFile therefore starts the child synchronously. A missing command or directory (ENOENT) becomes the callback error as before. Other codes that Node also reports asynchronously (EACCES, EAGAIN, EMFILE, ENFILE, from Node's source, not probed) are delivered the same way. Any other code, such as ENOTDIR, throws synchronously with message 'spawn <code>' and syscall 'spawn'. Not carried over: errno numbers (Node gives -20 for ENOTDIR; txiki's error has no errno).
+
+exec: held. There is no exec function in src/txiki.js and no exec name in test/contract-names.js, so the option has nothing to attach to. Reopen: a contract change that adds exec.
+
+spawn cwd: still a gap, and reachable by the same option on tjs.spawn; it is not ported in this stretch.

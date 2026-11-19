@@ -970,3 +970,28 @@ Case reading: each of the 10 stderr cases is red under at least one mutation (th
 Regression (not a witness): Node parity 402 of 402 (2487 ms). txiki parity with gap assertions: shared 402, gapAsserted 2, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3893 ms). The two asserted gaps are the cwd cases on execFile and spawn, which are still gaps.
 
 Not verified: stderr destroy, pause and resume while attached, the stderr close event, and stderr after a spawn failure.
+
+## fx split: child-process.execFile option cwd (2026-11-19)
+
+Rank 3 of the ranked list in docs/fx-split.md, taken as execFile only, as the request named; spawn cwd is still a gap. exec is held: it is not a name in the runtime or the contract. Probe: runs/analysis/child-cwd-node.mjs, run twice with identical output.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: execFile accepts cwd; startExecFile starts the child synchronously and passes cwd only when it is defined; ENOENT and the other asynchronous codes go to the callback; other codes throw synchronously as 'spawn <code>' | dev before the change: 6 execFile cwd cases red on txiki (each hit the gap throw); Node 6 of 6 SAME. After the change: txiki 6 of 6 pass; the child-process group on Node 40 of 40 with no DIFF; on txiki only the spawn cwd gap case fails | Node parity and txiki parity with gap assertions |
+| test/parity-cases.js: 6 cases from the probe output, replacing the execFile cwd gap case | the same runs | the same |
+
+Mutation evidence (each mutation applied to the saved good file, run through the cwd dev body, restored; each restore checked with cmp against the saved copy, and git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| Ma: cwd is not passed to tjs.spawn | sets the working directory; runs in a named directory; missing directory; file as cwd |
+| Mb: the gap throw is restored for cwd | sets the working directory; runs in a named directory; relative path; missing directory; file as cwd; undefined cwd |
+| Mc: the missing-directory error is thrown instead of delivered (first attempt was a syntax error, so it was redone) | missing directory |
+| Md: ENOTDIR is delivered asynchronously | file as cwd |
+| Me: cwd is pinned to '/' | runs in a named directory; relative path; missing directory; file as cwd |
+
+Case reading: each of the six cases is red under at least one mutation.
+
+Regression (not a witness): Node parity 407 of 407 (2471 ms). txiki parity with gap assertions: shared 407, gapAsserted 1, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3911 ms). The one asserted gap is spawn cwd.
+
+Not verified: the asynchronous codes EACCES, EAGAIN, EMFILE and ENFILE (their timing is from Node's source, not probed); errno numbers; cwd with a relative path containing a symlink.

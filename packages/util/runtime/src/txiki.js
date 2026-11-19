@@ -2607,13 +2607,19 @@ function exitFailure(cmd, stderr, status) {
   return Object.assign(error, cause, { killed: false, cmd })
 }
 
-async function captureExecFile(file, argv, cmd) {
-  let child
+const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
+
+function startExecFile(file, argv, cmd, cwd) {
   try {
-    child = await tjs.spawn([file, ...argv], { stdout: 'pipe', stderr: 'pipe' })
+    return { child: tjs.spawn([file, ...argv], cwd === undefined ? { stdout: 'pipe', stderr: 'pipe' } : { stdout: 'pipe', stderr: 'pipe', cwd }) }
   } catch (error) {
-    return { error: error.code === 'ENOENT' ? missingCommandError(file, cmd) : error, stdout: new Uint8Array(), stderr: new Uint8Array() }
+    if (!ASYNC_SPAWN_ERRORS.includes(error.code)) throw Object.assign(new Error('spawn ' + error.code), { code: error.code, syscall: 'spawn' })
+    return { error: error.code === 'ENOENT' ? missingCommandError(file, cmd) : Object.assign(new Error('spawn ' + file + ' ' + error.code), { code: error.code, cmd }) }
   }
+}
+
+async function captureExecFile({ child, error }, cmd) {
+  if (child === undefined) return { error, stdout: new Uint8Array(), stderr: new Uint8Array() }
   const [stdout, stderr, status] = await Promise.all([child.stdout.bytes(), child.stderr.bytes(), child.wait()])
   return { error: exitFailure(cmd, stderr, status), stdout, stderr }
 }
@@ -2626,11 +2632,11 @@ function decodeExecOutput(bytes, encoding) {
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
-    if (key !== 'encoding') throw gapError('child-process.execFile option ' + key)
+    if (key !== 'encoding' && key !== 'cwd') throw gapError('child-process.execFile option ' + key)
   }
   const encoding = opts.encoding === undefined ? 'utf8' : opts.encoding
   const cmd = [file, ...argv].join(' ')
-  captureExecFile(file, argv, cmd).then(({ error, stdout, stderr }) => {
+  captureExecFile(startExecFile(file, argv, cmd, opts.cwd), cmd).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))
   })
 }
