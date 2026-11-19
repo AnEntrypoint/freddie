@@ -521,3 +521,14 @@ Ranked item 2 in docs/fx-split.md. zlib.gunzip is an owned pure-JS inflate and g
 | test/parity-cases.js: 11 fixture cases from Node's zlib output (stored, fixed, two dynamic, multi-member, trailing garbage, corrupt CRC, corrupt length, truncated, non-gzip bytes, empty input); 2 header-flag cases from Node's gunzipSync on patched bytes; 4 further cases (callback order, options argument, ArrayBuffer input, synchronous ERR_INVALID_ARG_TYPE); the existing bad-magic case loses its gap field; the zlib.gunzip gap case is removed | node --check passes | txiki gap names 43 (was 44) |
 | docs/fx-split.md: the gap-table row, the owner-decision bullet, ranked item 2 marked done, and a gunzip section with the decisions | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-zlib-gunzip.md: Agent Note | none | none |
+
+## fx split: Phase B for zlib.gunzip (2026-11-19)
+
+| Witness | Result | Wall time |
+|---|---|---|
+| swap-in at the start of each run | 948 KB/s (Node parity and contract), 460 KB/s (txiki parity), 864 KB/s (txiki contract and gap names); the earlier txiki run at 6084 KB/s is discarded | none |
+| node test/parity-node.js | 224/224 shared cases match, including the 11 Node fixture cases and the 2 header-flag cases; exit 0 | 0.81 s process (702 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.11 s |
+| parity under gm's txiki (probe with the rebuilt gm-core) | shared 224, gapAsserted 4, gaps 13 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 1.33 s probe (1106 ms in runParity) |
+| contract under gm's txiki | present 115, missing [] | 0.18 s probe |
+| contract gap names under gm's txiki | 43 of the non-default names (was 44): zlib.gunzip left the list; zlib.gzip stays a gap | 0.21 s probe |
