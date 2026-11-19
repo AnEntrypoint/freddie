@@ -931,3 +931,16 @@ Case letters: A carries Buffer chunks and ends before close; B delivers 70000 by
 Regression (not a witness): Node child-process dev 25 of 25 SAME; txiki child-process dev failing only the two cwd gap cases; Node parity 392 of 392 (1947 ms); txiki parity with gap assertions shared 392, gapAsserted 2, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3973 ms). Runs that failed to launch because gm-core was being rebuilt (EACCES) were rerun and are not counted.
 
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure.
+
+## Phase B: child-process.spawn stdout (2026-11-19)
+
+Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/s, taken immediately before it (the gate's poll count is in the log).
+
+| Witness | Reading (swap-in / swap-out KB/s) | Result | Wall time |
+|---|---|---|---|
+| node test/parity-node.js | 460 / 0 (98 polls) | 392/392 shared cases match; 0/0 gaps throw the documented message; exit 0 | 4.72 s process (2009 ms in runParity) |
+| parity under gm's txiki, with gap assertions (runs/analysis/parity-txiki-body.js) | 916 / 0 (1 poll) | shared 392, gapAsserted 2, gaps 12, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 3.70 s probe (3433 ms in runParity) |
+| node test/contract-node.js | 664 / 0 (1 poll) | 117 names present across 25 subpaths; exit 0 | 0.09 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 240 / 0 (2 polls) | present 117, missing []; exit 0 | 0.17 s |
+
+Commit covered: 76ec239f (child-process.spawn stdout as a Readable), on top of c46fad29. The gap-assertion count fell from 3 to 2 because the stdout gap case is now a shared case. The two asserted gaps are the cwd cases on execFile and spawn, which are ranked 3 in docs/fx-split.md.
