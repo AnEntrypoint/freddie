@@ -233,11 +233,11 @@ const zlibGzip = (input) => new Promise((resolve, reject) => s.zlib.gzip(input, 
 const zlibGunzip = (input) => new Promise((resolve, reject) => s.zlib.gunzip(input, (error, output) => (error ? reject(error) : resolve(output))))
 
 sharedCases.push(
-  { name: 'zlib.gzip then gunzip round-trips a string', run: async () => (await zlibGunzip(await zlibGzip(Buffer.from('hello hello')))).toString(), expected: 'hello hello' },
-  { name: 'zlib.gzip header bytes match Node (magic, deflate, zero mtime, XFL 0, OS 3)', run: async () => Array.from((await zlibGzip(Buffer.from('hello hello'))).subarray(0, 10)), expected: [31, 139, 8, 0, 0, 0, 0, 0, 0, 3] },
-  { name: 'zlib.gzip trailer records the input length', run: async () => Array.from((await zlibGzip(Buffer.from('abc'))).subarray(-4)), expected: [3, 0, 0, 0] },
-  { name: 'zlib.gzip of empty input is 20 bytes and gunzips to empty', run: async () => [(await zlibGzip(Buffer.alloc(0))).length, (await zlibGunzip(await zlibGzip(Buffer.alloc(0)))).length], expected: [20, 0] },
-  { name: 'zlib.gunzip rejects bytes that are not gzip with Z_DATA_ERROR', run: () => zlibGunzip(Buffer.from('nope')).then(() => 'resolved', (error) => error.code), expected: 'Z_DATA_ERROR' },
+  { name: 'zlib.gzip then gunzip round-trips a string', run: async () => (await zlibGunzip(await zlibGzip(Buffer.from('hello hello')))).toString(), expected: 'hello hello', gap: 'zlib.gzip' },
+  { name: 'zlib.gzip header bytes match Node (magic, deflate, zero mtime, XFL 0, OS 3)', run: async () => Array.from((await zlibGzip(Buffer.from('hello hello'))).subarray(0, 10)), expected: [31, 139, 8, 0, 0, 0, 0, 0, 0, 3], gap: 'zlib.gzip' },
+  { name: 'zlib.gzip trailer records the input length', run: async () => Array.from((await zlibGzip(Buffer.from('abc'))).subarray(-4)), expected: [3, 0, 0, 0], gap: 'zlib.gzip' },
+  { name: 'zlib.gzip of empty input is 20 bytes and gunzips to empty', run: async () => [(await zlibGzip(Buffer.alloc(0))).length, (await zlibGunzip(await zlibGzip(Buffer.alloc(0)))).length], expected: [20, 0], gap: 'zlib.gzip' },
+  { name: 'zlib.gunzip rejects bytes that are not gzip', run: () => zlibGunzip(Buffer.from('nope')), expected: 'threw: incorrect header check', gap: 'zlib.gunzip' },
 )
 
 async function withScratch(run) {
@@ -261,7 +261,7 @@ export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
   { name: 'crypto.createHash', run: () => s.crypto.createHash('sha256') },
-  { name: 'StringDecoder latin1', run: () => new StringDecoder('latin1') },
+  { name: 'StringDecoder for latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -269,34 +269,44 @@ export const gapCases = [
   { name: 'stream.Readable', run: () => new s.stream.Readable() },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
+  { name: 'zlib.gzip', run: () => s.zlib.gzip(Buffer.alloc(0), () => {}) },
+  { name: 'zlib.gunzip', run: () => s.zlib.gunzip(Buffer.alloc(0), () => {}) },
 ]
+
+const gapMessage = (name) => '@freddie/freddie-runtime: txiki.js has no ' + name + ', see docs/fx-split.md (txiki gaps)'
+
+async function outcomeOf(run) {
+  try {
+    return { value: await run() }
+  } catch (error) {
+    return { thrown: String(error.message) }
+  }
+}
 
 export async function runParity(label, withGaps) {
   const started = performance.now()
   const mismatches = []
-  for (const { name, run, expected } of sharedCases) {
-    let got
-    try {
-      got = await run()
-    } catch (error) {
-      got = 'threw: ' + error.message
+  let gapAsserted = 0
+  for (const { name, run, expected, gap } of sharedCases) {
+    if (withGaps && gap !== undefined) {
+      gapAsserted += 1
+      const { thrown } = await outcomeOf(run)
+      if (thrown !== gapMessage(gap)) mismatches.push({ name, got: thrown ?? 'resolved', expected: gapMessage(gap) })
+      continue
     }
+    const { value, thrown } = await outcomeOf(run)
+    const got = thrown === undefined ? value : 'threw: ' + thrown
     if (JSON.stringify(canon(got)) !== JSON.stringify(canon(expected))) mismatches.push({ name, got, expected })
   }
   const unexpectedGaps = []
   if (withGaps) {
     for (const { name, run } of gapCases) {
-      let message = null
-      try {
-        await run()
-      } catch (error) {
-        message = String(error.message)
-      }
-      if (message === null || !message.includes('txiki.js has no ')) unexpectedGaps.push({ name, message })
+      const { thrown } = await outcomeOf(run)
+      if (thrown !== gapMessage(name)) unexpectedGaps.push({ name, message: thrown ?? 'resolved' })
     }
   }
   const elapsedMs = Math.round(performance.now() - started)
-  const summary = { label, shared: sharedCases.length, gaps: withGaps ? gapCases.length : 0, mismatches, unexpectedGaps, elapsedMs }
+  const summary = { label, shared: sharedCases.length, gapAsserted, gaps: withGaps ? gapCases.length : 0, mismatches, unexpectedGaps, elapsedMs }
   console.log(label + ': ' + (sharedCases.length - mismatches.length) + '/' + sharedCases.length + ' shared cases match; ' + (withGaps ? gapCases.length - unexpectedGaps.length : 0) + '/' + (withGaps ? gapCases.length : 0) + ' gaps throw the documented message; ' + elapsedMs + ' ms')
   if (mismatches.length > 0 || unexpectedGaps.length > 0) throw new Error(label + ' parity failed: ' + JSON.stringify({ mismatches, unexpectedGaps }))
   return summary

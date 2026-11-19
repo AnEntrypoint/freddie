@@ -383,3 +383,13 @@ Ranked item 6 in docs/fx-split.md. Flag a opens with tjs.open(path, 'a') and wri
 | parity under gm's txiki (probe with the rebuilt gm-core) | runParity throws "txiki parity failed" with 5 mismatches, all zlib: the round trip, header bytes, trailer, empty input and bad input; the 5 append cases pass; unexpectedGaps [] | 0.75 s probe |
 
 Item 5 (zlib over CompressionStream) is blocked by the txiki build, not by the code: the streams throw "not a function" for each valid format. The cause and what settles it are in docs/fx-split.md under the zlib section. The txiki parity run exits non-zero until then. Item 6 (writeFile flag a) passes under both runtimes.
+
+## fx split: zlib gzip and gunzip are gaps under txiki (2026-11-19)
+
+Decision, recorded in docs/fx-split.md under "zlib gzip and gunzip under txiki". The txiki build has no working compressor, so zlib.gzip and zlib.gunzip are gaps under txiki, each throwing the documented gap message. Node keeps the same five zlib cases with unchanged expectations.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: the stream codec removed; gzip and gunzip return to the gap list | node --check passes | txiki contract present 115; the gap list includes zlib.gzip and zlib.gunzip |
+| packages/util/runtime/test/parity-cases.js: each zlib case carries a gap field; runParity asserts the exact documented gap message for gap-field cases and for gapCases; zlib.gzip and zlib.gunzip gap entries added; the StringDecoder gap case relabelled to the documented name | node --check passes | txiki parity: 0 mismatches, 0 unexpected gaps, 5 gap-asserted |
+| docs/fx-split.md: zlib section rewritten as the decision and its reason; zlib row in the gap table; ranked row 5 marked as gaps | grep shows the rows | none |
