@@ -1928,3 +1928,11 @@ Restore: /tmp/stageD-good-txiki.js is the source before the mutations; after the
 Longest step: the txiki parity run and the two mutation runs (about 14 s each). The longest wait was the gate closed at slots 0, 1, 3 and 5 (other peers' chromium, si 1000 or more). What was done about it: sampled every 30 s, started each witness only on a clear reading, and bounded each probe at 150 s.
 
 Not covered in this window: the other options that the Node oracle records (flags r+, w, wx; mode; autoClose: false; a non-AbortSignal signal). They stay as gaps, with the one-line reopen evidence in 7u.
+
+## fx split: createReadStream flags r, r+, w, wx (7v), Phase A (2026-11-20)
+
+Oracle recheck: runs/analysis/createreadstream-options-node.mjs ran again on a clear sample (slot 4, si 8, so 0; PID 1507144, exit 0). Node 24.22.0 values unchanged: flags r → 'abcdefghij'; flags r+ → 'abcdefghij'; flags w → error EBADF (name Error), close, copy file left as '' (truncated); flags wx on an existing file → error EEXIST (name Error), close.
+
+Change (Phase A): src/txiki.js: createReadStream accepts flags in READ_STREAM_FLAGS (r, r+, w, wx; anything else gapError), passes it to FileReadStream, which opens the file with that flag instead of always 'r'. test/parity-cases.js: shared cases 'fs.createReadStream flags r reads the file', 'flags r+ reads the file', 'flags w fails with EBADF and truncates the file', 'flags wx on an existing file fails with EEXIST and keeps it' (each records the events plus the file text after close; the w case runs on its own temp copy from streamFile).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red checks F-M1 (open always 'r') and F-M2 (wx opened as w).

@@ -2568,6 +2568,18 @@ sharedCases.push(
   { name: 'fs.createReadStream signal aborted during a read stops after the chunk in flight', run: abortedDuringRead, expected: ['data abcd', 'error ABORT_ERR AbortError', 'close'] },
 )
 
+const flagsOutcome = async (flags) => {
+  const { file } = await streamFile('ten.txt', 'abcdefghij')
+  const events = await streamEvents(s.fs.createReadStream(file, { flags }))
+  return [...events, 'file ' + JSON.stringify(await fsp.readFile(file, 'utf8'))]
+}
+sharedCases.push(
+  { name: 'fs.createReadStream flags r reads the file', run: () => flagsOutcome('r'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
+  { name: 'fs.createReadStream flags r+ reads the file', run: () => flagsOutcome('r+'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
+  { name: 'fs.createReadStream flags w fails with EBADF and truncates the file', run: () => flagsOutcome('w'), expected: ['error EBADF Error', 'close', 'file ""'] },
+  { name: 'fs.createReadStream flags wx on an existing file fails with EEXIST and keeps it', run: () => flagsOutcome('wx'), expected: ['error EEXIST Error', 'close', 'file "abcdefghij"'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

@@ -2911,7 +2911,7 @@ class FileReadStream extends Readable {
     this.#block = options.highWaterMark
     this.#skip = options.start
     this.#remaining = options.end === undefined ? Infinity : options.end - options.start + 1
-    this.#opening = tjs.open(path, 'r').then(
+    this.#opening = tjs.open(path, options.flags).then(
       (handle) => {
         this.#handle = handle
         this.emit('open', handle.fileno())
@@ -2951,10 +2951,14 @@ class FileReadStream extends Readable {
   }
 }
 
+const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx']
+
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
-  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal'])
+  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags'])
   if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
+  const flags = opts.flags ?? 'r'
+  if (!READ_STREAM_FLAGS.includes(flags)) throw gapError('fs.createReadStream flags ' + String(flags))
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   }
@@ -2963,7 +2967,7 @@ function createReadStream(path, options) {
   if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
   const highWaterMark = highWaterMarkOf(opts)
   if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
-  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal })
+  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
   return stream
 }
