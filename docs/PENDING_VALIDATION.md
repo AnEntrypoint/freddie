@@ -1936,3 +1936,24 @@ Oracle recheck: runs/analysis/createreadstream-options-node.mjs ran again on a c
 Change (Phase A): src/txiki.js: createReadStream accepts flags in READ_STREAM_FLAGS (r, r+, w, wx; anything else gapError), passes it to FileReadStream, which opens the file with that flag instead of always 'r'. test/parity-cases.js: shared cases 'fs.createReadStream flags r reads the file', 'flags r+ reads the file', 'flags w fails with EBADF and truncates the file', 'flags wx on an existing file fails with EEXIST and keeps it' (each records the events plus the file text after close; the w case runs on its own temp copy from streamFile).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red checks F-M1 (open always 'r') and F-M2 (wx opened as w).
+
+## Phase B: createReadStream flags r, r+, w, wx (945e3b8d), 2026-11-20
+
+Window: one bounded window, 700 s, 21 samples at 30 s (`vmstat 1 2`, second sample = gate; `top -bn2 -d1` second frame with %CPU 20 or more or RES 1 GB or more, gm-core with `--handshake` excluded by full command line). Samples that were clear: slots 0, 1, 2, 14 and 20. The other 16 samples were closed (zig builds and tests of another peer, a claude session at 20 to 35% CPU, si up to 31764 KB/s) and no probe was started on them; they have no ledger line.
+
+Witnesses run once, each probe under timeout 150, started by PID (`$!`), waited to its end:
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| Node parity (PID 1508328, exit 0) | 0 | node: 671/671 shared cases match; 0/0 gaps throw the documented message; 9206 ms | 9.65 s |
+| txiki parity, committed source (PID 1508817, exit 0) | 1 | shared 671, gaps 21, gapInactive 1, mismatches [], unexpectedGaps [] | 14.05 s |
+| F-M1: open always 'r' (PID 1510844, exit 0) | 2 | red: 'createReadStream flags w fails with EBADF and truncates the file' and 'createReadStream flags wx on an existing file fails with EEXIST and keeps it'; r and r+ stay green. Restored: RESTORED_IDENTICAL | 13.89 s |
+| F-M2: wx opened as w (PID 1519002, exit 0) | 14 | red: 'createReadStream flags wx on an existing file fails with EEXIST and keeps it' only; w stays green. Restored: RESTORED_IDENTICAL | 13.86 s |
+| Node contract (PID 1525095, exit 0) | 20 | node: 117 names present across 25 subpaths | 0.13 s |
+| txiki contract | not run | the window ended at 21 samples before a clear sample after the node contract (slot 20 was the last) | not run |
+
+Restore: /tmp/stageG-good-txiki.js is the committed source; after the mutations `cmp` gave identical files and `git status --short` was empty. No process of mine was left running (ps shows none).
+
+Not done here: the txiki contract witness (see above). The Node oracle recheck (before the witnesses were written) ran on a clear sample at slot 4 of the earlier job, PID 1507144, exit 0, with the same values as before.
+
+Longest step: the txiki parity run (14.05 s). The longest wait was the closed gate (16 of 21 samples).
