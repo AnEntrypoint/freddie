@@ -728,3 +728,16 @@ Ranked item 2 in docs/fx-split.md. The Node 24 probe is runs/analysis/unpipe-nod
 | src/txiki.js: Readable.unpipe(destination) removes one destination through the internal path and returns the stream; unpipe() with no argument pauses once and emits unpipe on each destination; Readable.unpipe is removed from the declared gap names | the dev check passes the 5 unpipe cases under Node and under gm's txiki (dev-unpipe-node.out, dev-unpipe-txiki.out) | Node parity and txiki parity; the mutation check (the unpipe cases must fail when the public method is broken) |
 | test/parity-cases.js: unpipeFirstOfTwo, unpipeNotPiped, unpipeAllOfTwo, unpipeThenResume, repipeAfterUnpipe with the wait helper; 5 shared cases from the probe | the same 5 match Node and txiki | Node parity and txiki parity |
 | docs/fx-split.md: ranked item 2 marked done; item 3 kept held | none | none |
+
+## fx split: Phase B for public Readable.unpipe (2026-11-19)
+
+Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken immediately before it. Readings (swap-in / swap-out KB/s): Node parity 564 / 0, txiki parity 972 / 0, Node contract 908 / 0, txiki contract 760 / 0.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 333/333 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.69 s process (1213 ms in runParity) |
+| parity under gm's txiki (runs/analysis/parity-txiki-body.js) | shared 333, gapAsserted 3, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 2.61 s probe (2276 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.18 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | present 115, missing []; exit 0 | 0.30 s probe |
+
+Mutation check (a failing run of the txiki unpipe cases, not a witness): the public unpipe(destination) was changed to skip its internal call, and all 5 unpipe cases went red under gm's txiki (runs/analysis/dev-txiki-unpipe-body.js). The file was then restored with git checkout from the Phase A commit, and git status was clean. The txiki parity witness above ran on that same committed content.
