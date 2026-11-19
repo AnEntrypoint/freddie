@@ -777,3 +777,12 @@ Item 1 of the queue after d269ae6a: the open divergence from the cp into own-sub
 |---|---|---|
 | src/txiki.js: a file copy unlinks an existing destination before tjs.copyFile, so a link is replaced (the dereferenced dangling link stays, and its target is created) and a hard-linked sibling keeps its content | dev check: the new cp case (the whole scenario) red before the fix (writes through the link, EISDIR on a link to a directory, sibling changed); green after the fix, 4 of 4 cp cases match Node (dev-cp-node.out) and txiki total 4, failing [] (dev-cp-green.out) | Node parity and txiki parity; the mutation (remove the unlink, the case must go red) |
 | test/parity-cases.js: cpFileOntoLinkScenario (9 expectations plus the gone.txt text and the hard-link sibling) from the probe outputs | the same case matches Node and txiki | Node parity and txiki parity |
+
+## contract names: fs-promises readlink and symlink (2026-11-19)
+
+The contract list did not name readlink or symlink, which the Readable and cp work exported from src/fs-promises.js. Both are now listed (test/contract-names.js), so the contract count is 117 on each side.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| test/contract-names.js: fs-promises gains readlink and symlink | the contract probe: Node 117 names present, exit 0; txiki present 117, missing [] | Node contract and txiki contract |
+| Mutation: src/fs-promises.js with the readlink export removed | Node contract exits 1 with "node is missing: fs-promises.readlink"; txiki contract reports "present":116,"missing":["fs-promises.readlink"] (its probe exits 0, the missing list is the red result); the file was restored and git status shows only contract-names.js | none |
