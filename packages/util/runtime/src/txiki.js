@@ -1423,6 +1423,172 @@ function keccakDigest(bytes, rate, domain, length) {
   return lanes.slice(0, length)
 }
 
+const RIPEMD_RHO = [7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8]
+
+const RIPEMD_SHIFTS = [
+  [11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8],
+  [12, 13, 11, 15, 6, 9, 9, 7, 12, 15, 11, 13, 7, 8, 7, 7],
+  [13, 15, 14, 11, 7, 7, 6, 8, 13, 14, 13, 12, 5, 5, 6, 9],
+  [14, 11, 12, 14, 8, 6, 5, 5, 15, 12, 15, 14, 9, 9, 8, 6],
+  [15, 12, 13, 13, 9, 5, 8, 6, 14, 11, 12, 11, 8, 6, 5, 5],
+]
+
+const RIPEMD_LEFT_K = [0x00000000, 0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xa953fd4e]
+const RIPEMD_RIGHT_K = [0x50a28be6, 0x5c4dd124, 0x6d703ef3, 0x7a6d76e9, 0x00000000]
+
+function ripemdSchedule(first) {
+  const groups = [first]
+  for (let group = 1; group < 5; group++) groups.push(groups[group - 1].map((word) => RIPEMD_RHO[word]))
+  return groups
+}
+
+const RIPEMD_LEFT_WORDS = ripemdSchedule(Array.from({ length: 16 }, (_, i) => i))
+const RIPEMD_RIGHT_WORDS = ripemdSchedule(Array.from({ length: 16 }, (_, i) => (9 * i + 5) % 16))
+const RIPEMD_LEFT_SHIFTS = RIPEMD_LEFT_WORDS.map((words, group) => words.map((word) => RIPEMD_SHIFTS[group][word]))
+const RIPEMD_RIGHT_SHIFTS = RIPEMD_RIGHT_WORDS.map((words, group) => words.map((word) => RIPEMD_SHIFTS[group][word]))
+
+function ripemdFunction(group, x, y, z) {
+  if (group === 0) return x ^ y ^ z
+  if (group === 1) return (x & y) | (~x & z)
+  if (group === 2) return (x | ~y) ^ z
+  if (group === 3) return (x & z) | (y & ~z)
+  return x ^ (y | ~z)
+}
+
+function ripemd160Digest(bytes) {
+  const blocks = padMessage(bytes, 64, 8, true)
+  const view = new DataView(blocks.buffer)
+  const state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]
+  for (let offset = 0; offset < blocks.length; offset += 64) {
+    const x = Array.from({ length: 16 }, (_, i) => view.getUint32(offset + i * 4, true))
+    let [al, bl, cl, dl, el] = state
+    let [ar, br, cr, dr, er] = state
+    for (let group = 0; group < 5; group++) {
+      for (let step = 0; step < 16; step++) {
+        let t = (rotl32((al + ripemdFunction(group, bl, cl, dl) + x[RIPEMD_LEFT_WORDS[group][step]] + RIPEMD_LEFT_K[group]) | 0, RIPEMD_LEFT_SHIFTS[group][step]) + el) | 0
+        al = el
+        el = dl
+        dl = rotl32(cl, 10)
+        cl = bl
+        bl = t
+        t = (rotl32((ar + ripemdFunction(4 - group, br, cr, dr) + x[RIPEMD_RIGHT_WORDS[group][step]] + RIPEMD_RIGHT_K[group]) | 0, RIPEMD_RIGHT_SHIFTS[group][step]) + er) | 0
+        ar = er
+        er = dr
+        dr = rotl32(cr, 10)
+        cr = br
+        br = t
+      }
+    }
+    const t = (state[1] + cl + dr) | 0
+    state[1] = (state[2] + dl + er) | 0
+    state[2] = (state[3] + el + ar) | 0
+    state[3] = (state[4] + al + br) | 0
+    state[4] = (state[0] + bl + cr) | 0
+    state[0] = t
+  }
+  return wordsToBytes(state, true)
+}
+
+const BLAKE2_SIGMA = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
+  [11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4],
+  [7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8],
+  [9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13],
+  [2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9],
+  [12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11],
+  [13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10],
+  [6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5],
+  [10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0],
+]
+
+function blake2Blocks(bytes, blockBytes) {
+  const count = Math.max(1, Math.ceil(bytes.length / blockBytes))
+  return Array.from({ length: count }, (_, index) => {
+    const start = index * blockBytes
+    const block = new Uint8Array(blockBytes)
+    block.set(bytes.subarray(start, start + blockBytes))
+    const last = index === count - 1
+    return { block, counter: last ? bytes.length : start + blockBytes, last }
+  })
+}
+
+function blake2bDigest(bytes, length) {
+  const state = SHA512_INITIAL.slice()
+  state[0] ^= 0x01010000n ^ BigInt(length)
+  for (const { block, counter, last } of blake2Blocks(bytes, 128)) {
+    const view = new DataView(block.buffer)
+    const m = Array.from({ length: 16 }, (_, i) => view.getBigUint64(i * 8, true))
+    const v = [...state, ...SHA512_INITIAL]
+    v[12] ^= BigInt(counter)
+    if (last) v[14] ^= UINT64_MASK
+    const mix = (a, b, c, d, x, y) => {
+      v[a] = (v[a] + v[b] + x) & UINT64_MASK
+      v[d] = rotr64(v[d] ^ v[a], 32n)
+      v[c] = (v[c] + v[d]) & UINT64_MASK
+      v[b] = rotr64(v[b] ^ v[c], 24n)
+      v[a] = (v[a] + v[b] + y) & UINT64_MASK
+      v[d] = rotr64(v[d] ^ v[a], 16n)
+      v[c] = (v[c] + v[d]) & UINT64_MASK
+      v[b] = rotr64(v[b] ^ v[c], 63n)
+    }
+    for (let round = 0; round < 12; round++) {
+      const s = BLAKE2_SIGMA[round % 10]
+      mix(0, 4, 8, 12, m[s[0]], m[s[1]])
+      mix(1, 5, 9, 13, m[s[2]], m[s[3]])
+      mix(2, 6, 10, 14, m[s[4]], m[s[5]])
+      mix(3, 7, 11, 15, m[s[6]], m[s[7]])
+      mix(0, 5, 10, 15, m[s[8]], m[s[9]])
+      mix(1, 6, 11, 12, m[s[10]], m[s[11]])
+      mix(2, 7, 8, 13, m[s[12]], m[s[13]])
+      mix(3, 4, 9, 14, m[s[14]], m[s[15]])
+    }
+    for (let i = 0; i < 8; i++) state[i] ^= v[i] ^ v[i + 8]
+  }
+  const out = new Uint8Array(64)
+  const view = new DataView(out.buffer)
+  state.forEach((word, i) => view.setBigUint64(i * 8, word, true))
+  return out.slice(0, length)
+}
+
+function blake2sDigest(bytes, length) {
+  const state = SHA256_INITIAL.slice()
+  state[0] ^= 0x01010000 ^ length
+  for (const { block, counter, last } of blake2Blocks(bytes, 64)) {
+    const view = new DataView(block.buffer)
+    const m = Array.from({ length: 16 }, (_, i) => view.getUint32(i * 4, true))
+    const v = [...state, ...SHA256_INITIAL]
+    v[12] ^= counter
+    if (last) v[14] ^= 0xffffffff
+    const mix = (a, b, c, d, x, y) => {
+      v[a] = (v[a] + v[b] + x) | 0
+      v[d] = rotr32(v[d] ^ v[a], 16)
+      v[c] = (v[c] + v[d]) | 0
+      v[b] = rotr32(v[b] ^ v[c], 12)
+      v[a] = (v[a] + v[b] + y) | 0
+      v[d] = rotr32(v[d] ^ v[a], 8)
+      v[c] = (v[c] + v[d]) | 0
+      v[b] = rotr32(v[b] ^ v[c], 7)
+    }
+    for (let round = 0; round < 10; round++) {
+      const s = BLAKE2_SIGMA[round]
+      mix(0, 4, 8, 12, m[s[0]], m[s[1]])
+      mix(1, 5, 9, 13, m[s[2]], m[s[3]])
+      mix(2, 6, 10, 14, m[s[4]], m[s[5]])
+      mix(3, 7, 11, 15, m[s[6]], m[s[7]])
+      mix(0, 5, 10, 15, m[s[8]], m[s[9]])
+      mix(1, 6, 11, 12, m[s[10]], m[s[11]])
+      mix(2, 7, 8, 13, m[s[12]], m[s[13]])
+      mix(3, 4, 9, 14, m[s[14]], m[s[15]])
+    }
+    for (let i = 0; i < 8; i++) state[i] ^= v[i] ^ v[i + 8]
+  }
+  const out = new Uint8Array(32)
+  const view = new DataView(out.buffer)
+  state.forEach((word, i) => view.setUint32(i * 4, word, true))
+  return out.slice(0, length)
+}
+
 const HASH_FUNCTIONS = {
   md5: md5Digest,
   sha1: sha1Digest,
@@ -1432,6 +1598,9 @@ const HASH_FUNCTIONS = {
   sha512: sha512Digest,
   'sha512-224': (bytes) => sha512Digest(bytes, SHA512_224_INITIAL, 28),
   'sha512-256': (bytes) => sha512Digest(bytes, SHA512_256_INITIAL, 32),
+  ripemd160: ripemd160Digest,
+  blake2b512: (bytes) => blake2bDigest(bytes, 64),
+  blake2s256: (bytes) => blake2sDigest(bytes, 32),
   'sha3-224': (bytes) => keccakDigest(bytes, 144, 0x06, 28),
   'sha3-256': (bytes) => keccakDigest(bytes, 136, 0x06, 32),
   'sha3-384': (bytes) => keccakDigest(bytes, 104, 0x06, 48),

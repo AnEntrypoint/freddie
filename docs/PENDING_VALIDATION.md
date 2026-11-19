@@ -1116,3 +1116,34 @@ Coverage: every one of the 28 SHA-2-variant cases and the 42 SHA-3/SHAKE cases i
 Earlier mutation counts of 27 for Mk1 and Mk2 came from truncated printed output, not from a missing case. The file-based run shows 36.
 
 Not verified: outputs longer than the rate; shake outputLength (a declared gap); the other gap names in this section.
+
+## fx split: crypto.createHash RIPEMD-160 and BLAKE2, Phase A (2026-11-19)
+
+Rank 6, the remainder of the item: see the RIPEMD and BLAKE2 section in docs/fx-split.md.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: ripemd160 (80-step two-line compression on 32-bit words); blake2b512 (12 rounds, BigInt words, SHA-512 IV, parameter block for length 64); blake2s256 (10 rounds, SHA-256 IV, parameter block for length 32) | txiki dev body on the 'crypto.createHash' cases: 0 failing of 120 (the 24 new cases included); Node dev check on the same filter: 120 SAME, 0 DIFF; txiki parity with gap assertions: shared 515, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1; Node parity 515/515 |
+| test/parity-cases.js: 24 cases for the three names, generated from the Node probe output (empty, abc, 200 bytes, non-ASCII, exact 128-byte block, chunked, default digest length, Buffer base64) | the same runs |
+
+Mutation evidence (each applied to the saved good file, run through the createHash dev body that writes its full result to a file; each restore checked with cmp against the saved copy; git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| R1: the rho permutation's last entry 8 → 9 | ripemd160: the 7 digest cases (not the default length) |
+| R2: right constant 0x7a6d76e9 → 0x7a6d76e8 | ripemd160: 7 |
+| R3: round function 2 (x OR NOT y) XOR z made AND | ripemd160: 7 |
+| R4: ripemd160 output cut to 16 bytes | ripemd160: 8 (includes the default length) |
+| B1: BLAKE2b runs 10 rounds, not 12 | blake2b512: 7 |
+| B2: BLAKE2b parameter block without the output length | blake2b512: 7 |
+| B3: BLAKE2b final-block flag removed | blake2b512: 7 |
+| B4: BLAKE2b output cut by 8 bytes | blake2b512: 8 (includes the default length) |
+| S1: BLAKE2s rotation 12 → 11 | blake2s256: 7 |
+| S2: BLAKE2s output cut by 4 bytes | blake2s256: 8 (includes the default length) |
+| S3: blake2s256 gap restored | blake2s256: 8 |
+
+Coverage: every one of the 24 new cases is red under at least one mutation, computed from the full result files (no uncovered names).
+
+Regression (not a witness): txiki parity with gap assertions: shared 515, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 5082 ms. Node parity: 515/515, 3131 ms.
+
+Not verified: keyed BLAKE2 (not part of createHash here); inputs over one megabyte.
