@@ -612,3 +612,19 @@ Ranked items 4, 7, 8, 9 and 10 in the owner-decision list. Pure JS, Node 24 as o
 | test/parity-cases.js: streamSettle, closedEvent and streamFile helpers; streamScenarios with 18 scenarios that mirror the Node probe; 18 shared cases with expectations from the probe output (one expectation changed from the probe's DIR placeholder to Node's message for the fixed path, confirmed by the Node run); 7 declared gap cases (highWaterMark on Readable and PassThrough, objectMode on Writable, encoding on createReadStream, read, cork, off); the stream.Readable gap entry removed | Node parity 262/262 | see above |
 | docs/fx-split.md: the stream section with each decision and its reason; ranked and owner-decision rows marked done; the spawn error-listener line updated; the fs and stream rows updated | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-streams.md: Agent Note | none | none |
+
+## fx split: Phase B for streams under txiki (2026-11-19)
+
+Each run started after a reading below 1000 KB/s for both swap-in and swap-out, taken immediately before it. Run order and readings (swap-in / swap-out KB/s): Node parity 240 / 44, Node contract 12 / 0, txiki parity 28 / 0, txiki contract 264 / 0, txiki gap names 416 / 0.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 262/262 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.26 s process (2790 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.12 s |
+| parity under gm's txiki | shared 262, gapAsserted 3, gaps 17 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 2.29 s probe (2102 ms in runParity) |
+| contract under gm's txiki | present 115, missing []; exit 0 | 0.17 s probe |
+| contract gap names under gm's txiki | gapCount 35 (was 40); no stream or createReadStream names; exit 0 | 0.15 s probe |
+
+Note: the txiki parity probe exits 0 even when runParity throws inside the body, because the body catches the error. The witness is the summary: mismatches [] and unexpectedGaps [] with no "parity failed" line.
+
+Earlier in this step, a debugging run found that txiki's FileHandle.read returned a non-positive value at end of file, which the first version treated as data. The fix (count > 0) is in the committed code, and the witnesses above are from the fixed code.
