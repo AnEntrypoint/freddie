@@ -362,3 +362,13 @@ Ranked item 5 in docs/fx-split.md. Phase A changes:
 | docs/fx-split.md: zlib section with the cause; ranked row 5 marked blocked; zlib removed from the http row of the gap table | grep shows the rows | none |
 
 Node witnesses are recorded in the Phase B section below.
+
+## fx split: fs.promises.writeFile with flag a (2026-11-19)
+
+Ranked item 6 in docs/fx-split.md. Flag a opens with tjs.open(path, 'a') and writes until every byte is written; flag w is unchanged; any other flag or mode stays a gap.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| packages/util/runtime/src/txiki.js: writeFile takes flag a through tjs.open with a write loop | node --check passes | txiki parity: the 5 append cases are not among the mismatches |
+| packages/util/runtime/test/parity-cases.js: 5 shared cases (new file, existing file, bytes unchanged, a 200000-byte buffer appended in full, the default flag still overwrites) and withScratch | node --check passes | Node parity 112/112 |
+| docs/fx-split.md: gap row now names flag w or a; the append note; ranked row 6 marked done | grep shows the rows | none |

@@ -240,6 +240,23 @@ sharedCases.push(
   { name: 'zlib.gunzip rejects bytes that are not gzip with Z_DATA_ERROR', run: () => zlibGunzip(Buffer.from('nope')).then(() => 'resolved', (error) => error.code), expected: 'Z_DATA_ERROR' },
 )
 
+async function withScratch(run) {
+  const dir = await fsp.mkdtemp('/tmp/append-')
+  try {
+    return await run(dir)
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true })
+  }
+}
+
+sharedCases.push(
+  { name: 'fs.promises.writeFile flag a creates a missing file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/new.txt', 'one', { flag: 'a' }); return fsp.readFile(dir + '/new.txt', 'utf8') }), expected: 'one' },
+  { name: 'fs.promises.writeFile flag a appends to an existing file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/exist.txt', 'abc'); await fsp.writeFile(dir + '/exist.txt', 'DEF', { flag: 'a' }); return fsp.readFile(dir + '/exist.txt', 'utf8') }), expected: 'abcDEF' },
+  { name: 'fs.promises.writeFile flag a appends bytes unchanged', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/bin', Buffer.from([1])); await fsp.writeFile(dir + '/bin', Buffer.from([2, 3]), { flag: 'a' }); return Array.from(await fsp.readFile(dir + '/bin')) }), expected: [1, 2, 3] },
+  { name: 'fs.promises.writeFile flag a appends a large buffer in full', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/big', 'abc'); await fsp.writeFile(dir + '/big', Buffer.alloc(200000, 65), { flag: 'a' }); const bytes = await fsp.readFile(dir + '/big'); return [bytes.length, bytes[bytes.length - 1]] }), expected: [200003, 65] },
+  { name: 'fs.promises.writeFile default flag still overwrites', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/w.txt', 'abc'); await fsp.writeFile(dir + '/w.txt', 'X'); return fsp.readFile(dir + '/w.txt', 'utf8') }), expected: 'X' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },

@@ -328,7 +328,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | Area | Names that throw | Why txiki has no equivalent |
 |---|---|---|
 | fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, unwatchFile, watchFile, writeFileSync, writeSync | txiki file APIs are async only |
-| fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no append or mode option; link copy not defined |
+| fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or a, or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no mode option; append is tjs.open with a; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
 | crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
@@ -366,7 +366,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 3 | crypto.randomBytes with a callback; timers/promises setTimeout with an AbortSignal (done 2026-11-19: 98/98 parity under Node and txiki) | Small, and Node gives the expected result for each | parity cases for the callback order and for an abort rejecting with AbortError |
 | 4 | fs.promises.opendir (done 2026-11-19: 102/102 parity under Node and txiki) | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
 | 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | blocked: the globals exist but throw "not a function" for every valid format in this txiki build (see the zlib section at the end) | parity cases for the round trip, header bytes, trailer, empty input and bad input |
-| 6 | fs.promises.writeFile with flag a | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
+| 6 | fs.promises.writeFile with flag a (done 2026-11-19: the 5 append cases pass under Node and txiki) | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
 | 7 | os.networkInterfaces | tjs.system.networkInterfaces shape unknown | a probe of its shape, then a parity case against Node's shape |
 | 8 | util.parseArgs | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
 
