@@ -639,3 +639,15 @@ Reachable item 1 in the ranked list at the end of docs/fx-split.md.
 | test/parity-cases.js: decoderBytes and decoderParts helpers; 40 cases (6 encodings: latin1, ascii, hex, base64, base64url, utf16le, plus the aliases binary and ucs2, each over 5 chunkings) with expectations from the Node probe; the base64 end-only case; the unknown-encoding case; the gap case for latin1 removed | Node parity 304/304 | txiki parity |
 | docs/fx-split.md: the string_decoder row marked done, and the ranked list of reachable work with held items H1 to H10 and their reopen evidence | grep shows the rows | none |
 | .agents/notes/implemented/architecture/2026-11-19-txiki-string-decoder.md: Agent Note | none | none |
+
+## fx split: Phase B for StringDecoder encodings (2026-11-19)
+
+Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken immediately before it. Readings (swap-in / swap-out KB/s): Node parity 408 / 0, Node contract 104 / 0, txiki parity 152 / 0, txiki contract 184 / 0, txiki gap names 708 / 0.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 304/304 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.15 s process (789 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.08 s |
+| parity under gm's txiki | shared 304, gapAsserted 3, gaps 16 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 1.45 s probe (1253 ms in runParity) |
+| contract under gm's txiki | present 115, missing []; exit 0 | 0.14 s probe |
+| contract gap names under gm's txiki | gapCount 35, unchanged (StringDecoder was never a contract gap name); exit 0 | 0.14 s probe |
