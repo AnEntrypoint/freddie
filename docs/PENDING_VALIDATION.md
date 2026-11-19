@@ -1752,3 +1752,34 @@ Mutation evidence (saved good copy /tmp/stage3-good-txiki.js; each run through m
 | S3M5: string modes parsed as decimal | 1 (string mode new, threw EACCES). The existing-file case stays green, because a file that exists keeps its mode, so the parse is not reached on it. |
 
 Coverage: every new shared case is red under at least one mutation.
+
+## Phase B: stream options, createReadStream options and writeFile flags (1fe4448d), 2026-11-19
+
+Gate: `vmstat 1 2`; the first line is the average since boot, the second line is a one-second sample and is the gate reading (si, so in KB/s). `ps` checked for build jobs (zig, cargo, rustc, clang, gcc, ninja, make, tsc). Every reading, in order:
+
+| # | Before | Since-boot (si, so) | Gate sample (si, so) | Heavy job | Open |
+|---|---|---|---|---|---|
+| 1 | start | 7085, 10499 | 24, 0 | none | yes |
+| 2 | node-parity | 7085, 10499 | 4556, 0 | none | no |
+| 3 | node-parity retry | 7080, 10492 | 52, 0 | none | yes: node parity ran |
+| 4 | txiki-parity | 7077, 10488 | 12, 0 | zig build by another peer (maker build; zig-toolchain 0.17.0) | no |
+| 5 | txiki-parity retry | 7072, 10480 | 0, 0 | zig build by another peer | no |
+| 6 | txiki-parity retry | 7068, 10472 | 1052, 0 | zig build by another peer | no |
+| 7 | txiki-parity retry | 7063, 10463 | 56, 0 | none | yes: txiki parity ran |
+| 8 | node-contract | 7059, 10457 | 28, 268 | none | yes: node contract ran |
+| 9 | txiki-contract | 7058, 10456 | 44, 0 | none | yes: txiki contract ran |
+
+The zig build in readings 4 to 6 belongs to another peer and was not touched. No witness started on a closed reading.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js (timeout 150) | node: 644/644 shared cases match; 0/0 gaps throw the documented message; 8151 ms | 8.29 s |
+| txiki parity with gap assertions | mcp-probe runs/analysis/parity-txiki-body.js (timeout 150) | label txiki, shared 644, gapAsserted 0, gaps 23, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 15055 | 15.22 s |
+| Node contract | node test/contract-node.js (timeout 150) | node: 117 names present across 25 subpaths | 0.08 s |
+| txiki contract | mcp-probe runs/analysis/contract-txiki-body.js (timeout 150) | present 117, missing [] | 0.16 s |
+
+Probes in this stretch: each Node probe and each txiki run (mcp-probe) was bounded by timeout (60 s for the Node shape probes, 120 s for the txiki shape and flood probes, 150 s for the mutation and witness runs). Each ended by itself with exit 0, and none was restarted under a new PID. The mutation loops in Phase A were stopped by their own bounds (no run was killed by PID). A final `ps` check found no leftover mcp-probe, parity or contract process of mine.
+
+Longest step: the stage 3 mutation loop, dominated by gate waits (the loop sampled up to 25 times, 20 s apart, before each run). It was not timed separately. What was done about it: each run waited for an open reading and was bounded by timeout 150, and the job was polled rather than restarted.
+
+Not verified: the witnesses ran once each. The Node contract and txiki contract do not exercise the new options directly; the parity cases do.
