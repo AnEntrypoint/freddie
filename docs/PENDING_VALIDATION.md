@@ -673,3 +673,13 @@ Queue items 2 and 3. Both use one readable state machine in src/txiki.js: sync (
 | test/parity-cases.js: pipeBackpressure and readableWithListener helpers; 13 shared cases from the probes; the stream.Readable.read gap case removed | Node dev check: all 34 stream cases match Node | Node parity and txiki parity |
 | docs/fx-split.md: items 2, 3 and 4 of the ranked list marked done with their probe files | none | none |
 | Not ported: pipe error handling (the destination error listener that unpipes the source) and the public Readable.unpipe, which stays a gap name. The probe pipe-dest-error in runs/analysis/stream-edge-node.mjs shows a pause before end that this port does not reproduce, so that case is left out of the parity cases | none; an open divergence until probed and ported |
+
+## fx split: buffer.constants and fs.constants O_* flags under txiki (2026-11-19)
+
+Queue item 4. The Node 24 oracle probe is runs/analysis/constants-node.mjs (untracked): buffer.constants has MAX_LENGTH 9007199254740991 and MAX_STRING_LENGTH 536870888; fs.constants has 15 O_* flags. The host is x86_64 (uname -m). The txiki values are the same numbers as constants, so they are checked against Node on this host only.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| src/txiki.js: fs.constants gains the 15 O_* flags; buffer.constants gains MAX_LENGTH and MAX_STRING_LENGTH; both gap entries for these members are gone | the dev check passes both new cases under Node and under gm's txiki | Node parity and txiki parity |
+| test/parity-cases.js: two shared cases (fs.constants O_* on this host; buffer.constants values); the fs.constants.O_RDONLY gap case removed | the same two cases match Node | Node parity and txiki parity |
+| docs/fx-split.md: item 5 of the ranked list marked done, with the x86_64 caveat | none | none |

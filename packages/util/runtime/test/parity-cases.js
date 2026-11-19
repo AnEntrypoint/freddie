@@ -454,6 +454,8 @@ export const sharedCases = [
     await closedEvent(p)
     return log
   })()), expected: ["data p","p end","p close"] },
+  { name: 'fs.constants O_* flags match Node on this x86_64 Linux host', run: () => ['O_RDONLY', 'O_WRONLY', 'O_RDWR', 'O_CREAT', 'O_EXCL', 'O_NOCTTY', 'O_TRUNC', 'O_APPEND', 'O_NONBLOCK', 'O_DSYNC', 'O_DIRECT', 'O_DIRECTORY', 'O_NOFOLLOW', 'O_NOATIME', 'O_SYNC'].map((key) => s.fs.constants[key]), expected: [0, 1, 2, 64, 128, 256, 512, 1024, 2048, 4096, 16384, 65536, 131072, 262144, 1052672] },
+  { name: 'buffer.constants MAX_LENGTH and MAX_STRING_LENGTH match Node', run: () => [s.buffer.constants.MAX_LENGTH, s.buffer.constants.MAX_STRING_LENGTH], expected: [9007199254740991, 536870888] },
   { name: 'fs.promises.cp copies symbolic links as links, rewrites relative targets, and reports Node errors', run: () => cpLinkScenario(), expected: {
     fileLinkRelative: { type: 'link', target: 'ROOT/real.txt' },
     fileLinkAbsolute: { type: 'link', target: 'ROOT/real.txt' },
@@ -1062,7 +1064,6 @@ sharedCases.push(
 
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
-  { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
   { name: 'crypto.createHash sha3-256', run: () => s.crypto.createHash('sha3-256') },
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },

@@ -336,7 +336,27 @@ function direntOf(raw) {
   return { name: raw.name, ...fileTypeMethods(raw) }
 }
 
-const fsConstants = withGaps('fs.constants', { F_OK: 0, R_OK: 4, W_OK: 2, X_OK: 1 })
+const fsConstants = withGaps('fs.constants', {
+  F_OK: 0,
+  R_OK: 4,
+  W_OK: 2,
+  X_OK: 1,
+  O_RDONLY: 0,
+  O_WRONLY: 1,
+  O_RDWR: 2,
+  O_CREAT: 64,
+  O_EXCL: 128,
+  O_NOCTTY: 256,
+  O_TRUNC: 512,
+  O_APPEND: 1024,
+  O_NONBLOCK: 2048,
+  O_DSYNC: 4096,
+  O_DIRECT: 16384,
+  O_DIRECTORY: 65536,
+  O_NOFOLLOW: 131072,
+  O_NOATIME: 262144,
+  O_SYNC: 1052672,
+})
 
 async function exists(path) {
   return tjs.lstat(path).then(() => true, () => false)
@@ -2438,7 +2458,7 @@ export const txikiRuntime = {
     Writable,
     pipeline,
   }),
-  buffer: withGaps('buffer', { Buffer, constants: withGaps('buffer.constants', {}) }),
+  buffer: withGaps('buffer', { Buffer, constants: withGaps('buffer.constants', { MAX_LENGTH: 9007199254740991, MAX_STRING_LENGTH: 536870888 }) }),
   url: { fileURLToPath, pathToFileURL },
   util: withGaps('util', {
     TextDecoder: globalThis.TextDecoder,
