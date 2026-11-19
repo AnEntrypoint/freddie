@@ -405,3 +405,14 @@ Decision, recorded in docs/fx-split.md under "zlib gzip and gunzip under txiki".
 | parity under gm's txiki (probe with the rebuilt gm-core) | shared 112, gapAsserted 5, gaps 13, mismatches [], unexpectedGaps []; runParity returned, so the entry exits zero | 0.48 s probe, 299 ms in runParity |
 
 Gap names in the txiki contract (51): fs.accessSync fs.closeSync fs.createReadStream fs.existsSync fs.lstatSync fs.mkdirSync fs.mkdtempSync fs.openSync fs.readFileSync fs.readSync fs.readdirSync fs.readlinkSync fs.realpathSync fs.rmSync fs.statSync fs.symlinkSync fs.unlinkSync fs.unwatchFile fs.watchFile fs.writeFileSync fs.writeSync crypto.createHash stream.PassThrough stream.Readable stream.Writable stream.pipeline util.parseArgs module.createRequire module.stripTypeScriptTypes child-process.execFile child-process.execFileSync child-process.spawn child-process.spawnSync os.networkInterfaces os.platform os.release worker-threads.Worker async-hooks.AsyncLocalStorage vm.Script vm.createContext vm.runInContext http.createServer http.validateHeaderValue zlib.brotliCompress zlib.createZstdDecompress zlib.gunzip zlib.gzip zlib.zstdCompress zlib.zstdDecompress zlib.zstdDecompressSync inspector.Session.
+
+## fx split: os.networkInterfaces and util.parseArgs under txiki (2026-11-19)
+
+Ranked items 7 and 8 in docs/fx-split.md. Both are implemented in pure JS in src/txiki.js. Phase A changes:
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: networkInterfaces regroups tjs.system.networkInterfaces (prefixLength, expandIPv6); parseArgs with tokenizeArgs, shortToken, longToken, valueToken, storeOptionToken; both exported; gapFunctions drops os.networkInterfaces and util.parseArgs | node --check passes | txiki contract present 115; gap names 49 (was 51) |
+| test/parity-cases.js: 6 os.networkInterfaces shared cases; 41 util.parseArgs shared cases; parseArgsOutcome helper; loopbackEntries helper; gap entry util.parseArgs without args | node --check passes | Node parity 159/159; txiki parity 159/159 with 0 mismatches, 14 gaps |
+| docs/fx-split.md: util row removed from the gap table; os row drops networkInterfaces; ranked rows 7 and 8 marked done; section for both | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-os-networkinterfaces-and-parseargs.md: Agent Note | none | none |

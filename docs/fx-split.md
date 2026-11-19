@@ -333,10 +333,9 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
-| util | parseArgs | no equivalent in txiki or the web platform |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
 | child_process | execFile, execFileSync, spawn, spawnSync | tjs.spawn exists, but its result is not Node's ChildProcess |
-| os | networkInterfaces, platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
+| os | platform, release, constants | tjs.system has no platform or release; platform is compile-time only (TJS__PLATFORM) |
 | process | platform, arch, version, versions, exitCode, stdout, stderr, stdin, on, off, send, and every other member not in txiki.js | no JS-level platform; stdio is web streams; signals not mapped |
 | worker_threads | Worker, parentPort, workerData | tjs.Worker is not Node's worker API |
 | async_hooks | AsyncLocalStorage | txiki has no async context |
@@ -368,8 +367,8 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 4 | fs.promises.opendir (done 2026-11-19: 102/102 parity under Node and txiki) | Needs a Dir with read, close and the async iterator | parity case that lists a scratch directory through the Dir and closes it |
 | 5 | zlib.gzip and gunzip through CompressionStream and DecompressionStream | blocked: gaps under txiki, because the globals throw "not a function" for every valid format in this build (see the zlib section) | parity cases for the round trip, header bytes, trailer, empty input and bad input |
 | 6 | fs.promises.writeFile with flag a (done 2026-11-19: the 5 append cases pass under Node and txiki) | Needs FileHandle append semantics confirmed | parity case that appends and reads back |
-| 7 | os.networkInterfaces | tjs.system.networkInterfaces shape unknown | a probe of its shape, then a parity case against Node's shape |
-| 8 | util.parseArgs | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
+| 7 | os.networkInterfaces (done 2026-11-19: 6 parity cases, Node and txiki agree) | txiki exposes a flat array, regrouped in pure JS | a probe of its shape, then a parity case against Node's shape |
+| 8 | util.parseArgs (done 2026-11-19: 41 parity cases, Node and txiki agree) | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
 
 Needs an owner decision or fx, so not ranked: process.platform and os.platform (fx supplies the platform), sync fs (txiki has no sync file API), child_process (process model decision), stream classes (web streams are not Node streams; design decision), vm, worker_threads, AsyncLocalStorage, http, zlib brotli and zstd, and crypto.createHash (no equivalent or a dependency decision).
 
@@ -400,3 +399,14 @@ Parity: the five zlib cases in test/parity-cases.js (round trip, header bytes, t
 What settles it: a txiki build with a working zlib backend. Then restore the implementation from 7f2e5983, remove the gap entries and the gap fields, and re-run both entries.
 
 Not taken: a pure-JS deflate and inflate. That is an owner decision (an owned codec of several hundred lines, or a new dependency).
+
+
+## os.networkInterfaces and util.parseArgs under txiki (2026-11-19)
+
+os.networkInterfaces. tjs.system.networkInterfaces returns one flat array of { name, mac, address, netmask, internal }, with scopeId on IPv6 entries. It has no family or cidr and is not keyed by name. The txiki implementation regroups it into Node's shape: one array per interface name, in first-seen order, with address, netmask, family, mac, internal and cidr. family is IPv6 when the address contains a colon and IPv4 otherwise. cidr is the address plus the prefix length counted from the netmask; an IPv6 netmask is expanded from its :: form first. scopeid is set on IPv6 entries only, as Node does. The parity cases check the loopback entries, the key sets, mac, scopeid and grouping. They assume a Linux loopback named lo, which is what this suite runs on.
+
+util.parseArgs. Implemented in pure JS in src/txiki.js for the common forms: short and long flags, values as the next argument or inline, combined short flags, attached short values, --no- negation under allowNegative (boolean options only), positionals, the -- terminator, multiple, defaults, strict and non-strict parsing, and tokens. Errors carry Node's codes and messages: unknown options (with the positional hint when positionals are allowed), unexpected positionals, missing values, ambiguous dash-values, and boolean options given a value. 41 shared parity cases cover these, and Node and txiki agree on all of them.
+
+Gap: util.parseArgs without args. Node reads process.argv when args is omitted. txiki has no JS-level argv equal to Node's, so args is required, and omitting it throws the documented gap message (asserted in the gap cases).
+
+Not covered: config validation of option definitions (the documented contract is trusted, not re-checked), and any parseArgs option beyond those listed above.

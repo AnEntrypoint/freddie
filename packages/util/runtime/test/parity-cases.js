@@ -257,6 +257,78 @@ sharedCases.push(
   { name: 'fs.promises.writeFile default flag still overwrites', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/w.txt', 'abc'); await fsp.writeFile(dir + '/w.txt', 'X'); return fsp.readFile(dir + '/w.txt', 'utf8') }), expected: 'X' },
 )
 
+function parseArgsOutcome(config) {
+  try {
+    const result = s.util.parseArgs(config)
+    return { values: result.values, positionals: result.positionals, tokens: result.tokens }
+  } catch (error) {
+    return { error: [error.name, error.code, error.message] }
+  }
+}
+
+const BOOL_F = { foo: { type: 'boolean', short: 'f' } }
+const STR_BAR = { bar: { type: 'string', short: 'b' } }
+const ERR_UNKNOWN = 'ERR_PARSE_ARGS_UNKNOWN_OPTION'
+const ERR_VALUE = 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE'
+const ERR_POSITIONAL = 'ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL'
+
+function loopbackEntries(ni) {
+  return Object.values(ni).flat().filter((entry) => entry.internal)
+}
+
+sharedCases.push(
+  { name: 'util.parseArgs short flag', run: () => parseArgsOutcome({ args: ['-f'], options: BOOL_F }), expected: { values: { foo: true }, positionals: [] } },
+  { name: 'util.parseArgs long flag', run: () => parseArgsOutcome({ args: ['--foo'], options: BOOL_F }), expected: { values: { foo: true }, positionals: [] } },
+  { name: 'util.parseArgs long value as the next argument', run: () => parseArgsOutcome({ args: ['--bar', 'x'], options: STR_BAR }), expected: { values: { bar: 'x' }, positionals: [] } },
+  { name: 'util.parseArgs long value with equals', run: () => parseArgsOutcome({ args: ['--bar=x'], options: STR_BAR }), expected: { values: { bar: 'x' }, positionals: [] } },
+  { name: 'util.parseArgs short value as the next argument', run: () => parseArgsOutcome({ args: ['-b', 'x'], options: STR_BAR }), expected: { values: { bar: 'x' }, positionals: [] } },
+  { name: 'util.parseArgs short value attached', run: () => parseArgsOutcome({ args: ['-bx'], options: STR_BAR }), expected: { values: { bar: 'x' }, positionals: [] } },
+  { name: 'util.parseArgs combined short flags', run: () => parseArgsOutcome({ args: ['-ab'], options: { a: { type: 'boolean', short: 'a' }, b: { type: 'boolean', short: 'b' } } }), expected: { values: { a: true, b: true }, positionals: [] } },
+  { name: 'util.parseArgs negation with allowNegative', run: () => parseArgsOutcome({ args: ['--no-color'], options: { color: { type: 'boolean' } }, allowNegative: true }), expected: { values: { color: false }, positionals: [] } },
+  { name: 'util.parseArgs negation rejected without allowNegative', run: () => parseArgsOutcome({ args: ['--no-color'], options: { color: { type: 'boolean' } } }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '--no-color'"] } },
+  { name: 'util.parseArgs negation rejected for a string option', run: () => parseArgsOutcome({ args: ['--no-x'], options: { x: { type: 'string' } }, allowNegative: true }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '--no-x'"] } },
+  { name: 'util.parseArgs positionals around options', run: () => parseArgsOutcome({ args: ['a', '-f', 'b'], options: BOOL_F, allowPositionals: true }), expected: { values: { foo: true }, positionals: ['a', 'b'] } },
+  { name: 'util.parseArgs positional rejected in strict mode', run: () => parseArgsOutcome({ args: ['a'], options: {} }), expected: { error: ['TypeError', ERR_POSITIONAL, "Unexpected argument 'a'. This command does not take positional arguments"] } },
+  { name: 'util.parseArgs terminator makes the rest positional', run: () => parseArgsOutcome({ args: ['--', '-f'], options: BOOL_F, allowPositionals: true }), expected: { values: {}, positionals: ['-f'] } },
+  { name: 'util.parseArgs bare dash is a positional', run: () => parseArgsOutcome({ args: ['-'], options: {}, allowPositionals: true }), expected: { values: {}, positionals: ['-'] } },
+  { name: 'util.parseArgs multiple collects every value', run: () => parseArgsOutcome({ args: ['--x', '1', '--x', '2'], options: { x: { type: 'string', multiple: true } } }), expected: { values: { x: ['1', '2'] }, positionals: [] } },
+  { name: 'util.parseArgs string repeated keeps the last value', run: () => parseArgsOutcome({ args: ['--x', '1', '--x', '2'], options: { x: { type: 'string' } } }), expected: { values: { x: '2' }, positionals: [] } },
+  { name: 'util.parseArgs repeated boolean stays true', run: () => parseArgsOutcome({ args: ['--f', '--f'], options: { f: { type: 'boolean' } } }), expected: { values: { f: true }, positionals: [] } },
+  { name: 'util.parseArgs default applies when absent', run: () => parseArgsOutcome({ args: [], options: { x: { type: 'string', default: 'd' } } }), expected: { values: { x: 'd' }, positionals: [] } },
+  { name: 'util.parseArgs default does not override a given value', run: () => parseArgsOutcome({ args: ['--x', 'v'], options: { x: { type: 'string', default: 'd' } } }), expected: { values: { x: 'v' }, positionals: [] } },
+  { name: 'util.parseArgs boolean default', run: () => parseArgsOutcome({ args: [], options: { f: { type: 'boolean', default: true } } }), expected: { values: { f: true }, positionals: [] } },
+  { name: 'util.parseArgs empty arguments', run: () => parseArgsOutcome({ args: [], options: {} }), expected: { values: {}, positionals: [] } },
+  { name: 'util.parseArgs unknown long option in strict mode', run: () => parseArgsOutcome({ args: ['--nope'], options: {} }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '--nope'"] } },
+  { name: 'util.parseArgs unknown long option hints at the terminator when positionals are allowed', run: () => parseArgsOutcome({ args: ['--nope'], options: {}, allowPositionals: true }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '--nope'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"--nope\""] } },
+  { name: 'util.parseArgs unknown short option in strict mode', run: () => parseArgsOutcome({ args: ['-z'], options: {} }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '-z'"] } },
+  { name: 'util.parseArgs unknown short option hints when positionals are allowed', run: () => parseArgsOutcome({ args: ['-z'], options: {}, allowPositionals: true }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '-z'. To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"-z\""] } },
+  { name: 'util.parseArgs unknown options are kept when not strict', run: () => parseArgsOutcome({ args: ['--nope', 'v'], options: {}, strict: false }), expected: { values: { nope: true }, positionals: ['v'] } },
+  { name: 'util.parseArgs missing long value in strict mode', run: () => parseArgsOutcome({ args: ['--bar'], options: STR_BAR }), expected: { error: ['TypeError', ERR_VALUE, "Option '-b, --bar <value>' argument missing"] } },
+  { name: 'util.parseArgs missing short value in strict mode', run: () => parseArgsOutcome({ args: ['-b'], options: STR_BAR }), expected: { error: ['TypeError', ERR_VALUE, "Option '-b, --bar <value>' argument missing"] } },
+  { name: 'util.parseArgs boolean rejects an inline value in strict mode', run: () => parseArgsOutcome({ args: ['--foo=1'], options: BOOL_F }), expected: { error: ['TypeError', ERR_VALUE, "Option '-f, --foo' does not take an argument"] } },
+  { name: 'util.parseArgs ambiguous long value in strict mode', run: () => parseArgsOutcome({ args: ['--bar', '-x'], options: STR_BAR }), expected: { error: ['TypeError', ERR_VALUE, "Option '--bar' argument is ambiguous.\nDid you forget to specify the option argument for '--bar'?\nTo specify an option argument starting with a dash use '--bar=-XYZ'."] } },
+  { name: 'util.parseArgs ambiguous short value in strict mode', run: () => parseArgsOutcome({ args: ['-b', '-x'], options: STR_BAR }), expected: { error: ['TypeError', ERR_VALUE, "Option '-b' argument is ambiguous.\nDid you forget to specify the option argument for '-b'?\nTo specify an option argument starting with a dash use '--bar=-XYZ' or '-b-XYZ'."] } },
+  { name: 'util.parseArgs short boolean followed by an unknown character', run: () => parseArgsOutcome({ args: ['-f=1'], options: BOOL_F }), expected: { error: ['TypeError', ERR_UNKNOWN, "Unknown option '-='"] } },
+  { name: 'util.parseArgs a dash value is taken when not strict', run: () => parseArgsOutcome({ args: ['--bar', '-x'], options: STR_BAR, strict: false }), expected: { values: { bar: '-x' }, positionals: [] } },
+  { name: 'util.parseArgs missing value is true when not strict', run: () => parseArgsOutcome({ args: ['--bar'], options: STR_BAR, strict: false }), expected: { values: { bar: true }, positionals: [] } },
+  { name: 'util.parseArgs inline value on a boolean is kept when not strict', run: () => parseArgsOutcome({ args: ['--foo=1'], options: BOOL_F, strict: false }), expected: { values: { foo: '1' }, positionals: [] } },
+  { name: 'util.parseArgs positional rejected when allowPositionals is false outside strict mode', run: () => parseArgsOutcome({ args: ['a'], options: {}, strict: false, allowPositionals: false }), expected: { error: ['TypeError', ERR_POSITIONAL, "Unexpected argument 'a'. This command does not take positional arguments"] } },
+  { name: 'util.parseArgs short boolean among positionals', run: () => parseArgsOutcome({ args: ['-f', 'x'], options: BOOL_F, allowPositionals: true }), expected: { values: { foo: true }, positionals: ['x'] } },
+  { name: 'util.parseArgs token shape for a value and a positional', run: () => parseArgsOutcome({ args: ['--bar', 'x', 'p'], options: STR_BAR, allowPositionals: true, tokens: true }), expected: { values: { bar: 'x' }, positionals: ['p'], tokens: [{ kind: 'option', name: 'bar', rawName: '--bar', index: 0, value: 'x', inlineValue: false }, { kind: 'positional', index: 2, value: 'p' }] } },
+  { name: 'util.parseArgs token shape for the terminator', run: () => parseArgsOutcome({ args: ['--', '-f'], options: BOOL_F, allowPositionals: true, tokens: true }), expected: { values: {}, positionals: ['-f'], tokens: [{ kind: 'option-terminator', index: 0 }, { kind: 'positional', index: 1, value: '-f' }] } },
+  { name: 'util.parseArgs token shape for a negation', run: () => parseArgsOutcome({ args: ['--no-color'], options: { color: { type: 'boolean' } }, allowNegative: true, tokens: true }), expected: { values: { color: false }, positionals: [], tokens: [{ kind: 'option', name: 'color', rawName: '--no-color', index: 0 }] } },
+  { name: 'util.parseArgs token shape for an attached short value', run: () => parseArgsOutcome({ args: ['-bx'], options: STR_BAR, tokens: true }), expected: { values: { bar: 'x' }, positionals: [], tokens: [{ kind: 'option', name: 'bar', rawName: '-b', index: 0, value: 'x', inlineValue: true }] } },
+)
+
+sharedCases.push(
+  { name: 'os.networkInterfaces loopback entries carry address, family, cidr and netmask', run: () => loopbackEntries(s.os.networkInterfaces()).map((entry) => [entry.address, entry.family, entry.cidr, entry.netmask]), expected: [['127.0.0.1', 'IPv4', '127.0.0.1/8', '255.0.0.0'], ['::1', 'IPv6', '::1/128', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff']] },
+  { name: 'os.networkInterfaces entry keys for IPv4 and IPv6 differ only by scopeid', run: () => { const [v4, v6] = s.os.networkInterfaces().lo; return [Object.keys(v4).sort(), Object.keys(v6).sort()] }, expected: [['address', 'cidr', 'family', 'internal', 'mac', 'netmask'], ['address', 'cidr', 'family', 'internal', 'mac', 'netmask', 'scopeid']] },
+  { name: 'os.networkInterfaces loopback mac and scopeid values', run: () => { const [v4, v6] = s.os.networkInterfaces().lo; return [v4.mac, v6.mac, v6.scopeid] }, expected: ['00:00:00:00:00:00', '00:00:00:00:00:00', 0] },
+  { name: 'os.networkInterfaces names the loopback interface lo and marks it internal', run: () => { const ni = s.os.networkInterfaces(); return [Object.keys(ni).includes('lo'), ni.lo.every((entry) => entry.internal === true)] }, expected: [true, true] },
+  { name: 'os.networkInterfaces groups IPv4 before IPv6 under one name', run: () => s.os.networkInterfaces().lo.map((entry) => entry.family), expected: ['IPv4', 'IPv6'] },
+  { name: 'os.networkInterfaces every entry has a string address and family and a boolean internal', run: () => Object.values(s.os.networkInterfaces()).flat().every((entry) => typeof entry.address === 'string' && typeof entry.family === 'string' && typeof entry.internal === 'boolean'), expected: true },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
@@ -271,6 +343,7 @@ export const gapCases = [
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'zlib.gzip', run: () => s.zlib.gzip(Buffer.alloc(0), () => {}) },
   { name: 'zlib.gunzip', run: () => s.zlib.gunzip(Buffer.alloc(0), () => {}) },
+  { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
 ]
 
 const gapMessage = (name) => '@freddie/freddie-runtime: txiki.js has no ' + name + ', see docs/fx-split.md (txiki gaps)'

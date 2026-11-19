@@ -560,6 +560,182 @@ function promisify(original) {
 
 const DOTENV_LINE = /^\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?$/gm
 
+function hasOwnKey(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key)
+}
+
+function parseArgsError(code, message) {
+  const error = new TypeError(message)
+  error.code = code
+  return error
+}
+
+function optionLabel(name, option) {
+  const short = option.short === undefined ? '' : '-' + option.short + ', '
+  return short + '--' + name + (option.type === 'string' ? ' <value>' : '')
+}
+
+function shortOptionName(options, char) {
+  return Object.keys(options).find((name) => options[name].short === char)
+}
+
+function ambiguousValueMessage(rawName, name, option) {
+  const suffix = rawName.startsWith('--') ? "use '--" + name + "=-XYZ'." : "use '--" + name + "=-XYZ' or '-" + option.short + "-XYZ'."
+  return "Option '" + rawName + "' argument is ambiguous.\nDid you forget to specify the option argument for '" + rawName + "'?\nTo specify an option argument starting with a dash " + suffix
+}
+
+function unknownOptionMessage(rawName, allowPositionals) {
+  const hint = allowPositionals ? ". To specify a positional argument starting with a '-', place it at the end of the command after '--', as in '-- \"" + rawName + "\"" : ''
+  return "Unknown option '" + rawName + "'" + hint
+}
+
+function valueToken(args, index, name, option, rawName, strict, tokens) {
+  const next = args[index + 1]
+  if (next === undefined) {
+    if (strict) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' argument missing")
+    tokens.push({ kind: 'option', name, rawName, index })
+    return 0
+  }
+  if (strict && next.startsWith('-')) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', ambiguousValueMessage(rawName, name, option))
+  tokens.push({ kind: 'option', name, rawName, index, value: next, inlineValue: false })
+  return 1
+}
+
+function longToken(args, index, options, strict, allowNegative, tokens) {
+  const arg = args[index]
+  const body = arg.slice(2)
+  const equals = body.indexOf('=')
+  const name = equals === -1 ? body : body.slice(0, equals)
+  const rawName = '--' + name
+  const inline = equals === -1 ? undefined : body.slice(equals + 1)
+  if (!hasOwnKey(options, name) && allowNegative && name.startsWith('no-') && hasOwnKey(options, name.slice(3)) && options[name.slice(3)].type === 'boolean') {
+    tokens.push({ kind: 'option', name: name.slice(3), rawName, index })
+    return 0
+  }
+  if (!hasOwnKey(options, name)) {
+    tokens.push(inline === undefined ? { kind: 'option', name, rawName, index } : { kind: 'option', name, rawName, index, value: inline, inlineValue: true })
+    return 0
+  }
+  const option = options[name]
+  if (inline !== undefined) {
+    if (option.type === 'boolean' && strict) throw parseArgsError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' does not take an argument")
+    tokens.push({ kind: 'option', name, rawName, index, value: inline, inlineValue: true })
+    return 0
+  }
+  if (option.type === 'boolean') {
+    tokens.push({ kind: 'option', name, rawName, index })
+    return 0
+  }
+  return valueToken(args, index, name, option, rawName, strict, tokens)
+}
+
+function shortToken(args, index, options, strict, tokens) {
+  const chars = args[index].slice(1)
+  for (let position = 0; position < chars.length; position += 1) {
+    const char = chars[position]
+    const rawName = '-' + char
+    const name = shortOptionName(options, char)
+    if (name === undefined) {
+      tokens.push({ kind: 'option', name: char, rawName, index })
+      continue
+    }
+    const option = options[name]
+    if (option.type === 'boolean') {
+      tokens.push({ kind: 'option', name, rawName, index })
+      continue
+    }
+    const rest = chars.slice(position + 1)
+    if (rest.length > 0) {
+      tokens.push({ kind: 'option', name, rawName, index, value: rest, inlineValue: true })
+      return 0
+    }
+    return valueToken(args, index, name, option, rawName, strict, tokens)
+  }
+  return 0
+}
+
+function tokenizeArgs(args, options, strict, allowNegative) {
+  const tokens = []
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]
+    if (arg === '--') {
+      tokens.push({ kind: 'option-terminator', index })
+      for (let rest = index + 1; rest < args.length; rest += 1) tokens.push({ kind: 'positional', index: rest, value: args[rest] })
+      break
+    }
+    let consumed = 0
+    if (arg.startsWith('--')) consumed = longToken(args, index, options, strict, allowNegative, tokens)
+    else if (arg.startsWith('-') && arg.length > 1) consumed = shortToken(args, index, options, strict, tokens)
+    else tokens.push({ kind: 'positional', index, value: arg })
+    index += consumed
+  }
+  return tokens
+}
+
+function storeOptionToken(token, options, strict, allowPositionals, values) {
+  if (!hasOwnKey(options, token.name)) {
+    if (strict) throw parseArgsError('ERR_PARSE_ARGS_UNKNOWN_OPTION', unknownOptionMessage(token.rawName, allowPositionals))
+    values[token.name] = token.value ?? true
+    return
+  }
+  const option = options[token.name]
+  const negated = token.rawName.startsWith('--no-') && token.name === token.rawName.slice(5)
+  const stored = token.value ?? (option.type === 'boolean' ? !negated : true)
+  values[token.name] = option.multiple === true ? [...(values[token.name] ?? []), stored] : stored
+}
+
+function parseArgs(config = {}) {
+  const args = config.args
+  if (args === undefined) throw gapError('util.parseArgs without args')
+  const options = config.options ?? {}
+  const strict = config.strict ?? true
+  const allowPositionals = config.allowPositionals ?? !strict
+  const allowNegative = config.allowNegative ?? false
+  const tokens = tokenizeArgs(args, options, strict, allowNegative)
+  const values = Object.create(null)
+  const positionals = []
+  for (const token of tokens) {
+    if (token.kind === 'option-terminator') continue
+    if (token.kind === 'positional') {
+      if (!allowPositionals) throw parseArgsError('ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL', "Unexpected argument '" + token.value + "'. This command does not take positional arguments")
+      positionals.push(token.value)
+      continue
+    }
+    storeOptionToken(token, options, strict, allowPositionals, values)
+  }
+  for (const [name, option] of Object.entries(options)) {
+    if (values[name] === undefined && option.default !== undefined) values[name] = option.default
+  }
+  const result = { values, positionals }
+  if (config.tokens === true) result.tokens = tokens
+  return result
+}
+
+function expandIPv6(text) {
+  if (!text.includes('::')) return text.split(':')
+  const [head, tail] = text.split('::')
+  const headGroups = head === '' ? [] : head.split(':')
+  const tailGroups = tail === '' ? [] : tail.split(':')
+  return [...headGroups, ...Array(8 - headGroups.length - tailGroups.length).fill('0'), ...tailGroups]
+}
+
+function prefixLength(netmask) {
+  const groups = netmask.includes(':') ? expandIPv6(netmask).map((group) => parseInt(group, 16)) : netmask.split('.').map(Number)
+  return groups.reduce((bits, group) => bits + group.toString(2).replace(/0/g, '').length, 0)
+}
+
+function networkInterfaces() {
+  const interfaces = {}
+  for (const entry of tjs.system.networkInterfaces) {
+    const family = entry.address.includes(':') ? 'IPv6' : 'IPv4'
+    const record = { address: entry.address, netmask: entry.netmask, family, mac: entry.mac, internal: entry.internal, cidr: entry.address + '/' + prefixLength(entry.netmask) }
+    if (family === 'IPv6') record.scopeid = entry.scopeId
+    if (!hasOwnKey(interfaces, entry.name)) interfaces[entry.name] = []
+    interfaces[entry.name].push(record)
+  }
+  return interfaces
+}
+
 function parseEnv(content) {
   const env = {}
   const text = String(content).replace(/\r\n?/g, '\n')
@@ -718,8 +894,8 @@ export const txikiRuntime = {
   util: withGaps('util', {
     TextDecoder: globalThis.TextDecoder,
     inspect: tjsInspect,
-    ...gapFunctions('util', ['parseArgs']),
     isDeepStrictEqual,
+    parseArgs,
     parseEnv,
     promisify,
   }),
@@ -731,7 +907,8 @@ export const txikiRuntime = {
     constants: withGaps('os.constants', {}),
     homedir: () => tjs.homeDir,
     tmpdir: () => tjs.tmpDir,
-    ...gapFunctions('os', ['networkInterfaces', 'platform', 'release']),
+    networkInterfaces,
+    ...gapFunctions('os', ['platform', 'release']),
   }),
   workerThreads: withGaps('worker_threads', {
     MessageChannel: globalThis.MessageChannel,
