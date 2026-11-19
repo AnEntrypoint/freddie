@@ -9,7 +9,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'createReadStream', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
+const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -45,10 +45,6 @@ function gapClass(name) {
 
 function gapFunctions(prefix, names) {
   return Object.fromEntries(names.map((name) => [name, gapFunction(prefix + '.' + name)]))
-}
-
-function gapClasses(prefix, names) {
-  return Object.fromEntries(names.map((name) => [name, gapClass(prefix + '.' + name)]))
 }
 
 function withGaps(name, members) {
@@ -1523,6 +1519,443 @@ function gzip(buffer, options, callback) {
   setTimeout(() => done(null, output), 0)
 }
 
+const DEFAULT_HIGH_WATER_MARK = 65536
+const EMITTER_GAP_METHODS = ['addListener', 'eventNames', 'listeners', 'off', 'prependListener', 'removeAllListeners', 'removeListener']
+const tickQueue = []
+let tickPending = false
+
+function runTicks() {
+  try {
+    while (tickQueue.length > 0) tickQueue.shift()()
+  } finally {
+    tickPending = tickQueue.length > 0
+    if (tickPending) Promise.resolve().then(runTicks)
+  }
+}
+
+function nextTick(callback) {
+  tickQueue.push(callback)
+  if (tickPending) return
+  tickPending = true
+  Promise.resolve().then(runTicks)
+}
+
+class Emitter {
+  #listeners = new Map()
+
+  on(name, listener) {
+    this.#listenersOf(name).push(listener)
+    return this
+  }
+
+  once(name, listener) {
+    const list = this.#listenersOf(name)
+    const wrapped = (...args) => {
+      list.splice(list.indexOf(wrapped), 1)
+      listener(...args)
+    }
+    list.push(wrapped)
+    return this
+  }
+
+  listenerCount(name) {
+    return this.#listenersOf(name).length
+  }
+
+  emit(name, ...args) {
+    const list = this.#listenersOf(name)
+    if (list.length === 0 && name === 'error') throw args[0]
+    for (const listener of [...list]) listener(...args)
+    return true
+  }
+
+  #listenersOf(name) {
+    if (!this.#listeners.has(name)) this.#listeners.set(name, [])
+    return this.#listeners.get(name)
+  }
+}
+
+function nodeError(code, message) {
+  return Object.assign(new Error(message), { code })
+}
+
+function assertNoOptions(name, options, allowed) {
+  for (const key of Object.keys(options ?? {})) {
+    if (!allowed.includes(key)) throw gapError(name + ' option ' + key)
+  }
+}
+
+function declareGaps(prefix, target, names) {
+  for (const name of names) {
+    Object.defineProperty(target.prototype, name, { value: gapFunction(prefix + '.' + name), writable: true, configurable: true })
+  }
+}
+
+function bytesOf(chunk, encoding = 'utf8') {
+  return typeof chunk === 'string' ? Buffer.from(chunk, encoding) : chunk
+}
+
+function fsOpenError(error, path) {
+  if (error.code !== 'ENOENT') return error
+  return Object.assign(new Error("ENOENT: no such file or directory, open '" + path + "'"), { errno: -2, code: 'ENOENT', syscall: 'open', path })
+}
+
+class Writable extends Emitter {
+  #queue = []
+  #writing = null
+  #length = 0
+  #ending = false
+  #prefinished = false
+  #destroyed = false
+  #needDrain = false
+  #finishCallbacks = []
+
+  constructor(options) {
+    super()
+    assertNoOptions('stream.Writable', options, ['write', 'final'])
+    if (options?.write !== undefined) this._write = options.write
+    if (options?.final !== undefined) this._final = options.final
+  }
+
+  _write(chunk, encoding, callback) {
+    callback(nodeError('ERR_METHOD_NOT_IMPLEMENTED', 'The _write() method is not implemented'))
+  }
+
+  _destroy(error, callback) {
+    callback()
+  }
+
+  write(chunk, encoding, callback) {
+    if (typeof encoding === 'function') {
+      callback = encoding
+      encoding = undefined
+    }
+    if (this.#ending) {
+      const error = nodeError('ERR_STREAM_WRITE_AFTER_END', 'write after end')
+      nextTick(() => callback?.(error))
+      this.destroy(error)
+      return false
+    }
+    const bytes = bytesOf(chunk, encoding)
+    this.#queue.push({ bytes, callback })
+    this.#length += bytes.length
+    const ok = this.#length < DEFAULT_HIGH_WATER_MARK
+    if (!ok) this.#needDrain = true
+    this.#drain()
+    return ok
+  }
+
+  end(chunk, encoding, callback) {
+    if (typeof chunk === 'function') {
+      callback = chunk
+      chunk = undefined
+    } else if (typeof encoding === 'function') {
+      callback = encoding
+      encoding = undefined
+    }
+    if (chunk !== undefined && chunk !== null) this.write(chunk, encoding)
+    if (callback !== undefined) this.#finishCallbacks.push(callback)
+    if (!this.#ending) {
+      this.#ending = true
+      this.#prefinish()
+    }
+    return this
+  }
+
+  destroy(error) {
+    if (this.#destroyed) return this
+    this.#destroyed = true
+    this._destroy(error, () => {
+      if (error !== undefined && error !== null) nextTick(() => this.emit('error', error))
+      nextTick(() => this.emit('close'))
+    })
+    return this
+  }
+
+  #drain() {
+    if (this.#writing !== null || this.#queue.length === 0 || this.#destroyed) return
+    const entry = this.#queue.shift()
+    this.#writing = entry
+    this._write(entry.bytes, 'buffer', (error) => this.#written(entry, error))
+  }
+
+  #written(entry, error) {
+    this.#writing = null
+    this.#length -= entry.bytes.length
+    if (error) {
+      nextTick(() => entry.callback?.(error))
+      this.destroy(error)
+      return
+    }
+    nextTick(() => entry.callback?.())
+    this.#drain()
+    if (this.#needDrain && this.#length === 0) {
+      this.#needDrain = false
+      nextTick(() => this.emit('drain'))
+    }
+    this.#prefinish()
+  }
+
+  #prefinish() {
+    if (!this.#ending || this.#prefinished || this.#writing !== null || this.#queue.length > 0 || this.#destroyed) return
+    this.#prefinished = true
+    if (typeof this._final === 'function') {
+      this._final((error) => {
+        if (error) this.destroy(error)
+        else this.#finish()
+      })
+    } else {
+      this.#finish()
+    }
+  }
+
+  #finish() {
+    nextTick(() => {
+      if (this.#destroyed) return
+      for (const callback of this.#finishCallbacks.splice(0)) callback()
+      this.emit('finish')
+      this.destroy()
+    })
+  }
+}
+declareGaps('stream.Writable', Writable, [...EMITTER_GAP_METHODS, 'cork', 'setDefaultEncoding', 'uncork'])
+
+class Readable extends Emitter {
+  #buffer = []
+  #length = 0
+  #ended = false
+  #endScheduled = false
+  #flowing = null
+  #reading = false
+  #sync = false
+  #flowScheduled = false
+  #destroyed = false
+
+  constructor(options) {
+    super()
+    assertNoOptions('stream.Readable', options, ['read'])
+    if (options?.read !== undefined) this._read = options.read
+  }
+
+  _read() {
+    this.destroy(nodeError('ERR_METHOD_NOT_IMPLEMENTED', 'The _read() method is not implemented'))
+  }
+
+  _destroy(error, callback) {
+    callback()
+  }
+
+  _afterEnd() {
+    this.destroy()
+  }
+
+  on(name, listener) {
+    super.on(name, listener)
+    if (name === 'data' && this.#flowing !== false) this.resume()
+    return this
+  }
+
+  isPaused() {
+    return this.#flowing === false
+  }
+
+  pause() {
+    this.#flowing = false
+    return this
+  }
+
+  resume() {
+    if (this.#flowing !== true) {
+      this.#flowing = true
+      nextTick(() => {
+        this.#callRead()
+        this.#flow()
+      })
+    }
+    return this
+  }
+
+  pipe(destination, options) {
+    this.on('data', (chunk) => destination.write(chunk))
+    if (options?.end !== false) this.on('end', () => destination.end())
+    return destination
+  }
+
+  push(chunk, encoding) {
+    this.#reading = false
+    if (this.#destroyed) return false
+    if (chunk === null) {
+      this.#ended = true
+      if (this.#flowing === true && this.#length === 0) this.#maybeEnd()
+      else this.#scheduleFlow()
+      return false
+    }
+    const bytes = bytesOf(chunk, encoding)
+    if (this.#flowing === true && this.#length === 0 && !this.#sync && this.listenerCount('data') > 0) {
+      this.emit('data', Buffer.from(bytes))
+      this.#scheduleFlow()
+      return true
+    }
+    this.#buffer.push(bytes)
+    this.#length += bytes.length
+    this.#scheduleFlow()
+    return this.#length < DEFAULT_HIGH_WATER_MARK
+  }
+
+  destroy(error) {
+    if (this.#destroyed) return this
+    this.#destroyed = true
+    this._destroy(error, () => {
+      if (error !== undefined && error !== null) nextTick(() => this.emit('error', error))
+      nextTick(() => this.emit('close'))
+    })
+    return this
+  }
+
+  #callRead() {
+    if (this.#reading || this.#ended || this.#destroyed) return
+    this.#reading = true
+    this.#sync = true
+    this._read(DEFAULT_HIGH_WATER_MARK)
+    this.#sync = false
+  }
+
+  #scheduleFlow() {
+    if (this.#flowScheduled) return
+    this.#flowScheduled = true
+    nextTick(() => {
+      this.#flowScheduled = false
+      this.#flow()
+    })
+  }
+
+  #flow() {
+    while (this.#flowing === true && !this.#destroyed) {
+      if (this.#length === 0) {
+        this.#callRead()
+        if (this.#length === 0) break
+      }
+      const bytes = this.#buffer.shift()
+      this.#length -= bytes.length
+      this.emit('data', Buffer.from(bytes))
+    }
+    this.#maybeEnd()
+  }
+
+  #maybeEnd() {
+    if (this.#flowing !== true || !this.#ended || this.#length > 0 || this.#endScheduled) return
+    this.#endScheduled = true
+    nextTick(() => {
+      if (this.#destroyed) return
+      this.emit('end')
+      this._afterEnd()
+    })
+  }
+}
+declareGaps('stream.Readable', Readable, [...EMITTER_GAP_METHODS, 'read', 'setEncoding', 'unpipe', 'unshift', 'wrap'])
+
+class PassThrough extends Readable {
+  #writable
+  #readEnded = false
+  #writeFinished = false
+
+  constructor(options) {
+    super({ read() {} })
+    assertNoOptions('stream.PassThrough', options, [])
+    this.#writable = new Writable({
+      write: (chunk, encoding, callback) => {
+        this.push(chunk)
+        callback()
+      },
+      final: (callback) => {
+        this.push(null)
+        callback()
+      },
+    })
+    this.#writable.on('finish', () => {
+      this.#writeFinished = true
+      this.emit('finish')
+      this.#closeWhenDone()
+    })
+  }
+
+  write(chunk, encoding, callback) {
+    return this.#writable.write(chunk, encoding, callback)
+  }
+
+  end(chunk, encoding, callback) {
+    this.#writable.end(chunk, encoding, callback)
+    return this
+  }
+
+  _afterEnd() {
+    this.#readEnded = true
+    this.#closeWhenDone()
+  }
+
+  #closeWhenDone() {
+    if (this.#readEnded && this.#writeFinished) this.destroy()
+  }
+}
+
+function pipeline(...streams) {
+  const callback = streams.pop()
+  let failure
+  let open = streams.length
+  const fail = (error) => {
+    if (failure === undefined) failure = error
+    for (const stream of streams) stream.destroy()
+  }
+  for (const stream of streams) {
+    stream.on('error', fail)
+    stream.on('close', () => {
+      open -= 1
+      if (open === 0) callback(failure)
+    })
+  }
+  for (let index = 0; index < streams.length - 1; index += 1) streams[index].pipe(streams[index + 1])
+  return streams[streams.length - 1]
+}
+
+class FileReadStream extends Readable {
+  #handle
+  #opening
+  #closing = false
+
+  constructor(path) {
+    super({ read: () => this.#readBlock() })
+    this.#opening = tjs.open(path, 'r').then(
+      (handle) => {
+        this.#handle = handle
+        this.emit('open', handle.fileno())
+        this.emit('ready')
+      },
+      (error) => this.destroy(fsOpenError(error, path)),
+    )
+  }
+
+  _destroy(error, callback) {
+    this.#closing = true
+    this.#opening.then(() => this.#handle?.close()).then(() => callback(), () => callback())
+  }
+
+  #readBlock() {
+    this.#opening
+      .then(async () => {
+        if (this.#handle === undefined || this.#closing) return
+        const buffer = new Uint8Array(DEFAULT_HIGH_WATER_MARK)
+        const count = await this.#handle.read(buffer)
+        this.push(count > 0 ? buffer.subarray(0, count) : null)
+      })
+      .catch((error) => this.destroy(error))
+  }
+}
+
+function createReadStream(path, options) {
+  assertNoOptions('fs.createReadStream', typeof options === 'string' ? { encoding: options } : options, [])
+  return new FileReadStream(path)
+}
+
 function execFileArguments(args, options, callback) {
   if (typeof args === 'function') return { argv: [], opts: {}, done: args }
   if (!Array.isArray(args)) return { argv: [], opts: args ?? {}, done: options }
@@ -1582,13 +2015,13 @@ function startChild(file, argv) {
   }
 }
 
-class ChildProcess {
+class ChildProcess extends Emitter {
   #process
   #exited = false
-  #listeners = new Map()
   killed = false
 
   constructor(file, argv, cmd) {
+    super()
     const started = startChild(file, argv)
     if (started.error !== undefined) {
       const error = started.error.code === 'ENOENT' ? missingCommandError(file, cmd) : started.error
@@ -1627,32 +2060,8 @@ class ChildProcess {
     return true
   }
 
-  on(name, listener) {
-    this.#listenersOf(name).push(listener)
-    return this
-  }
-
-  once(name, listener) {
-    const list = this.#listenersOf(name)
-    const wrapped = (...args) => {
-      list.splice(list.indexOf(wrapped), 1)
-      listener(...args)
-    }
-    list.push(wrapped)
-    return this
-  }
-
-  #listenersOf(name) {
-    if (!this.#listeners.has(name)) this.#listeners.set(name, [])
-    return this.#listeners.get(name)
-  }
-
-  #emit(name, ...args) {
-    for (const listener of [...this.#listenersOf(name)]) listener(...args)
-  }
-
   #spawned() {
-    this.#emit('spawn')
+    this.emit('spawn')
     this.#reap()
   }
 
@@ -1661,13 +2070,13 @@ class ChildProcess {
     const [, , status] = await Promise.all([process.stdout.bytes(), process.stderr.bytes(), process.wait()])
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
-    this.#emit('exit', code, signal)
-    this.#emit('close', code, signal)
+    this.emit('exit', code, signal)
+    this.emit('close', code, signal)
   }
 
   #fail(error) {
-    this.#emit('error', error)
-    this.#emit('close', -2, null)
+    this.emit('error', error)
+    this.emit('close', -2, null)
   }
 }
 
@@ -1679,7 +2088,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, createReadStream, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {
@@ -1688,8 +2097,10 @@ export const txikiRuntime = {
     randomUUID: () => webCrypto.randomUUID(),
   }),
   stream: withGaps('stream', {
-    ...gapClasses('stream', ['PassThrough', 'Readable', 'Writable']),
-    ...gapFunctions('stream', ['pipeline']),
+    PassThrough,
+    Readable,
+    Writable,
+    pipeline,
   }),
   buffer: withGaps('buffer', { Buffer, constants: withGaps('buffer.constants', {}) }),
   url: { fileURLToPath, pathToFileURL },

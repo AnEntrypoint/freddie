@@ -601,3 +601,14 @@ Each run started only after a reading that was below 1000 KB/s for both swap-in 
 | contract gap names under gm's txiki, gated rerun (gate 336 / 28 KB/s) | gapCount 40 (was 41); zlib.gzip absent from the list; exit 0 | 0.33 s probe |
 
 Caveat: the parity probe exited 0 on an earlier run in this step whose summary still reported unexpectedGaps (zlib.gzip resolved, from the gap entry removed afterwards). Exit 0 alone is therefore not the witness; the summary's mismatches [] and unexpectedGaps [] are. The witness above is the run after that entry was removed.
+
+## fx split: streams under txiki (2026-11-19)
+
+Ranked items 4, 7, 8, 9 and 10 in the owner-decision list. Pure JS, Node 24 as oracle; the decisions and their reasons are in the stream section of docs/fx-split.md.
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: Emitter (on, once, listenerCount, emit; an error with no listener throws); the nextTick queue; the Writable, Readable and PassThrough classes; pipeline; FileReadStream and createReadStream; the option and gap helpers; ChildProcess now extends Emitter (its own on, once and emit removed); stream exports the real classes; fs exports createReadStream; createReadStream removed from the fs sync gap names; gapClasses removed (gapClass still used by other subpaths) | node --check passes (in Phase B); Node parity 262/262 | txiki parity 262 shared, gapAsserted 3, gaps 17 applied, gapInactive 1, mismatches [], unexpectedGaps [] |
+| test/parity-cases.js: streamSettle, closedEvent and streamFile helpers; streamScenarios with 18 scenarios that mirror the Node probe; 18 shared cases with expectations from the probe output (one expectation changed from the probe's DIR placeholder to Node's message for the fixed path, confirmed by the Node run); 7 declared gap cases (highWaterMark on Readable and PassThrough, objectMode on Writable, encoding on createReadStream, read, cork, off); the stream.Readable gap entry removed | Node parity 262/262 | see above |
+| docs/fx-split.md: the stream section with each decision and its reason; ranked and owner-decision rows marked done; the spawn error-listener line updated; the fs and stream rows updated | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-streams.md: Agent Note | none | none |

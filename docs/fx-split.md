@@ -327,11 +327,11 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 
 | Area | Names that throw | Why txiki has no equivalent |
 |---|---|---|
-| fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync | txiki file APIs are async only |
+| fs (sync) | accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync | txiki file APIs are async only |
 | fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or a, or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no mode option; append is tjs.open with a; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
 | crypto | createHash for algorithms other than md5, sha1, sha256 and sha512 | done 2026-11-19 for those four in pure JS; tjs:hashing is excluded from the vendored build, so the rest stay gaps |
-| stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
+| stream | Readable, Writable, PassThrough, pipeline | done 2026-11-19 in pure JS, see the stream section |
 | buffer.constants | all members | not mapped |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
 | child_process | execFileSync, spawnSync | execFile and spawn are implemented in pure JS over tjs.spawn (2026-11-19, see their sections); tjs.spawn is synchronous, so the sync forms of execFile and spawn need native blocking I/O |
@@ -370,7 +370,7 @@ Items that need no owner decision and no credential, ranked by how close each is
 | 7 | os.networkInterfaces (done 2026-11-19: 6 parity cases, Node and txiki agree) | txiki exposes a flat array, regrouped in pure JS | a probe of its shape, then a parity case against Node's shape |
 | 8 | util.parseArgs (done 2026-11-19: 41 parity cases, Node and txiki agree) | Pure JS but a large option surface | parity cases for each option agent code uses, after a grep of call sites |
 
-Needs an owner decision or fx, so not ranked: process.platform and os.platform (fx supplies the platform), sync fs (txiki has no sync file API), child_process (process model decision), stream classes (web streams are not Node streams; design decision), vm, worker_threads, AsyncLocalStorage, http, zlib brotli and zstd, and crypto.createHash (no equivalent or a dependency decision).
+Needs an owner decision or fx, so not ranked: process.platform and os.platform (fx supplies the platform), sync fs (txiki has no sync file API), child_process (process model decision), stream classes (decided 2026-11-19, see the stream section), vm, worker_threads, AsyncLocalStorage, http, zlib brotli and zstd, and crypto.createHash (no equivalent or a dependency decision).
 
 Found by the parity run: txiki's Buffer had a static isView that Node's Buffer does not have, so code that calls it would run under txiki and fail under Node. The suite cannot see extra members; the fix is in the Phase B commit.
 
@@ -427,7 +427,7 @@ Ranked (pure JS over the existing runtime):
 Excluded, with the reason:
 
 - Sync fs (18 names: accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync): native. tjs file calls are all async, so blocking I/O needs a native change.
-- fs.createReadStream, stream.Readable, stream.Writable, stream.PassThrough, stream.pipeline: owner decision. Node streams are not web streams, so the design needs choosing.
+- fs.createReadStream, stream.Readable, stream.Writable, stream.PassThrough, stream.pipeline: done 2026-11-19 in pure JS (see the stream section).
 - crypto.createHash: done 2026-11-19 for md5, sha1, sha256 and sha512, in an owned pure-JS implementation (see the ranked section below). Other algorithms are a declared gap.
 - module.stripTypeScriptTypes: owner decision (needs a TypeScript parser, a dependency).
 - module.createRequire: fx. It needs a CommonJS loader, which the txiki build does not provide.
@@ -441,7 +441,7 @@ Excluded, with the reason:
 - zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: owner decision and native. Brotli and zstd are not realistic in pure JS here.
 - inspector.Session: native.
 
-Counts: 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypto, 4 stream, 2 module, 4 child-process, 2 os, 1 worker-threads, 1 async-hooks, 3 vm, 2 http, 7 zlib, 1 inspector: 49.
+Counts before the stream change (2026-11-19): 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypto, 4 stream, 2 module, 4 child-process, 2 os, 1 worker-threads, 1 async-hooks, 3 vm, 2 http, 7 zlib, 1 inspector: 49.
 
 
 ## os.release under txiki (2026-11-19)
@@ -471,13 +471,13 @@ The 45 names still declared as gaps, ranked by how close each is to a verified p
 1. crypto.createHash: pure JS. md5, sha1, sha256 and sha512 are implemented and checked against Node. Other algorithms are a declared gap.
 2. zlib.gunzip: pure JS. Done 2026-11-19: an owned inflate, checked exactly against Node fixtures (see the gunzip section).
 3. zlib.gzip: pure JS deflate, but compressed bytes differ from Node's zlib unless the algorithm is reproduced. Only a round trip is verifiable, so byte parity needs a decision.
-4. fs.createReadStream: pure JS over tjs.open and read. Needs the stream design.
+4. fs.createReadStream: done 2026-11-19 over tjs.open and FileHandle.read (see the stream section).
 5. child-process.execFile: done 2026-11-19 (pure JS over tjs.spawn, see the execFile section).
 6. child-process.spawn: done 2026-11-19 (pure JS over tjs.spawn; stdio streams stay gaps, see the spawn section).
-7. stream.Readable: pure JS. Needs the owner's stream design.
-8. stream.Writable: pure JS. Needs the owner's stream design.
-9. stream.PassThrough: pure JS. Needs the owner's stream design.
-10. stream.pipeline: pure JS over the stream classes; depends on 7 to 9.
+7. stream.Readable: done 2026-11-19 (see the stream section).
+8. stream.Writable: done 2026-11-19 (see the stream section).
+9. stream.PassThrough: done 2026-11-19 (see the stream section).
+10. stream.pipeline: done 2026-11-19 (see the stream section).
 11. os.platform: pure JS, but excluded by the owner's direction (fx supplies the platform).
 12. module.createRequire: needs a CommonJS loader, which is fx.
 13. http.createServer: needs a request and response design over tjs.serve; owner decision.
@@ -576,7 +576,7 @@ Decisions, each reversible, with its reason:
 - stdin, stdout and stderr getters throw the documented gap messages. Reason: Node's streams need a stream design, which is an open owner decision; a silent undefined would hide the gap. Asserted in the gap check through the shared gap cases.
 - Options: any option key throws synchronously with "child-process.spawn option <key>", as execFile does for the same reason (cwd, env, stdio and the rest need verified mappings).
 - on and once are the only listener methods. Node's ChildProcess is a full EventEmitter; off, emit and the rest are not provided. Reason: no caller here needs them; adding them later is reversible.
-- error with no listener is silent here, where Node throws. Difference, recorded.
+- error with no listener throws, as Node does: the shared Emitter rethrows it (changed 2026-11-19 with the stream change).
 
 Verified (Node oracle): exit code and close order; SIGTERM from kill after the spawn event, returning true and setting killed; missing command error and close; a numeric pid after the spawn event; kill before the spawn event returns true, as in Node; the gap cases for stdout, option cwd. Not verified: grandchild pipes, output content, unknown signal names, and listeners that throw.
 
@@ -597,3 +597,28 @@ Verified (Phase A, by reading the code; Node runs decide the rest): the five zli
 Not matched or not verified: compressed bytes, Node's output length, and any input that Node's compressor treats differently. Byte parity remains the owner's decision.
 
 Measured under gm's txiki (2026-11-19): the gap-name count is 40 (was 41), and the contract reports 115 present with nothing missing. Phase B witnesses are in docs/PENDING_VALIDATION.md.
+
+## Streams under txiki: Readable, Writable, PassThrough, pipeline, fs.createReadStream (2026-11-19)
+
+Decision: a pure-JS, Node-shaped stream module in src/txiki.js, built on one shared Emitter. Node 24 is the oracle for every shared stream case. The web-stream globals stay unused.
+
+Reason: the smallest design that matches Node's observable event order for the cases verified under txiki. The probe (runs/analysis/stream-node.mjs, Node v24.22.0) fixed the order: writes call back before finish; end(cb) runs before the finish event; close comes last; a pipe ends the destination on the source's end; a pipeline calls back after the last stream closes; fs streams emit open, ready, 65536-byte data, end, then close.
+
+Decisions, each reversible, with the reason:
+- Default highWaterMark is 65536 (Node 24's value; verified: write(20000) returns true, push(20000) returns true, push(null) returns false). Any highWaterMark option is a gap, because custom watermarks change the return values and drain timing, and those are not verified.
+- Options accepted: read (Readable), write and final (Writable), none (PassThrough), none (createReadStream). Any other key throws the gap message "<class> option <key>". Reason: an ignored option would hide a behaviour difference.
+- Hooks: _read, _write, _final and _destroy, as in Node. Default _read and _write error with ERR_METHOD_NOT_IMPLEMENTED, as Node does.
+- Gap methods (they throw the documented message): Readable read, setEncoding, unpipe, unshift, wrap; Writable cork, uncork, setDefaultEncoding; the EventEmitter methods off, removeListener, removeAllListeners, addListener, prependListener, listeners, eventNames on both classes. Reason: each is a separate API surface that is not verified.
+- nextTick is emulated by a FIFO queue drained in a promise job. Reason: keeps the order between a stream's own events as in Node. Difference: its order against user promise callbacks may differ from Node's nextTick.
+- data events carry Buffers (Node's default). A push while flowing with an empty buffer emits data synchronously, as Node does, and then schedules a read.
+- Backpressure is not applied. write and push return Node's values, and drain is emitted, but pipe does not pause the source when write returns false. Reason: the pause and resume timing under backpressure is not verified; the shared cases never reach the watermark while piping.
+- _read is called when the buffer is empty, not up to the watermark. Declared difference; the shared cases read in sequence and do not observe the call count.
+- An error event with no listener throws, as Node does (the shared Emitter, also used by ChildProcess).
+- fs.createReadStream: the open event carries FileHandle.fileno(). The ENOENT error is rebuilt in Node's format, "ENOENT: no such file or directory, open '<path>'", with errno -2, syscall open and path, because txiki's message has no path. Reads are 65536 bytes. At end of file the read's value is not a positive count (an empty chunk followed the last data in a debug run); the stream treats any non-positive count as end of file. The exact value was not captured.
+- The stream destroy path waits for the open to finish before it closes the handle, so an early destroy does not leak a handle.
+
+Verified under txiki (shared cases, Node expectations): sync and async writes with callback order; write after end (ERR_STREAM_WRITE_AFTER_END) order; write errors; sync and async pushes; pause before data; a pipe; PassThrough order and close; pipeline success and error; destroy with an error; the default _read error; push and write return values; createReadStream for a small file, a 150000-byte file in 65536-byte chunks, and a missing file. Gap cases: the options, the read, cork and off methods.
+
+Not verified: non-string, non-Buffer chunks (TypeError); objectMode; writes after destroy; backpressure through pipe and drain timing; the readable event and read(); async iteration; error with no listener in a pipeline; reads and destroys during open; encodings other than utf8 for string chunks.
+
+Measured under gm's txiki (Phase B witnesses in docs/PENDING_VALIDATION.md): the gap-name count is 35 (was 40); the contract reports 115 present with nothing missing.

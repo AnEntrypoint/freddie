@@ -3,6 +3,172 @@ import { subpaths as s } from './subpaths.js'
 const { Buffer } = s.buffer
 const { StringDecoder } = s['string-decoder']
 const fsp = s['fs-promises']
+const streamSettle = (promise) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3000))])
+const closedEvent = (stream) => new Promise((resolve) => stream.on('close', resolve))
+const streamFile = async (name, bytes) => {
+  const dir = await fsp.mkdtemp('/tmp/stream-')
+  await fsp.writeFile(dir + '/' + name, bytes)
+  return { dir, file: dir + '/' + name }
+}
+const streamScenarios = {
+  writableSync: async () => {
+    const log = []
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString() + ' ' + enc); cb() } })
+    w.on('finish', () => log.push('finish')); w.on('close', () => log.push('close'))
+    log.push('w1 ' + w.write('a'))
+    log.push('w2 ' + w.write(Buffer.from('b')))
+    w.end(() => log.push('endcb'))
+    log.push('after end')
+    await closedEvent(w)
+    return log
+  },
+  writableAsync: async () => {
+    const log = []
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); setTimeout(() => { log.push('done ' + chunk.toString()); cb() }, 5) } })
+    w.write('a', () => log.push('cb a')); w.write('b', () => log.push('cb b')); w.end()
+    w.on('finish', () => log.push('finish')); w.on('close', () => log.push('close'))
+    await closedEvent(w)
+    return log
+  },
+  writableAfterEnd: async () => {
+    const log = []
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { cb() } })
+    w.on('error', (e) => log.push('error ' + e.code + ' ' + e.message)); w.on('close', () => log.push('close'))
+    w.end(); w.write('x', (err) => log.push('cb ' + (err ? err.code : 'none')))
+    await closedEvent(w)
+    return log
+  },
+  writableError: async () => {
+    const log = []
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { cb(new Error('boom')) } })
+    w.on('error', (e) => log.push('error ' + e.message)); w.on('close', () => log.push('close')); w.on('finish', () => log.push('finish'))
+    w.write('a', (err) => log.push('cb ' + (err && err.message)))
+    await closedEvent(w)
+    return log
+  },
+  readableSyncPush: async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() { this.push('a'); this.push('b'); this.push(null) } })
+    r.on('data', (c) => log.push('data ' + c.toString())); r.on('end', () => log.push('end')); r.on('close', () => log.push('close'))
+    await closedEvent(r)
+    return log
+  },
+  readableAsyncPush: async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() { setTimeout(() => { this.push('x'); this.push(null) }, 5) } })
+    r.on('data', (c) => log.push('data ' + c.toString())); r.on('end', () => log.push('end')); r.on('close', () => log.push('close'))
+    await closedEvent(r)
+    return log
+  },
+  readablePauseResume: async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() { this.push('a'); this.push(null) } })
+    r.pause(); log.push('paused ' + r.isPaused())
+    r.on('data', (c) => log.push('data ' + c.toString())); r.on('end', () => log.push('end')); r.on('close', () => log.push('close'))
+    log.push('after on')
+    r.resume()
+    await closedEvent(r)
+    return log
+  },
+  pipeReadableWritable: async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() { this.push('a'); this.push(null) } })
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); cb() } })
+    r.on('end', () => log.push('r end')); r.on('close', () => log.push('r close'))
+    w.on('finish', () => log.push('w finish')); w.on('close', () => log.push('w close'))
+    const ret = r.pipe(w)
+    log.push('same ' + (ret === w))
+    await Promise.all([closedEvent(r), closedEvent(w)])
+    return log
+  },
+  passThrough: async () => {
+    const log = []
+    const p = new s.stream.PassThrough()
+    p.on('data', (c) => log.push('data ' + c.toString())); p.on('end', () => log.push('end')); p.on('finish', () => log.push('finish')); p.on('close', () => log.push('close'))
+    p.write('x'); p.end('y')
+    log.push('after end')
+    await closedEvent(p)
+    return log
+  },
+  pipelineSuccess: async () => {
+    const log = []
+    const src = new s.stream.Readable({ read() { this.push('a'); this.push(null) } })
+    const p = new s.stream.PassThrough()
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { log.push('write ' + chunk.toString()); cb() } })
+    w.on('finish', () => log.push('w finish')); w.on('close', () => log.push('w close'))
+    await new Promise((resolve) => s.stream.pipeline(src, p, w, (err) => { log.push('cb ' + String(err)); resolve() }))
+    log.push('resolved')
+    return log
+  },
+  pipelineError: async () => {
+    const log = []
+    const src = new s.stream.Readable({ read() { this.destroy(new Error('src boom')) } })
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { cb() } })
+    w.on('close', () => log.push('w close'))
+    await new Promise((resolve) => s.stream.pipeline(src, w, (err) => { log.push('cb ' + (err && err.message)); resolve() }))
+    return log
+  },
+  readableDestroyError: async () => {
+    const log = []
+    const r = new s.stream.Readable({ read() {} })
+    r.on('error', (e) => log.push('error ' + e.message)); r.on('close', () => log.push('close'))
+    r.destroy(new Error('bye'))
+    await closedEvent(r)
+    return log
+  },
+  readableDefaultRead: async () => {
+    const log = []
+    const r = new s.stream.Readable()
+    r.on('error', (e) => log.push('error ' + e.code + ' ' + e.message)); r.on('close', () => log.push('close'))
+    r.on('data', () => {})
+    await closedEvent(r)
+    return log
+  },
+  pushReturnValues: () => {
+    const r = new s.stream.Readable({ read() {} })
+    return [r.push('a'), r.push(Buffer.alloc(20000)), r.push(null)]
+  },
+  writeReturnValues: async () => {
+    const w = new s.stream.Writable({ write(chunk, enc, cb) { setTimeout(cb, 1) } })
+    const values = [w.write('a'), w.write(Buffer.alloc(20000))]
+    w.end()
+    await closedEvent(w)
+    return values
+  },
+  createReadSmall: async () => {
+    const log = []
+    const { dir, file } = await streamFile('small.txt', 'hello stream')
+    try {
+      const rs = s.fs.createReadStream(file)
+      rs.on('open', (fd) => log.push('open ' + typeof fd)); rs.on('ready', () => log.push('ready'))
+      rs.on('data', (c) => log.push('data ' + c.toString())); rs.on('end', () => log.push('end')); rs.on('close', () => log.push('close'))
+      await closedEvent(rs)
+      return log
+    } finally {
+      await fsp.rm(dir, { recursive: true })
+    }
+  },
+  createReadLarge: async () => {
+    const log = []
+    const { dir, file } = await streamFile('big.bin', Buffer.alloc(150000, 97))
+    try {
+      const rs = s.fs.createReadStream(file)
+      rs.on('data', (c) => log.push('data ' + c.length)); rs.on('end', () => log.push('end')); rs.on('close', () => log.push('close'))
+      await closedEvent(rs)
+      return log
+    } finally {
+      await fsp.rm(dir, { recursive: true })
+    }
+  },
+  createReadMissing: async () => {
+    const log = []
+    const rs = s.fs.createReadStream('/nonexistent-freddie-stream/missing.txt')
+    rs.on('error', (e) => log.push('error ' + e.code + ' ' + e.errno + ' ' + e.syscall + ' ' + e.message)); rs.on('close', () => log.push('close'))
+    await closedEvent(rs)
+    return log
+  },
+}
+
 const proc = s.process.process
 
 const canon = (value) => {
@@ -109,6 +275,24 @@ export const sharedCases = [
     missingRead: 'ENOENT', missingAccess: 'ENOENT', accessOk: 'ok', forceRmMissing: 'resolved',
     handleSize: 3, binary: [0, 1, 2, 255], afterRm: 'ENOENT',
   } },
+  { name: 'stream Writable: sync writes, end callback before finish, then close', run: () => streamSettle(streamScenarios.writableSync()), expected: ["write a buffer","w1 true","write b buffer","w2 true","after end","endcb","finish","close"] },
+  { name: 'stream Writable: async callbacks, next write starts before the previous callback runs', run: () => streamSettle(streamScenarios.writableAsync()), expected: ["write a","done a","write b","cb a","done b","cb b","finish","close"] },
+  { name: 'stream Writable: write after end calls back and errors with ERR_STREAM_WRITE_AFTER_END', run: () => streamSettle(streamScenarios.writableAfterEnd()), expected: ["cb ERR_STREAM_WRITE_AFTER_END","error ERR_STREAM_WRITE_AFTER_END write after end","close"] },
+  { name: 'stream Writable: a write error reaches the callback and the error event, then close', run: () => streamSettle(streamScenarios.writableError()), expected: ["cb boom","error boom","close"] },
+  { name: 'stream Readable: sync pushes are emitted as data, then end, then close', run: () => streamSettle(streamScenarios.readableSyncPush()), expected: ["data a","data b","end","close"] },
+  { name: 'stream Readable: an async push is emitted as data, then end, then close', run: () => streamSettle(streamScenarios.readableAsyncPush()), expected: ["data x","end","close"] },
+  { name: 'stream Readable: pause before on(data) keeps the stream paused until resume', run: () => streamSettle(streamScenarios.readablePauseResume()), expected: ["paused true","after on","data a","end","close"] },
+  { name: 'stream pipe: the source ends before the destination finishes, and the closes follow', run: () => streamSettle(streamScenarios.pipeReadableWritable()), expected: ["same true","write a","r end","w finish","r close","w close"] },
+  { name: 'stream PassThrough: data is emitted during write, end comes before finish, and close is last', run: () => streamSettle(streamScenarios.passThrough()), expected: ["data x","data y","after end","end","finish","close"] },
+  { name: 'stream pipeline: success calls back with undefined after the last close', run: () => streamSettle(streamScenarios.pipelineSuccess()), expected: ["write a","w finish","w close","cb undefined","resolved"] },
+  { name: 'stream pipeline: a source error destroys the rest and calls back with the error', run: () => streamSettle(streamScenarios.pipelineError()), expected: ["w close","cb src boom"] },
+  { name: 'stream Readable: destroy with an error emits error, then close', run: () => streamSettle(streamScenarios.readableDestroyError()), expected: ["error bye","close"] },
+  { name: 'stream Readable: the default _read errors with ERR_METHOD_NOT_IMPLEMENTED', run: () => streamSettle(streamScenarios.readableDefaultRead()), expected: ["error ERR_METHOD_NOT_IMPLEMENTED The _read() method is not implemented","close"] },
+  { name: 'stream Readable: push returns true below the 64 KiB highWaterMark and false after null', run: () => streamSettle(streamScenarios.pushReturnValues()), expected: [true,true,false] },
+  { name: 'stream Writable: write returns true below the 64 KiB highWaterMark', run: () => streamSettle(streamScenarios.writeReturnValues()), expected: [true,true] },
+  { name: 'fs.createReadStream: a small file emits open, ready, data, end, then close', run: () => streamSettle(streamScenarios.createReadSmall()), expected: ["open number","ready","data hello stream","end","close"] },
+  { name: 'fs.createReadStream: a 150000-byte file is read in 65536-byte chunks', run: () => streamSettle(streamScenarios.createReadLarge()), expected: ["data 65536","data 65536","data 18928","end","close"] },
+  { name: 'fs.createReadStream: a missing file emits the Node ENOENT error, then close', run: () => streamSettle(streamScenarios.createReadMissing()), expected: ["error ENOENT -2 open ENOENT: no such file or directory, open '/nonexistent-freddie-stream/missing.txt'","close"] },
 ]
 
 const BT = String.fromCharCode(96)
@@ -635,7 +819,13 @@ export const gapCases = [
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },
   { name: 'process.exitCode', run: () => proc.exitCode },
-  { name: 'stream.Readable', run: () => new s.stream.Readable() },
+  { name: 'stream.Readable option highWaterMark', run: () => new s.stream.Readable({ highWaterMark: 1 }) },
+  { name: 'stream.Writable option objectMode', run: () => new s.stream.Writable({ objectMode: true }) },
+  { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
+  { name: 'fs.createReadStream option encoding', run: () => s.fs.createReadStream('/nonexistent-freddie-stream/x', 'utf8') },
+  { name: 'stream.Readable.read', run: () => new s.stream.Readable({ read() {} }).read() },
+  { name: 'stream.Writable.cork', run: () => new s.stream.Writable().cork() },
+  { name: 'stream.Readable.off', run: () => new s.stream.Readable().off('data', () => {}) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
