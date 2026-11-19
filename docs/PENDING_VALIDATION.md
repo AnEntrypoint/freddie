@@ -1833,3 +1833,23 @@ Mutation evidence (saved good copy /tmp/stageB-good-txiki.js; each run through m
 | B-OM7: the objectMode highWaterMark option ignored | 1 red: 'highWaterMark 2 push returns' (got [true, true, true, 3]) |
 
 Coverage: five of the seven new shared cases are red under a clean mutation (push returns, data events, read one per call, PassThrough round trip, highWaterMark 2). 'read on an empty stream returns null' and 'keeps a Buffer as one object' are regression witnesses only: no clean mutation of theirs was found.
+
+## fx split: highWaterMark errors as ERR_INVALID_ARG_VALUE, Phase A (2026-11-20)
+
+Rank 7t in docs/fx-split.md (item 3 of the ranked list). Node probe: runs/analysis/stream-hwm-errors-node.mjs (exit 0, timeout 60). Node: -1, the string '4', 1.5 and NaN each throw ERR_INVALID_ARG_VALUE with "The property 'options.highWaterMark' is invalid. Received <value>" (a string is shown in single quotes); the same for a Writable, a Readable with objectMode and -2, and fs.createReadStream with -1 and 2.5; a PassThrough names 'options.readableHighWaterMark'; highWaterMark 0 is accepted.
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: invalidArgValue (ERR_INVALID_ARG_VALUE with Node's message) and highWaterMarkOf (negative, non-integer or string gives the error; the property name is passed in); PassThrough validates its readable side first (before super), so the message names options.readableHighWaterMark | before: the same inputs gapped; after: 9 new shared cases match on txiki (full run, 665 shared, gaps 21, mismatches [], elapsedMs not recorded) and Node (665/665, 9022 ms) |
+| test/parity-cases.js: 9 shared cases (code and message for Readable -1, Readable '4', Readable 1.5, objectMode -2, Writable -1, PassThrough -1, createReadStream -1 and 2.5; highWaterMark 0 accepted); the gaps 'stream.Readable option highWaterMark -1' and 'fs.createReadStream option highWaterMark -1' are removed | the same runs |
+
+Mutation evidence (saved good copy /tmp/stageC-good-txiki.js, which is the edited file; each run through mcp-probe with timeout 150 and an open window before it; restore checked with cmp; git status shows the two changed files):
+
+| Mutation | Red cases |
+|---|---|
+| C-H1: the error replaced by a gap | 8 (every error case) |
+| C-H2: negative accepted | 5 (Readable -1, objectMode -2, Writable -1, PassThrough -1, createReadStream -1) |
+| C-H3: non-integer accepted | 2 (Readable 1.5, createReadStream 2.5) |
+| C-H4: PassThrough names options.highWaterMark instead of the readable side | 1 (PassThrough -1) |
+
+Coverage: every new case is red under at least one mutation, except the string '4' case, which is not red under any of the four (the string input is still caught by the same check as 1.5 and -1 in the code path; not covered separately).

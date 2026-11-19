@@ -2115,10 +2115,15 @@ function assertNoOptions(name, options, allowed) {
   }
 }
 
-function highWaterMarkOf(name, options, fallback = DEFAULT_HIGH_WATER_MARK) {
+function invalidArgValue(property, value) {
+  const received = typeof value === 'string' ? "'" + value + "'" : String(value)
+  return nodeError('ERR_INVALID_ARG_VALUE', "The property '" + property + "' is invalid. Received " + received)
+}
+
+function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property = 'highWaterMark') {
   const value = options?.highWaterMark
   if (value === undefined) return fallback
-  if (!Number.isSafeInteger(value) || value < 0) throw gapError(name + ' option highWaterMark ' + String(value))
+  if (!Number.isSafeInteger(value) || value < 0) throw invalidArgValue('options.' + property, value)
   return value
 }
 
@@ -2171,7 +2176,7 @@ class Writable extends Emitter {
     if (options?.writev !== undefined) this._writev = options.writev
     if (options?.decodeStrings === false) this.#decodeStrings = false
     this.#objectMode = Boolean(options?.objectMode)
-    this.#highWaterMark = highWaterMarkOf('stream.Writable', options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
+    this.#highWaterMark = highWaterMarkOf(options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
   }
 
   get writable() {
@@ -2372,7 +2377,7 @@ class Readable extends Emitter {
     if (options?.read !== undefined) this._read = options.read
     if (options?.[kTransform] === true) this.#sync = false
     this.#objectMode = Boolean(options?.objectMode)
-    this.#highWaterMark = highWaterMarkOf('stream.Readable', options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
+    this.#highWaterMark = highWaterMarkOf(options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
     if (options?.encoding !== undefined && options.encoding !== null) {
       if (this.#objectMode) throw gapError('stream.Readable encoding with objectMode')
       this.setEncoding(options.encoding)
@@ -2828,6 +2833,7 @@ class PassThrough extends Readable {
   #writeFinished = false
 
   constructor(options) {
+    highWaterMarkOf(options, DEFAULT_HIGH_WATER_MARK, 'readableHighWaterMark')
     super({ read() {}, [kTransform]: true, highWaterMark: options?.highWaterMark, encoding: options?.encoding, objectMode: options?.objectMode })
     assertNoOptions('stream.PassThrough', options, ['highWaterMark', 'encoding', 'objectMode'])
     this.#writable = new Writable({
@@ -2948,7 +2954,7 @@ function createReadStream(path, options) {
   const start = positionOf('fs.createReadStream start', opts.start, 0)
   const end = positionOf('fs.createReadStream end', opts.end, undefined)
   if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
-  const highWaterMark = highWaterMarkOf('fs.createReadStream', opts)
+  const highWaterMark = highWaterMarkOf(opts)
   if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
   const stream = new FileReadStream(path, { start, end, highWaterMark })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)

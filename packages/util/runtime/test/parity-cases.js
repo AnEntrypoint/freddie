@@ -2561,16 +2561,27 @@ sharedCases.push(
   { name: 'stream.Readable objectMode highWaterMark 2 push returns', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true, highWaterMark: 2 }); return [r.push({ a: 1 }), r.push({ a: 2 }), r.push({ a: 3 }), r.readableLength] }, expected: [true, false, false, 3] },
 )
 
+const errorOf = (run) => { try { run() } catch (error) { return { code: error.code, message: error.message } } return 'no throw' }
+sharedCases.push(
+  { name: 'stream.Readable highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+  { name: 'stream.Readable highWaterMark string 4 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: '4' })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received '4'" } },
+  { name: 'stream.Readable highWaterMark 1.5 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: 1.5 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received 1.5" } },
+  { name: 'stream.Readable objectMode highWaterMark -2 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, objectMode: true, highWaterMark: -2 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -2" } },
+  { name: 'stream.Writable highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Writable({ write(chunk, enc, cb) { cb() }, highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+  { name: 'stream.PassThrough highWaterMark -1 throws ERR_INVALID_ARG_VALUE naming the readable side', run: () => errorOf(() => new s.stream.PassThrough({ highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.readableHighWaterMark' is invalid. Received -1" } },
+  { name: 'fs.createReadStream highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+  { name: 'fs.createReadStream highWaterMark 2.5 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 2.5 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received 2.5" } },
+  { name: 'stream.Readable highWaterMark 0 is accepted', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: 0 })), expected: 'no throw' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
-  { name: 'stream.Readable option highWaterMark -1', run: () => new s.stream.Readable({ read() {}, highWaterMark: -1 }) },
   { name: 'stream.Readable encoding with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }) },
   { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
   { name: 'fs.createReadStream start -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: -1 }) },
   { name: 'fs.createReadStream end before start', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: 5, end: 2 }) },
   { name: 'fs.createReadStream highWaterMark 0', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 0 }) },
-  { name: 'fs.createReadStream option highWaterMark -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with mode zz', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: 'zz' }) },
