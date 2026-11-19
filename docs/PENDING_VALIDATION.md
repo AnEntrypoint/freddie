@@ -489,3 +489,14 @@ Ranked item 3 in docs/fx-split.md. Both leave the sync-fs gap list; the decision
 | contract under gm's txiki (probe with the rebuilt gm-core) | present 115, missing [] | 0.30 s probe |
 | contract gap names under gm's txiki | 45 of the non-default names (was 47): fs.watchFile and fs.unwatchFile left the list | 0.32 s probe |
 | parity under gm's txiki, runs 1 to 3 (timing cases) | shared 181, gapAsserted 5, gaps 14 applied, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 each run (1074, 1154, 1082 ms in runParity) | 1.33, 1.45, 1.37 s probe |
+
+## fx split: crypto.createHash under txiki (2026-11-19)
+
+Ranked item 1 among the 45 remaining gap names (ranked list in docs/fx-split.md, "Remaining txiki gap names, ranked (2026-11-19, after crypto.createHash)").
+
+| Change | Phase A evidence | Phase B witness |
+|---|---|---|
+| src/txiki.js: createHash in pure JS for md5, sha1, sha256 and sha512 (SHA-2 constants derived from primes by integer roots, not typed in); Hash with update (string with encoding, or a view) and digest (Buffer, or a string encoding); digest twice and update after digest throw Digest already called; createHash names outside those four throw the gap message; the algorithm name is case-insensitive | node --check passes; 26 shared cases generated from Node's crypto output; Node parity 207/207 | txiki parity 207/207, mismatches []; sha3-256 gap asserted |
+| test/parity-cases.js: 26 shared cases for the four digests on four inputs, chunked update, Buffer and hex input, base64 and latin1 digests, default Buffer, upper-case name, update with a number, digest twice, update after digest; gap case crypto.createHash sha3-256 replaces the old whole-name gap case | node --check passes | txiki gap names 44 (was 45) |
+| docs/fx-split.md: the ranked list of the 45 remaining gap names with each line's class; the crypto gap row and the owner-decision bullet now record the implementation | grep shows the rows | none |
+| .agents/notes/implemented/architecture/2026-11-19-txiki-crypto-createhash.md: Agent Note | none | none |

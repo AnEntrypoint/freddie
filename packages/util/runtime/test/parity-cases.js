@@ -390,6 +390,11 @@ async function watchFor(file, body) {
   }
 }
 
+async function replaceFile(file, content) {
+  await fsp.writeFile(file + '.next', content)
+  await fsp.rename(file + '.next', file)
+}
+
 async function withTempDir(body) {
   const dir = await fsp.mkdtemp('/tmp/watch-')
   try {
@@ -413,7 +418,7 @@ sharedCases.push(
       await fsp.writeFile(file, 'one')
       return watchFor(file, async (events) => {
         await sleep(WATCH_INTERVAL_MS * 4)
-        await fsp.writeFile(file, 'longer content')
+        await replaceFile(file, 'longer content')
         const [{ curr, prev }] = await untilEvents(events, 1)
         const onDisk = await fsp.stat(file)
         return {
@@ -449,13 +454,13 @@ sharedCases.push(
       s.fs.watchFile(file, { interval: WATCH_INTERVAL_MS }, listener)
       try {
         await sleep(WATCH_INTERVAL_MS * 4)
-        await fsp.writeFile(file, 'two two')
+        await replaceFile(file, 'two two')
         await untilEvents(events, 1)
       } finally {
         s.fs.unwatchFile(file, listener)
       }
       const beforeLater = events.length
-      await fsp.writeFile(file, 'three three three')
+      await replaceFile(file, 'three three three')
       await sleep(WATCH_INTERVAL_MS * 8)
       return { beforeLater, afterLater: events.length }
     }),
@@ -487,7 +492,7 @@ sharedCases.push(
       const file = dir + '/late.txt'
       return watchFor(file, async (events) => {
         await untilEvents(events, 1)
-        await fsp.writeFile(file, 'hello')
+        await replaceFile(file, 'hello')
         await untilEvents(events, 2)
         const [, { curr, prev }] = events
         return { count: events.length, currSize: curr.size, currIsFile: curr.isFile(), prevSize: prev.size, prevIsFile: prev.isFile() }
@@ -509,10 +514,39 @@ sharedCases.push(
   },
 )
 
+sharedCases.push(
+  { name: "crypto.createHash md5 digest of empty", run: () => s.crypto.createHash('md5').update('').digest('hex'), expected: "d41d8cd98f00b204e9800998ecf8427e" },
+  { name: "crypto.createHash md5 digest of abc", run: () => s.crypto.createHash('md5').update('abc').digest('hex'), expected: "900150983cd24fb0d6963f7d28e17f72" },
+  { name: "crypto.createHash md5 digest of long", run: () => s.crypto.createHash('md5').update('x'.repeat(200)).digest('hex'), expected: "30a83621ce5422fbdfdd539777458c78" },
+  { name: "crypto.createHash md5 digest of utf8", run: () => s.crypto.createHash('md5').update('héllo ✓').digest('hex'), expected: "21b1ae5bc147bb564254200a4731e337" },
+  { name: "crypto.createHash sha1 digest of empty", run: () => s.crypto.createHash('sha1').update('').digest('hex'), expected: "da39a3ee5e6b4b0d3255bfef95601890afd80709" },
+  { name: "crypto.createHash sha1 digest of abc", run: () => s.crypto.createHash('sha1').update('abc').digest('hex'), expected: "a9993e364706816aba3e25717850c26c9cd0d89d" },
+  { name: "crypto.createHash sha1 digest of long", run: () => s.crypto.createHash('sha1').update('x'.repeat(200)).digest('hex'), expected: "94218caae9904e93a3d7bf578bf4791926fc5e82" },
+  { name: "crypto.createHash sha1 digest of utf8", run: () => s.crypto.createHash('sha1').update('héllo ✓').digest('hex'), expected: "b7c2a1aa52961195ac19331417a20a8b4f202ddb" },
+  { name: "crypto.createHash sha256 digest of empty", run: () => s.crypto.createHash('sha256').update('').digest('hex'), expected: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" },
+  { name: "crypto.createHash sha256 digest of abc", run: () => s.crypto.createHash('sha256').update('abc').digest('hex'), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash sha256 digest of long", run: () => s.crypto.createHash('sha256').update('x'.repeat(200)).digest('hex'), expected: "aa20c23e3201834050679e1d88941b9a6fed0557c9a705cb2c315e2e63fd486d" },
+  { name: "crypto.createHash sha256 digest of utf8", run: () => s.crypto.createHash('sha256').update('héllo ✓').digest('hex'), expected: "5657cdef8a85a584e0e961e6f8247cf5d3f8ed21496ed6fdbcfd43a761e94245" },
+  { name: "crypto.createHash sha512 digest of empty", run: () => s.crypto.createHash('sha512').update('').digest('hex'), expected: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e" },
+  { name: "crypto.createHash sha512 digest of abc", run: () => s.crypto.createHash('sha512').update('abc').digest('hex'), expected: "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f" },
+  { name: "crypto.createHash sha512 digest of long", run: () => s.crypto.createHash('sha512').update('x'.repeat(200)).digest('hex'), expected: "ef978e23dc520404ae16fd17bde9ee5945610d671551d6863a5ffbc99433fc726726e51f989b886191be9325b8f8b03b1a63fe3e5eff23d126c2f41f07d2bf87" },
+  { name: "crypto.createHash sha512 digest of utf8", run: () => s.crypto.createHash('sha512').update('héllo ✓').digest('hex'), expected: "5a8dbb6169e8fd30480c55d8b9f6e77d7bf79e4930c77ffcdec87eede5e5fa7faa79deba6a3fdf6532681ac3b079f29e7270cf11bd45bf143be032c4518d1496" },
+  { name: "crypto.createHash digests chunked updates like one update", run: () => s.crypto.createHash('sha256').update('ab').update('c').digest('hex'), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash digests a Buffer input", run: () => s.crypto.createHash('sha1').update(Buffer.from([0, 255, 16])).digest('hex'), expected: "a14c2fba17201c1ead45b6c4af4409fbfc16ba8a" },
+  { name: "crypto.createHash base64 digest", run: () => s.crypto.createHash('sha256').update('abc').digest('base64'), expected: "ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=" },
+  { name: "crypto.createHash latin1 digest length", run: () => s.crypto.createHash('md5').update('abc').digest('latin1').length, expected: 16 },
+  { name: "crypto.createHash default digest is a Buffer", run: () => Buffer.isBuffer(s.crypto.createHash('sha256').update('abc').digest()), expected: true },
+  { name: "crypto.createHash hex input encoding", run: () => s.crypto.createHash('sha256').update('616263', 'hex').digest('hex'), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash accepts an upper-case algorithm name", run: () => s.crypto.createHash('SHA256').update('abc').digest('hex'), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash update rejects a number", run: () => s.crypto.createHash('sha256').update(5), expected: "threw: The \"data\" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type number (5)" },
+  { name: "crypto.createHash digest twice throws", run: () => (() => { const h = s.crypto.createHash('sha256'); h.digest(); return h.digest('hex') })(), expected: "threw: Digest already called" },
+  { name: "crypto.createHash update after digest throws", run: () => (() => { const h = s.crypto.createHash('sha256'); h.digest(); return h.update('x') })(), expected: "threw: Digest already called" },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'fs.constants.O_RDONLY', run: () => s.fs.constants.O_RDONLY },
-  { name: 'crypto.createHash', run: () => s.crypto.createHash('sha256') },
+  { name: 'crypto.createHash sha3-256', run: () => s.crypto.createHash('sha3-256') },
   { name: 'StringDecoder for latin1', run: () => new StringDecoder('latin1') },
   { name: 'os.platform', run: () => s.os.platform() },
   { name: 'process.platform', run: () => proc.platform },

@@ -973,12 +973,265 @@ function unwatchFile(path, listener) {
   statWatchers.delete(path)
 }
 
+const UINT64_MASK = (1n << 64n) - 1n
+const HASH_PRIMES = firstPrimes(80)
+const MD5_CONSTANTS = Array.from({ length: 64 }, (_, i) => Math.floor(Math.abs(Math.sin(i + 1)) * 2 ** 32))
+const SHA256_CONSTANTS = HASH_PRIMES.slice(0, 64).map((prime) => Number(integerRoot(BigInt(prime) << 96n, 3n) & 0xffffffffn))
+const SHA256_INITIAL = HASH_PRIMES.slice(0, 8).map((prime) => Number(integerRoot(BigInt(prime) << 64n, 2n) & 0xffffffffn))
+const SHA512_CONSTANTS = HASH_PRIMES.map((prime) => integerRoot(BigInt(prime) << 192n, 3n) & UINT64_MASK)
+const SHA512_INITIAL = HASH_PRIMES.slice(0, 8).map((prime) => integerRoot(BigInt(prime) << 128n, 2n) & UINT64_MASK)
+
+function firstPrimes(count) {
+  const primes = []
+  for (let candidate = 2; primes.length < count; candidate++) {
+    if (primes.every((prime) => candidate % prime !== 0)) primes.push(candidate)
+  }
+  return primes
+}
+
+function integerRoot(value, degree) {
+  let root = 1n << BigInt(Math.ceil(value.toString(2).length / Number(degree)))
+  for (;;) {
+    const next = ((degree - 1n) * root + value / root ** (degree - 1n)) / degree
+    if (next >= root) return root
+    root = next
+  }
+}
+
+function rotl32(value, bits) {
+  return (value << bits) | (value >>> (32 - bits))
+}
+
+function rotr32(value, bits) {
+  return (value >>> bits) | (value << (32 - bits))
+}
+
+function rotr64(value, bits) {
+  return ((value >> bits) | (value << (64n - bits))) & UINT64_MASK
+}
+
+function padMessage(bytes, blockBytes, lengthBytes, littleEndian) {
+  const paddedLength = Math.ceil((bytes.length + 1 + lengthBytes) / blockBytes) * blockBytes
+  const padded = new Uint8Array(paddedLength)
+  padded.set(bytes)
+  padded[bytes.length] = 0x80
+  const view = new DataView(padded.buffer)
+  const bits = BigInt(bytes.length) * 8n
+  const high = Number(bits >> 32n)
+  const low = Number(bits & 0xffffffffn)
+  if (littleEndian) {
+    view.setUint32(paddedLength - 8, low, true)
+    view.setUint32(paddedLength - 4, high, true)
+  } else {
+    view.setUint32(paddedLength - 8, high, false)
+    view.setUint32(paddedLength - 4, low, false)
+  }
+  return padded
+}
+
+function wordsToBytes(words, littleEndian) {
+  const bytes = new Uint8Array(words.length * 4)
+  const view = new DataView(bytes.buffer)
+  words.forEach((word, i) => view.setUint32(i * 4, word, littleEndian))
+  return bytes
+}
+
+function md5Round(round, b, c, d) {
+  if (round < 16) return [(b & c) | (~b & d), round]
+  if (round < 32) return [(d & b) | (~d & c), (5 * round + 1) % 16]
+  if (round < 48) return [b ^ c ^ d, (3 * round + 5) % 16]
+  return [c ^ (b | ~d), (7 * round) % 16]
+}
+
+const MD5_SHIFTS = [7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21]
+
+function md5Digest(bytes) {
+  const blocks = padMessage(bytes, 64, 8, true)
+  const view = new DataView(blocks.buffer)
+  const state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
+  for (let offset = 0; offset < blocks.length; offset += 64) {
+    const words = Array.from({ length: 16 }, (_, i) => view.getUint32(offset + i * 4, true))
+    let [a, b, c, d] = state
+    for (let i = 0; i < 64; i++) {
+      const [f, g] = md5Round(i, b, c, d)
+      const next = (b + rotl32((a + f + MD5_CONSTANTS[i] + words[g]) | 0, MD5_SHIFTS[i])) | 0
+      a = d
+      d = c
+      c = b
+      b = next
+    }
+    const working = [a, b, c, d]
+    state.forEach((value, j) => {
+      state[j] = (value + working[j]) | 0
+    })
+  }
+  return wordsToBytes(state, true)
+}
+
+function sha1Round(round, b, c, d) {
+  if (round < 20) return [(b & c) | (~b & d), 0x5a827999]
+  if (round < 40) return [b ^ c ^ d, 0x6ed9eba1]
+  if (round < 60) return [(b & c) | (b & d) | (c & d), 0x8f1bbcdc]
+  return [b ^ c ^ d, 0xca62c1d6]
+}
+
+function sha1Digest(bytes) {
+  const blocks = padMessage(bytes, 64, 8, false)
+  const view = new DataView(blocks.buffer)
+  const state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0]
+  for (let offset = 0; offset < blocks.length; offset += 64) {
+    const w = Array.from({ length: 80 }, (_, i) => (i < 16 ? view.getUint32(offset + i * 4) : 0))
+    for (let i = 16; i < 80; i++) w[i] = rotl32(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1)
+    let [a, b, c, d, e] = state
+    for (let i = 0; i < 80; i++) {
+      const [f, k] = sha1Round(i, b, c, d)
+      const temp = (rotl32(a, 5) + f + e + k + w[i]) | 0
+      e = d
+      d = c
+      c = rotl32(b, 30)
+      b = a
+      a = temp
+    }
+    const working = [a, b, c, d, e]
+    state.forEach((value, j) => {
+      state[j] = (value + working[j]) | 0
+    })
+  }
+  return wordsToBytes(state, false)
+}
+
+function sha256Digest(bytes) {
+  const blocks = padMessage(bytes, 64, 8, false)
+  const view = new DataView(blocks.buffer)
+  const state = SHA256_INITIAL.slice()
+  for (let offset = 0; offset < blocks.length; offset += 64) {
+    const w = Array.from({ length: 64 }, (_, i) => (i < 16 ? view.getUint32(offset + i * 4) : 0))
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr32(w[i - 15], 7) ^ rotr32(w[i - 15], 18) ^ (w[i - 15] >>> 3)
+      const s1 = rotr32(w[i - 2], 17) ^ rotr32(w[i - 2], 19) ^ (w[i - 2] >>> 10)
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0
+    }
+    let [a, b, c, d, e, f, g, h] = state
+    for (let i = 0; i < 64; i++) {
+      const sigma1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25)
+      const choice = (e & f) ^ (~e & g)
+      const temp1 = (h + sigma1 + choice + SHA256_CONSTANTS[i] + w[i]) | 0
+      const sigma0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22)
+      const majority = (a & b) ^ (a & c) ^ (b & c)
+      const temp2 = (sigma0 + majority) | 0
+      h = g
+      g = f
+      f = e
+      e = (d + temp1) | 0
+      d = c
+      c = b
+      b = a
+      a = (temp1 + temp2) | 0
+    }
+    const working = [a, b, c, d, e, f, g, h]
+    state.forEach((value, j) => {
+      state[j] = (value + working[j]) | 0
+    })
+  }
+  return wordsToBytes(state, false)
+}
+
+function sha512Digest(bytes) {
+  const blocks = padMessage(bytes, 128, 16, false)
+  const view = new DataView(blocks.buffer)
+  const state = SHA512_INITIAL.slice()
+  for (let offset = 0; offset < blocks.length; offset += 128) {
+    const w = Array.from({ length: 80 }, (_, i) => (i < 16 ? view.getBigUint64(offset + i * 8) : 0n))
+    for (let i = 16; i < 80; i++) {
+      const s0 = rotr64(w[i - 15], 1n) ^ rotr64(w[i - 15], 8n) ^ (w[i - 15] >> 7n)
+      const s1 = rotr64(w[i - 2], 19n) ^ rotr64(w[i - 2], 61n) ^ (w[i - 2] >> 6n)
+      w[i] = (w[i - 16] + s0 + w[i - 7] + s1) & UINT64_MASK
+    }
+    let [a, b, c, d, e, f, g, h] = state
+    for (let i = 0; i < 80; i++) {
+      const sigma1 = rotr64(e, 14n) ^ rotr64(e, 18n) ^ rotr64(e, 41n)
+      const choice = (e & f) ^ ((e ^ UINT64_MASK) & g)
+      const temp1 = (h + sigma1 + choice + SHA512_CONSTANTS[i] + w[i]) & UINT64_MASK
+      const sigma0 = rotr64(a, 28n) ^ rotr64(a, 34n) ^ rotr64(a, 39n)
+      const majority = (a & b) ^ (a & c) ^ (b & c)
+      const temp2 = (sigma0 + majority) & UINT64_MASK
+      h = g
+      g = f
+      f = e
+      e = (d + temp1) & UINT64_MASK
+      d = c
+      c = b
+      b = a
+      a = (temp1 + temp2) & UINT64_MASK
+    }
+    const working = [a, b, c, d, e, f, g, h]
+    state.forEach((value, j) => {
+      state[j] = (value + working[j]) & UINT64_MASK
+    })
+  }
+  const bytes64 = new Uint8Array(64)
+  const view64 = new DataView(bytes64.buffer)
+  state.forEach((word, i) => view64.setBigUint64(i * 8, word))
+  return bytes64
+}
+
+const HASH_FUNCTIONS = { md5: md5Digest, sha1: sha1Digest, sha256: sha256Digest, sha512: sha512Digest }
+
+function concatBytes(chunks) {
+  const bytes = new Uint8Array(chunks.reduce((sum, chunk) => sum + chunk.length, 0))
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.length
+  }
+  return bytes
+}
+
+function hashInput(data, inputEncoding) {
+  if (typeof data === 'string') return Buffer.from(data, inputEncoding ?? 'utf8')
+  if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+  throw codedTypeError('ERR_INVALID_ARG_TYPE', 'The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
+}
+
+function hashFinalizedError() {
+  const error = new Error('Digest already called')
+  error.code = 'ERR_CRYPTO_HASH_FINALIZED'
+  return error
+}
+
+class Hash {
+  constructor(algorithm) {
+    this.algorithm = algorithm
+    this.chunks = []
+    this.finalized = false
+  }
+
+  update(data, inputEncoding) {
+    if (this.finalized) throw hashFinalizedError()
+    this.chunks.push(hashInput(data, inputEncoding))
+    return this
+  }
+
+  digest(encoding) {
+    if (this.finalized) throw hashFinalizedError()
+    this.finalized = true
+    const buffer = Buffer.from(HASH_FUNCTIONS[this.algorithm](concatBytes(this.chunks)))
+    return encoding === undefined || encoding === 'buffer' ? buffer : buffer.toString(encoding)
+  }
+}
+
+function createHash(algorithm) {
+  const name = String(algorithm).toLowerCase()
+  if (!Object.hasOwn(HASH_FUNCTIONS, name)) throw gapError('crypto.createHash ' + name)
+  return new Hash(name)
+}
+
 export const txikiRuntime = {
   fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {
-    ...gapFunctions('crypto', ['createHash']),
+    createHash,
     randomBytes,
     randomUUID: () => webCrypto.randomUUID(),
   }),

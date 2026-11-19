@@ -330,7 +330,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | fs (sync) | accessSync, closeSync, createReadStream, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync | txiki file APIs are async only |
 | fs.promises | access with a mode other than F_OK; writeFile with a flag other than w or a, or with a mode; cp of a symbolic link | no Node Dir object; txiki writeFile has no mode option; append is tjs.open with a; link copy not defined |
 | fs.constants | every name except F_OK, R_OK, W_OK, X_OK | the O_* flags have no txiki counterpart |
-| crypto | createHash | tjs:hashing is excluded from the vendored build (needs mbedtls); Web Crypto digest is async-only |
+| crypto | createHash for algorithms other than md5, sha1, sha256 and sha512 | done 2026-11-19 for those four in pure JS; tjs:hashing is excluded from the vendored build, so the rest stay gaps |
 | stream | Readable, Writable, PassThrough, pipeline | txiki has web streams only |
 | buffer.constants | all members | not mapped |
 | module | createRequire, stripTypeScriptTypes | txiki loads ES modules only |
@@ -428,7 +428,7 @@ Excluded, with the reason:
 
 - Sync fs (18 names: accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync): native. tjs file calls are all async, so blocking I/O needs a native change.
 - fs.createReadStream, stream.Readable, stream.Writable, stream.PassThrough, stream.pipeline: owner decision. Node streams are not web streams, so the design needs choosing.
-- crypto.createHash: owner decision. A synchronous digest needs either an owned SHA implementation or a dependency; tjs:hashing is not in the vendored build, and Web Crypto digest is async only.
+- crypto.createHash: done 2026-11-19 for md5, sha1, sha256 and sha512, in an owned pure-JS implementation (see the ranked section below). Other algorithms are a declared gap.
 - module.stripTypeScriptTypes: owner decision (needs a TypeScript parser, a dependency).
 - module.createRequire: fx. It needs a CommonJS loader, which the txiki build does not provide.
 - child-process.execFile and child-process.spawn: owner decision. tjs.spawn exists, but its result is not Node's ChildProcess, so the process model needs choosing. execFileSync and spawnSync are native (blocking).
@@ -462,3 +462,56 @@ Decisions:
 - The txiki gap list drops fs.watchFile and fs.unwatchFile: 47 becomes 45.
 
 The timing-based shared cases set a 20 ms interval, wait a bounded number of intervals before each change, and fail with a count message after 2000 ms if no event arrives. Each case removes its watcher in a finally block, so a failing case cannot keep the process alive.
+
+
+## Remaining txiki gap names, ranked (2026-11-19, after crypto.createHash)
+
+The 45 names still declared as gaps, ranked by how close each is to a verified pure-JS result over the existing runtime. Closeness means: a result we can check exactly against Node, with no native change and no decision left open. Each line says whether the work is pure JS or needs a native change; where a decision or fx is also needed, the line says so.
+
+1. crypto.createHash: pure JS. md5, sha1, sha256 and sha512 are implemented and checked against Node. Other algorithms are a declared gap.
+2. zlib.gunzip: pure JS. An owned inflate, checked exactly against Node-produced gzip fixtures.
+3. zlib.gzip: pure JS deflate, but compressed bytes differ from Node's zlib unless the algorithm is reproduced. Only a round trip is verifiable, so byte parity needs a decision.
+4. fs.createReadStream: pure JS over tjs.open and read. Needs the stream design.
+5. child-process.execFile: pure JS over tjs.spawn with a callback. Needs the process-model decision (output buffering and the ChildProcess shape).
+6. child-process.spawn: pure JS over tjs.spawn. Needs the ChildProcess event and stdio model.
+7. stream.Readable: pure JS. Needs the owner's stream design.
+8. stream.Writable: pure JS. Needs the owner's stream design.
+9. stream.PassThrough: pure JS. Needs the owner's stream design.
+10. stream.pipeline: pure JS over the stream classes; depends on 7 to 9.
+11. os.platform: pure JS, but excluded by the owner's direction (fx supplies the platform).
+12. module.createRequire: needs a CommonJS loader, which is fx.
+13. http.createServer: needs a request and response design over tjs.serve; owner decision.
+14. module.stripTypeScriptTypes: needs a TypeScript parser (a dependency); not verifiable in pure JS here.
+15. fs.accessSync: native (txiki file calls are async only).
+16. fs.closeSync: native.
+17. fs.existsSync: native.
+18. fs.lstatSync: native.
+19. fs.mkdirSync: native.
+20. fs.mkdtempSync: native.
+21. fs.openSync: native.
+22. fs.readFileSync: native.
+23. fs.readSync: native.
+24. fs.readdirSync: native.
+25. fs.readlinkSync: native.
+26. fs.realpathSync: native.
+27. fs.rmSync: native.
+28. fs.statSync: native.
+29. fs.symlinkSync: native.
+30. fs.unlinkSync: native.
+31. fs.writeFileSync: native.
+32. fs.writeSync: native.
+33. child-process.execFileSync: native (blocking).
+34. child-process.spawnSync: native (blocking).
+35. worker-threads.Worker: native.
+36. async-hooks.AsyncLocalStorage: native (async context).
+37. vm.Script: native (separate realm).
+38. vm.createContext: native (separate realm).
+39. vm.runInContext: native (separate realm).
+40. zlib.brotliCompress: native.
+41. zlib.createZstdDecompress: native.
+42. zlib.zstdCompress: native.
+43. zlib.zstdDecompress: native.
+44. zlib.zstdDecompressSync: native.
+45. inspector.Session: native.
+
+Counts: 14 lines that are pure JS or need a decision, fx or dependency (1 to 14); 31 lines that need a native change (15 to 45).
