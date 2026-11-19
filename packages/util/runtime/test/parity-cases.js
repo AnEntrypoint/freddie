@@ -2349,6 +2349,34 @@ sharedCases.push(
   { name: "fs.promises.writeFile ax+ existing EEXIST", run: () => writeFlagOutcome([{"file":"f","data":"base","flag":"w"}], {"file":"f","data":"add","flag":"ax+"}), expected: {"error":"EEXIST"} },
 )
 
+const ownIds = async () => {
+  const status = await fsp.readFile('/proc/self/status', 'utf8')
+  return {
+    uid: Number(/^Uid:\s+(\d+)/m.exec(status)[1]),
+    gid: Number(/^Gid:\s+(\d+)/m.exec(status)[1]),
+  }
+}
+
+const thrownBy = async (run) => {
+  try {
+    return await run()
+  } catch (error) {
+    return { threw: { code: error.code, syscall: error.syscall, message: error.message } }
+  }
+}
+
+sharedCases.push(
+  { name: "child-process.spawn uid option runs as the same uid", run: async () => envSpawnOutcome('id', ['-u'], { uid: (await ownIds()).uid }), expected: {"stdout":"1000\n","code":0,"signal":null} },
+  { name: "child-process.spawn gid option runs as the same gid", run: async () => envSpawnOutcome('id', ['-g'], { gid: (await ownIds()).gid }), expected: {"stdout":"1000\n","code":0,"signal":null} },
+  { name: "child-process.spawn uid undefined keeps the current uid", run: () => envSpawnOutcome('id', ['-u'], { uid: undefined }), expected: {"stdout":"1000\n","code":0,"signal":null} },
+  { name: "child-process.spawn uid of another user throws EPERM", run: async () => thrownBy(async () => envSpawnOutcome('id', ['-u'], { uid: (await ownIds()).uid + 1 })), expected: {"threw":{"code":"EPERM","syscall":"spawn","message":"spawn EPERM"}} },
+  { name: "child-process.spawn gid of another group throws EPERM", run: async () => thrownBy(async () => envSpawnOutcome('id', ['-g'], { gid: (await ownIds()).gid + 1 })), expected: {"threw":{"code":"EPERM","syscall":"spawn","message":"spawn EPERM"}} },
+  { name: "child-process.execFile uid option runs as the same uid", run: async () => execFileOutcome('id', ['-u'], { uid: (await ownIds()).uid }), expected: {"error":null,"stdout":"1000\n","stderr":""} },
+  { name: "child-process.execFile gid option runs as the same gid", run: async () => execFileOutcome('id', ['-g'], { gid: (await ownIds()).gid }), expected: {"error":null,"stdout":"1000\n","stderr":""} },
+  { name: "child-process.execFile uid of another user throws EPERM", run: async () => thrownBy(async () => execFileOutcome('id', ['-u'], { uid: (await ownIds()).uid + 1 })), expected: {"threw":{"code":"EPERM","syscall":"spawn","message":"spawn EPERM"}} },
+  { name: "child-process.execFile gid of another group throws EPERM", run: async () => thrownBy(async () => execFileOutcome('id', ['-g'], { gid: (await ownIds()).gid + 1 })), expected: {"threw":{"code":"EPERM","syscall":"spawn","message":"spawn EPERM"}} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'crypto.createHash option outputLength', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
@@ -2362,6 +2390,8 @@ export const gapCases = [
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with flag rs+', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { flag: 'rs+' }) },
   { name: 'fs.promises.writeFile with mode 0600', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: '0600' }) },
+  { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
+  { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]

@@ -1387,3 +1387,33 @@ Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 1 of 1: s
 Wall times are single runs in sequence and include process startup and the mcp-probe launch for the txiki runs.
 
 Not verified in Phase B: one run per witness; the txiki parity run is on the gm-core host only; default-mode cases assume umask 022.
+
+## fx split: child-process uid and gid, Phase A (2026-11-19)
+
+Rank 7f in docs/fx-split.md. Probes: runs/analysis/child-uid-node.mjs (deterministic) and the inline txiki probe (/tmp/uid-txiki.json; ids 1000 and 1000).
+
+| Change | Phase A evidence |
+|---|---|
+| src/txiki.js: startProcess takes uid and gid and sets them on tjs.spawn; idOption (number or gap); spawn and execFile accept the keys | before: both keys threw the gap; after: the 9 uid and gid cases (same uid, same gid, undefined uid, uid and gid of another user or group throwing EPERM, for spawn and execFile) and 2 gap cases match on txiki (dev body) and Node; txiki parity with gap assertions: shared 586, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1, 12529 ms; Node parity 586/586 |
+| test/parity-cases.js: 9 uid and gid cases generated from child-uid-node.out (the ids come from /proc/self/status, which works on Node and txiki); 2 gap cases (uid '1000' and gid '1000') | the same runs |
+
+Mutation evidence (saved good copy; the dev body runs the uid and gid cases and gap cases, full results in /tmp/uid-mut-result.json; each restore checked with cmp, git status shows only the two changed files):
+
+| Mutation | Cases red |
+|---|---|
+| U1: uid not forwarded | 2 (the uid EPERM cases, spawn and execFile) |
+| U2: gid not forwarded | 2 (the gid EPERM cases) |
+| U3: spawn key gap restored | 7 (includes the 2 gap cases) |
+| U4: execFile key gap restored | 4 |
+| U5: execFile uid dropped (gid still forwarded) | 1 |
+| U6: non-number id gap removed | 2 (the gap cases) |
+| U7: EPERM moved to the async path | run aborted: the spawn error event has no listener in the case, so the run stops (no result file) |
+| U8: uid defaults to 0 | 3 |
+| U9: uid off by one | 2 (the same-uid cases) |
+| U10: gid off by one | 2 (the same-gid cases) |
+
+Coverage: all 11 cases are red under at least one mutation (uncovered []).
+
+Regression (not a witness): txiki parity with gap assertions: shared 586, mismatches [], unexpectedGaps [], gaps 15, gapInactive 1. Node parity: 586/586.
+
+Not verified: supplementary groups; the root id; a valid uid without a passwd entry.
