@@ -1147,3 +1147,22 @@ Coverage: every one of the 24 new cases is red under at least one mutation, comp
 Regression (not a witness): txiki parity with gap assertions: shared 515, mismatches [], unexpectedGaps [], gaps 11, gapInactive 1, 5082 ms. Node parity: 515/515, 3131 ms.
 
 Not verified: keyed BLAKE2 (not part of createHash here); inputs over one megabyte.
+
+## Phase B: crypto.createHash (0a184257 and 7d3f2903), 2026-11-19
+
+Swap gate: `vmstat 1 2 | tail -1`, awk columns 7 and 8. Passed on poll 1 of 1: si 60 KB/s, so 0 KB/s.
+
+| Witness | Command | Result | Wall time |
+|---|---|---|---|
+| Node parity | cd packages/util/runtime && node test/parity-node.js | node: 515/515 shared cases match; 0/0 gaps throw the documented message; 3312 ms | 5.98 s |
+| txiki parity with gap assertions | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/parity-txiki-body.js | label txiki, shared 515, gapAsserted 0 (structural, see below), gaps 11, gapInactive 1, mismatches [], unexpectedGaps [], elapsedMs 4973 | 5.29 s |
+| Node contract | cd packages/util/runtime && node test/contract-node.js | node: 117 names present across 25 subpaths | 0.20 s |
+| txiki contract | node runs/analysis/mcp-probe.mjs <gm-core> /workspace/freddie runs/analysis/contract-txiki-body.js | present 117, missing [] | 0.29 s |
+
+Wall times are single runs in sequence, and include process startup and the mcp-probe launch for the txiki runs.
+
+Reading the gap numbers: the gap assertions are the gaps count with unexpectedGaps []. gapAsserted counts shared-case entries that carry a gap field, and none do, so it is 0 by construction (corrected in the spawn cwd section above).
+
+Re-probe of util.parseArgs with no arguments (held, rank 4 in docs/fx-split.md): gm-core serve exits before initialize when extra arguments are given, with or without a -- separator, and tjs.args stays [] under serve (runs/analysis/dev-txiki-tjsargs-body.js). No standalone tjs binary is on the machine, so the held item stays held.
+
+Not verified in Phase B: one run per witness, so the wall times are single readings, and the txiki parity run is on the gm-core host only.
