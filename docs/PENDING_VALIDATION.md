@@ -798,3 +798,11 @@ Ranked item 4 in docs/fx-split.md: the Emitter methods that Readable and Writabl
 | test/parity-cases.js: the destroy-with-write-in-flight case calls destroy() synchronously (its 2 ms write timer and a 0 ms destroy timer raced) | Node: writable-destroy-sync-node.mjs gives the saved expectation 10 of 10; dev check Node 10 of 10 SAME (it was 9 of 10 before); txiki 3 of 3 SAME | Node parity and txiki parity |
 
 Regression check (not a witness): all stream and child dev cases on Node: 59 of 59 stream and 18 of 18 child match. On txiki, 75 cases with 3 reported as failing: the three child-process gap cases (execFile option cwd, spawn stdout, spawn option cwd). The dev harness does not assert gap cases; the parity runner does, in Phase B.
+
+## fx split: remove the stream.Readable.off gap case (2026-11-19)
+
+Found by Phase B: the txiki parity run (the first one, red) reported unexpectedGaps for stream.Readable.off, because the gap case still asserted that off throws. Its replacement is the Emitter cases in the previous commit (off removes the listener and returns the stream). The gap case is removed. Remaining gap cases: 13 on txiki, with stream.Writable.cork still a declared gap.
+
+| Change | Phase A evidence | Phase B witness needed |
+|---|---|---|
+| test/parity-cases.js: gapCases loses stream.Readable.off | txiki parity rerun: unexpectedGaps [] (see the Phase B record) | the Phase B record |

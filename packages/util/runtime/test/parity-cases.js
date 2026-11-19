@@ -1546,7 +1546,6 @@ export const gapCases = [
   { name: 'stream.PassThrough option highWaterMark', run: () => new s.stream.PassThrough({ highWaterMark: 1 }) },
   { name: 'fs.createReadStream option encoding', run: () => s.fs.createReadStream('/nonexistent-freddie-stream/x', 'utf8') },
   { name: 'stream.Writable.cork', run: () => new s.stream.Writable().cork() },
-  { name: 'stream.Readable.off', run: () => new s.stream.Readable().off('data', () => {}) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
