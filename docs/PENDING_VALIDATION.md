@@ -1979,3 +1979,13 @@ Change (Phase A): src/txiki.js accepts 'mode' in createReadStream (no effect). t
 Pending (Phase B window): the Node and txiki parity runs, and the red check MO-1 (mode removed from the accepted options, so the read throws the gap).
 
 Correction to the earlier records (the flags and signal sections above and fx-split 7u/7v): the autoClose: false result in the earlier options probe does not reproduce in the variant probe (runs/analysis/createreadstream-autoclose-variants-node.out). See the autoClose section.
+
+## fx split: createReadStream autoClose false (7x), Phase A (2026-11-20)
+
+Node oracle, rechecked on a clear sample (slot 0 of its job; PID 1610476, exit 0; output runs/analysis/createreadstream-autoclose-variants-node.out): with autoClose false the stream emits open, ready, data, end and no close, both with the old listeners (data, end, close listeners only) and with the new ones; 150 ms, 200 ms and 1000 ms waits all give no close; closed is false after end. A missing file gives error ENOENT and no close (runs/analysis/createreadstream-mode-autoclose-node.out, PID 1609748).
+
+Discrepancy, not resolved: the earlier options probe (runs/analysis/createreadstream-options-node.mjs) still prints data, end, close for autoClose false when rerun on a clear sample (PID 1610351, exit 0). The variant probe with the same listener set does not. The cause is not known; it is recorded here and not hidden. The witnesses follow the variant probe (no close), and the Node parity run will show if the two disagree in the harness.
+
+Change (Phase A): src/txiki.js: FileReadStream takes the option; _afterEnd is skipped when it is false; an open error is emitted without a destroy when it is false; createReadStream accepts a boolean (other values gapped). test/parity-cases.js: collectFor (events for a fixed time, then destroy) and two shared cases: 'autoClose false reads the data and never emits close' (expected ['data abcdefghij', 'end']) and 'autoClose false on a missing file emits ENOENT and no close' (expected ['error ENOENT Error']).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red checks AC-1 (autoClose removed from the accepted options: both cases red), AC-2 (open-error destroy kept: the missing-file case red), AC-3 (_afterEnd not gated: the data case red), and MO-1 (mode removed from the accepted options: the mode case red).

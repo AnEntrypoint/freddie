@@ -2904,9 +2904,11 @@ class FileReadStream extends Readable {
   #block
   #skip
   #remaining
+  #autoClose
 
   constructor(path, options) {
     super({ read: () => this.#readBlock(), highWaterMark: options.highWaterMark })
+    this.#autoClose = options.autoClose
     if (options.signal !== undefined) this.#watchAbort(options.signal)
     this.#block = options.highWaterMark
     this.#skip = options.start
@@ -2917,13 +2919,17 @@ class FileReadStream extends Readable {
         this.emit('open', handle.fileno())
         this.emit('ready')
       },
-      (error) => this.destroy(fsPathError(error, 'open', path)),
+      (error) => (this.#autoClose ? this.destroy(fsPathError(error, 'open', path)) : nextTick(() => this.emit('error', fsPathError(error, 'open', path)))),
     )
   }
 
   #watchAbort(signal) {
     if (signal.aborted) nextTick(() => this.destroy(abortError(signal)))
     else signal.addEventListener('abort', () => this.destroy(abortError(signal)), { once: true })
+  }
+
+  _afterEnd() {
+    if (this.#autoClose) super._afterEnd()
   }
 
   _destroy(error, callback) {
@@ -2955,10 +2961,12 @@ const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx']
 
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
-  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode'])
+  assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode', 'autoClose'])
   if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   const flags = opts.flags ?? 'r'
   if (!READ_STREAM_FLAGS.includes(flags)) throw gapError('fs.createReadStream flags ' + String(flags))
+  const autoClose = opts.autoClose ?? true
+  if (typeof autoClose !== 'boolean') throw gapError('fs.createReadStream autoClose ' + String(autoClose))
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   }
@@ -2967,7 +2975,7 @@ function createReadStream(path, options) {
   if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
   const highWaterMark = highWaterMarkOf(opts)
   if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
-  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags })
+  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags, autoClose })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
   return stream
 }

@@ -2584,6 +2584,19 @@ sharedCases.push(
   { name: 'fs.createReadStream mode 0o600 leaves an existing file unchanged', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); const before = (await fsp.stat(file)).mode & 0o777; const events = await streamEvents(s.fs.createReadStream(file, { mode: 0o600 })); const after = (await fsp.stat(file)).mode & 0o777; return [...events, before === after ? 'mode unchanged' : 'mode changed to ' + after.toString(8)] }, expected: ['data abcdefghij', 'close', 'mode unchanged'] },
 )
 
+const collectFor = (stream, ms) => new Promise((resolve) => {
+  const got = []
+  stream.on('data', (chunk) => got.push('data ' + String(chunk)))
+  stream.on('end', () => got.push('end'))
+  stream.on('error', (error) => got.push('error ' + error.code + ' ' + error.name))
+  stream.on('close', () => got.push('close'))
+  setTimeout(() => { resolve([...got]); stream.destroy() }, ms)
+})
+sharedCases.push(
+  { name: 'fs.createReadStream autoClose false reads the data and never emits close', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(file, { autoClose: false }), 300) }, expected: ['data abcdefghij', 'end'] },
+  { name: 'fs.createReadStream autoClose false on a missing file emits ENOENT and no close', run: async () => { const { dir } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(dir + '/missing.txt', { autoClose: false }), 300) }, expected: ['error ENOENT Error'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
