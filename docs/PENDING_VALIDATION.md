@@ -995,3 +995,16 @@ Case reading: each of the six cases is red under at least one mutation.
 Regression (not a witness): Node parity 407 of 407 (2471 ms). txiki parity with gap assertions: shared 407, gapAsserted 1, gaps 12, gapInactive 1, mismatches [], unexpectedGaps [] (3911 ms). The one asserted gap is spawn cwd.
 
 Not verified: the asynchronous codes EACCES, EAGAIN, EMFILE and ENFILE (their timing is from Node's source, not probed); errno numbers; cwd with a relative path containing a symlink.
+
+## Phase B: child-process stderr and execFile cwd (2026-11-19)
+
+Each run started after a vmstat reading with swap-in and swap-out below 1000 KB/s, taken immediately before it (the gate's poll count is in the log).
+
+| Witness | Reading (swap-in / swap-out KB/s) | Result | Wall time |
+|---|---|---|---|
+| node test/parity-node.js | 52 / 904 (4 polls) | 407/407 shared cases match; 0/0 gaps throw the documented message; exit 0 | 5.06 s process (2461 ms in runParity) |
+| parity under gm's txiki, with gap assertions (runs/analysis/parity-txiki-body.js) | 348 / 0 (2 polls) | shared 407, gapAsserted 1, gaps 12, gapInactive 1, mismatches [], unexpectedGaps []; exit 0 | 4.07 s probe (3917 ms in runParity) |
+| node test/contract-node.js | 96 / 28 (5 polls) | 117 names present across 25 subpaths; exit 0 | 0.09 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | 80 / 0 (1 poll) | present 117, missing []; exit 0 | 0.15 s |
+
+Commits covered: eec48dd2 (child-process.spawn stderr as a Readable, sharing the stdout pump) and d8719a45 (child-process.execFile option cwd), on top of 79c9a2e0. The gap-assertion count is 1: the spawn cwd gap, which is still open.
