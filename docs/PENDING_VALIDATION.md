@@ -683,3 +683,17 @@ Queue item 4. The Node 24 oracle probe is runs/analysis/constants-node.mjs (untr
 | src/txiki.js: fs.constants gains the 15 O_* flags; buffer.constants gains MAX_LENGTH and MAX_STRING_LENGTH; both gap entries for these members are gone | the dev check passes both new cases under Node and under gm's txiki | Node parity and txiki parity |
 | test/parity-cases.js: two shared cases (fs.constants O_* on this host; buffer.constants values); the fs.constants.O_RDONLY gap case removed | the same two cases match Node | Node parity and txiki parity |
 | docs/fx-split.md: item 5 of the ranked list marked done, with the x86_64 caveat | none | none |
+
+## fx split: Phase B for queue items 1 to 4 (2026-11-19)
+
+Each run started after a reading below 1000 KB/s for swap-in and swap-out, taken immediately before it. Readings (swap-in / swap-out KB/s): Node parity 380 / 0, txiki parity 240 / 0, Node contract 68 / 0, txiki contract 352 / 0, txiki gap names 56 / 0.
+
+| Witness | Result | Wall time |
+|---|---|---|
+| node test/parity-node.js | 321/321 shared cases match; 0/0 gaps throw the documented message; exit 0 | 3.24 s process (858 ms in runParity) |
+| parity under gm's txiki (runs/analysis/parity-txiki-body.js) | shared 321, gapAsserted 3, gaps 14 applied (16 before the change), gapInactive 1, mismatches [], unexpectedGaps []; exit 0; no "parity failed" line | 2.00 s probe (1856 ms in runParity) |
+| node test/contract-node.js | 115 names present across 25 subpaths; exit 0 | 0.08 s |
+| contract under gm's txiki (runs/analysis/contract-txiki-body.js) | present 115, missing []; exit 0 | 0.15 s probe |
+| contract gap names under gm's txiki (runs/analysis/contract-gaps-body.js) | gapCount 35, unchanged; exit 0 | 0.16 s probe |
+
+The gap count fell from 16 to 14 because stream.Readable.read and fs.constants.O_RDONLY are no longer gap cases. The 35 contract gap names did not change.
