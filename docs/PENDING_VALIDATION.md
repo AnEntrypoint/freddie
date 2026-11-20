@@ -2070,3 +2070,12 @@ txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 
 Change: src/txiki.js: READ_STREAM_FLAGS includes 'wx+'. test/parity-cases.js: shared case 'fs.createReadStream flags wx+ reads or fails as Node does' (expected ["error EEXIST Error","close","file \"abcdefghij\""]).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red check RC-wx+: 'wx+' removed from the accepted list.
+
+## fx split: createReadStream flag a (7ac), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/createreadstream-flags-node.out (clear sample, PID 1893227, exit 0): append, write only: EBADF on read, the file is kept.
+txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 1894026, exit 0). tjs.open takes the flag, so only the accepted list changes.
+
+Change: src/txiki.js: READ_STREAM_FLAGS includes 'a'. test/parity-cases.js: shared case 'fs.createReadStream flags a reads or fails as Node does' (expected ["error EBADF Error","close","file \"abcdefghij\""]).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check RC-a: 'a' removed from the accepted list.

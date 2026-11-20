@@ -2613,6 +2613,10 @@ sharedCases.push(
   { name: 'fs.createReadStream flags wx+ reads or fails as Node does', run: () => flagsOutcome('wx+'), expected: ['error EEXIST Error', 'close', 'file "abcdefghij"'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream flags a reads or fails as Node does', run: () => flagsOutcome('a'), expected: ['error EBADF Error', 'close', 'file "abcdefghij"'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
