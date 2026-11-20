@@ -489,8 +489,11 @@ async function readFile(path, options) {
   return fileContent(await tjs.readFile(path), options)
 }
 
+const syncReadFile = txikiCore.syncReadFile
+
 function readFileSync(path, options) {
-  const bytes = txikiCore.syncReadFile(path)
+  if (typeof syncReadFile !== 'function') throw new Error('fs.readFileSync needs syncReadFile from tjs:internal/core, which this txiki host no longer exposes')
+  const bytes = syncReadFile(path)
   if (bytes === undefined) throw gapError('fs.readFileSync error for a file that cannot be read')
   return fileContent(bytes, options)
 }

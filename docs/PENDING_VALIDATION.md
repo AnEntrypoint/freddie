@@ -2947,3 +2947,15 @@ vm.Script (held, native):
 - Second realm (runInNewContext, createContext): /workspace/gm/native/third_party/txiki/txiki/src/vm.c creates one context with JS_NewContext (about line 509) and never exposes a second one. Change: a binding that calls JS_NewContext for a new realm and runs compiled code in it, in vm.c.
 
 Decisions recorded: each held row above names its host file and change. Freddie-side work that does not need the host (ERR_WORKER_PATH, and the encoding step) is noted in the row it belongs to.
+
+## Stretch F row 1 (2026-11-20): readFileSync names a missing syncReadFile
+
+Row: fs.readFileSync depends on syncReadFile from tjs:internal/core (the 4de978a4 success path). If the host stops exposing it, the call failed with a TypeError from inside readFileSync, which does not say why.
+
+Change: src/txiki.js reads the binding once (const syncReadFile = txikiCore.syncReadFile) and readFileSync throws Error 'fs.readFileSync needs syncReadFile from tjs:internal/core, which this txiki host no longer exposes' when it is not a function. The call now reads syncReadFile(path), not txikiCore.syncReadFile(path).
+
+Witness: the existing shared cases 'fs.readFileSync returns the file bytes as a Buffer' and 'fs.readFileSync with utf8 returns the text' pass on the host that exposes it (Phase B). The guard's own failure is shown by the red check below.
+
+Red check (Phase B): mutation: 'const syncReadFile = txikiCore.syncReadFile' replaced by 'const syncReadFile = txikiCore.syncReadFileRemoved' (the host export is missing). Witness: the two readFileSync shared cases fail, and the probe output contains the guard message 'fs.readFileSync needs syncReadFile from tjs:internal/core'. Restore: copy back; cmp; git status shows the txiki source and this ledger.
+
+This replaces the red check written for 4de978a4 (the anchor 'const bytes = txikiCore.syncReadFile(path)' no longer exists).
