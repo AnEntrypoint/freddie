@@ -3066,6 +3066,7 @@ const LINUX_SIGNAL_NUMBERS = { 1: 'SIGHUP', 2: 'SIGINT', 3: 'SIGQUIT', 6: 'SIGAB
 
 function killSignalOf(opts) {
   const requested = opts.killSignal ?? 'SIGTERM'
+  if (typeof requested === 'number' && (!Number.isInteger(requested) || requested < 1 || requested > 31)) throw codedError(TypeError, 'ERR_UNKNOWN_SIGNAL', 'Unknown signal: ' + requested)
   const signal = typeof requested === 'number' && osPlatform === 'linux' ? LINUX_SIGNAL_NUMBERS[requested] : requested
   if (!KILL_SIGNALS.includes(signal)) throw gapError('child-process killSignal ' + String(requested))
   return signal

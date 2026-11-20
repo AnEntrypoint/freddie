@@ -2863,6 +2863,10 @@ sharedCases.push(
   { name: 'child-process signal abc throws ERR_INVALID_ARG_TYPE at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {})), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.signal\" property must be an instance of AbortSignal. Received type string ('abc')"} },
 )
 
+sharedCases.push(
+  { name: 'child-process killSignal 99 throws ERR_UNKNOWN_SIGNAL at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {})), expected: {"code":"ERR_UNKNOWN_SIGNAL","message":"Unknown signal: 99"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -2871,7 +2875,6 @@ export const gapCases = [
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
-  { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
   { name: 'child-process windowsHide yes', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },

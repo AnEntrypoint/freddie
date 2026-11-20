@@ -2732,3 +2732,15 @@ Change: src/txiki.js signalOf throws invalidArgType('options.signal', value, 'Ab
 Witness: sharedCases "child-process signal abc throws ERR_INVALID_ARG_TYPE at execFile" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the signalOf check removed (signal not validated); witness: the shared case reports no throw; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process killSignal number out of range
+
+Row: child-process killSignal 99 (gapCases; execFile with killSignal 99 threw the declared gap).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): sanitizeKillSignal calls convertToValidSignal, which for a number returns it only when the signal mapping has it; otherwise it throws ERR_UNKNOWN_SIGNAL, whose message is "Unknown signal: %s" (TypeError). execFile calls sanitizeKillSignal before it spawns.
+
+Change: src/txiki.js killSignalOf throws ERR_UNKNOWN_SIGNAL only for a number that is not an integer from 1 to 31, the standard Linux signal numbers Node maps. Other numbers and all names keep the gap, because txiki's KILL_SIGNALS list is narrower than Node's (SIGSTOP and similar are valid in Node). test/parity-cases.js: gapCases entry removed; sharedCases witness added.
+
+Witness: sharedCases "child-process killSignal 99 throws ERR_UNKNOWN_SIGNAL at execFile" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the new killSignalOf line removed; witness: the shared case reports the gap message instead; restore: copy back; cmp; git status shows the two files only.
