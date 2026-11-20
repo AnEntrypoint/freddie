@@ -2684,6 +2684,16 @@ sharedCases.push(
   { name: 'stream.Writable highWaterMark 1e300 write returns true', run: () => { const w = new s.stream.Writable({ highWaterMark: 1e300, write(chunk, enc, cb) {} }); return [w.write(Buffer.from('abc')), w.write(Buffer.from('d'))] }, expected: [true, true] },
 )
 
+const highWaterMarkTypeError = (highWaterMark) => {
+  try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, name: error.name, message: error.message } }
+  return 'no throw'
+}
+sharedCases.push(
+  { name: 'fs.createReadStream highWaterMark 2^40 emits ERR_MEMORY_ALLOCATION_FAILED RangeError', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 40 }), expected: ['error ERR_MEMORY_ALLOCATION_FAILED RangeError', 'close'] },
+  { name: 'fs.createReadStream highWaterMark 1e300 emits ERR_OUT_OF_RANGE RangeError', run: () => highWaterMarkEvents({ highWaterMark: 1e300 }), expected: ['error ERR_OUT_OF_RANGE RangeError', 'close'] },
+  { name: 'fs.createReadStream highWaterMark -1 throws a TypeError', run: () => highWaterMarkTypeError(-1), expected: { code: 'ERR_INVALID_ARG_VALUE', name: 'TypeError', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

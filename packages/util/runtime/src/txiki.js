@@ -2117,7 +2117,7 @@ function assertNoOptions(name, options, allowed) {
 
 function invalidArgValue(property, value) {
   const received = typeof value === 'string' ? "'" + value + "'" : String(value)
-  return nodeError('ERR_INVALID_ARG_VALUE', "The property '" + property + "' is invalid. Received " + received)
+  return Object.assign(new TypeError("The property '" + property + "' is invalid. Received " + received), { code: 'ERR_INVALID_ARG_VALUE' })
 }
 
 function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property = 'highWaterMark') {
@@ -2897,6 +2897,15 @@ function pipeline(...streams) {
   return streams[streams.length - 1]
 }
 
+function fileBlock(size) {
+  if (!Number.isSafeInteger(size)) throw Object.assign(new RangeError('The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + String(size)), { code: 'ERR_OUT_OF_RANGE' })
+  try {
+    return new Uint8Array(size)
+  } catch {
+    throw Object.assign(new RangeError('Failed to allocate memory'), { code: 'ERR_MEMORY_ALLOCATION_FAILED' })
+  }
+}
+
 class FileReadStream extends Readable {
   #handle
   #opening
@@ -2948,7 +2957,7 @@ class FileReadStream extends Readable {
         }
         const size = Math.min(this.#block, this.#remaining)
         if (size <= 0) return this.push(null)
-        const buffer = new Uint8Array(size)
+        const buffer = fileBlock(size)
         const count = await this.#handle.read(buffer)
         this.#remaining -= count
         this.push(count > 0 ? buffer.subarray(0, count) : null)

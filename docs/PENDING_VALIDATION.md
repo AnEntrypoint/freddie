@@ -2312,3 +2312,15 @@ The source has not changed since dc8ec98d, so the parity runs were not repeated 
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageO-good-txiki.js); `git status --short` was empty.
 
 Item 2 is done with this line. Still open within the item, not witnessed: { aborted: true } (Node emits ABORT_ERR AbortError; txiki gaps it), and an object with addEventListener and no removeEventListener (Node crashes at close with an uncaught TypeError).
+
+## fx split: fs.createReadStream highWaterMark 2^40, 1e300 and -1 error shapes (7am), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/highwatermark-errors-node.mjs, one process per shape; output runs/analysis/highwatermark-errors-node.out. 2^40: stream created, then error ERR_MEMORY_ALLOCATION_FAILED RangeError "Failed to allocate memory", then close. 1e300: stream created, then error ERR_OUT_OF_RANGE RangeError "The value of \"size\" is out of range. It must be >= 0 && <= 9007199254740991. Received 1e+_300", then close. -1: synchronous ERR_INVALID_ARG_VALUE, name TypeError, "The property 'options.highWaterMark' is invalid. Received -1".
+
+txiki probe on a copy (/tmp/hwmerr-copy/txiki.js; body runs/analysis/highwatermark-errors-body.js): before the change, runs/analysis/highwatermark-errors-txiki-before.out: 2^40 gave a RangeError with no code, "invalid array buffer length" (the new Uint8Array(size) in #readBlock; size is the block because the remaining count is Infinity with no end); 1e300 gave a RangeError with no code, "invalid array index"; -1 gave name Error.
+
+gapCases search before commit: the gapCases block (lines 2715 to 2737) has no entry naming highWaterMark sizes, RangeError or the two codes. No stale entry.
+
+Existing witnesses use errorOf, which records only code and message, so the name change does not affect them.
+
+Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []), the Node parity run, and the red checks RC-hwm-big (fileBlock reverted: the 2^40 and 1e300 witnesses go red) and RC-hwm-neg (invalidArgValue reverted: the -1 name witness goes red).
