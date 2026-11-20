@@ -2957,7 +2957,7 @@ class FileReadStream extends Readable {
   }
 }
 
-const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx', 'rs']
+const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx', 'rs', 'rs+']
 
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
