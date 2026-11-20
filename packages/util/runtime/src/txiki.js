@@ -3219,9 +3219,9 @@ const STDIO_KINDS = ['pipe', 'overlapped', 'inherit', 'ignore']
 function stdioOf(opts) {
   const stdio = opts.stdio ?? 'pipe'
   if (typeof stdio === 'string' && !STDIO_KINDS.includes(stdio)) throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'stdio' is invalid. Received '" + stdio + "'")
-  const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : Array.isArray(stdio) && stdio.length <= 3 ? [0, 1, 2].map((i) => stdio[i] ?? 'pipe') : stdio
-  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => !STDIO_KINDS.includes(kind))) throw gapError('child-process stdio ' + String(stdio))
-  return list.map((kind) => (kind === 'overlapped' ? 'pipe' : kind))
+  const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : stdio
+  if (!Array.isArray(list) || list.some((kind) => kind != null && !STDIO_KINDS.includes(kind))) throw gapError('child-process stdio ' + String(stdio))
+  return Array.from({ length: Math.max(3, list.length) }, (_, fd) => list[fd] ?? 'pipe').map((kind) => (kind === 'overlapped' ? 'pipe' : kind))
 }
 
 function shellArguments(file, argv, shell) {
@@ -3234,7 +3234,15 @@ function processEnv(env) {
   return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
 }
 
+function spawnWithExtraStdio(argv, options, stdio) {
+  let exit
+  const exited = new Promise((resolve) => { exit = resolve })
+  const native = txikiCore.spawn(argv, { ...options, stdio: stdio.map((kind, fd) => (fd < 3 ? null : kind)), onexit: exit })
+  return { pid: native.pid, kill: (signal) => native.kill(signal), wait: () => exited, stdio: native.stdio }
+}
+
 function startProcess(file, argv, { cwd, env, uid, gid, detached = false, stdio = ['pipe', 'pipe', 'pipe'], stdin = false } = {}) {
+  if (stdio.length > 3 && stdio.slice(0, 3).includes('pipe')) throw gapError('child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3')
   const options = { stdout: stdio[1], stderr: stdio[2] }
   if (stdin) options.stdin = stdio[0]
   if (detached) options.detached = true
@@ -3243,7 +3251,7 @@ function startProcess(file, argv, { cwd, env, uid, gid, detached = false, stdio 
   if (uid !== undefined) options.uid = uid
   if (gid !== undefined) options.gid = gid
   try {
-    return { process: tjs.spawn([file, ...argv], options) }
+    return { process: stdio.length > 3 ? spawnWithExtraStdio([file, ...argv], { ...options, stdin: stdio[0], stdout: stdio[1], stderr: stdio[2] }, stdio) : tjs.spawn([file, ...argv], options) }
   } catch (error) {
     if (!ASYNC_SPAWN_ERRORS.includes(error.code)) throw Object.assign(new Error('spawn ' + error.code), { code: error.code, syscall: 'spawn' })
     return { error: spawnError(file, argv, error.code) }
@@ -3296,6 +3304,23 @@ function execFile(file, args, options, callback) {
 function spawnArguments(args, options) {
   if (!Array.isArray(args)) return { argv: [], opts: args ?? {} }
   return { argv: args, opts: options ?? {} }
+}
+
+function openRawPipe(pipe) {
+  let reading = false
+  const readable = new Readable({
+    read: () => {
+      if (reading) return
+      reading = true
+      pipe.startRead()
+    },
+  })
+  const ended = new Promise((resolve) => readable.once('end', resolve))
+  pipe.onread = (data) => {
+    if (data === null) readable.push(null)
+    else if (data) readable.push(Buffer.from(data))
+  }
+  return { readable, ended }
 }
 
 function openPipe(stream) {
@@ -3356,6 +3381,7 @@ class ChildProcess extends Emitter {
   #stdin
   #stdout
   #stderr
+  #extra = []
   #timer
   #signal
   #onAbort
@@ -3376,6 +3402,7 @@ class ChildProcess extends Emitter {
     this.#stdin = noStdin ? null : openWritable(started.process.stdin)
     this.#stdout = noStdout ? null : openPipe(started.process.stdout)
     this.#stderr = noStderr ? null : openPipe(started.process.stderr)
+    this.#extra = (started.process.stdio ?? []).slice(3).map((pipe) => (pipe ? openRawPipe(pipe) : null))
     if (options.timeout > 0) this.#timer = setTimeout(() => this.kill(options.killSignal), options.timeout)
     if (options.signal !== undefined) this.#watchAbort(options.signal, options.killSignal)
     setTimeout(() => this.#spawned(), 0)
@@ -3411,6 +3438,10 @@ class ChildProcess extends Emitter {
     return this.#stderr === null ? null : this.#stderr.readable
   }
 
+  get stdio() {
+    return [this.stdin, this.stdout, this.stderr, ...this.#extra.map((pipe) => (pipe === null ? null : pipe.readable))]
+  }
+
   kill(signal = 'SIGTERM') {
     if (signal !== 0) checkSignal(signal)
     if (this.#process === undefined || this.#exited) return false
@@ -3436,7 +3467,7 @@ class ChildProcess extends Emitter {
     this.#exited = true
     const [code, signal] = status.term_signal === null ? [status.exit_status, null] : [null, status.term_signal]
     this.emit('exit', code, signal)
-    const pipes = [this.#stdout, this.#stderr].filter((pipe) => pipe !== null)
+    const pipes = [this.#stdout, this.#stderr, ...this.#extra].filter((pipe) => pipe !== null)
     for (const pipe of pipes) {
       if (pipe.readable.readableFlowing === null) pipe.readable.resume()
     }

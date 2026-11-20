@@ -3071,3 +3071,19 @@ Witness (freddie, both runtimes): a shell tests that its own session id equals i
 Native witness (gm, re-run): gm-tool check check-txiki-spawn-detached: ok.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js startProcess drops the line that sets options.detached. Witness: 'txiki parity failed' with mismatch 'child-process.spawn detached makes the child its own session leader' (got 1, expected 0). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired: child-process.spawn stdio entries beyond fd 2 to core.spawn (gm handoff 5, 2026-11-20)
+
+Change: stdioOf accepts any list of stdio kinds (the three-entry limit is gone); startProcess sends a list longer than three through txikiCore.spawn, with onexit, the named stdin/stdout/stderr properties for fds 0 to 2, and the list for fds 3 and up. The public tjs.spawn is kept for every other spawn (its shape is unchanged). ChildProcess wraps each raw pipe for fd 3 and up in openRawPipe (a Readable fed by onread and startRead) and exposes child.stdio as [stdin, stdout, stderr, ...extra readables]; close waits for the extra streams to end. A list with a pipe at fd 0 to 2 beside an entry from fd 3 is a gap (gapError child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3), checked before the spawn. Record: shared 800 -> 802, gaps applied 2 -> 3, inactive 1 unchanged.
+
+Native limits found while wiring (for gm, not worked around):
+1. The public tjs.spawn drops options.stdio. Its object has no stdio property even with a four-entry list. Only core.spawn (which needs onexit) reads stdio.
+2. core.spawn returns raw pipes only for fd 3 and up. With stdio [pipe, pipe, pipe, pipe] the entries 0 to 2 are null (types [null, null, null, object]), so the stdout and stderr pipes of a spawn with an extra entry do not come back. This is why a pipe at fd 0 to 2 beside an extra entry is a gap.
+3. The raw pipe for fd 3 has no write method (own names: open, getsockname, getpeername, connect, bind; plus onread and startRead). A parent-to-child stream at fd 3 or up cannot be written from the native surface.
+4. The raw pipe has no stopRead, so backpressure is not applied; a consumer that stops reading still gets the bytes buffered in its Readable.
+
+Witness (freddie, both runtimes): 'child-process.spawn stdio entry at fd 3 carries the bytes the child writes to it' (the child prints hello to fd 3; the parent reads hello, expected hello) and 'child-process.spawn with no stdio entry beyond fd 2 has three stdio entries' (length 3). Node: 802/802 shared cases match (exit 0). Probe: shared 802, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-spawn-stdio: ok.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js startProcess passes an empty stdio list to core.spawn. Witness: 'txiki parity failed' with mismatch 'child-process.spawn stdio entry at fd 3 carries the bytes the child writes to it' (got 'threw: cannot read property 'on' of undefined'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

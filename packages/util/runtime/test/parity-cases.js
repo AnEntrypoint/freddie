@@ -2949,7 +2949,21 @@ sharedCases.push(
   { name: 'child-process.spawn without detached keeps the parent session', run: () => exitCodeOf(...SESSION_LEADER_TEST, {}), expected: 1 },
 )
 
+const extraPipeText = () => new Promise((resolve, reject) => {
+  const child = s['child-process'].spawn('sh', ['-c', 'printf hello >&3'], { stdio: ['ignore', 'ignore', 'ignore', 'pipe'] })
+  const decoder = new TextDecoder()
+  let text = ''
+  child.stdio[3].on('data', (chunk) => { text += decoder.decode(chunk) })
+  child.stdio[3].on('end', () => resolve(text))
+  child.on('error', reject)
+})
+sharedCases.push(
+  { name: 'child-process.spawn stdio entry at fd 3 carries the bytes the child writes to it', run: () => extraPipeText(), expected: 'hello' },
+  { name: 'child-process.spawn with no stdio entry beyond fd 2 has three stdio entries', run: () => s['child-process'].spawn('true', []).stdio.length, expected: 3 },
+)
+
 export const gapCases = [
+  { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
