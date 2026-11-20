@@ -5,3 +5,4 @@ const { vm } = activeRuntime()
 export const Script = vm.Script
 export const createContext = vm.createContext
 export const runInContext = vm.runInContext
+export const runInNewContext = vm.runInNewContext

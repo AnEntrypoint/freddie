@@ -3107,3 +3107,13 @@ Witness (freddie, both runtimes): 'vm.Script compiles without running and runs m
 Native witness (gm, re-run): gm-tool check check-vm-script-compile: ok.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js VmScript constructor also runs the compiled function. Witness: 'txiki parity failed' with mismatch 'vm.Script compiles without running and runs more than once' (got ['41',2,'41',2], expected ['undefined',2,'41',2]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired: vm.runInNewContext on primitive results to core.evalInNewRealm (gm handoff 8b, 2026-11-20)
+
+Change: runInNewContext(code) evaluates a wrapper in a fresh realm with txikiCore.evalInNewRealm. The wrapper runs the code with indirect eval (so a var is a global of the new realm), and returns the value as a tagged string: u (undefined), b (boolean), n (number, -0 as n-0), s (string), g (bigint), l (null). Any other value (object, function, symbol) is tagged o, and the host throws the gap 'vm.runInNewContext object result'. The host decodes the tag back to the value. An error in the new realm reaches the host as an Error with the same name (TypeError for null.x). vm.runInNewContext is exported from src/vm.js (both runtimes) and added to the vm contract names. The gap is kept, with its cause: the native result crosses as a string, so an object result would be a copy, not the object (handoff 8b limit; vm.createContext needs the object form, still a gap). Record: shared 806 -> 812, gaps applied 2 -> 3 (object result row), inactive 1 unchanged.
+
+Witness (freddie, both runtimes): six shared rows: 1 + 1 gives 2; 'a' + 'b' gives 'ab'; typeof Array gives 'function' (the new realm's built-ins); a var set in the new realm (3) is not a host global ('undefined'); null, undefined and true; and null.x throws TypeError. Node: 812/812 shared cases match (exit 0). Probe: shared 812, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0). Contract (txiki): checkContract('txiki', subpaths) returns with the vm names including runInNewContext; contract-node: 119 names present across 25 subpaths (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-vm-realm: ok.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js decodes the string tag without removing its prefix. Witness: 'txiki parity failed' with mismatch 'vm.runInNewContext returns a string' (got 'sab', expected 'ab'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

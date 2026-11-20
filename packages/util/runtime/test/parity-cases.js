@@ -2972,7 +2972,17 @@ sharedCases.push(
   { name: 'vm.Script with a syntax error throws SyntaxError at construction', run: () => { try { new s.vm.Script('1 +'); return 'no throw' } catch (error) { return error.name } }, expected: 'SyntaxError' },
 )
 
+sharedCases.push(
+  { name: 'vm.runInNewContext returns a number', run: () => s.vm.runInNewContext('1 + 1'), expected: 2 },
+  { name: 'vm.runInNewContext returns a string', run: () => s.vm.runInNewContext("'a' + 'b'"), expected: 'ab' },
+  { name: 'vm.runInNewContext has its own built-ins', run: () => s.vm.runInNewContext('typeof Array'), expected: 'function' },
+  { name: 'vm.runInNewContext keeps its var off the host global', run: () => [s.vm.runInNewContext('var freddieRealmVar = 5; 3'), String(globalThis.freddieRealmVar)], expected: [3, 'undefined'] },
+  { name: 'vm.runInNewContext returns null, undefined and true', run: () => [String(s.vm.runInNewContext('null')), String(s.vm.runInNewContext('undefined')), String(s.vm.runInNewContext('true'))], expected: ['null', 'undefined', 'true'] },
+  { name: 'vm.runInNewContext throws the new realm error by its name', run: () => { try { s.vm.runInNewContext('null.x'); return 'no throw' } catch (error) { return error.name } }, expected: 'TypeError' },
+)
+
 export const gapCases = [
+  { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },

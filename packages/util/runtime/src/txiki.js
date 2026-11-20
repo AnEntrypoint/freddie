@@ -508,6 +508,33 @@ class VmScript {
   }
 }
 
+function encodeRealmResult(code) {
+  return `(() => {
+    const value = (0, eval)(${JSON.stringify(code)})
+    switch (typeof value) {
+      case 'undefined': return 'u'
+      case 'boolean': return 'b' + value
+      case 'number': return 'n' + (Object.is(value, -0) ? '-0' : String(value))
+      case 'string': return 's' + value
+      case 'bigint': return 'g' + String(value)
+      default: return value === null ? 'l' : 'o'
+    }
+  })()`
+}
+
+function runInNewContext(code) {
+  const encoded = txikiCore.evalInNewRealm(encodeRealmResult(code))
+  switch (encoded[0]) {
+    case 'u': return undefined
+    case 'b': return encoded === 'btrue'
+    case 'n': return encoded === 'n-0' ? -0 : Number(encoded.slice(1))
+    case 's': return encoded.slice(1)
+    case 'g': return BigInt(encoded.slice(1))
+    case 'l': return null
+    default: throw gapError('vm.runInNewContext object result')
+  }
+}
+
 const syncReadFile = txikiCore.syncReadFile
 
 function readFileSync(path, options) {
@@ -3553,7 +3580,7 @@ export const txikiRuntime = {
     workerData: withGaps('worker_threads.workerData', {}),
   }),
   asyncHooks: withGaps('async_hooks', { AsyncLocalStorage: gapClass('async_hooks.AsyncLocalStorage') }),
-  vm: withGaps('vm', { Script: VmScript, ...gapFunctions('vm', ['createContext', 'runInContext']) }),
+  vm: withGaps('vm', { Script: VmScript, runInNewContext, ...gapFunctions('vm', ['createContext', 'runInContext']) }),
   http: withGaps('http', { validateHeaderValue, ...gapFunctions('http', ['createServer']) }),
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {

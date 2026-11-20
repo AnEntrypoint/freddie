@@ -13,7 +13,7 @@ export const contract = {
   "os": ['availableParallelism', 'constants', 'homedir', 'networkInterfaces', 'platform', 'release', 'tmpdir'],
   "worker-threads": ['MessageChannel', 'Worker', 'parentPort', 'workerData'],
   "async-hooks": ['AsyncLocalStorage'],
-  "vm": ['Script', 'createContext', 'runInContext'],
+  "vm": ['Script', 'createContext', 'runInContext', 'runInNewContext'],
   "http": ['createServer', 'validateHeaderValue', 'default'],
   "https": ['default'],
   "zlib": ['brotliCompress', 'constants', 'createZstdDecompress', 'gunzip', 'gzip', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync', 'default'],
