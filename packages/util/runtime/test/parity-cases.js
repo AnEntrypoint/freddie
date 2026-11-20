@@ -2912,6 +2912,7 @@ sharedCases.push(
 )
 
 sharedCases.push(
+  { name: 'fs.readFileSync missing file throws ENOENT as Node does', run: () => errorOf(() => s.fs.readFileSync('/nonexistent-freddie-readfilesync')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, open '/nonexistent-freddie-readfilesync'" } },
   { name: 'fs.readFileSync returns the file bytes as a Buffer', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'abc'); return Array.from(s.fs.readFileSync(dir + '/r.txt')) }), expected: [97, 98, 99] },
   { name: 'fs.readFileSync with utf8 returns the text', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'h\u00e9llo'); return s.fs.readFileSync(dir + '/r.txt', 'utf8') }), expected: 'h\u00e9llo' },
 )
@@ -2932,7 +2933,6 @@ sharedCases.push(
 )
 
 export const gapCases = [
-  { name: 'fs.readFileSync error for a file that cannot be read', run: () => s.fs.readFileSync('/nonexistent-freddie-readfilesync') },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },

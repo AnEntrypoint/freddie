@@ -3003,3 +3003,13 @@ Found by the Node parity run in window rM (792/795): test/subpaths.js maps 's[ch
 Change: src/child-process.js adds export const exec = childProcess.exec before execFile. Witnesses: the three 'child-process.exec ...' shared cases (unchanged), which now reach the export on Node and txiki.
 
 Red check (Phase B): mutation: remove the 'export const exec' line. Witness: the three exec cases fail with 'is not a function' on the Node run (s.child-process.exec is not a function). Restore: copy back; cmp; git status shows the subpath file and this ledger.
+
+## Stretch F row 1 fix (2026-11-20): readFileSync on a missing file throws Node's ENOENT
+
+The gm owner landed commit 99362ca ('a failed syncReadFile throws the errno of the read'). The built host now throws an error with code 'ENOENT' from syncReadFile, where the 4de978a4 path expected undefined. The probe runs/analysis/stretchF-missing-body.js shows code 'ENOENT' and message 'ENOENT: no such file or directory'. So the gap for a missing file (c6e6ce98's 'fs.readFileSync error for a file that cannot be read') no longer applies, and the earlier window that passed it ran on the old host.
+
+Change: src/txiki.js readFileSync catches the host error and throws fsPathError(error, 'open', path), the helper the other fs calls use, which gives Node's message 'ENOENT: no such file or directory, open '<path>'' with code, errno and syscall. The undefined branch is removed (dead on this host). test/parity-cases.js: the gap case is removed, and the shared case 'fs.readFileSync missing file throws ENOENT as Node does' (errorOf, expected code ENOENT and Node's message) replaces it.
+
+Applicable gap rows drop from 5 to 4 (exitCode, Worker, vm.Script, detached).
+
+Red check (Phase B): mutation: the try/catch replaced by 'bytes = syncReadFile(path)' (no mapping). Witness: the missing-file shared case fails; its got message is 'ENOENT: no such file or directory' without ', open ...'. Restore: copy back; cmp; git status shows the txiki source and this ledger.
