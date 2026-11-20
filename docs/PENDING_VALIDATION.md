@@ -2013,3 +2013,24 @@ Cause: runs/analysis/createreadstream-options-node.mjs set out.autoCloseFalse = 
 Fix: out.autoCloseFalse = [...ev4] before the destroy. The buggy output is kept as runs/analysis/createreadstream-options-node.buggy-snapshot.out. The fixed probe runs once in the Phase B window below; the result is recorded there.
 
 Correction in the docs: fx-split 7u and 7v, and the flags Phase B note, now say autoClose: false gives data and end with no close and the fd still open (the variant probe is the source).
+
+## Phase B: autoClose red checks and contracts, and the options-probe cause (18961772), 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (its working copy matches the commit), exit 0 means clear. Gate: `vmstat 1 2` second sample, both si and so under 1000 KB/s. A witness started only on a sample where both held.
+
+The window ran 35 samples over 1145 s (slots 0 to 34). The first ten-minute span (slots 0 to 20, 678 s) cleared on slots 0, 2 and 4. The rest ran on slots 26, 33 and 34 (minute 872 to 1145, about 4.5 min, within the one more ten-minute window allowed). The other samples were closed by other peers' zig builds and tests, a cmake and ninja gm-tool build, node q-greek-sweep and q-greek-gnu jobs, chromium at 20 to 38%, and si up to 24908 KB/s. No probe started on a closed sample; closed samples have no ledger line.
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| Options probe, fixed (snapshot before destroy) | 0 | autoCloseFalse: ["data", "end"]; the earlier close was the probe's own live-array aliasing (see the cause section above) | 0.45 s |
+| AC-1: autoClose removed from the accepted options (PID 1718600, exit 0) | 2 | red on 'fs.createReadStream autoClose false reads the data and never emits close' and 'fs.createReadStream autoClose false on a missing file emits ENOENT and no close' (both threw the gap). Restored: RESTORED_IDENTICAL | 14.05 s |
+| AC-2: open-error destroy kept (PID 1720691, exit 0) | 4 | red on 'fs.createReadStream autoClose false on a missing file emits ENOENT and no close' only. Restored: RESTORED_IDENTICAL | 14.45 s |
+| AC-3: end path ungated (PID 1832780, exit 0) | 26 | red on 'fs.createReadStream autoClose false reads the data and never emits close' only. Restored: RESTORED_IDENTICAL | 14.43 s |
+| Node contract (PID 1886974, exit 0) | 33 | node: 117 names present across 25 subpaths | 0.16 s |
+| txiki contract (PID 1887239, exit 0) | 34 | present 117, missing [] | 0.17 s |
+
+The source was not changed in this stretch; the good copy is the committed c0607f04 version. The Node and txiki parity runs on this source passed in the previous window (674/674 and shared 674, mismatches []).
+
+Restore: after the mutations, `cmp` gave identical files and `git status` was empty. No process of mine was left running.
+
+Longest step: the txiki parity-style mutation runs (about 14.5 s each). The longest wait was the closed gate (31 of 35 samples closed in total, across both spans).
