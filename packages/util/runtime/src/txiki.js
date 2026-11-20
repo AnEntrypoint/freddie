@@ -2930,12 +2930,24 @@ function pipeline(...streams) {
   return streams[streams.length - 1]
 }
 
-function fileBlock(size) {
+const NODE_ALLOCATION_CEILING = 2 ** 35
+
+function memoryError() {
+  return Object.assign(new RangeError('Failed to allocate memory'), { code: 'ERR_MEMORY_ALLOCATION_FAILED' })
+}
+
+function checkedBlockSize(size) {
   if (!Number.isSafeInteger(size)) throw Object.assign(new RangeError('The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + numberReceived(size)), { code: 'ERR_OUT_OF_RANGE' })
+  if (size > NODE_ALLOCATION_CEILING) throw memoryError()
+  return size
+}
+
+function fileBlock(size) {
+  checkedBlockSize(size)
   try {
     return new Uint8Array(size)
   } catch {
-    throw Object.assign(new RangeError('Failed to allocate memory'), { code: 'ERR_MEMORY_ALLOCATION_FAILED' })
+    throw memoryError()
   }
 }
 
@@ -2946,6 +2958,7 @@ class FileReadStream extends Readable {
   #block
   #skip
   #remaining
+  #fileBytes = Infinity
   #autoClose
 
   constructor(path, options) {
@@ -2956,8 +2969,9 @@ class FileReadStream extends Readable {
     this.#skip = options.start
     this.#remaining = options.end === undefined ? Infinity : options.end - options.start + 1
     this.#opening = tjs.open(path, options.flags).then(
-      (handle) => {
+      async (handle) => {
         this.#handle = handle
+        this.#fileBytes = await tjs.stat(path).then((stat) => Math.max(0, stat.size - options.start), () => Infinity)
         this.emit('open', handle.fileno())
         this.emit('ready')
       },
@@ -2983,14 +2997,17 @@ class FileReadStream extends Readable {
     this.#opening
       .then(async () => {
         if (this.#handle === undefined || this.#closing) return
+        const block = checkedBlockSize(this.#block)
         while (this.#skip > 0) {
-          const skipped = await this.#handle.read(new Uint8Array(Math.min(this.#block, this.#skip)))
+          const skipped = await this.#handle.read(new Uint8Array(Math.min(block, this.#skip)))
           if (skipped <= 0) return this.push(null)
           this.#skip -= skipped
         }
-        const size = Math.min(this.#block, this.#remaining)
+        const length = block | 0
+        if (length < 0) return
+        const size = Math.min(length, this.#remaining)
         if (size <= 0) return this.push(null)
-        const buffer = fileBlock(size)
+        const buffer = fileBlock(Math.min(size, Math.max(this.#fileBytes, 1)))
         const count = await this.#handle.read(buffer)
         this.#remaining -= count
         this.push(count > 0 ? buffer.subarray(0, count) : null)

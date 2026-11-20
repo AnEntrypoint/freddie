@@ -2746,6 +2746,13 @@ sharedCases.push(
   { name: 'fs.createReadStream highWaterMark 2^53 emits the size message with Node separators', run: () => highWaterMarkErrorEvent({ highWaterMark: 2 ** 53 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received 9_007_199_254_740_992' } },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream highWaterMark 2^31-1 reads the whole file', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 31 - 1 }), expected: ['data abcdefghij', 'end', 'close'] },
+  { name: 'fs.createReadStream highWaterMark 2^32 reads no data and ends', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 32 }), expected: ['end', 'close'] },
+  { name: 'fs.createReadStream highWaterMark 2^33 reads no data and ends', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 33 }), expected: ['end', 'close'] },
+  { name: 'fs.createReadStream highWaterMark 2^35 reads no data and ends', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 35 }), expected: ['end', 'close'] },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'
