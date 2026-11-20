@@ -2136,8 +2136,21 @@ function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property =
   return value
 }
 
+function addNumericalSeparator(text) {
+  const start = text[0] === '-' ? 1 : 0
+  let end = text.length
+  let grouped = ''
+  for (; end >= start + 4; end -= 3) grouped = '_' + text.slice(end - 3, end) + grouped
+  return text.slice(0, end) + grouped
+}
+
+function numberReceived(value) {
+  if (Number.isInteger(value) && Math.abs(value) > 2 ** 32) return addNumericalSeparator(String(value))
+  return String(value)
+}
+
 function outOfRangeError(property, requirement, value) {
-  return Object.assign(new RangeError('The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + String(value)), { code: 'ERR_OUT_OF_RANGE' })
+  return Object.assign(new RangeError('The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + numberReceived(value)), { code: 'ERR_OUT_OF_RANGE' })
 }
 
 function positionOf(property, value, fallback) {
@@ -2918,7 +2931,7 @@ function pipeline(...streams) {
 }
 
 function fileBlock(size) {
-  if (!Number.isSafeInteger(size)) throw Object.assign(new RangeError('The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + String(size)), { code: 'ERR_OUT_OF_RANGE' })
+  if (!Number.isSafeInteger(size)) throw Object.assign(new RangeError('The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + numberReceived(size)), { code: 'ERR_OUT_OF_RANGE' })
   try {
     return new Uint8Array(size)
   } catch {

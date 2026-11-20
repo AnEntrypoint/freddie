@@ -2461,3 +2461,19 @@ Result: pass. Every listed step ran and passed. Both red checks went red only on
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/omB-good-txiki.js); git status was empty before the ledger commit.
 
 Open within item 7aq: the encoding name is not validated in object mode (not probed).
+
+## fx split: fs.createReadStream out-of-range highWaterMark message (7ar, item 4), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/hwm1e300-events-node.cjs; output runs/analysis/hwm1e300-events-node.out. Shapes listened for the error event. highWaterMark 1e300: ERR_OUT_OF_RANGE RangeError "The value of \"size\" is out of range. It must be >= 0 && <= 9007199254740991. Received 1e+_300". 1e21: "Received 1e_+21". 1.5e300: "Received 1._5e+_300". 2^53: "Received 9_007_199_254_740_992". 2^40, 1e15: ERR_MEMORY_ALLOCATION_FAILED "Failed to allocate memory". 2^32: no error (the stream closes). -1, Infinity, -1e300: synchronous TypeError ERR_INVALID_ARG_VALUE.
+
+txiki probe on a copy (/tmp/hwm-copy/txiki.js; body runs/analysis/hwm1e300-body.js): before, runs/analysis/hwm1e300-txiki-before.out: 1e300 code and name match, message "Received 1e+300"; 1e21 "Received 1e+21"; 1.5e300 "Received 1.5e+300"; 2^53 "Received 9007199254740992"; 2^40, 1e15 and 2^32 ERR_MEMORY_ALLOCATION_FAILED (2^32 differs from Node's no error, see the open note); -1, Infinity, -1e300 sync TypeError matches.
+
+gapCases search before commit: no entry names the size message or these values (the search found no stale entry). The existing shared case 'fs.createReadStream highWaterMark 1e300 emits ERR_OUT_OF_RANGE RangeError' (highWaterMarkEvents, names only) is unchanged and still matches.
+
+Change (Phase A): src/txiki.js: addNumericalSeparator and numberReceived (integer with absolute value above 2^32 gets Node's separators); outOfRangeError and fileBlock use numberReceived. test/parity-cases.js: helper highWaterMarkErrorEvent, three shared witnesses (1e300, 1e21, 2^53) with code, name and message.
+
+Open, found while probing (not in this stretch): highWaterMark 2^32 reads in Node with no error; txiki emits ERR_MEMORY_ALLOCATION_FAILED because fileBlock allocates the whole highWaterMark eagerly.
+
+Phase A red check (RC-hwm: the separator disabled in numberReceived, tree mutated, restored by cmp: RESTORED_IDENTICAL; git status showed only the four Phase A files): 'fs.createReadStream highWaterMark 1e300 emits the size message with Node separators' got 'Received 1e+300'; 'fs.createReadStream highWaterMark 1e21 emits the size message with Node separators' got 'Received 1e+21'. The 2^53 witness was cut off by the summary's length limit and is not verified red here; the Phase B run prints the full list. Good tree: shared 732, gaps 15, mismatches [], unexpectedGaps [] (runs/analysis/hwmA-good.out in /tmp).
+
+Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required), the Node parity run, and the red check RC-hwm with the full mismatch list.

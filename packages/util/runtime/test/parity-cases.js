@@ -2730,6 +2730,22 @@ const highWaterMarkEvents = async (options) => {
   })
   return got
 }
+const highWaterMarkErrorEvent = async (options) => {
+  const { file } = await streamFile('hwm-error.txt', 'abcdefghij')
+  return new Promise((resolve) => {
+    let error = 'no error'
+    const stream = s.fs.createReadStream(file, options)
+    stream.on('error', (e) => { error = { code: e.code, name: e.name, message: e.message } })
+    stream.on('close', () => resolve(error))
+    stream.on('data', () => {})
+  })
+}
+sharedCases.push(
+  { name: 'fs.createReadStream highWaterMark 1e300 emits the size message with Node separators', run: () => highWaterMarkErrorEvent({ highWaterMark: 1e300 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received 1e+_300' } },
+  { name: 'fs.createReadStream highWaterMark 1e21 emits the size message with Node separators', run: () => highWaterMarkErrorEvent({ highWaterMark: 1e21 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received 1e_+21' } },
+  { name: 'fs.createReadStream highWaterMark 2^53 emits the size message with Node separators', run: () => highWaterMarkErrorEvent({ highWaterMark: 2 ** 53 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received 9_007_199_254_740_992' } },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'
