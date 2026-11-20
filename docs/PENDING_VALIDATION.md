@@ -2280,3 +2280,21 @@ gapCases search before commit: no entry names this shape (the only gapCases line
 Change (Phase A): src/txiki.js: a new line throws new TypeError('signal.addEventListener is not a function') when the signal is not aborted and addEventListener is not a function; the existing gap line stays for the other shapes. test/parity-cases.js: two shared cases (plain and addEventListener 1), through signalTypeError (code, name, message).
 
 Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []), the Node parity run, and the red check RC-als: the new TypeError line reverted, both witnesses back to the gap.
+
+## Phase B: fs.createReadStream signal { aborted: false } without addEventListener (7al), window of 673 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 21 samples at about 32 s each (the window ran 673 s, longer than the ten minutes asked: the 21-sample cap held until RC-als got a clear sample). Clear samples: slots 10 and 19 (two of 21). Closed samples (no step started, no ledger line): slots 0 to 9, 11 to 18 and 20, from chromium GPU and renderer (up to 224% CPU), playwriter-ws-server (up to 86%), zig test and compile jobs of another peer, claude sessions at 21 to 25%, and si up to 11528 KB/s.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on dc8ec98d (PID 2111082, exit 0) | 10 | shared 699, gaps 20, mismatches [], unexpectedGaps [] | 14.49 s |
+| Node parity (PID 2116260, exit 0) | 19 | node: 699/699 shared cases match; 0/0 gaps throw the documented message | 9.59 s |
+| RC-als (the new TypeError line reverted) | not run | no clear sample after slot 19 in the window | not run |
+
+Result: open. RC-als did not run, so the stretch is not finished and nothing is pushed. The txiki parity and Node parity both passed on dc8ec98d, and the red check is the only step outstanding.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageN-good-txiki.js); `git status --short` was empty.
+
+Reopen: one clear window running RC-als (expect red only on the two signal witnesses, 'fs.createReadStream signal { aborted: false } without addEventListener throws a TypeError' and 'fs.createReadStream signal { aborted: false, addEventListener: 1 } throws a TypeError', with RESTORED_IDENTICAL), then push d8341ce6..dc8ec98d once.
+
+Open, not witnessed (as in Phase A): { aborted: true } (Node emits ABORT_ERR AbortError; txiki still gaps it); an object with addEventListener and no removeEventListener (Node crashes at close with an uncaught TypeError).
