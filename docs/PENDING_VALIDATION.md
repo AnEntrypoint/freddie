@@ -2983,3 +2983,15 @@ Change: src/txiki.js adds md4Digest (RFC 1320: three rounds of 16 steps, the F, 
 Witnesses (test/parity-cases.js, six shared cases, expected from the oracle): empty, abc, 'message digest', 80 digits (two blocks), 200 x (four blocks), utf8 'héllo ✓'.
 
 Red check (Phase B): mutation: remove the 'md4: md4Digest' registration from HASH_FUNCTIONS. Witness: the six md4 cases report the gap message 'crypto.createHash md4'. Restore: copy back; cmp; git status shows the txiki source and this ledger.
+
+## Stretch F row 4 (2026-11-20): zlib.gzip bytes, held with its cause (no code change)
+
+Measured (probe runs/analysis/stretchF-gzip-body.js, through txikiRuntime.zlib.gzip; Node: zlib.gzipSync in the same process versions):
+- gzip('a'): txiki 1f8b0800000000000003 | 010100feff | 61 | 43beb7e8 01000000 ; Node 1f8b0800000000000003 | 4b0400 | 43beb7e8 01000000.
+- gzip('abc'): txiki 1f8b0800000000000003 | 010300fcff | 616263 | c2412435 03000000 ; Node 1f8b0800000000000003 | 4b4c4a0600 | c2412435 03000000.
+- The 10-byte header (magic, deflate, zero mtime, XFL 0, OS 3), the CRC32 and the length trailer match. Only the deflate payload differs.
+- Node's process.versions.zlib is 1.3.2.1-motley-285e94b, the Chromium zlib fork, not vanilla zlib.
+
+Exact difference: txiki's gzipBytes (src/txiki.js, around line 1960) writes stored blocks only (BTYPE 00, raw bytes). Node's zlib writes compressed blocks: a fixed-Huffman block (BTYPE 01) with literals, and matches at level 6 (lazy LZ77 matching). txiki has no LZ77 match finder, no Huffman tree builder and no block-type choice.
+
+Decision: not reachable in this repo's txiki code without a deflate port. Byte parity would need the full deflate of Node's build (match finder with its hash, lazy matching at level 6, block splitting, Huffman tree construction, and the fixed-or-dynamic-or-stored choice). That port is a separate row, and Node's build is a fork, so its output must be checked against that build itself. Held with that cause. The existing witnesses (round trip, header bytes, trailer length) remain the taken part.
