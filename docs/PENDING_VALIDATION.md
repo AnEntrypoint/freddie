@@ -2298,3 +2298,17 @@ Restore: the working file equals the committed source (FINAL_IDENTICAL against /
 Reopen: one clear window running RC-als (expect red only on the two signal witnesses, 'fs.createReadStream signal { aborted: false } without addEventListener throws a TypeError' and 'fs.createReadStream signal { aborted: false, addEventListener: 1 } throws a TypeError', with RESTORED_IDENTICAL), then push d8341ce6..dc8ec98d once.
 
 Open, not witnessed (as in Phase A): { aborted: true } (Node emits ABORT_ERR AbortError; txiki still gaps it); an object with addEventListener and no removeEventListener (Node crashes at close with an uncaught TypeError).
+
+## Phase B: red check RC-als for the signal without addEventListener (7al), window of 17 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. One clear reading in the window (slot 0: si 656, so 0, heavy-jobs clear); RC-als started on it. No other reading is recorded, because the window ended when the step finished.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| RC-als: the TypeError line reverted (PID 2123669, exit 0) | 0 | red on both new witnesses only: 'fs.createReadStream signal { aborted: false } without addEventListener throws a TypeError' and 'fs.createReadStream signal { aborted: false, addEventListener: 1 } throws a TypeError'. unexpectedGaps []. Restored: RESTORED_IDENTICAL | 14.52 s |
+
+The source has not changed since dc8ec98d, so the parity runs were not repeated in this window. The earlier passing runs on dc8ec98d (the Phase B window above) are cited: txiki parity shared 699, gaps 20, mismatches [], unexpectedGaps []; Node parity 699/699.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageO-good-txiki.js); `git status --short` was empty.
+
+Item 2 is done with this line. Still open within the item, not witnessed: { aborted: true } (Node emits ABORT_ERR AbortError; txiki gaps it), and an object with addEventListener and no removeEventListener (Node crashes at close with an uncaught TypeError).
