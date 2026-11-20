@@ -3176,6 +3176,6 @@ Witness (freddie, both runtimes): a worker file that doubles a posted number rep
 
 Native witness (gm, re-run): gm-tool check check-worker-message-channel: ok, RC 0 (a port started without a delivery function delivers to onmessage, and the worker's reply arrives).
 
-Native failure recorded for gm (not worked around in freddie): before gm 213c830-era fixes, a worker started with a port that had no delivery function aborted in mod_channel.c port_dispatch_one (see gm handoff 7 above); the current build passes its witness, so the wrapper calls start() as the witness shows.
+Native failure recorded for gm (not worked around in freddie): gm handoff 7 records mod_channel.c:395 port_dispatch_one asserting when a port has no delivery function, the path the stretchE-worker-body probe reached. The current build passes check-worker-message-channel; the wrapper calls port.start() as that witness does and adds no fallback.
 
 Red check (mutation, witness, restore, cmp, git status): the port.start() call is removed from Worker's constructor. Witness: 'txiki parity failed' with mismatch 'worker_threads.Worker replies to a message with the doubled value' (got 'threw: no reply', expected 42). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
