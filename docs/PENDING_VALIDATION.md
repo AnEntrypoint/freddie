@@ -2170,3 +2170,22 @@ Not run in this window: RC-ax+, RC-as, RC-as+, RC-zz (the sync gap restored in p
 Restore: /tmp/stageJ-good-txiki.js is the final committed source (7d99242a); each restore gave identical files, and the final `cmp` gave FINAL_IDENTICAL. `git status --short` was empty. No process of mine was left running.
 
 Longest step: the txiki parity-style mutation runs (about 14.5 s each). The longest wait was the closed gate (15 of 21 samples).
+
+## Phase B (final, one window, 546 s): red checks RC-ax+, RC-as, RC-as+, RC-zz and the contracts, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 16 samples at 30 s (slots 0 to 15); the window ended when the queue was empty. Clear samples: slots 2, 3, 12, 13, 14 and 15 (six). The other ten were closed by another peer's gm build (cmake, ninja, cc1plus), gm-tool ranlib, claude sessions at 22 to 39%, and si up to 3448 KB/s. No probe started on a closed sample, and closed samples have no ledger line.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| RC-ax+: 'ax+' removed (PID 1954528, exit 0) | 2 | red on 'fs.createReadStream flags ax+ reads or fails as Node does' only. Restored: RESTORED_IDENTICAL | 14.43 s |
+| RC-as: 'as' removed (PID 1958988, exit 0) | 3 | red on 'fs.createReadStream flags as reads or fails as Node does' only. Restored: RESTORED_IDENTICAL | 14.66 s |
+| RC-as+: 'as+' removed (PID 2009138, exit 0) | 12 | red on 'fs.createReadStream flags as+ reads or fails as Node does' only. Restored: RESTORED_IDENTICAL | 14.43 s |
+| RC-zz: the invalid path restored to a sync gap throw (PID 2023823, exit 0) | 13 | red on 'fs.createReadStream flags zz reads or fails as Node does' only. Restored: RESTORED_IDENTICAL | 14.65 s |
+| Node contract (PID 2035076, exit 0) | 14 | node: 117 names present across 25 subpaths | 0.14 s |
+| txiki contract (PID 2042501, exit 0) | 15 | present 117, missing [] | 0.20 s |
+
+Earlier witnesses for the same source (7d99242a, unchanged since): Node parity 685/685 (9.99 s) and txiki parity shared 685, gaps 21, mismatches [] (14.77 s), both in the partial window recorded above; RC-rs, RC-rs+, RC-w+, RC-wx+, RC-a, RC-ax and RC-a+ in the two earlier windows. All eleven flag red checks and both contracts have now run and passed.
+
+Restore: /tmp/stageJ-good-txiki.js is the final committed source (7d99242a); each restore gave identical files, and the final `cmp` gave FINAL_IDENTICAL. `git status --short` was empty. No process of mine was left running.
+
+Longest step: the txiki-style mutation runs (about 14.5 s each). The longest wait was the closed gate (10 of 16 samples).
