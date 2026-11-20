@@ -2034,3 +2034,12 @@ The source was not changed in this stretch; the good copy is the committed c0607
 Restore: after the mutations, `cmp` gave identical files and `git status` was empty. No process of mine was left running.
 
 Longest step: the txiki parity-style mutation runs (about 14.5 s each). The longest wait was the closed gate (31 of 35 samples closed in total, across both spans).
+
+## fx split: createReadStream flag rs (7y), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/createreadstream-flags-node.out (clear sample, PID 1893227, exit 0): sync read: the same bytes as r.
+txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 1894026, exit 0). tjs.open takes the flag, so only the accepted list changes.
+
+Change: src/txiki.js: READ_STREAM_FLAGS includes 'rs'. test/parity-cases.js: shared case 'fs.createReadStream flags rs reads or fails as Node does' (expected ["data abcdefghij","close","file \"abcdefghij\""]).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check RC-rs: 'rs' removed from the accepted list.

@@ -2597,6 +2597,10 @@ sharedCases.push(
   { name: 'fs.createReadStream autoClose false on a missing file emits ENOENT and no close', run: async () => { const { dir } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(dir + '/missing.txt', { autoClose: false }), 300) }, expected: ['error ENOENT Error'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream flags rs reads or fails as Node does', run: () => flagsOutcome('rs'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
