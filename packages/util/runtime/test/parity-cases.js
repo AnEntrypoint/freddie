@@ -2981,6 +2981,12 @@ sharedCases.push(
   { name: 'vm.runInNewContext throws the new realm error by its name', run: () => { try { s.vm.runInNewContext('null.x'); return 'no throw' } catch (error) { return error.name } }, expected: 'TypeError' },
 )
 
+sharedCases.push(
+  { name: 'fs.accessSync on an existing directory returns undefined', run: () => withScratch(async (dir) => String(s.fs.accessSync(dir))), expected: 'undefined' },
+  { name: 'fs.accessSync on a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.accessSync('/nonexistent-freddie-accesssync')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, access '/nonexistent-freddie-accesssync'" } },
+  { name: 'fs.existsSync is true for a directory and false for a missing path', run: () => withScratch(async (dir) => [s.fs.existsSync(dir), s.fs.existsSync(dir + '/none')]), expected: [true, false] },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

@@ -10,7 +10,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
+const FS_SYNC_NAMES = ['closeSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -365,6 +365,23 @@ async function exists(path) {
 
 async function access(path, mode = fsConstants.F_OK) {
   await txikiCore.access(path, mode)
+}
+
+function accessSync(path, mode = fsConstants.F_OK) {
+  try {
+    txikiCore.accessSync(path, mode)
+  } catch (error) {
+    throw fsPathError(error, 'access', path)
+  }
+}
+
+function existsSync(path) {
+  try {
+    txikiCore.accessSync(path, fsConstants.F_OK)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function chmod(path, mode) {
@@ -3537,7 +3554,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, existsSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

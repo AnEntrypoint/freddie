@@ -3117,3 +3117,13 @@ Witness (freddie, both runtimes): six shared rows: 1 + 1 gives 2; 'a' + 'b' give
 Native witness (gm, re-run): gm-tool check check-vm-realm: ok.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js decodes the string tag without removing its prefix. Witness: 'txiki parity failed' with mismatch 'vm.runInNewContext returns a string' (got 'sab', expected 'ab'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (sync names, 1 of 5): fs.accessSync and fs.existsSync to core.accessSync (gm handoff 2, 2026-11-20)
+
+Change: accessSync(path, mode) calls txikiCore.accessSync and maps the error with fsPathError(error, 'access', path) (Node's message with the syscall and path). existsSync is accessSync(F_OK) caught to a boolean. Both leave FS_SYNC_NAMES, so the gap stubs are gone. Record: shared 812 -> 815, gaps unchanged at 3.
+
+Witness (freddie, both runtimes): accessSync on a directory returns undefined ('undefined'); accessSync on a missing path throws code ENOENT with Node's message (access '<path>'); existsSync is [true, false] for a directory and a missing path. Node: 815/815 shared cases match (exit 0). Probe: shared 815, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (covers accessSync on a missing path, ENOENT).
+
+Red check (mutation, witness, restore, cmp, git status): existsSync returns true without calling the native access. Witness: 'txiki parity failed' with mismatch 'fs.existsSync is true for a directory and false for a missing path' (got [true, true]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
