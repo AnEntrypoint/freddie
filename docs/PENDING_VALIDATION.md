@@ -2355,3 +2355,19 @@ Change (Phase A): src/txiki.js: the gap line for a signal without addEventListen
 Not witnessed, with reason: an object with addEventListener and no removeEventListener. Node dies at close with an uncaught TypeError (exit 1), so a parity witness cannot record a result on the Node side; txiki completes normally and never calls removeEventListener, so there is no matching behaviour to witness. Recording the divergence as the open item; reopen: a decision on whether txiki should reproduce the uncaught error (then a witness that captures uncaughtException on both sides), or to accept the divergence in docs/fx-split.md.
 
 Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps []), the Node parity run, and the red check RC-abt: the gap line restored before the flags line, so the aborted-shape witness falls back to the gap.
+
+## Phase B: fs.createReadStream signal { aborted: true } (7an), window of 462 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 14 samples at about 33 s (slots 0 to 13). Clear samples that started a step: slots 4, 7 and 13 (three). Closed samples (no step started, no ledger line): an external find over the tree (slots 0 to 2), a chromium GPU and renderer at 78 to 220% CPU (slots 6, 8, 9), and si from 3900 to 113540 KB/s (slots 3, 5, 10, 11, 12).
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on 965c19fb (PID 2154163, exit 0) | 4 | shared 703, gaps 20, mismatches [], unexpectedGaps [] | 14.52 s |
+| Node parity (PID 2157154, exit 0) | 7 | node: 703/703 shared cases match; 0/0 gaps throw the documented message | 9.91 s |
+| RC-abt: the gap line restored before the flags line (PID 2159124, exit 0) | 13 | red only on 'fs.createReadStream signal { aborted: true } emits ABORT_ERR AbortError then close' (got the gap message). Restored: RESTORED_IDENTICAL | 14.64 s |
+
+Result: pass. Every listed step ran and passed.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageQ-good-txiki.js); `git status --short` was empty.
+
+Still open, not witnessed (see 7an in docs/fx-split.md): an object with addEventListener and no removeEventListener. Node dies at close with an uncaught TypeError (exit 1); txiki completes normally. A parity witness cannot express this, so the divergence is recorded, not forced. Reopen: a decision whether txiki should reproduce the uncaught error, or to accept the divergence in docs/fx-split.md.
