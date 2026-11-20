@@ -796,8 +796,7 @@ function storeOptionToken(token, options, strict, allowPositionals, values) {
 }
 
 function parseArgs(config = {}) {
-  const args = config.args
-  if (args === undefined) throw gapError('util.parseArgs without args')
+  const args = config.args ?? processObject.argv.slice(2)
   const options = config.options ?? {}
   const strict = config.strict ?? true
   const allowPositionals = config.allowPositionals ?? !strict

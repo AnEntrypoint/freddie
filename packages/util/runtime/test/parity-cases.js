@@ -1605,6 +1605,7 @@ function loopbackEntries(ni) {
 }
 
 sharedCases.push(
+  { name: 'util.parseArgs with no args reads an empty argv, as Node does', run: () => parseArgsOutcome({}), expected: { values: {}, positionals: [] } },
   { name: 'util.parseArgs short flag', run: () => parseArgsOutcome({ args: ['-f'], options: BOOL_F }), expected: { values: { foo: true }, positionals: [] } },
   { name: 'util.parseArgs long flag', run: () => parseArgsOutcome({ args: ['--foo'], options: BOOL_F }), expected: { values: { foo: true }, positionals: [] } },
   { name: 'util.parseArgs long value as the next argument', run: () => parseArgsOutcome({ args: ['--bar', 'x'], options: STR_BAR }), expected: { values: { bar: 'x' }, positionals: [] } },
@@ -2914,7 +2915,6 @@ export const gapCases = [
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
-  { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
 

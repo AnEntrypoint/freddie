@@ -2881,3 +2881,15 @@ Change: src/txiki.js adds STDIO_KINDS (the four kinds, once, used by the string 
 Witness: test/parity-cases.js 'child-process.spawn stdio overlapped is a pipe on POSIX, as in Node', expected as the one-entry row (code 0, text hi, Buffer chunks, end before close).
 
 Red check (Phase B): mutation: the return is 'list' again (no mapping) and the list check rejects 'overlapped' (STDIO_KINDS replaced by ['pipe', 'inherit', 'ignore']). Witness: the overlapped witness reports the gap message. Restore: copy back; cmp; git status shows the two files and this ledger.
+
+## Stretch D row 6 (2026-11-20): util.parseArgs with no args
+
+Row: util.parseArgs() with no config.args threw the declared gap.
+
+Node reading (embedded lib of /data/cache/node/current/bin/node, no Node run): parseArgs takes objectGetOwn(config, 'args') ?? getMainArgs(), and getMainArgs returns process.argv.slice(1) when --eval is set, else process.argv.slice(2). The probe runs/analysis/stretchD-node.mjs gives { values: {}, positionals: [] } for parseArgs({}) on a run with no extra arguments.
+
+txiki reading: processObject.argv is [tjs.exePath, ...tjs.args] and execArgv is []. There is no --eval in this runtime, so the Node rule slice(2) applies unchanged. Under gm-core the argv has no script entry: a host that passes its verb as argv[1] (for example gm-core serve) has that verb dropped by the default. That comes from the host's argv, not from the parse, and is recorded here as a caveat.
+
+Change: src/txiki.js parseArgs takes config.args ?? processObject.argv.slice(2); the gap line is gone. test/parity-cases.js removes the gap case 'util.parseArgs without args' and adds the shared case 'util.parseArgs with no args reads an empty argv, as Node does' (expected { values: {}, positionals: [] }). The applicable gap count drops from 6 to 5.
+
+Red check (Phase B): mutation: the default is replaced by the gap again ('const args = config.args' then 'if (args === undefined) throw gapError(...)'). Witness: the no-args case reports the gap message. Restore: copy back; cmp; git status shows the two files and this ledger.
