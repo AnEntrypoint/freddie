@@ -2641,6 +2641,19 @@ sharedCases.push(
   { name: 'fs.createReadStream flags zz reads or fails as Node does', run: () => flagsOutcome('zz'), expected: ['error ERR_INVALID_ARG_VALUE TypeError', 'close', 'file "abcdefghij"'] },
 )
 
+const signalTypeError = (signal) => {
+  try { s.fs.createReadStream('/tmp/never-read-signal', { signal }) } catch (error) { return { code: error.code, name: error.name, message: error.message } }
+  return 'no throw'
+}
+sharedCases.push(
+  { name: 'fs.createReadStream signal 1 throws ERR_INVALID_ARG_TYPE', run: () => signalTypeError(1), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received type number (1)' } },
+  { name: 'fs.createReadStream signal abc throws ERR_INVALID_ARG_TYPE', run: () => signalTypeError('abc'), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: "The \"options.signal\" property must be an instance of AbortSignal. Received type string ('abc')" } },
+  { name: 'fs.createReadStream signal true throws ERR_INVALID_ARG_TYPE', run: () => signalTypeError(true), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received type boolean (true)' } },
+  { name: 'fs.createReadStream signal null throws ERR_INVALID_ARG_TYPE', run: () => signalTypeError(null), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received null' } },
+  { name: 'fs.createReadStream signal {} throws ERR_INVALID_ARG_TYPE', run: () => signalTypeError({}), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received an instance of Object' } },
+  { name: 'fs.createReadStream signal function throws ERR_INVALID_ARG_TYPE', run: () => { function namedSignal() {} return signalTypeError(namedSignal) }, expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received function namedSignal' } },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

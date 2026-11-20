@@ -2959,6 +2959,18 @@ class FileReadStream extends Readable {
 
 const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx', 'rs', 'rs+', 'w+', 'wx+', 'a', 'ax', 'a+', 'ax+', 'as', 'as+']
 
+function describeReceived(value) {
+  if (value === null) return 'null'
+  if (typeof value === 'function') return 'function ' + value.name
+  if (typeof value === 'object') return 'an instance of ' + (value.constructor?.name ?? 'Object')
+  if (typeof value === 'string') return "type string ('" + value.slice(0, 25) + "')"
+  return 'type ' + typeof value + ' (' + String(value) + ')'
+}
+
+function invalidArgType(property, value, expected) {
+  return Object.assign(new TypeError('The "' + property + '" property must be an instance of ' + expected + '. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+}
+
 function invalidFlagStream(flags) {
   const stream = new Readable({ read() {} })
   nextTick(() => stream.destroy(Object.assign(new TypeError("The argument 'flags' is invalid. Received '" + String(flags) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })))
@@ -2968,7 +2980,9 @@ function invalidFlagStream(flags) {
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
   assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode', 'autoClose'])
-  if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
+  const signalLike = opts.signal !== null && typeof opts.signal === 'object' && 'aborted' in opts.signal
+  if (opts.signal !== undefined && !signalLike) throw invalidArgType('options.signal', opts.signal, 'AbortSignal')
+  if (opts.signal !== undefined && typeof opts.signal.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   const flags = opts.flags ?? 'r'
   if (!READ_STREAM_FLAGS.includes(flags)) return invalidFlagStream(flags)
   const autoClose = opts.autoClose ?? true

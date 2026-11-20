@@ -2189,3 +2189,13 @@ Earlier witnesses for the same source (7d99242a, unchanged since): Node parity 6
 Restore: /tmp/stageJ-good-txiki.js is the final committed source (7d99242a); each restore gave identical files, and the final `cmp` gave FINAL_IDENTICAL. `git status --short` was empty. No process of mine was left running.
 
 Longest step: the txiki-style mutation runs (about 14.5 s each). The longest wait was the closed gate (10 of 16 samples).
+
+## fx split: createReadStream signal, non-AbortSignal values (7aj), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/signal-type-node.mjs (clear sample, slot 2, PID 2051831, exit 0; output runs/analysis/signal-type-node.out). Synchronous ERR_INVALID_ARG_TYPE (TypeError) for: number 1 ("Received type number (1)"), string 'abc' ("Received type string ('abc')"), boolean true ("Received type boolean (true)"), null ("Received null"), {} ("Received an instance of Object"), a function ("Received function <name>"). An object with an aborted property and no addEventListener (`{ aborted: false }`) is accepted by the check and throws a plain TypeError "signal.addEventListener is not a function" with no code; it is not witnessed here.
+
+txiki probe on a copy: runs/analysis/signal-type-txiki.out (clear sample, slot 2, PID of the mcp-probe run in that job): txiki threw the gap message for every value (no code), including the objects Node rejects with ERR_INVALID_ARG_TYPE.
+
+Change (Phase A): src/txiki.js: describeReceived (null, function, object constructor name, string in single quotes, other primitives as type and value) and invalidArgType (TypeError with code ERR_INVALID_ARG_TYPE and Node's message); the createReadStream check is now 'aborted' in signal (as Node validates), then addEventListener for an object that has the property but no listener (still a gap). test/parity-cases.js: six shared cases (number, string, boolean, null, object, function), each through signalTypeError, which records code, name and message.
+
+Pending (Phase B window): the Node probe, the Node and txiki parity runs, and the red check RC-aj: the check reverted to the gap for every value.
