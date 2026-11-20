@@ -2161,12 +2161,6 @@ function positionOf(property, value, fallback) {
   return value
 }
 
-function declareGaps(prefix, target, names) {
-  for (const name of names) {
-    Object.defineProperty(target.prototype, name, { value: gapFunction(prefix + '.' + name), writable: true, configurable: true })
-  }
-}
-
 function bytesOf(chunk, encoding = 'utf8') {
   return typeof chunk === 'string' ? Buffer.from(chunk, encoding) : chunk
 }

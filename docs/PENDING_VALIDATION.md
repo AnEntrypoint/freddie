@@ -2649,3 +2649,13 @@ Witness: the summary on /tmp/yg1-RC.out gives mismatches [{ name: zlib.gzip head
 Red check: the first-`]` regex in place of the balanced scan made the summary exit 1 on /tmp/yg1-RC.out (SyntaxError at JSON.parse). Restore: cmp RESTORED_IDENTICAL against the saved fixed file; git status showed only the summary file in this commit's set.
 
 Pending: nothing for this change.
+
+## Dedup and dead code (Phase A): declareGaps removed
+
+Dead code: declareGaps (src/txiki.js, 5 lines with its block) had no caller; the only textual hit was its definition. Removed; gapFunctions and withGaps cover the same role.
+
+Witness: the txiki parity on the tree after the change: shared 751, gaps 15, mismatches [], unexpectedGaps [] (PID 133180, exit 0; output /tmp/yg1-good.out; summary via test/parity-summary.js).
+
+Red check: the gzip header mutation (OS byte 3 changed to 0 in the zlib header) made the zlib.gzip header bytes witness red, got [31,139,8,0,0,0,0,0,0,0] against expected [31,139,8,0,0,0,0,0,0,3] (PID 137475, exit 0; output /tmp/yg1-RC.out). Restore: cmp RESTORED_IDENTICAL against the saved changed file (/tmp/yg1-next.js); git status showed only src/txiki.js in this change's set.
+
+Pending: nothing for this change.
