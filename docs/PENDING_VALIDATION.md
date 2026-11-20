@@ -2324,3 +2324,20 @@ gapCases search before commit: the gapCases block (lines 2715 to 2737) has no en
 Existing witnesses use errorOf, which records only code and message, so the name change does not affect them.
 
 Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []), the Node parity run, and the red checks RC-hwm-big (fileBlock reverted: the 2^40 and 1e300 witnesses go red) and RC-hwm-neg (invalidArgValue reverted: the -1 name witness goes red).
+
+## Phase B: fs.createReadStream highWaterMark error shapes (7am), window of 444 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 13 samples at about 33 s (slots 0 to 12). Clear samples with a step started: slots 6, 7, 8 and 12 (four). The other nine were closed (no step started, no ledger line): a node check script and its mutant at 99 to 100% CPU (slots 0 to 5), a chromium renderer at 24.8% (slot 9), a zig test compile of another peer (slot 10), and si 5092 KB/s (slot 11).
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on 6e5194d2 (PID 2135718, exit 0) | 6 | shared 702, gaps 20, mismatches [], unexpectedGaps [] | 14.52 s |
+| Node parity (PID 2137753, exit 0) | 7 | node: 702/702 shared cases match; 0/0 gaps throw the documented message | 9.63 s |
+| RC-hwm-big: fileBlock reverted to new Uint8Array(size) (PID 2138127, exit 0) | 8 | red on 'fs.createReadStream highWaterMark 2^40 emits ERR_MEMORY_ALLOCATION_FAILED RangeError' (got error undefined RangeError) and on 'fs.createReadStream highWaterMark 1e300 emits ERR_OUT_OF_RANGE RangeError'. The -1 witness stays green. Restored: RESTORED_IDENTICAL | 14.49 s |
+| RC-hwm-neg: invalidArgValue reverted to Error (PID 2140681, exit 0) | 12 | red only on 'fs.createReadStream highWaterMark -1 throws a TypeError' (got name Error, expected TypeError). Restored: RESTORED_IDENTICAL | 14.91 s |
+
+Result: pass. Every listed step ran and passed. unexpectedGaps [] in the txiki parity run.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageP-good-txiki.js); `git status --short` was empty.
+
+Open within this item: the 1e300 error message is txiki's String(value) form ("Received 1e+300"), where Node prints "Received 1e+_300" (numeric separators). Not witnessed. The 2^40 message matches Node ("Failed to allocate memory"). The rule that maps any safe-integer allocation failure to ERR_MEMORY_ALLOCATION_FAILED is an approximation: Node's failure threshold is not known from the source, only the 2^40 case is witnessed.
