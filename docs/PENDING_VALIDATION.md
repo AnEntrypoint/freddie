@@ -2623,3 +2623,19 @@ Correction: the 7au entry of commit 7f02efa7 replaced the anchor for the held li
 Phase A checks: Node parity on the tree: 750/750 (PID 2342802, exit 0, 9993 ms). txiki parity on the tree: shared 750, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-07-24-45-d128b8, PID 2343081, exit 0, 14344 ms). Red check RC-fsre (the option lowercased in the FileReadStream super call): red only on 'fs.createReadStream readableEncoding keeps the UTF-8 option as given' (got utf-8, expected UTF-8) (run 2026-11-20-07-27-54-83d6d1, PID 2347056, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed the three Phase A files.
 
 Pending: nothing for this item; committed locally, not pushed in this stretch.
+
+## Push window (2026-11-20, minute 358): 3234f35b pushed
+
+The window job sampled 12 times, every 30 s (si, so, scripts/heavy-jobs.cjs): busy at minutes 2, 35, 67, 99, 132, 164, 196, 229 (chromium renderers and GPU processes, playwriter, claude, serve-local), 261 (si 23052, so 188396), 293 (si 9720, so 222092), and 326 (si 9476, so 0; heavy-jobs clear, gate busy). Minute 358: si 184, so 0, HEAVY_JOBS clear, the gate cleared and the push ran at minute 362. Output: `7f02efa7..3234f35b  main -> main`. git ls-remote origin main: 3234f35bf6a5c715196a1678fa241c2652a56fc1. No step ran inside this window. Cited runs for this source (git diff 3234f35b HEAD -- packages/util/runtime was empty at the push): Node parity 750/750 (PID 2342802), txiki parity 2026-11-20-07-24-45-d128b8 (PID 2343081: shared 750, gaps 15, mismatches [], unexpectedGaps []), and the readableEncoding red check 2026-11-20-07-27-54-83d6d1 (PID 2347056).
+
+## fx split: stream.Writable readableEncoding (7aw), Phase A (2026-11-20)
+
+Node oracle: `node -e` with new Writable: typeof readableEncoding is 'undefined' (PID 2360967). txiki: the Writable class (line 2183) has no readableEncoding getter, so the copy already reports 'undefined' (the tree was unchanged by this row). Witness added in test/parity-cases.js: 'stream.Writable readableEncoding is undefined' (typeof, expected 'undefined').
+
+Checks: Node parity 751/751 (PID 2361336, exit 0, 9637 ms). txiki parity on the tree: shared 751, gaps 15, mismatches [], unexpectedGaps [] (run output /tmp/wr-good.out, PID 2361509, exit 0). Red check RC-wr: a getter returning null added to the txiki Writable class: red only on 'stream.Writable readableEncoding is undefined' (got object, expected undefined) (PID 2363320, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only test/parity-cases.js.
+
+Tooling: test/parity-summary.js (commit ec8acef9) splits each run output on newlines before matching the fields shared, gaps, mismatches and unexpectedGaps (escapes stripped, values parsed, conflicts reported). Checked on the existing outputs: /tmp/fsRA-good.out gives shared 750, gaps 15, mismatches [], unexpectedGaps []; /tmp/fsRA-RC.out gives one mismatch (the UTF-8 witness) and unexpectedGaps []; the Node output gives shared 750/750 and gaps 0/0. The old grep (escaped, one line) gave the same fields on the good output.
+
+Ranking correction: the earlier REPORT list omitted this row (listed as open reachable in the summary); it is now done.
+
+Pending: nothing for this row; committed locally, not pushed.

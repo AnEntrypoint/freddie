@@ -2783,6 +2783,10 @@ sharedCases.push(
   { name: 'fs.createReadStream readableEncoding after setEncoding UTF-8 is utf8', run: async () => { const { file } = await streamFile('readable-encoding-set.txt', 'abc'); const stream = s.fs.createReadStream(file); stream.setEncoding('UTF-8'); const value = stream.readableEncoding; stream.destroy(); return value }, expected: 'utf8' },
 )
 
+sharedCases.push(
+  { name: 'stream.Writable readableEncoding is undefined', run: () => typeof new s.stream.Writable({ write(chunk, enc, cb) { cb() } }).readableEncoding, expected: 'undefined' },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'
