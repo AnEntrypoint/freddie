@@ -2840,3 +2840,15 @@ Change: src/txiki.js adds NODE_SIGNAL_NAMES, knownSignal and checkSignal (one ru
 Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process killSignal SIGFOO throws ERR_UNKNOWN_SIGNAL at execFile" and "child-process kill SIGFOO throws ERR_UNKNOWN_SIGNAL before the signal is sent".
 
 Red check (run in Phase B): mutation: the checkSignal call removed from ChildProcess.kill; witness: the kill case reports no throw (the native gap or no error); restore: copy back; cmp; git status shows the two files only.
+
+## Fix (Phase A, 2026-11-20): autoClose falsy values other than false close
+
+Found by the Phase B window rH: the Node oracle (PID 352463) returned close for autoClose 0 (got data, end, close), so the copied witness expecting no close was wrong, and the truthiness gate in FileReadStream would have turned a documented gap into a silent mismatch.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): ReadStream sets options.autoDestroy = options.autoClose === undefined ? true : options.autoClose, and Readable turns autodestroy off only when autoDestroy is exactly false. So 0 and null still close after end; only false stops the close.
+
+Change: src/txiki.js FileReadStream tests #autoClose !== false in both places (the open-error path and the end path). test/parity-cases.js: the autoClose 0 witness now expects data, end, close, and is named to say so.
+
+Witness: "fs.createReadStream autoClose 0 closes after end like true, as Node does" (expected from the Node oracle output in window rH; the next window checks it).
+
+Red check (run in Phase B): mutation: the end-path gate back to truthiness (if (this.#autoClose) super._afterEnd()); witness: the autoClose 0 case reports data, end without close; restore: copy back; cmp; git status shows the two files only.

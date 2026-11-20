@@ -2893,7 +2893,7 @@ sharedCases.push(
 )
 
 sharedCases.push(
-  { name: 'fs.createReadStream autoClose 0 reads the data and never emits close', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(file, { autoClose: 0 }), 300) }, expected: ['data abcdefghij', 'end'] },
+  { name: 'fs.createReadStream autoClose 0 closes after end like true, as Node does', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(file, { autoClose: 0 }), 300) }, expected: ["data abcdefghij","end","close"] },
   { name: 'fs.createReadStream autoClose yes closes after end like true', run: async () => { const { file } = await streamFile('ac-yes.txt', 'abc'); return streamEvents(s.fs.createReadStream(file, { autoClose: 'yes' })) }, expected: ["data abc","close"] },
 )
 

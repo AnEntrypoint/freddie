@@ -2956,7 +2956,7 @@ class FileReadStream extends Readable {
         this.emit('open', handle.fileno())
         this.emit('ready')
       },
-      (error) => (this.#autoClose ? this.destroy(fsPathError(error, 'open', path)) : nextTick(() => this.emit('error', fsPathError(error, 'open', path)))),
+      (error) => (this.#autoClose !== false ? this.destroy(fsPathError(error, 'open', path)) : nextTick(() => this.emit('error', fsPathError(error, 'open', path)))),
     )
   }
 
@@ -2966,7 +2966,7 @@ class FileReadStream extends Readable {
   }
 
   _afterEnd() {
-    if (this.#autoClose) super._afterEnd()
+    if (this.#autoClose !== false) super._afterEnd()
   }
 
   _destroy(error, callback) {
