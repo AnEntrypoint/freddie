@@ -2659,3 +2659,13 @@ Witness: the txiki parity on the tree after the change: shared 751, gaps 15, mis
 Red check: the gzip header mutation (OS byte 3 changed to 0 in the zlib header) made the zlib.gzip header bytes witness red, got [31,139,8,0,0,0,0,0,0,0] against expected [31,139,8,0,0,0,0,0,0,3] (PID 137475, exit 0; output /tmp/yg1-RC.out). Restore: cmp RESTORED_IDENTICAL against the saved changed file (/tmp/yg1-next.js); git status showed only src/txiki.js in this change's set.
 
 Pending: nothing for this change.
+
+## Dedup and dead code (Phase A): one error constructor
+
+Duplicate paths: codedTypeError (10 call sites, TypeError, code set by assignment) and nodeError (Error, code by Object.assign) were two helpers for one job, and 18 inline Object.assign(new X(message), { code }) sites repeated it. Merged into one codedError(Type, code, message) = Object.assign(new Type(message), { code }). Converted: 10 codedTypeError, 5 nodeError, and 12 inline sites that carried only a code. Left as they are (they carry errno, syscall or path): cpError, the EEXIST and ENOENT errors, and the two spawn errors (6 Object.assign sites, including the helper itself).
+
+Witness: the txiki parity after the change: shared 751, gaps 15, mismatches [], unexpectedGaps [] (PID 149990, exit 0; output /tmp/yg2-good.out).
+
+Red check: the helper with code: code + '_' (a suffix on every coded error). Red: 'stream Readable: a push after end emits ERR_STREAM_PUSH_AFTER_EOF and no end' got 'ERR_STREAM_PUSH_AFTER_EOF_' (PID 151933, exit 0). The run's output (26 KB) was cut by gm, so the summary tool could not read it; the mismatch line is taken from the full run output file runs/2026-11-20-14-05-08-cf0882/outputs/bbb36e8443b31fcd-run_code.txt by grep. Restore: cmp RESTORED_IDENTICAL against the changed file (/tmp/yg2-final.js); git status showed only src/txiki.js in this change.
+
+Pending: the 5 remaining sites with extra fields keep Object.assign; a later dedup could give them a shared extras argument, but they are not duplicates of each other.

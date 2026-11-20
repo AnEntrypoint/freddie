@@ -64,7 +64,7 @@ function withGaps(name, members) {
 
 function encodingOf(encoding = 'utf8') {
   const name = ENCODINGS.get(String(encoding).toLowerCase())
-  if (name === undefined) throw Object.assign(new TypeError('Unknown encoding: ' + String(encoding)), { code: 'ERR_UNKNOWN_ENCODING' })
+  if (name === undefined) throw codedError(TypeError, 'ERR_UNKNOWN_ENCODING', 'Unknown encoding: ' + String(encoding))
   return name
 }
 
@@ -596,7 +596,7 @@ const WRITE_FILE_FLAGS = ['w', 'wx', 'w+', 'wx+', 'a', 'ax', 'a+', 'ax+', 'r+', 
 function modeOf(value = 0o666) {
   if (typeof value === 'number') return value
   if (typeof value === 'string' && /^[0-7]+$/.test(value)) return parseInt(value, 8)
-  if (typeof value === 'string') throw Object.assign(new TypeError("The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received '" + value + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
+  if (typeof value === 'string') throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received '" + value + "'")
   throw gapError('fs.promises.writeFile with mode ' + String(value))
 }
 
@@ -609,7 +609,7 @@ async function writeFile(path, data, options) {
     if (signal === null || typeof signal !== 'object' || !('aborted' in signal)) throw invalidArgType('options.signal', signal, 'AbortSignal')
     if (signal.aborted) throw abortError(signal)
   }
-  if (options?.flush !== undefined && typeof options.flush !== 'boolean') throw Object.assign(new TypeError('The "options.flush" property must be of type boolean. Received ' + describeReceived(options.flush)), { code: 'ERR_INVALID_ARG_TYPE' })
+  if (options?.flush !== undefined && typeof options.flush !== 'boolean') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.flush" property must be of type boolean. Received ' + describeReceived(options.flush))
   const mode = modeOf(options?.mode)
   const bytes = typeof data === 'string' ? CODECS[encodingOf(encoding)].encode(data) : data
   const handle = await tjs.open(path, flag, mode).catch((error) => {
@@ -687,18 +687,16 @@ const DOTENV_LINE = /^\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^
 const INVALID_HEADER_CHAR = /[^\t\x20-\x7e\x80-\xff]/
 
 function validateHeaderValue(name, value) {
-  if (value === undefined) throw codedTypeError('ERR_HTTP_INVALID_HEADER_VALUE', 'Invalid value "undefined" for header "' + name + '"')
-  if (INVALID_HEADER_CHAR.test(value)) throw codedTypeError('ERR_INVALID_CHAR', 'Invalid character in header content ["' + name + '"]')
+  if (value === undefined) throw codedError(TypeError, 'ERR_HTTP_INVALID_HEADER_VALUE', 'Invalid value "undefined" for header "' + name + '"')
+  if (INVALID_HEADER_CHAR.test(value)) throw codedError(TypeError, 'ERR_INVALID_CHAR', 'Invalid character in header content ["' + name + '"]')
 }
 
 function hasOwnKey(object, key) {
   return Object.prototype.hasOwnProperty.call(object, key)
 }
 
-function codedTypeError(code, message) {
-  const error = new TypeError(message)
-  error.code = code
-  return error
+function codedError(Type, code, message) {
+  return Object.assign(new Type(message), { code })
 }
 
 function optionLabel(name, option) {
@@ -723,11 +721,11 @@ function unknownOptionMessage(rawName, allowPositionals) {
 function valueToken(args, index, name, option, rawName, strict, tokens) {
   const next = args[index + 1]
   if (next === undefined) {
-    if (strict) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' argument missing")
+    if (strict) throw codedError(TypeError, 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' argument missing")
     tokens.push({ kind: 'option', name, rawName, index })
     return 0
   }
-  if (strict && next.startsWith('-')) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', ambiguousValueMessage(rawName, name, option))
+  if (strict && next.startsWith('-')) throw codedError(TypeError, 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE', ambiguousValueMessage(rawName, name, option))
   tokens.push({ kind: 'option', name, rawName, index, value: next, inlineValue: false })
   return 1
 }
@@ -749,7 +747,7 @@ function longToken(args, index, options, strict, allowNegative, tokens) {
   }
   const option = options[name]
   if (inline !== undefined) {
-    if (option.type === 'boolean' && strict) throw codedTypeError('ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' does not take an argument")
+    if (option.type === 'boolean' && strict) throw codedError(TypeError, 'ERR_PARSE_ARGS_INVALID_OPTION_VALUE', "Option '" + optionLabel(name, option) + "' does not take an argument")
     tokens.push({ kind: 'option', name, rawName, index, value: inline, inlineValue: true })
     return 0
   }
@@ -805,7 +803,7 @@ function tokenizeArgs(args, options, strict, allowNegative) {
 
 function storeOptionToken(token, options, strict, allowPositionals, values) {
   if (!hasOwnKey(options, token.name)) {
-    if (strict) throw codedTypeError('ERR_PARSE_ARGS_UNKNOWN_OPTION', unknownOptionMessage(token.rawName, allowPositionals))
+    if (strict) throw codedError(TypeError, 'ERR_PARSE_ARGS_UNKNOWN_OPTION', unknownOptionMessage(token.rawName, allowPositionals))
     values[token.name] = token.value ?? true
     return
   }
@@ -828,7 +826,7 @@ function parseArgs(config = {}) {
   for (const token of tokens) {
     if (token.kind === 'option-terminator') continue
     if (token.kind === 'positional') {
-      if (!allowPositionals) throw codedTypeError('ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL', "Unexpected argument '" + token.value + "'. This command does not take positional arguments")
+      if (!allowPositionals) throw codedError(TypeError, 'ERR_PARSE_ARGS_UNEXPECTED_POSITIONAL', "Unexpected argument '" + token.value + "'. This command does not take positional arguments")
       positionals.push(token.value)
       continue
     }
@@ -1650,7 +1648,7 @@ function concatBytes(chunks) {
 function hashInput(data, inputEncoding) {
   if (typeof data === 'string') return Buffer.from(data, inputEncoding ?? 'utf8')
   if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
-  throw codedTypeError('ERR_INVALID_ARG_TYPE', 'The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
+  throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "data" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
 }
 
 function hashFinalizedError() {
@@ -1942,7 +1940,7 @@ function zlibInput(data) {
   if (typeof data === 'string') return Buffer.from(data)
   if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
   if (data instanceof ArrayBuffer) return new Uint8Array(data)
-  throw codedTypeError('ERR_INVALID_ARG_TYPE', 'The "chunk" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
+  throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "chunk" argument must be of type string or an instance of Buffer, TypedArray, or DataView. Received type ' + typeof data + ' (' + String(data) + ')')
 }
 
 function gunzip(buffer, options, callback) {
@@ -2114,10 +2112,6 @@ class Emitter {
   }
 }
 
-function nodeError(code, message) {
-  return Object.assign(new Error(message), { code })
-}
-
 function assertNoOptions(name, options, allowed) {
   for (const key of Object.keys(options ?? {})) {
     if (!allowed.includes(key)) throw gapError(name + ' option ' + key)
@@ -2126,7 +2120,7 @@ function assertNoOptions(name, options, allowed) {
 
 function invalidArgValue(property, value) {
   const received = typeof value === 'string' ? "'" + value + "'" : String(value)
-  return Object.assign(new TypeError("The property '" + property + "' is invalid. Received " + received), { code: 'ERR_INVALID_ARG_VALUE' })
+  return codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The property '" + property + "' is invalid. Received " + received)
 }
 
 function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property = 'highWaterMark') {
@@ -2150,12 +2144,12 @@ function numberReceived(value) {
 }
 
 function outOfRangeError(property, requirement, value) {
-  return Object.assign(new RangeError('The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + numberReceived(value)), { code: 'ERR_OUT_OF_RANGE' })
+  return codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + numberReceived(value))
 }
 
 function positionOf(property, value, fallback) {
   if (value === undefined) return fallback
-  if (typeof value !== 'number') throw Object.assign(new TypeError('The "' + property + '" argument must be of type number. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+  if (typeof value !== 'number') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "' + property + '" argument must be of type number. Received ' + describeReceived(value))
   if (!Number.isInteger(value)) throw outOfRangeError(property, 'an integer', value)
   if (value < 0 || value > Number.MAX_SAFE_INTEGER) throw outOfRangeError(property, '>= 0 && <= 9007199254740991', value)
   return value
@@ -2171,7 +2165,7 @@ function fsPathError(error, syscall, path) {
 }
 
 function destroyedError() {
-  return nodeError('ERR_STREAM_DESTROYED', 'Cannot call write after a stream was destroyed')
+  return codedError(Error, 'ERR_STREAM_DESTROYED', 'Cannot call write after a stream was destroyed')
 }
 
 class Writable extends Emitter {
@@ -2239,7 +2233,7 @@ class Writable extends Emitter {
   }
 
   _write(chunk, encoding, callback) {
-    callback(nodeError('ERR_METHOD_NOT_IMPLEMENTED', 'The _write() method is not implemented'))
+    callback(codedError(Error, 'ERR_METHOD_NOT_IMPLEMENTED', 'The _write() method is not implemented'))
   }
 
   _destroy(error, callback) {
@@ -2252,7 +2246,7 @@ class Writable extends Emitter {
       encoding = undefined
     }
     if (this.#ending) {
-      const error = nodeError('ERR_STREAM_WRITE_AFTER_END', 'write after end')
+      const error = codedError(Error, 'ERR_STREAM_WRITE_AFTER_END', 'write after end')
       nextTick(() => callback?.(error))
       this.destroy(error)
       return false
@@ -2413,7 +2407,7 @@ class Readable extends Emitter {
   }
 
   _read() {
-    this.destroy(nodeError('ERR_METHOD_NOT_IMPLEMENTED', 'The _read() method is not implemented'))
+    this.destroy(codedError(Error, 'ERR_METHOD_NOT_IMPLEMENTED', 'The _read() method is not implemented'))
   }
 
   _destroy(error, callback) {
@@ -2567,7 +2561,7 @@ class Readable extends Emitter {
 
   unshift(chunk, encoding) {
     if (this.#endEmitted) {
-      this.destroy(nodeError('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event'))
+      this.destroy(codedError(Error, 'ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event'))
       return false
     }
     if (this.#destroyed) return false
@@ -2633,7 +2627,7 @@ class Readable extends Emitter {
       return false
     }
     if (this.#ended) {
-      this.destroy(nodeError('ERR_STREAM_PUSH_AFTER_EOF', 'stream.push() after EOF'))
+      this.destroy(codedError(Error, 'ERR_STREAM_PUSH_AFTER_EOF', 'stream.push() after EOF'))
       return false
     }
     if (this.#objectMode) {
@@ -2937,11 +2931,11 @@ function pipeline(...streams) {
 const NODE_ALLOCATION_CEILING = 2 ** 35
 
 function memoryError() {
-  return Object.assign(new RangeError('Failed to allocate memory'), { code: 'ERR_MEMORY_ALLOCATION_FAILED' })
+  return codedError(RangeError, 'ERR_MEMORY_ALLOCATION_FAILED', 'Failed to allocate memory')
 }
 
 function checkedBlockSize(size) {
-  if (!Number.isSafeInteger(size)) throw Object.assign(new RangeError('The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + numberReceived(size)), { code: 'ERR_OUT_OF_RANGE' })
+  if (!Number.isSafeInteger(size)) throw codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + numberReceived(size))
   if (size > NODE_ALLOCATION_CEILING) throw memoryError()
   return size
 }
@@ -3031,16 +3025,16 @@ function describeReceived(value) {
 }
 
 function invalidArgType(property, value, expected) {
-  return Object.assign(new TypeError('The "' + property + '" property must be an instance of ' + expected + '. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+  return codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "' + property + '" property must be an instance of ' + expected + '. Received ' + describeReceived(value))
 }
 
 function invalidBufferArg(value) {
-  return Object.assign(new TypeError('The "buf" argument must be an instance of Buffer, TypedArray, or DataView. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+  return codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "buf" argument must be an instance of Buffer, TypedArray, or DataView. Received ' + describeReceived(value))
 }
 
 function invalidFlagStream(flags) {
   const stream = new Readable({ read() {} })
-  nextTick(() => stream.destroy(Object.assign(new TypeError("The argument 'flags' is invalid. Received '" + String(flags) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })))
+  nextTick(() => stream.destroy(codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'flags' is invalid. Received '" + String(flags) + "'")))
   return stream
 }
 
@@ -3055,7 +3049,7 @@ function createReadStream(path, options) {
   const autoClose = opts.autoClose ?? true
   if (typeof autoClose !== 'boolean') throw gapError('fs.createReadStream autoClose ' + String(autoClose))
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
-    throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
+    throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'")
   }
   const start = positionOf('start', opts.start, 0)
   const end = opts.end === Infinity ? undefined : positionOf('end', opts.end, undefined)
