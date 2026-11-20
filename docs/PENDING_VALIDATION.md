@@ -2052,3 +2052,12 @@ txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 
 Change: src/txiki.js: READ_STREAM_FLAGS includes 'rs+'. test/parity-cases.js: shared case 'fs.createReadStream flags rs+ reads or fails as Node does' (expected ["data abcdefghij","close","file \"abcdefghij\""]).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red check RC-rs+: 'rs+' removed from the accepted list.
+
+## fx split: createReadStream flag w+ (7aa), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/createreadstream-flags-node.out (clear sample, PID 1893227, exit 0): read and write, truncates the file: reads nothing and leaves the file empty.
+txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 1894026, exit 0). tjs.open takes the flag, so only the accepted list changes.
+
+Change: src/txiki.js: READ_STREAM_FLAGS includes 'w+'. test/parity-cases.js: shared case 'fs.createReadStream flags w+ reads or fails as Node does' (expected ["close","file \"\""]).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check RC-w+: 'w+' removed from the accepted list.

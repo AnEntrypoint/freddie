@@ -2605,6 +2605,10 @@ sharedCases.push(
   { name: 'fs.createReadStream flags rs+ reads or fails as Node does', run: () => flagsOutcome('rs+'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream flags w+ reads or fails as Node does', run: () => flagsOutcome('w+'), expected: ['close', 'file ""'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
