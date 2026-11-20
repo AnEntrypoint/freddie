@@ -2639,3 +2639,13 @@ Tooling: test/parity-summary.js (commit ec8acef9) splits each run output on newl
 Ranking correction: the earlier REPORT list omitted this row (listed as open reachable in the summary); it is now done.
 
 Pending: nothing for this row; committed locally, not pushed.
+
+## Dedup and dead code (Phase A): parity summary reads nested arrays
+
+Fault: test/parity-summary.js (ec8acef9) cut an array at its first `]`. A mismatch whose got/expected arrays nest (the zlib gzip header witness) left unbalanced JSON, so the summary exited 1 with a SyntaxError. Fix: the array is taken by a bracket-balanced scan of the escape-stripped line.
+
+Witness: the summary on /tmp/yg1-RC.out gives mismatches [{ name: zlib.gzip header bytes match Node (...OS 3), got [31,139,8,0,0,0,0,0,0,0], expected [31,139,8,0,0,0,0,0,0,3] }], unexpectedGaps []; on /tmp/yg1-good.out and /tmp/wr-good.out it gives shared 751, gaps 15, mismatches [], unexpectedGaps []; /tmp/fsRA-RC.out and /tmp/fsRA-node.out keep their earlier fields.
+
+Red check: the first-`]` regex in place of the balanced scan made the summary exit 1 on /tmp/yg1-RC.out (SyntaxError at JSON.parse). Restore: cmp RESTORED_IDENTICAL against the saved fixed file; git status showed only the summary file in this commit's set.
+
+Pending: nothing for this change.
