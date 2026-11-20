@@ -2994,6 +2994,15 @@ sharedCases.push(
   { name: 'fs.writeFileSync overwrites a file and readFileSync reads the new text', run: () => withScratch(async (dir) => { s.fs.writeFileSync(dir + '/w', 'longer text'); s.fs.writeFileSync(dir + '/w', 'x'); return s.fs.readFileSync(dir + '/w', 'utf8') }), expected: 'x' },
 )
 
+sharedCases.push(
+  { name: 'fs.readdirSync lists the names in a directory', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/b', ''); await fsp.writeFile(dir + '/a', ''); return s.fs.readdirSync(dir).sort() }), expected: ['a', 'b'] },
+  { name: 'fs.readdirSync of a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.readdirSync('/nonexistent-freddie-readdir')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, scandir '/nonexistent-freddie-readdir'" } },
+  { name: 'fs.readlinkSync returns the target a symlink was made with', run: () => withScratch(async (dir) => { s.fs.symlinkSync(dir + '/f', dir + '/link'); return s.fs.readlinkSync(dir + '/link') === dir + '/f' }), expected: true },
+  { name: 'fs.realpathSync resolves a symlink to the file it names', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); s.fs.symlinkSync(dir + '/f', dir + '/link'); return s.fs.realpathSync(dir + '/link') === s.fs.realpathSync(dir + '/f') }), expected: true },
+  { name: 'fs.symlinkSync over an existing path throws EEXIST', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); try { s.fs.symlinkSync(dir + '/f', dir + '/f'); return 'no throw' } catch (error) { return error.code } }), expected: 'EEXIST' },
+  { name: 'fs.mkdtempSync makes a directory named with the prefix and six characters', run: () => withScratch(async (dir) => { const made = s.fs.mkdtempSync(dir + '/t-'); return [made.startsWith(dir + '/t-'), made.length === (dir + '/t-').length + 6, s.fs.existsSync(made)] }), expected: [true, true, true] },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

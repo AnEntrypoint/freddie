@@ -1,5 +1,5 @@
 export const expectedRecord = {
-  shared: 819,
+  shared: 825,
   gapsApplied: 3,
   gapsInactive: 1,
   inactiveReason: {

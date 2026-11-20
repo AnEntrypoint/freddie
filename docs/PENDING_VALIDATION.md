@@ -3137,3 +3137,13 @@ Witness (freddie, both runtimes): a write of [104, 105] returns 2, readSync read
 Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (covers writeSync and readSync with an explicit position, closeSync on a bad fd).
 
 Red check (mutation, witness, restore, cmp, git status): readSync ignores its position argument (always -1). Witness: 'txiki parity failed' with mismatch 'fs.readSync reads at an explicit position' (got [1, 104], expected [1, 105]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (sync names, 3 of 5): fs.readdirSync, readlinkSync, realpathSync, symlinkSync and mkdtempSync to core (gm handoff 2, 2026-11-20)
+
+Change: each function calls its txikiCore sync variant. readdirSync returns the names (withFileTypes is a gap, its message names it); the error maps with fsPathError(..., 'scandir', path). readlinkSync maps 'readlink', realpathSync maps 'realpath'. symlinkSync maps its error with linkError (the helper the async symlink already uses). mkdtempSync appends XXXXXX to the prefix (the native template). Record: shared 819 -> 825, gaps unchanged at 3.
+
+Witness (freddie, both runtimes): readdirSync lists two files ['a','b'] (sorted in the row); readdirSync of a missing path throws ENOENT with Node's message (scandir '<path>'); readlinkSync returns the stored target (true); realpathSync of a symlink equals realpathSync of its file (true); symlinkSync over an existing path throws EEXIST; mkdtempSync makes a directory with the prefix, six more characters, and exists ([true, true, true]). Node: 825/825 shared cases match (exit 0). Probe: shared 825, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (readdirSync, readlinkSync, realpathSync, mkdtempSync).
+
+Red check (mutation, witness, restore, cmp, git status): realpathSync returns its input path. Witness: 'txiki parity failed' with mismatch 'fs.realpathSync resolves a symlink to the file it names' (got false, expected true). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

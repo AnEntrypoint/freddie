@@ -10,7 +10,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['lstatSync', 'mkdirSync', 'mkdtempSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync']
+const FS_SYNC_NAMES = ['lstatSync', 'mkdirSync', 'rmSync', 'statSync', 'unlinkSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -403,6 +403,43 @@ function readSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, p
 function writeSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, position = null) {
   if (!ArrayBuffer.isView(buffer)) throw gapError('fs.writeSync with data that is not a view of bytes')
   return txikiCore.writeSync(fd, buffer, offset, length, position ?? -1)
+}
+
+function readdirSync(path, options) {
+  if (options?.withFileTypes === true) throw gapError('fs.readdirSync withFileTypes')
+  try {
+    return txikiCore.readdirSync(path)
+  } catch (error) {
+    throw fsPathError(error, 'scandir', path)
+  }
+}
+
+function readlinkSync(path) {
+  try {
+    return txikiCore.readlinkSync(path)
+  } catch (error) {
+    throw fsPathError(error, 'readlink', path)
+  }
+}
+
+function realpathSync(path) {
+  try {
+    return txikiCore.realpathSync(path)
+  } catch (error) {
+    throw fsPathError(error, 'realpath', path)
+  }
+}
+
+function symlinkSync(target, path) {
+  try {
+    txikiCore.symlinkSync(target, path)
+  } catch (error) {
+    throw linkError(error, target, path)
+  }
+}
+
+function mkdtempSync(prefix) {
+  return txikiCore.mkdtempSync(prefix + 'XXXXXX')
 }
 
 function writeFileSync(path, data, options) {
@@ -3590,7 +3627,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, openSync, readSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, mkdtempSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {
