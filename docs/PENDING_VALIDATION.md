@@ -2880,7 +2880,7 @@ Change: src/txiki.js adds STDIO_KINDS (the four kinds, once, used by the string 
 
 Witness: test/parity-cases.js 'child-process.spawn stdio overlapped is a pipe on POSIX, as in Node', expected as the one-entry row (code 0, text hi, Buffer chunks, end before close).
 
-Red check (Phase B): mutation: the return is 'list' again (no mapping) and the list check rejects 'overlapped' (STDIO_KINDS replaced by ['pipe', 'inherit', 'ignore']). Witness: the overlapped witness reports the gap message. Restore: copy back; cmp; git status shows the two files and this ledger.
+Red check (Phase B): mutation: STDIO_KINDS replaced by ['pipe', 'inherit', 'ignore'] (the string check and the list check both reject 'overlapped'). The mapping alone is not a red check, because tjs.spawn accepts stdout 'overlapped' and still delivers the text. Witness: the overlapped witness fails, since spawn throws ERR_INVALID_ARG_VALUE for the string form. Restore: copy back; cmp; git status shows the two files and this ledger.
 
 ## Stretch D row 6 (2026-11-20): util.parseArgs with no args
 
