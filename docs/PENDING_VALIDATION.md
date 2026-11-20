@@ -2341,3 +2341,17 @@ Result: pass. Every listed step ran and passed. unexpectedGaps [] in the txiki p
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageP-good-txiki.js); `git status --short` was empty.
 
 Open within this item: the 1e300 error message is txiki's String(value) form ("Received 1e+300"), where Node prints "Received 1e+_300" (numeric separators). Not witnessed. The 2^40 message matches Node ("Failed to allocate memory"). The rule that maps any safe-integer allocation failure to ERR_MEMORY_ALLOCATION_FAILED is an approximation: Node's failure threshold is not known from the source, only the 2^40 case is witnessed.
+
+## fx split: fs.createReadStream signal { aborted: true } and the no-removeEventListener shape (7an), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/signal-addlistener-node.mjs (argv abortedTrue, listenerNoop); output runs/analysis/signal-aborted-node.out. { aborted: true }: created, then error ABORT_ERR AbortError "The operation was aborted", then close, exit 0. { aborted: false, addEventListener() {} }: the process crashes at close with TypeError "signal.removeEventListener is not a function" (exit 1).
+
+txiki probe on a copy (/tmp/sigab-copy/txiki.js; body runs/analysis/signal-aborted-body.js): before, runs/analysis/signal-aborted-txiki-before.out: { aborted: true } gave the gap message; the no-op listener shape ran data abcdefghij, end, close. After, runs/analysis/signal-aborted-txiki-after.out: { aborted: true } gives error ABORT_ERR AbortError "The operation was aborted", then close (matches Node); the no-op listener shape is unchanged.
+
+gapCases search before commit: the only gapCases line with "signal" is child-process signal abc; no fs aborted-shape entry. No stale entry.
+
+Change (Phase A): src/txiki.js: the gap line for a signal without addEventListener is deleted. The TypeError line above it still covers a signal that is not aborted, and FileReadStream destroys with abortError when signal.aborted. test/parity-cases.js: one shared case (streamEvents, expected ['error ABORT_ERR AbortError', 'close']).
+
+Not witnessed, with reason: an object with addEventListener and no removeEventListener. Node dies at close with an uncaught TypeError (exit 1), so a parity witness cannot record a result on the Node side; txiki completes normally and never calls removeEventListener, so there is no matching behaviour to witness. Recording the divergence as the open item; reopen: a decision on whether txiki should reproduce the uncaught error (then a witness that captures uncaughtException on both sides), or to accept the divergence in docs/fx-split.md.
+
+Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps []), the Node parity run, and the red check RC-abt: the gap line restored before the flags line, so the aborted-shape witness falls back to the gap.

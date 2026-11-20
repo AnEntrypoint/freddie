@@ -2659,6 +2659,10 @@ sharedCases.push(
   { name: 'fs.createReadStream signal { aborted: false, addEventListener: 1 } throws a TypeError', run: () => signalTypeError({ aborted: false, addEventListener: 1 }), expected: { name: 'TypeError', message: 'signal.addEventListener is not a function' } },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream signal { aborted: true } emits ABORT_ERR AbortError then close', run: async () => { const { file } = await streamFile('aborted-shape.txt', 'abcdefghij'); return streamEvents(s.fs.createReadStream(file, { signal: { aborted: true } })) }, expected: ['error ABORT_ERR AbortError', 'close'] },
+)
+
 const highWaterMarkEvents = async (options) => {
   const { file } = await streamFile('hwm.txt', 'abcdefghij')
   const got = []
