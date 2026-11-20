@@ -3025,3 +3025,17 @@ Red check: the forced write failure above. Phase B repeats it as step red-record
 ## Push record for c231a67e (reconstructed from the reflog, not the push's own output)
 
 The window rQ push ran but its record was never written, so its stdout is not captured. What exists: git ls-remote origin main returned c231a67e61c27c5daab37e2a57a0c293c1250da2 refs/heads/main. The reflog of origin/main reads 'c231a67e refs/remotes/origin/main@{0}: update by push' and 'fab0e3d7 refs/remotes/origin/main@{1}: update by push', so origin/main moved fab0e3d7 -> c231a67e by push. The push's own output text is not in this record.
+
+## Carried-over calls with no parity witness (2026-11-20): dropped from the list, none implemented
+
+Check: grep over packages/util/runtime/test/*.js for each name. The names appear only in test/contract-names.js (which asserts that each export exists, a name check that the gap stub satisfies) and test/subpaths.js (module imports). No shared case in test/parity-cases.js and no gapCases row calls them. A call with no witness is not implemented here.
+
+Decisions (none implemented, no mutation or red check, since no code changed):
+- http.createServer: dropped. No witness exercises it. It stays a gap stub in src/txiki.js (gapFunctions('http', ['createServer'])); the owner decision on server support is unchanged.
+- module.createRequire: dropped. No witness. Needs the fx loader (cause as recorded before).
+- module.stripTypeScriptTypes: dropped. No witness. Needs a TypeScript parser (cause as recorded before).
+- async_hooks.AsyncLocalStorage: dropped. No witness. Needs native async context (cause as recorded before).
+- inspector.Session: dropped. No witness. Needs the native inspector (cause as recorded before).
+- zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: dropped. No witness. Need the native brotli and zstd backend (cause as recorded before).
+
+Reconsider a row only when a witness in test/parity-cases.js calls it. Then implement it with its own witness and red check.
