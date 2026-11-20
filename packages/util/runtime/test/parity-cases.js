@@ -2859,6 +2859,10 @@ sharedCases.push(
   { name: 'child-process maxBuffer abc throws ERR_OUT_OF_RANGE at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {})), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"options.maxBuffer\" is out of range. It must be a positive number. Received 'abc'"} },
 )
 
+sharedCases.push(
+  { name: 'child-process signal abc throws ERR_INVALID_ARG_TYPE at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {})), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.signal\" property must be an instance of AbortSignal. Received type string ('abc')"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -2867,7 +2871,6 @@ export const gapCases = [
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
-  { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
   { name: 'child-process windowsHide yes', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {}) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },

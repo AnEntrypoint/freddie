@@ -3079,7 +3079,7 @@ function maxBufferOf(opts) {
 
 function signalOf(opts) {
   const value = opts.signal
-  if (value !== undefined && typeof value?.addEventListener !== 'function') throw gapError('child-process signal ' + String(value))
+  if (value !== undefined && typeof value?.addEventListener !== 'function') throw invalidArgType('options.signal', value, 'AbortSignal')
   return value
 }
 

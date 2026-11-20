@@ -2720,3 +2720,15 @@ Change: src/txiki.js maxBufferOf throws outOfRangeError for the same predicate i
 Witness: sharedCases "child-process maxBuffer abc throws ERR_OUT_OF_RANGE at execFile" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the string branch in outOfRangeError removed (value formatted with String); witness: the shared case fails on the message (Received abc without quotes); restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process signal type
+
+Row: child-process signal abc (gapCases; execFile with a non-AbortSignal signal threw the declared gap).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): validateAbortSignal(options.signal, 'options.signal') runs in spawn, which execFile calls; it throws ERR_INVALID_ARG_TYPE with the expected class AbortSignal, so the message is "must be an instance of AbortSignal. Received type string ('abc')".
+
+Change: src/txiki.js signalOf throws invalidArgType('options.signal', value, 'AbortSignal') for the same predicate it had (the existing helper, already used by fs.createReadStream). test/parity-cases.js: gapCases entry removed; sharedCases witness added.
+
+Witness: sharedCases "child-process signal abc throws ERR_INVALID_ARG_TYPE at execFile" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the signalOf check removed (signal not validated); witness: the shared case reports no throw; restore: copy back; cmp; git status shows the two files only.
