@@ -2959,12 +2959,18 @@ class FileReadStream extends Readable {
 
 const READ_STREAM_FLAGS = ['r', 'r+', 'w', 'wx', 'rs', 'rs+', 'w+', 'wx+', 'a', 'ax', 'a+', 'ax+', 'as', 'as+']
 
+function invalidFlagStream(flags) {
+  const stream = new Readable({ read() {} })
+  nextTick(() => stream.destroy(Object.assign(new TypeError("The argument 'flags' is invalid. Received '" + String(flags) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })))
+  return stream
+}
+
 function createReadStream(path, options) {
   const opts = typeof options === 'string' ? { encoding: options } : options ?? {}
   assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode', 'autoClose'])
   if (opts.signal !== undefined && typeof opts.signal?.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   const flags = opts.flags ?? 'r'
-  if (!READ_STREAM_FLAGS.includes(flags)) throw gapError('fs.createReadStream flags ' + String(flags))
+  if (!READ_STREAM_FLAGS.includes(flags)) return invalidFlagStream(flags)
   const autoClose = opts.autoClose ?? true
   if (typeof autoClose !== 'boolean') throw gapError('fs.createReadStream autoClose ' + String(autoClose))
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {

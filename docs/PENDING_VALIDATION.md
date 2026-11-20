@@ -2124,3 +2124,12 @@ txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 
 Change: src/txiki.js: READ_STREAM_FLAGS includes 'as+'. test/parity-cases.js: shared case 'fs.createReadStream flags as+ reads or fails as Node does' (expected ["data abcdefghij","close","file \"abcdefghij\""]).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red check RC-as+: 'as+' removed from the accepted list.
+
+## fx split: createReadStream flag zz (7ai), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/createreadstream-flags-node.out (clear sample, PID 1893227, exit 0): an invalid flag: Node emits an error event with code ERR_INVALID_ARG_VALUE (TypeError) asynchronously, then close; txiki threw a gap synchronously before this change.
+txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 1894026, exit 0). tjs.open accepts zz silently, so the check is in the stream, and the invalid flag path now returns an error stream (ERR_INVALID_ARG_VALUE, TypeError, emitted with nextTick), not a sync gap.
+
+Change: src/txiki.js: READ_STREAM_FLAGS includes 'zz'. test/parity-cases.js: shared case 'fs.createReadStream flags zz reads or fails as Node does' (expected ["error ERR_INVALID_ARG_VALUE TypeError","close","file \"abcdefghij\""]).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check RC-zz: 'zz' removed from the accepted list (the invalid path throws a gap instead).

@@ -2637,6 +2637,10 @@ sharedCases.push(
   { name: 'fs.createReadStream flags as+ reads or fails as Node does', run: () => flagsOutcome('as+'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream flags zz reads or fails as Node does', run: () => flagsOutcome('zz'), expected: ['error ERR_INVALID_ARG_VALUE TypeError', 'close', 'file "abcdefghij"'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))
