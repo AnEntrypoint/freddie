@@ -3128,7 +3128,7 @@ function timeoutOf(opts) {
 
 function idOption(opts, key) {
   const value = opts[key]
-  if (value !== undefined && typeof value !== 'number') throw gapError('child-process ' + key + ' ' + String(value))
+  if (value !== undefined && typeof value !== 'number') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.' + key + '" property must be int32. Received ' + describeReceived(value))
   return value
 }
 

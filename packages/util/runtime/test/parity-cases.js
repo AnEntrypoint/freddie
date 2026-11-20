@@ -2871,13 +2871,16 @@ sharedCases.push(
   { name: 'child-process windowsHide yes throws ERR_INVALID_ARG_TYPE at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {})), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.windowsHide\" property must be of type boolean. Received type string ('yes')"} },
 )
 
+sharedCases.push(
+  { name: 'child-process uid string throws ERR_INVALID_ARG_TYPE at spawn', run: () => errorOf(() => s['child-process'].spawn('id', ['-u'], { uid: '1000' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.uid\" property must be int32. Received type string ('1000')"} },
+  { name: 'child-process gid string throws ERR_INVALID_ARG_TYPE at spawn', run: () => errorOf(() => s['child-process'].spawn('id', ['-g'], { gid: '1000' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.gid\" property must be int32. Received type string ('1000')"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
-  { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
-  { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },

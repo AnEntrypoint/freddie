@@ -2756,3 +2756,15 @@ Change: src/txiki.js windowsHideChecked throws ERR_INVALID_ARG_TYPE for a value 
 Witness: sharedCases "child-process windowsHide yes throws ERR_INVALID_ARG_TYPE at execFile" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the windowsHideChecked line removed; witness: the shared case reports no throw; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process uid and gid type
+
+Rows: child-process uid 1000 and child-process gid 1000 (gapCases; a string uid or gid threw the declared gap). A number uid or gid is unchanged.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): normalizeSpawnArguments runs "if (options.uid != null && !isInt32(options.uid)) throw new ERR_INVALID_ARG_TYPE('options.uid', 'int32', options.uid)", and the same for gid. ERR_INVALID_ARG_TYPE writes a lowercase expected word without an article, so the message is "must be int32. Received type string ('1000')".
+
+Change: src/txiki.js idOption throws ERR_INVALID_ARG_TYPE, built from its key, for a value that is not undefined and not a number, using describeReceived. The null case keeps the gap, which is unchanged behaviour. test/parity-cases.js: the two gapCases entries removed; two sharedCases witnesses added.
+
+Witnesses: sharedCases "child-process uid string throws ERR_INVALID_ARG_TYPE at spawn" and "child-process gid string throws ERR_INVALID_ARG_TYPE at spawn" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the idOption line removed; witness: the uid shared case reports no throw; restore: copy back; cmp; git status shows the two files only.
