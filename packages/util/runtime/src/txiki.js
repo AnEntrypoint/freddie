@@ -596,6 +596,7 @@ const WRITE_FILE_FLAGS = ['w', 'wx', 'w+', 'wx+', 'a', 'ax', 'a+', 'ax+', 'r+', 
 function modeOf(value = 0o666) {
   if (typeof value === 'number') return value
   if (typeof value === 'string' && /^[0-7]+$/.test(value)) return parseInt(value, 8)
+  if (typeof value === 'string') throw Object.assign(new TypeError("The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received '" + value + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   throw gapError('fs.promises.writeFile with mode ' + String(value))
 }
 
@@ -603,9 +604,17 @@ async function writeFile(path, data, options) {
   const encoding = typeof options === 'string' ? options : options?.encoding
   const flag = options?.flag ?? 'w'
   if (!WRITE_FILE_FLAGS.includes(flag)) throw gapError('fs.promises.writeFile with flag ' + flag)
+  const signal = options?.signal
+  if (signal !== undefined) {
+    if (signal === null || typeof signal !== 'object' || !('aborted' in signal)) throw invalidArgType('options.signal', signal, 'AbortSignal')
+    if (signal.aborted) throw abortError(signal)
+  }
+  if (options?.flush !== undefined && typeof options.flush !== 'boolean') throw Object.assign(new TypeError('The "options.flush" property must be of type boolean. Received ' + describeReceived(options.flush)), { code: 'ERR_INVALID_ARG_TYPE' })
   const mode = modeOf(options?.mode)
   const bytes = typeof data === 'string' ? CODECS[encodingOf(encoding)].encode(data) : data
-  const handle = await tjs.open(path, flag, mode)
+  const handle = await tjs.open(path, flag, mode).catch((error) => {
+    throw fsPathError(error, 'open', path)
+  })
   try {
     let offset = 0
     while (offset < bytes.length) offset += await handle.write(bytes.subarray(offset))

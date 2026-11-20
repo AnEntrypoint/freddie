@@ -2681,6 +2681,31 @@ sharedCases.push(
   { name: 'fs.createReadStream start equal to end reads one byte', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { start: 3, end: 3 })) }, expected: 'd' },
 )
 
+const writeOptionThrow = (options) => withScratch(async (dir) => {
+  try { await s['fs-promises'].writeFile(dir + '/f', 'hello', options) } catch (error) { return { code: error.code, name: error.name, message: error.message } }
+  return 'no throw'
+})
+const writeOptionText = (options) => withScratch(async (dir) => {
+  await s['fs-promises'].writeFile(dir + '/f', 'hello', options)
+  return String(await s['fs-promises'].readFile(dir + '/f', 'utf8'))
+})
+const writeMissingCodes = (options) => withScratch(async (dir) => {
+  try { await s['fs-promises'].writeFile(dir + '/missing', 'hello', options) } catch (error) { return [error.code, error.name] }
+  return 'no throw'
+})
+sharedCases.push(
+  { name: 'fs.promises.writeFile flag rs+ on a missing file rejects with ENOENT', run: () => writeMissingCodes({ flag: 'rs+' }), expected: ['ENOENT', 'Error'] },
+  { name: 'fs.promises.writeFile flag as writes the data', run: () => writeOptionText({ flag: 'as' }), expected: 'hello' },
+  { name: 'fs.promises.writeFile flag as+ writes the data', run: () => writeOptionText({ flag: 'as+' }), expected: 'hello' },
+  { name: 'fs.promises.writeFile mode zz throws ERR_INVALID_ARG_VALUE TypeError', run: () => writeOptionThrow({ mode: 'zz' }), expected: { code: 'ERR_INVALID_ARG_VALUE', name: 'TypeError', message: "The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received 'zz'" } },
+  { name: 'fs.promises.writeFile mode 0o600 throws ERR_INVALID_ARG_VALUE TypeError', run: () => writeOptionThrow({ mode: '0o600' }), expected: { code: 'ERR_INVALID_ARG_VALUE', name: 'TypeError', message: "The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received '0o600'" } },
+  { name: 'fs.promises.writeFile signal aborted rejects with AbortError', run: () => writeOptionThrow({ signal: abortedSignal() }), expected: { code: 'ABORT_ERR', name: 'AbortError', message: 'The operation was aborted' } },
+  { name: 'fs.promises.writeFile signal 1 throws ERR_INVALID_ARG_TYPE TypeError', run: () => writeOptionThrow({ signal: 1 }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received type number (1)' } },
+  { name: 'fs.promises.writeFile signal object with aborted false writes the data', run: () => writeOptionText({ signal: { aborted: false } }), expected: 'hello' },
+  { name: 'fs.promises.writeFile flush true writes the data', run: () => writeOptionText({ flush: true }), expected: 'hello' },
+  { name: 'fs.promises.writeFile flush yes throws ERR_INVALID_ARG_TYPE TypeError', run: () => writeOptionThrow({ flush: 'yes' }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: "The \"options.flush\" property must be of type boolean. Received type string ('yes')" } },
+)
+
 const highWaterMarkEvents = async (options) => {
   const { file } = await streamFile('hwm.txt', 'abcdefghij')
   const got = []
@@ -2751,7 +2776,6 @@ export const gapCases = [
   { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
-  { name: 'fs.promises.writeFile with mode zz', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: 'zz' }) },
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },

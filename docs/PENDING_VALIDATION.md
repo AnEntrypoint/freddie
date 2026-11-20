@@ -2401,3 +2401,15 @@ Correction to the Phase A record above: it says ten shared cases through streamO
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageR-good-txiki.js); `git status --short` was empty.
 
 Open within item 4: none for the shapes probed. Items 5 and 6 are next in ledger order.
+
+## fx split: fs.promises.writeFile string modes, signal and flush (7ap), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/writefile-modes-node.mjs; output runs/analysis/writefile-modes-node.out. flag rs+ on a missing file: rejected ENOENT (name Error). flag as and as+: resolved, file reads hello. mode 'zz' and '0o600': rejected TypeError ERR_INVALID_ARG_VALUE, "The argument 'mode' must be a 32-bit unsigned integer or an octal string. Received '<value>'". signal aborted: rejected AbortError ABORT_ERR "The operation was aborted". signal 1: rejected TypeError ERR_INVALID_ARG_TYPE "The \"options.signal\" property must be an instance of AbortSignal. Received type number (1)". signal { aborted: false }: resolved (no addEventListener needed). flush true: resolved. flush 'yes': rejected TypeError ERR_INVALID_ARG_TYPE "The \"options.flush\" property must be of type boolean. Received type string ('yes')".
+
+txiki probe on a copy (/tmp/wfm-copy/txiki.js; body runs/analysis/writefile-modes-body.js): before, runs/analysis/writefile-modes-txiki-before.out: rs+ rejected ENOENT, name Error, message without the open path; as and as+ resolved hello; mode zz and 0o600 gapped; signal aborted resolved (no AbortError); signal 1 resolved; signal { aborted: false } resolved; flush true resolved; flush 'yes' resolved.
+
+gapCases search before commit: one stale entry, 'fs.promises.writeFile with mode zz' (gap). Removed. No gapCases entry for the flags, signal or flush.
+
+Change (Phase A): src/txiki.js: modeOf throws Node's TypeError for a string mode that is not octal digits (non-string values keep their gap); writeFile validates signal (invalidArgType, aborts with abortError when aborted) and flush (TypeError ERR_INVALID_ARG_TYPE), and maps the open error with fsPathError. test/parity-cases.js: ten shared cases (missing rs+ with code and name, as and as+ text, mode zz and 0o600, signal aborted, signal 1, signal plain object text, flush true text, flush yes).
+
+Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required; gaps should drop from 18 to 17), the Node parity run, and two red checks: RC-wfs (the signal aborted line removed, so the aborted witness resolves) and RC-wfm (the string mode throw disabled, so the mode witnesses fall back to the gap).
