@@ -3230,3 +3230,13 @@ Witness (freddie, both runtimes, four shared rows a stub cannot satisfy): nested
 Red check (mutation, witness, restore, cmp, git status): mkdirRecursive returns path instead of the first created directory. Witness: 'parity failed' with mismatch 'fs.mkdirSync recursive creates nested directories and returns the first one made' (got [false, true], expected [true, true]). PID 1044265. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
 Not covered: a relative input path (Node returns the resolved path; the adapter returns the given form). The witness uses absolute paths only.
+
+## Wired: fs.rmSync with { recursive, force } (ranked gap 2, adapter-only, 2026-11-20)
+
+Change: rmSync reads lstat first. A missing path with force returns; a symbolic link is removed with txikiCore.unlinkSync (so the target is never touched); a directory with recursive removes its entries through rmSync and then removes the empty directory with txikiCore.rmSync; a directory without recursive is still the gap 'fs.rmSync of a directory' (Node: ERR_FS_EISDIR). Options other than recursive and force are still the gap 'fs.rmSync with options'. Record: shared 839 -> 842, gaps unchanged at 2 applied, 1 inactive.
+
+Witness (freddie, both runtimes, three shared rows a stub cannot satisfy): a tree of directories and files is removed (existsSync false); a symlink is removed and the file it names remains ([false, true]); force on a missing path returns undefined ('done'). Node: 842/842 shared cases match (exit 0). Probe: shared 842, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0, PID 1052832).
+
+Red check (mutation, witness, restore, cmp, git status): the child-removal loop is removed, so a directory is removed while it still has entries. Witness: 'parity failed' with mismatch 'fs.rmSync recursive removes a directory tree' (got 'threw: ENOTEMPTY: directory not empty', expected false). PID 1050242. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+Native fact checked by the symlink row: the adapter unlinks a symlink itself, so a native rmSync that followed the link would not be reached; the witness confirms the target survives.

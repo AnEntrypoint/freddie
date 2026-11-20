@@ -469,8 +469,28 @@ function unlinkSync(path) {
 }
 
 function rmSync(path, options) {
-  if (options !== undefined) throw gapError('fs.rmSync with options')
-  if (statSync(path).isDirectory()) throw gapError('fs.rmSync of a directory')
+  if (options !== undefined && Object.keys(options).some((key) => key !== 'recursive' && key !== 'force')) throw gapError('fs.rmSync with options')
+  const recursive = options?.recursive === true
+  const force = options?.force === true
+  let stats
+  try {
+    stats = lstatSync(path)
+  } catch (error) {
+    if (force && error.code === 'ENOENT') return
+    throw error
+  }
+  if (stats.isSymbolicLink()) {
+    try {
+      txikiCore.unlinkSync(path)
+    } catch (error) {
+      throw fsPathError(error, 'unlink', path)
+    }
+    return
+  }
+  if (stats.isDirectory()) {
+    if (!recursive) throw gapError('fs.rmSync of a directory')
+    for (const name of readdirSync(path)) rmSync(tjsPath.join(path, name), { recursive, force })
+  }
   try {
     txikiCore.rmSync(path)
   } catch (error) {

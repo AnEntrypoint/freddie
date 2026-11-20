@@ -3035,6 +3035,12 @@ sharedCases.push(
   { name: 'fs.mkdirSync recursive through a file throws ENOTDIR as Node does', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); try { s.fs.mkdirSync(dir + '/f/x', { recursive: true }); return 'no throw' } catch (error) { return error.code } }), expected: 'ENOTDIR' },
 )
 
+sharedCases.push(
+  { name: 'fs.rmSync recursive removes a directory tree', run: () => withScratch(async (dir) => { s.fs.mkdirSync(dir + '/t/u/v', { recursive: true }); await fsp.writeFile(dir + '/t/u/v/w', ''); await fsp.writeFile(dir + '/t/x', ''); s.fs.rmSync(dir + '/t', { recursive: true }); return s.fs.existsSync(dir + '/t') }), expected: false },
+  { name: 'fs.rmSync recursive removes a symlink and leaves the file it names', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); s.fs.symlinkSync(dir + '/f', dir + '/l'); s.fs.rmSync(dir + '/l', { recursive: true }); return [s.fs.existsSync(dir + '/l'), s.fs.existsSync(dir + '/f')] }), expected: [false, true] },
+  { name: 'fs.rmSync force on a missing path does not throw', run: () => withScratch(async (dir) => (s.fs.rmSync(dir + '/none', { force: true }) === undefined ? 'done' : 'returned')), expected: 'done' },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
