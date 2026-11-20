@@ -2868,7 +2868,8 @@ sharedCases.push(
 )
 
 sharedCases.push(
-  { name: 'child-process windowsHide yes throws ERR_INVALID_ARG_TYPE at execFile', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {})), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.windowsHide\" property must be of type boolean. Received type string ('yes')"} },
+  { name: 'child-process windowsHide yes throws ERR_INVALID_ARG_TYPE at spawn', run: () => errorOf(() => s['child-process'].spawn('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.windowsHide\" property must be of type boolean. Received type string ('yes')"} },
+  { name: 'child-process windowsHide yes is coerced by execFile and does not throw', run: () => errorOf(() => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {})), expected: 'no throw' },
 )
 
 sharedCases.push(

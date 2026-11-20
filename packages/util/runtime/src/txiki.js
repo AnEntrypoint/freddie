@@ -3197,7 +3197,6 @@ function execFile(file, args, options, callback) {
   const killSignal = killSignalOf(opts)
   const maxBuffer = maxBufferOf(opts)
   const signal = signalOf(opts)
-  windowsHideChecked(opts)
   const shelled = shellArguments(file, argv, opts.shell)
   captureExecFile(signal?.aborted ? { error: abortError(signal) } : startProcess(shelled.file, shelled.argv, { cwd: opts.cwd, env: opts.env, uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid') }), cmd, { timeout, killSignal, maxBuffer, signal }).then(({ error, stdout, stderr }) => {
     if (done !== undefined) done(error ?? null, decodeExecOutput(stdout, encoding), decodeExecOutput(stderr, encoding))

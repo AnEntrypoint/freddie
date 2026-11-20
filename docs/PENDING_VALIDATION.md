@@ -2768,3 +2768,11 @@ Change: src/txiki.js idOption throws ERR_INVALID_ARG_TYPE, built from its key, f
 Witnesses: sharedCases "child-process uid string throws ERR_INVALID_ARG_TYPE at spawn" and "child-process gid string throws ERR_INVALID_ARG_TYPE at spawn" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the idOption line removed; witness: the uid shared case reports no throw; restore: copy back; cmp; git status shows the two files only.
+
+## Fix (Phase A, 2026-11-20): windowsHide is validated only by spawn
+
+Phase B window rE: the Node oracle (PID 255744, exit 1, 768/769) rejected the windowsHide witness at execFile: "got no throw". Node's execFile passes windowsHide: !!options.windowsHide to spawn (lib child_process execFile, the spawn options object), so only spawn validates it (validateBoolean in normalizeSpawnArguments). The earlier commit ba6c7713 made execFile throw too, which was wrong.
+
+Change: src/txiki.js execFile no longer calls windowsHideChecked (spawn still does). test/parity-cases.js: the windowsHide witness now runs at spawn, and a new witness checks that execFile with windowsHide 'yes' does not throw (expected "no throw", as Node).
+
+Red check for the windowsHide row (run in Phase B): mutation: the windowsHideChecked line removed from spawn; witness: the spawn witness reports no throw; restore: copy back; cmp; git status shows the two files only.
