@@ -2133,3 +2133,21 @@ txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 
 Change: src/txiki.js: READ_STREAM_FLAGS includes 'zz'. test/parity-cases.js: shared case 'fs.createReadStream flags zz reads or fails as Node does' (expected ["error ERR_INVALID_ARG_VALUE TypeError","close","file \"abcdefghij\""]).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red check RC-zz: 'zz' removed from the accepted list (the invalid path throws a gap instead).
+
+## Phase B (partial, two spans, 1368 s): createReadStream flags rs, rs+, w+, wx+, a, ax, a+, ax+, as, as+, zz, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s.
+
+The two spans together gave 42 samples (slots 0 to 41). Clear samples were slots 0, 2 and 4 only. Closed samples (39) were chromium's gpu-process at 100 to 930% CPU for most of the window (other peers' session), zig compiles and tests, grep and node jobs, and si up to 40588 KB/s. No probe started on a closed sample, and closed samples have no ledger line.
+
+| Witness | Slot | Result | Wall time |
+|---|---|---|---|
+| Node parity (PID 1894781, exit 0) | 0 | node: 685/685 shared cases match; 0/0 gaps throw the documented message; 9856 ms | 9.99 s |
+| txiki parity, final source (PID 1895617, exit 0) | 2 | shared 685, gaps 21, mismatches [], unexpectedGaps [] | 14.77 s |
+| RC-rs: 'rs' removed from the accepted list (PID 1898375, exit 0) | 4 | red on 'fs.createReadStream flags rs reads or fails as Node does' only. Restored: RESTORED_IDENTICAL | 14.49 s |
+
+Not run (the spans ended with no clear sample after slot 4): RC-rs+, RC-w+, RC-wx+, RC-a, RC-ax, RC-a+, RC-ax+, RC-as, RC-as+, RC-zz (zz restored to a sync gap throw), the Node contract and the txiki contract. No push: the push waits for every listed witness to run and pass.
+
+Restore: /tmp/stageJ-good-txiki.js is the final committed source (7d99242a); after RC-rs, `cmp` gave identical files and `git status --short` was empty. No process of mine was left running.
+
+Longest step: the txiki parity run (14.8 s). The longest wait was the closed gate (39 of 42 samples).
