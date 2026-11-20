@@ -2383,3 +2383,21 @@ gapCases search before commit: two stale entries were found, 'fs.createReadStrea
 Change (Phase A): src/txiki.js: outOfRangeError (RangeError with code ERR_OUT_OF_RANGE, Node's message form); positionOf takes the property name and throws the TypeError for a non-number and the RangeError for a non-integer or out-of-range value; createReadStream treats end Infinity as no end, and end before start throws outOfRangeError('start', ...). test/parity-cases.js: two gapCases entries removed; ten shared cases through streamOptionThrow (code, name, message) and two read cases (end Infinity, start equal to end).
 
 Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []; gaps should drop from 20 to 18), the Node parity run, and the red check RC-se: the end-before-start check reverted to the gap, so the end-before-start witness falls back to the gap.
+
+## Phase B: fs.createReadStream start and end invalid values (7ao), window of 397 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 12 samples at about 33 s (slots 0 to 11). Clear samples that started a step: slots 1, 4 and 11 (three). Closed samples (no step started, no ledger line): a zig test and compile jobs of another peer (slots 2, 3, 5 to 8), claude at 26.7% CPU (slot 9), a fx foreground session at 38.6% (slot 10), and si 9996 at slot 0.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on f895400f (PID 2162961, exit 0) | 1 | shared 714, gaps 18, mismatches [], unexpectedGaps [] | 14.56 s |
+| Node parity (PID 2166585, exit 0) | 4 | node: 714/714 shared cases match; 0/0 gaps throw the documented message | 9.87 s |
+| RC-se: the end-before-start check reverted to the gap (PID 2171310, exit 0) | 11 | red only on 'fs.createReadStream end before start throws ERR_OUT_OF_RANGE RangeError' (got the gap message). Restored: RESTORED_IDENTICAL | 14.50 s |
+
+Result: pass. Every listed step ran and passed.
+
+Correction to the Phase A record above: it says ten shared cases through streamOptionThrow and two read cases. The commit has nine throw witnesses (start -1, end before start, start 1.5, start Infinity, start "1", start null, end -1, end 1.5, end "9") and two read witnesses (end Infinity, start equal to end), which is eleven. The txiki shared count went from 703 to 714, which confirms eleven.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageR-good-txiki.js); `git status --short` was empty.
+
+Open within item 4: none for the shapes probed. Items 5 and 6 are next in ledger order.
