@@ -2887,6 +2887,11 @@ sharedCases.push(
   { name: 'child-process.spawn shell number throws ERR_INVALID_ARG_TYPE', run: () => errorOf(() => s['child-process'].spawn('echo', ['hi'], { shell: 5 })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.shell\" property must be one of type boolean or string. Received type number (5)"} },
 )
 
+sharedCases.push(
+  { name: 'child-process timeout abc throws ERR_OUT_OF_RANGE at execFile', run: () => errorOf(() => s['child-process'].execFile('sh', ['-c', 'echo ok'], { timeout: 'abc' }, () => {})), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"timeout\" is out of range. It must be an unsigned integer. Received 'abc'"} },
+  { name: 'child-process timeout 1.5 throws ERR_OUT_OF_RANGE at spawn', run: () => errorOf(() => s['child-process'].spawn('sh', ['-c', 'echo ok'], { timeout: 1.5 })), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"timeout\" is out of range. It must be an unsigned integer. Received 1.5"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },

@@ -2804,3 +2804,15 @@ Change: src/txiki.js shellArguments: a string shell is the program (an empty str
 Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process.execFile shell path string runs the command with that shell", "child-process.execFile shell empty string runs the file directly", "child-process.spawn shell number throws ERR_INVALID_ARG_TYPE".
 
 Red check (run in Phase B): mutation: the string branch of shellArguments replaced by the old gap line (shell !== true throws the gap); witness: the path string case reports the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process timeout validation
+
+Row: child-process timeout that is not a number threw the declared gap (doc item 7c). A number that is not an integer, or is negative, was also accepted.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): validateTimeout(timeout) throws ERR_OUT_OF_RANGE('timeout', 'an unsigned integer', timeout) when timeout is not null and is not an integer >= 0. execFile and spawn both call it. The property name is "timeout" (no options prefix).
+
+Change: src/txiki.js timeoutOf throws outOfRangeError for a value that is not an integer >= 0 (null is replaced by 0 before the check, as before). test/parity-cases.js: two sharedCases witnesses added.
+
+Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process timeout abc throws ERR_OUT_OF_RANGE at execFile" and "child-process timeout 1.5 throws ERR_OUT_OF_RANGE at spawn".
+
+Red check (run in Phase B): mutation: the timeoutOf check restored to the old gap predicate; witness: the abc case reports the gap message; restore: copy back; cmp; git status shows the two files only.

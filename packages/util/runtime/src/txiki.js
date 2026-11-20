@@ -3124,7 +3124,7 @@ async function readCapped(stream, limit, onOverflow) {
 
 function timeoutOf(opts) {
   const timeout = opts.timeout ?? 0
-  if (typeof timeout !== 'number' || timeout < 0) throw gapError('child-process timeout ' + String(timeout))
+  if (!Number.isInteger(timeout) || timeout < 0) throw outOfRangeError('timeout', 'an unsigned integer', timeout)
   return timeout
 }
 
