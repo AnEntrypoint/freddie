@@ -3143,9 +3143,9 @@ function stdioOf(opts) {
 }
 
 function shellArguments(file, argv, shell) {
-  if (shell === undefined || shell === false) return { file, argv }
-  if (shell !== true) throw gapError('child-process shell ' + String(shell))
-  return { file: '/bin/sh', argv: ['-c', [file, ...argv].join(' ')] }
+  if (shell != null && typeof shell !== 'boolean' && typeof shell !== 'string') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.shell" property must be one of type boolean or string. Received ' + describeReceived(shell))
+  if (!shell) return { file, argv }
+  return { file: typeof shell === 'string' ? shell : '/bin/sh', argv: ['-c', [file, ...argv].join(' ')] }
 }
 
 function processEnv(env) {

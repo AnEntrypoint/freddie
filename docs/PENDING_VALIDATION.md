@@ -2792,3 +2792,15 @@ Node source (read from the embedded lib of /data/cache/node/current/bin/node, no
 Change: src/txiki.js createHash no longer checks option keys. test/parity-cases.js: sharedCases witness "crypto.createHash sha256 ignores an option key other than outputLength" (expected is the sha256 of abc, from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the removed key check restored; witness: the shared case reports the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process shell string
+
+Row: child-process shell with a path string (doc item 7d: "Other shell values (a path string) stay a gap"). A non-boolean, non-string shell also threw the gap.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): normalizeSpawnArguments throws ERR_INVALID_ARG_TYPE('options.shell', ['boolean', 'string'], shell) when shell is not null and is neither boolean nor string; the message reads "one of type boolean or string". options.shell is the string when it is a string and true otherwise, and a falsy shell runs the file directly. The string is the program that runs with -c and the joined command.
+
+Change: src/txiki.js shellArguments: a string shell is the program (an empty string runs the file directly), true means /bin/sh, null, undefined and false run the file directly, and any other type throws ERR_INVALID_ARG_TYPE. test/parity-cases.js: three sharedCases witnesses (path string, empty string, number type error).
+
+Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process.execFile shell path string runs the command with that shell", "child-process.execFile shell empty string runs the file directly", "child-process.spawn shell number throws ERR_INVALID_ARG_TYPE".
+
+Red check (run in Phase B): mutation: the string branch of shellArguments replaced by the old gap line (shell !== true throws the gap); witness: the path string case reports the gap message; restore: copy back; cmp; git status shows the two files only.

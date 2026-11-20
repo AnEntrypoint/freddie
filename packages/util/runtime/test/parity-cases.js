@@ -2881,6 +2881,12 @@ sharedCases.push(
   { name: 'crypto.createHash sha256 ignores an option key other than outputLength', run: () => s.crypto.createHash('sha256', { foo: 1 }).update('abc').digest('hex'), expected: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad' },
 )
 
+sharedCases.push(
+  { name: 'child-process.execFile shell path string runs the command with that shell', run: () => execFileOutcome('echo', ['hi'], { shell: '/bin/sh' }), expected: {"error":null,"stdout":"hi\n","stderr":""} },
+  { name: 'child-process.execFile shell empty string runs the file directly', run: () => execFileOutcome('echo', ['hi'], { shell: '' }), expected: {"error":null,"stdout":"hi\n","stderr":""} },
+  { name: 'child-process.spawn shell number throws ERR_INVALID_ARG_TYPE', run: () => errorOf(() => s['child-process'].spawn('echo', ['hi'], { shell: 5 })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.shell\" property must be one of type boolean or string. Received type number (5)"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
