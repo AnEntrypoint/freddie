@@ -3013,3 +3013,15 @@ Change: src/txiki.js readFileSync catches the host error and throws fsPathError(
 Applicable gap rows drop from 5 to 4 (exitCode, Worker, vm.Script, detached).
 
 Red check (Phase B): mutation: the try/catch replaced by 'bytes = syncReadFile(path)' (no mapping). Witness: the missing-file shared case fails; its got message is 'ENOENT: no such file or directory' without ', open ...'. Restore: copy back; cmp; git status shows the txiki source and this ledger.
+
+## Window tooling (2026-11-20): the record write is verified and a failed write exits non-zero (host-local, not committed)
+
+Change: runs/analysis/window.mjs (gitignored, host-local) replaces the gm run body that wrote the window record. Every record write is read back and compared; a write that cannot be made or verified throws 'window record not written: <path>' and the process exits 1. Each step is checkpointed to the record, with the spawned PIDs in it. The push runs only after every step passed and the record preflight succeeded, and the push output and git ls-remote result are stored in the record.
+
+Witness (Phase A, run on this tree): a forced write failure (record path under the file test/parity-node.js) prints 'window failed: window record not written: ... EEXIST' and exits 1 (FAIL_EXIT=1). A good path writes 243 bytes and exits 0 (OK_EXIT=0).
+
+Red check: the forced write failure above. Phase B repeats it as step red-record-write-failure inside the window, and step record-write-success checks the good path.
+
+## Push record for c231a67e (reconstructed from the reflog, not the push's own output)
+
+The window rQ push ran but its record was never written, so its stdout is not captured. What exists: git ls-remote origin main returned c231a67e61c27c5daab37e2a57a0c293c1250da2 refs/heads/main. The reflog of origin/main reads 'c231a67e refs/remotes/origin/main@{0}: update by push' and 'fab0e3d7 refs/remotes/origin/main@{1}: update by push', so origin/main moved fab0e3d7 -> c231a67e by push. The push's own output text is not in this record.
