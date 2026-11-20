@@ -3127,3 +3127,13 @@ Witness (freddie, both runtimes): accessSync on a directory returns undefined ('
 Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (covers accessSync on a missing path, ENOENT).
 
 Red check (mutation, witness, restore, cmp, git status): existsSync returns true without calling the native access. Witness: 'txiki parity failed' with mismatch 'fs.existsSync is true for a directory and false for a missing path' (got [true, true]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (sync names, 2 of 5): fs.openSync, readSync, writeSync, closeSync and writeFileSync to core (gm handoff 2, 2026-11-20)
+
+Change: openSync(path, flags, mode) calls txikiCore.openSync with fsPathError(error, 'open', path); closeSync calls txikiCore.closeSync; readSync and writeSync pass (fd, buffer, offset, length, position) with a null position as -1 (the current position, as the handoff sets); writeFileSync encodes a string (CODECS, the same encoding step as writeFile) and loops writeSync until every byte is written, with flag 'w' only. A flag other than 'w', data that is neither a string nor a view of bytes, and a writeSync argument that is not a view are gaps (their messages name the case). Record: shared 815 -> 819, gaps unchanged at 3.
+
+Witness (freddie, both runtimes): a write of [104, 105] returns 2, readSync reads it back as [2, 2, 104, 105]; readSync at explicit position 1 returns [1, 105]; openSync of a missing file throws ENOENT with Node's message (open '<path>'); writeFileSync overwrites a file with 'x' and readFileSync reads 'x' (the w flag truncates). Node: 819/819 shared cases match (exit 0). Probe: shared 819, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (covers writeSync and readSync with an explicit position, closeSync on a bad fd).
+
+Red check (mutation, witness, restore, cmp, git status): readSync ignores its position argument (always -1). Witness: 'txiki parity failed' with mismatch 'fs.readSync reads at an explicit position' (got [1, 104], expected [1, 105]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

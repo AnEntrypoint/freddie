@@ -10,7 +10,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['closeSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
+const FS_SYNC_NAMES = ['lstatSync', 'mkdirSync', 'mkdtempSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -381,6 +381,42 @@ function existsSync(path) {
     return true
   } catch {
     return false
+  }
+}
+
+function openSync(path, flags = 'r', mode = 0o666) {
+  try {
+    return txikiCore.openSync(path, flags, mode)
+  } catch (error) {
+    throw fsPathError(error, 'open', path)
+  }
+}
+
+function closeSync(fd) {
+  txikiCore.closeSync(fd)
+}
+
+function readSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, position = null) {
+  return txikiCore.readSync(fd, buffer, offset, length, position ?? -1)
+}
+
+function writeSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, position = null) {
+  if (!ArrayBuffer.isView(buffer)) throw gapError('fs.writeSync with data that is not a view of bytes')
+  return txikiCore.writeSync(fd, buffer, offset, length, position ?? -1)
+}
+
+function writeFileSync(path, data, options) {
+  const encoding = typeof options === 'string' ? options : options?.encoding
+  const flag = options?.flag ?? 'w'
+  if (flag !== 'w') throw gapError('fs.writeFileSync with flag ' + flag)
+  if (typeof data !== 'string' && !ArrayBuffer.isView(data)) throw gapError('fs.writeFileSync with data that is not a string or a view of bytes')
+  const bytes = typeof data === 'string' ? CODECS[encodingOf(encoding)].encode(data) : data
+  const fd = openSync(path, flag, modeOf(options?.mode))
+  try {
+    let offset = 0
+    while (offset < bytes.length) offset += writeSync(fd, bytes, offset, bytes.length - offset)
+  } finally {
+    closeSync(fd)
   }
 }
 
@@ -3554,7 +3590,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, existsSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, openSync, readSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

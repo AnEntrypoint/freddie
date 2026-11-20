@@ -2987,6 +2987,13 @@ sharedCases.push(
   { name: 'fs.existsSync is true for a directory and false for a missing path', run: () => withScratch(async (dir) => [s.fs.existsSync(dir), s.fs.existsSync(dir + '/none')]), expected: [true, false] },
 )
 
+sharedCases.push(
+  { name: 'fs.openSync writeSync and closeSync write bytes that readSync reads back', run: () => withScratch(async (dir) => { const file = dir + '/f'; const fd = s.fs.openSync(file, 'w'); const written = s.fs.writeSync(fd, new Uint8Array([104, 105])); s.fs.closeSync(fd); const rfd = s.fs.openSync(file, 'r'); const out = new Uint8Array(8); const read = s.fs.readSync(rfd, out, 0, 8); s.fs.closeSync(rfd); return [written, read, out[0], out[1]] }), expected: [2, 2, 104, 105] },
+  { name: 'fs.readSync reads at an explicit position', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', 'hi'); const rfd = s.fs.openSync(dir + '/f', 'r'); const out = new Uint8Array(1); const n = s.fs.readSync(rfd, out, 0, 1, 1); s.fs.closeSync(rfd); return [n, out[0]] }), expected: [1, 105] },
+  { name: 'fs.openSync of a missing file throws ENOENT as Node does', run: () => errorOf(() => s.fs.openSync('/nonexistent-freddie-open', 'r')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, open '/nonexistent-freddie-open'" } },
+  { name: 'fs.writeFileSync overwrites a file and readFileSync reads the new text', run: () => withScratch(async (dir) => { s.fs.writeFileSync(dir + '/w', 'longer text'); s.fs.writeFileSync(dir + '/w', 'x'); return s.fs.readFileSync(dir + '/w', 'utf8') }), expected: 'x' },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
