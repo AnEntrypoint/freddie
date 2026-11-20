@@ -2708,3 +2708,15 @@ Change: src/txiki.js stdioOf throws ERR_INVALID_ARG_VALUE for a string outside p
 Witness: sharedCases "child-process stdio foo throws ERR_INVALID_ARG_VALUE at spawn" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: stdioOf's string check removed; witness: the shared case reports the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process maxBuffer type
+
+Row: child-process maxBuffer abc (gapCases; execFile with a non-number maxBuffer threw the declared gap).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): validateMaxBuffer throws new ERR_OUT_OF_RANGE('options.maxBuffer', 'a positive number', maxBuffer) when maxBuffer is not null and is not a number >= 0. ERR_OUT_OF_RANGE inspects a non-integer value, so a string prints quoted.
+
+Change: src/txiki.js maxBufferOf throws outOfRangeError for the same predicate it already had. outOfRangeError now formats the value itself (a string in quotes); numberReceived had two callers (outOfRangeError and checkedBlockSize) and is inlined into outOfRangeError; checkedBlockSize now calls outOfRangeError with the same text (YAGNI and dedup). Numeric callers keep their text. test/parity-cases.js: gapCases entry removed; sharedCases witness added.
+
+Witness: sharedCases "child-process maxBuffer abc throws ERR_OUT_OF_RANGE at execFile" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the string branch in outOfRangeError removed (value formatted with String); witness: the shared case fails on the message (Received abc without quotes); restore: copy back; cmp; git status shows the two files only.

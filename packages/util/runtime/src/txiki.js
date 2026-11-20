@@ -2122,13 +2122,10 @@ function addNumericalSeparator(text) {
   return text.slice(0, end) + grouped
 }
 
-function numberReceived(value) {
-  if (Number.isInteger(value) && Math.abs(value) > 2 ** 32) return addNumericalSeparator(String(value))
-  return String(value)
-}
-
 function outOfRangeError(property, requirement, value) {
-  return codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + numberReceived(value))
+  const large = Number.isInteger(value) && Math.abs(value) > 2 ** 32
+  const received = large ? addNumericalSeparator(String(value)) : typeof value === 'string' ? "'" + value + "'" : String(value)
+  return codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + received)
 }
 
 function positionOf(property, value, fallback) {
@@ -2919,7 +2916,7 @@ function memoryError() {
 }
 
 function checkedBlockSize(size) {
-  if (!Number.isSafeInteger(size)) throw codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "size" is out of range. It must be >= 0 && <= 9007199254740991. Received ' + numberReceived(size))
+  if (!Number.isSafeInteger(size)) throw outOfRangeError('size', '>= 0 && <= 9007199254740991', size)
   if (size > NODE_ALLOCATION_CEILING) throw memoryError()
   return size
 }
@@ -3076,7 +3073,7 @@ function killSignalOf(opts) {
 
 function maxBufferOf(opts) {
   const value = opts.maxBuffer ?? 1024 * 1024
-  if (typeof value !== 'number' || !(value >= 0)) throw gapError('child-process maxBuffer ' + String(value))
+  if (typeof value !== 'number' || !(value >= 0)) throw outOfRangeError('options.maxBuffer', 'a positive number', value)
   return value
 }
 
