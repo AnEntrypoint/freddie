@@ -2248,3 +2248,23 @@ Restore: /tmp/stageL-good-txiki.js is the committed source; each red check gave 
 Open items (not witnessed, as in Phase A): fs 2^40 and 1e300 give a RangeError with no code in txiki (Node: ERR_MEMORY_ALLOCATION_FAILED and ERR_OUT_OF_RANGE); negative values give name Error in txiki (Node: TypeError).
 
 Reopen: one clear window running the txiki parity on this commit (expect shared 697, gaps 20, mismatches [], unexpectedGaps []), then push cacf5f53..HEAD (origin main is cacf5f53).
+
+## Phase B: highWaterMark 0 and very large values (7ak), the rerun window of 332 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 10 samples at 30 s (slots 0 to 9). Clear samples: slots 0, 2 and 9 (three). Closed: slot 1 (chromium GPU and renderer at 20 to 22% CPU), slot 3 (si 6636), slot 4 (chromium swiftshader at 49.5%, so 948), slot 5 (si 6748), slot 6 (si 1432), slot 7 (si 9372), slot 8 (so 7376). No step started on a closed sample.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on f546a115 (PID 2096681, exit 0) | 0 | shared 697, gaps 20, mismatches [], unexpectedGaps [] | 14.62 s |
+| Node parity (PID 2099073, exit 0) | 2 | node: 697/697 shared cases match; 0/0 gaps throw the documented message | 9.65 s |
+| RC-hwm-zero: the fs 0 gap line restored (PID 2102054, exit 0) | 9 | red only on 'fs.createReadStream highWaterMark 0 reads nothing and ends' (got the gap message); unexpectedGaps []. Restored: RESTORED_IDENTICAL | 14.45 s |
+
+RC-hwm-int was not rerun: its source (the Number.isInteger change in src/txiki.js) is unchanged since 83d7a7e0, and its red result is recorded in the Phase B ledger above (the window of 379 s).
+
+Correction 1: the Phase B ledger above said the txiki parity had not yet run on the commit. This run corrects that: the txiki parity has now run on f546a115 and passed (mismatches [], unexpectedGaps []).
+
+Correction 2: the Phase A probe for highWaterMark ran against a copy in /tmp (/tmp/hwm-copy/txiki.js, a single-file copy; before and after the change), as the Phase A brief asked. The signal Phase A probe (24997b36) did not: it imported the tree source, which was unchanged, not a copy. The earlier signal ledger line that says "on a copy" is wrong.
+
+Restore: /tmp/stageM-good-txiki.js is the committed source (83d7a7e0); RC-hwm-zero gave RESTORED_IDENTICAL; the final `cmp` gave FINAL_IDENTICAL; `git status --short` was empty before the push.
+
+Open, not witnessed (as in Phase A): fs 2^40 and 1e300 give a code-less RangeError in txiki (Node: ERR_MEMORY_ALLOCATION_FAILED and ERR_OUT_OF_RANGE); negative values give name Error in txiki (Node: TypeError).
