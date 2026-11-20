@@ -2383,6 +2383,7 @@ class Readable extends Emitter {
   #awaitDrain = new Set()
   #decoder = null
   #encoding = null
+  #objectEncoding = false
   #highWaterMark = DEFAULT_HIGH_WATER_MARK
   #objectMode = false
 
@@ -2394,8 +2395,8 @@ class Readable extends Emitter {
     this.#objectMode = Boolean(options?.objectMode)
     this.#highWaterMark = highWaterMarkOf(options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
     if (options?.encoding !== undefined && options.encoding !== null) {
-      if (this.#objectMode) throw gapError('stream.Readable encoding with objectMode')
-      this.setEncoding(options.encoding)
+      if (this.#objectMode) this.#objectEncoding = true
+      else this.setEncoding(options.encoding)
     }
   }
 
@@ -2553,12 +2554,15 @@ class Readable extends Emitter {
   }
 
   unshift(chunk, encoding) {
-    if (this.#objectMode) throw gapError('stream.Readable unshift with objectMode')
     if (this.#endEmitted) {
       this.destroy(nodeError('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event'))
       return false
     }
     if (this.#destroyed) return false
+    if (this.#objectMode) {
+      this.#addChunk(chunk, true)
+      return !this.#ended && (this.#length < this.#highWaterMark || this.#length === 0)
+    }
     let data = chunk
     if (typeof chunk === 'string') {
       const from = encodingOf(encoding)
@@ -2616,6 +2620,7 @@ class Readable extends Emitter {
       return false
     }
     if (this.#objectMode) {
+      if (this.#objectEncoding && typeof chunk !== 'string') throw invalidBufferArg(chunk)
       this.#reading = false
       this.#addChunk(chunk)
       return !this.#ended && (this.#length < this.#highWaterMark || this.#length === 0)
@@ -2993,6 +2998,10 @@ function describeReceived(value) {
 
 function invalidArgType(property, value, expected) {
   return Object.assign(new TypeError('The "' + property + '" property must be an instance of ' + expected + '. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+}
+
+function invalidBufferArg(value) {
+  return Object.assign(new TypeError('The "buf" argument must be an instance of Buffer, TypedArray, or DataView. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
 }
 
 function invalidFlagStream(flags) {

@@ -2430,3 +2430,17 @@ Result: pass. Every listed step ran and passed. The RC-wfm red check covers both
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageS-good-txiki.js); `git status --short` was empty.
 
 Open within item 5: none for these shapes. The flag rs+ message now carries the open path as Node does; a witness checks code and name only.
+
+## fx split: stream.Readable objectMode with encoding, and unshift with objectMode (7aq), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/objectmode-node.mjs; output runs/analysis/objectmode-node.out. objectMode with encoding 'hex' or 'utf8', pushing an object: thrown TypeError ERR_INVALID_ARG_TYPE "The \"buf\" argument must be an instance of Buffer, TypedArray, or DataView. Received an instance of Object". encoding 'hex', pushing the string '6869': read returns '6869'. PassThrough with objectMode and encoding 'hex', writing an object: the same TypeError. unshift({a: 1}) with objectMode: returns true, read gives {a: 1}. push({b: 2}) then unshift({a: 1}): returns true; read gives {a: 1}, then {b: 2}.
+
+txiki probe on a copy (/tmp/om-copy/txiki.js; body runs/analysis/objectmode-body.js): before, runs/analysis/objectmode-txiki-before.out: all six shapes gapped (the two gap messages).
+
+gapCases search before commit: two stale entries, 'stream.Readable encoding with objectMode' and 'stream.Readable unshift with objectMode', removed. No other entry names these shapes.
+
+Change (Phase A): src/txiki.js: #objectEncoding flag replaces the encoding gap; the object-mode push throws invalidBufferArg for a non-string chunk when the flag is set; unshift has an object-mode branch that adds the chunk at the front (the gap is removed). test/parity-cases.js: five shared cases (string push, object push through Readable, object write through PassThrough, unshift into an empty stream, unshift in front of a pushed object).
+
+Phase A red checks (tree mutated, witnesses run, restored by cmp: RESTORED_IDENTICAL; git status showed only the four Phase A files): RC-om (unshift branch disabled): 'stream.Readable unshift with objectMode into an empty stream returns the object' got [true, null]; the second unshift witness was not captured in the summary. RC-oe (object-push guard removed): 'stream.Readable objectMode with encoding rejects an object push' and 'stream.PassThrough objectMode with encoding rejects an object write' both got no throw. Good tree: shared 729, gaps 15, mismatches [], unexpectedGaps [] (Phase A probe, runs/analysis/omA-good.out in /tmp).
+
+Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required), the Node parity run, and the same two red checks, with the full mismatch list captured.

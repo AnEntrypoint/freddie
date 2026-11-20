@@ -2706,6 +2706,18 @@ sharedCases.push(
   { name: 'fs.promises.writeFile flush yes throws ERR_INVALID_ARG_TYPE TypeError', run: () => writeOptionThrow({ flush: 'yes' }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: "The \"options.flush\" property must be of type boolean. Received type string ('yes')" } },
 )
 
+const objectChunkThrow = (make) => {
+  try { make() } catch (error) { return { code: error.code, name: error.name, message: error.message } }
+  return 'no throw'
+}
+sharedCases.push(
+  { name: 'stream.Readable objectMode with encoding passes a string push through as is', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }); r.push('6869'); return r.read() }, expected: '6869' },
+  { name: 'stream.Readable objectMode with encoding rejects an object push', run: () => objectChunkThrow(() => { const r = new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }); r.push({ a: 1 }) }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "buf" argument must be an instance of Buffer, TypedArray, or DataView. Received an instance of Object' } },
+  { name: 'stream.PassThrough objectMode with encoding rejects an object write', run: () => objectChunkThrow(() => { const p = new s.stream.PassThrough({ objectMode: true, encoding: 'hex' }); p.write({ a: 1 }) }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "buf" argument must be an instance of Buffer, TypedArray, or DataView. Received an instance of Object' } },
+  { name: 'stream.Readable unshift with objectMode into an empty stream returns the object', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); const returned = r.unshift({ a: 1 }); return [returned, r.read()] }, expected: [true, { a: 1 }] },
+  { name: 'stream.Readable unshift with objectMode puts the object in front of a pushed one', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true }); r.push({ b: 2 }); const returned = r.unshift({ a: 1 }); return [returned, r.read(), r.read()] }, expected: [true, { a: 1 }, { b: 2 }] },
+)
+
 const highWaterMarkEvents = async (options) => {
   const { file } = await streamFile('hwm.txt', 'abcdefghij')
   const got = []
@@ -2772,8 +2784,6 @@ sharedCases.push(
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
-  { name: 'stream.Readable encoding with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }) },
-  { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
