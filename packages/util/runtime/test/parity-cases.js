@@ -3041,6 +3041,12 @@ sharedCases.push(
   { name: 'fs.rmSync force on a missing path does not throw', run: () => withScratch(async (dir) => (s.fs.rmSync(dir + '/none', { force: true }) === undefined ? 'done' : 'returned')), expected: 'done' },
 )
 
+sharedCases.push(
+  { name: 'module.createRequire loads a relative .js file and a .json file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/package.json', '{"type":"commonjs"}'); await fsp.writeFile(dir + '/dep.js', 'module.exports = { value: 7 }'); await fsp.writeFile(dir + '/data.json', '{"n":3}'); const req = s.module.createRequire(dir + '/main.js'); return [req('./dep.js').value, req('./data.json').n] }), expected: [7, 3] },
+  { name: 'module.createRequire returns the same exports object for the same file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/package.json', '{"type":"commonjs"}'); await fsp.writeFile(dir + '/dep.js', 'module.exports = { value: 7 }'); const req = s.module.createRequire(dir + '/main.js'); return req('./dep.js') === req('./dep.js') }), expected: true },
+  { name: 'module.createRequire accepts a file URL', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/package.json', '{"type":"commonjs"}'); await fsp.writeFile(dir + '/dep.js', 'module.exports = { value: 7 }'); const req = s.module.createRequire(s.url.pathToFileURL(dir + '/main.js')); return req('./dep.js').value }), expected: 7 },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

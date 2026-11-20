@@ -3240,3 +3240,13 @@ Witness (freddie, both runtimes, three shared rows a stub cannot satisfy): a tre
 Red check (mutation, witness, restore, cmp, git status): the child-removal loop is removed, so a directory is removed while it still has entries. Witness: 'parity failed' with mismatch 'fs.rmSync recursive removes a directory tree' (got 'threw: ENOTEMPTY: directory not empty', expected false). PID 1050242. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
 Native fact checked by the symlink row: the adapter unlinks a symlink itself, so a native rmSync that followed the link would not be reached; the witness confirms the target survives.
+
+## Wired: module.createRequire for relative, absolute and file-URL paths (ranked gap 3, adapter-only, 2026-11-20)
+
+Change: createRequire(filename) takes a path or a file: URL (converted with fileURLToPath). The require it returns accepts only requests that start with ./, ../ or /; it resolves against the file's directory and calls loadModule. loadModule caches by resolved path (requireCache), reads the file with readFileSync, returns JSON.parse for .json, and otherwise runs the text as a function body with (exports, require, module, __filename, __dirname) through the Function constructor. A bare specifier throws the gap 'module.createRequire with a bare specifier' (node_modules resolution and require.resolve stay gaps). The module object is withGaps('module', { createRequire, ...gapFunctions('module', ['stripTypeScriptTypes']) }). Record: shared 842 -> 845, gaps unchanged at 2 applied, 1 inactive.
+
+Witness (freddie, both runtimes, three shared rows a stub cannot satisfy): a relative .js and a .json file load and give [7, 3]; a second require of the same file returns the same object (true); a file URL base resolves the same file (7). Node: 845/845 shared cases match (exit 0). Probe: shared 845, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0, PID 1058592).
+
+Red check (mutation, witness, restore, cmp, git status): loadModule returns {} instead of module.exports. Witness: 'parity failed' with mismatches 'module.createRequire loads a relative .js file and a .json file' (got [null, null], expected [7, 3]) and the identity row. PID 1060765. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+Not covered: bare specifiers (Node: MODULE_NOT_FOUND for a missing package, node_modules lookup otherwise), require.resolve, require.cache, and a cycle that reads a partially filled exports object. These remain gaps. The call sites that need only path forms are framework/hmr, framework/loader, bundle/web-app and host/product-telemetry-otel; packages/boot/app-boot uses createRequire(anchor).resolve.paths, which is not wired.

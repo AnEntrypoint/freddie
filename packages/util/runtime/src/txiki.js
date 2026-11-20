@@ -437,6 +437,31 @@ function symlinkSync(target, path) {
   }
 }
 
+const requireCache = new Map()
+
+function createRequire(filename) {
+  const file = String(filename).startsWith('file:') ? fileURLToPath(String(filename)) : String(filename)
+  const base = tjsPath.dirname(file)
+  return function require(request) {
+    if (typeof request !== 'string' || !/^\.{0,2}\//.test(request)) throw gapError('module.createRequire with a bare specifier')
+    return loadModule(tjsPath.resolve(base, request))
+  }
+}
+
+function loadModule(file) {
+  const cached = requireCache.get(file)
+  if (cached !== undefined) return cached.exports
+  const module = { exports: {} }
+  requireCache.set(file, module)
+  const text = readFileSync(file, 'utf8')
+  if (file.endsWith('.json')) {
+    module.exports = JSON.parse(text)
+  } else {
+    new Function('exports', 'require', 'module', '__filename', '__dirname', text)(module.exports, createRequire(file), module, file, tjsPath.dirname(file))
+  }
+  return module.exports
+}
+
 function mkdirSync(path, options) {
   const mode = typeof options === 'number' ? options : options?.mode ?? 0o777
   if (options?.recursive) return mkdirRecursive(path, mode)
@@ -3753,7 +3778,7 @@ export const txikiRuntime = {
     promisify,
   }),
   utilTypes: withGaps('util.types', { isPromise }),
-  module: withGaps('module', gapFunctions('module', ['createRequire', 'stripTypeScriptTypes'])),
+  module: withGaps('module', { createRequire, ...gapFunctions('module', ['stripTypeScriptTypes']) }),
   childProcess: withGaps('child_process', { exec, execFile, spawn, ...gapFunctions('child_process', ['execFileSync', 'spawnSync']) }),
   os: withGaps('os', {
     availableParallelism,
