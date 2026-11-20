@@ -2877,6 +2877,10 @@ sharedCases.push(
   { name: 'child-process gid string throws ERR_INVALID_ARG_TYPE at spawn', run: () => errorOf(() => s['child-process'].spawn('id', ['-g'], { gid: '1000' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.gid\" property must be int32. Received type string ('1000')"} },
 )
 
+sharedCases.push(
+  { name: 'crypto.createHash sha256 ignores an option key other than outputLength', run: () => s.crypto.createHash('sha256', { foo: 1 }).update('abc').digest('hex'), expected: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },

@@ -1668,8 +1668,6 @@ class Hash {
 
 function createHash(algorithm, options) {
   const name = String(algorithm).toLowerCase()
-  const key = Object.keys(options ?? {}).find((option) => option !== 'outputLength')
-  if (key !== undefined) throw gapError('crypto.createHash option ' + key)
   if (!Object.hasOwn(HASH_FUNCTIONS, name)) throw gapError('crypto.createHash ' + name)
   const outputLength = options?.outputLength
   if (outputLength !== undefined) {

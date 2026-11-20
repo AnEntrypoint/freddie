@@ -2782,3 +2782,13 @@ Red check for the windowsHide row (run in Phase B): mutation: the windowsHideChe
 invalidArgValue and outOfRangeError each quoted a string value the same way (the rule Node's inspect applies to a string). inspectReceived now holds that rule; both callers use it. Their text is unchanged for every value they already produced.
 
 Red check for this change (run in Phase B): mutation: inspectReceived returns String(value) for strings; witness: the maxBuffer witness (ERR_OUT_OF_RANGE, Received 'abc') and the invalidArgValue witnesses report the unquoted text; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): crypto.createHash other option keys
+
+Row: crypto.createHash with an option key other than outputLength threw the declared gap (doc item 6: "any other option key" still a gap).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): Hash(algorithm, options) reads only options.outputLength; other keys are not read, so they are ignored.
+
+Change: src/txiki.js createHash no longer checks option keys. test/parity-cases.js: sharedCases witness "crypto.createHash sha256 ignores an option key other than outputLength" (expected is the sha256 of abc, from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the removed key check restored; witness: the shared case reports the gap message; restore: copy back; cmp; git status shows the two files only.
