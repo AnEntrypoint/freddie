@@ -2505,3 +2505,21 @@ Readings (si / so KB/s; heavy-jobs):
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/hwmB-good-txiki.js); git status was empty. The processes listed were not started or stopped by this run.
 
 Pending: the same Phase B (txiki parity with mismatches [] and unexpectedGaps [] required, Node parity, and RC-hwm with the full mismatch list) when a window clears. Phase A commit 4c981765 is local and not pushed.
+
+## Phase B red check: fs.createReadStream out-of-range highWaterMark message (7ar), window cleared (2026-11-20)
+
+Source: src/txiki.js and test/parity-cases.js are unchanged since commit 4c981765 (git diff --stat 4c981765 HEAD -- packages/util/runtime is empty). So the parity runs below still describe the current source.
+
+Cited, not repeated:
+- txiki parity: the Phase A run on this source, run 2026-11-20-04-32-23-be8199, PID 2226055, exit 0, wall 14.41 s: shared 732, gaps 15, mismatches [], unexpectedGaps []. Recorded in the Phase A section above.
+- Node parity: the previous window, slot 2 (min 67), PID 2242172, exit 0, wall 9.65 s: node: 732/732 shared cases match; 0/0 gaps throw the documented message. Recorded in the window section above.
+
+Window (this retry, 148 s): vmstat 1 2 gate and heavy-jobs.cjs read clear on slot 0 (min 2): si 528, so 0, HEAVY_JOBS clear. The red check started on that sample and no other sample was taken for a step.
+
+Red check RC-hwm (the separator reverted in numberReceived, so outOfRangeError and fileBlock print unseparated numbers): mcp-probe on the tree, PID 2254845, exit 0, wall 14.52 s. Mismatches are exactly three, all new witnesses, and nothing else:
+- 'fs.createReadStream highWaterMark 1e300 emits the size message with Node separators': got 'Received 1e+300', expected 'Received 1e+_300'.
+- 'fs.createReadStream highWaterMark 1e21 emits the size message with Node separators': got 'Received 1e+21', expected 'Received 1e_+21'.
+- 'fs.createReadStream highWaterMark 2^53 emits the size message with Node separators': got 'Received 9007199254740992', expected 'Received 9_007_199_254_740_992'.
+unexpectedGaps []. Restore: cmp against the committed source printed RESTORED_IDENTICAL; git status was empty.
+
+Result: the red check went red only on its own three witnesses, and the restore was verified. Item 4 is complete on the source at 4c981765.
