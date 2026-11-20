@@ -2769,6 +2769,20 @@ sharedCases.push(
   { name: 'stream.PassThrough readableEncoding with the encoding option', run: () => new s.stream.PassThrough({ encoding: 'hex' }).readableEncoding, expected: 'hex' },
 )
 
+const streamReadableEncoding = async (options) => {
+  const { file } = await streamFile('readable-encoding.txt', 'abc')
+  const stream = s.fs.createReadStream(file, options)
+  const value = stream.readableEncoding
+  stream.destroy()
+  return value
+}
+sharedCases.push(
+  { name: 'fs.createReadStream readableEncoding is null without an encoding option', run: () => streamReadableEncoding({}), expected: null },
+  { name: 'fs.createReadStream readableEncoding with the hex option', run: () => streamReadableEncoding({ encoding: 'hex' }), expected: 'hex' },
+  { name: 'fs.createReadStream readableEncoding keeps the UTF-8 option as given', run: () => streamReadableEncoding({ encoding: 'UTF-8' }), expected: 'UTF-8' },
+  { name: 'fs.createReadStream readableEncoding after setEncoding UTF-8 is utf8', run: async () => { const { file } = await streamFile('readable-encoding-set.txt', 'abc'); const stream = s.fs.createReadStream(file); stream.setEncoding('UTF-8'); const value = stream.readableEncoding; stream.destroy(); return value }, expected: 'utf8' },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'

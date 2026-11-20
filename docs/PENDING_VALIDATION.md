@@ -2603,3 +2603,23 @@ Change (Phase A): src/txiki.js: #readableEncoding = null; the getter readableEnc
 Phase A checks: Node parity on the tree: 746/746 (PID 2323086, exit 0, 9614 ms). txiki parity on the tree: shared 746, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-06-38-34-0e1012, PID 2323285, exit 0, 14299 ms). Red check RC-re (the constructor's raw assignment removed): red on the 'keeps the encoding option as given' witness (got utf8, expected UTF-8) and on the 'objectMode with an encoding option' witness (got null, expected base64); the default, setEncoding and PassThrough witnesses stayed green (run 2026-11-20-06-41-40-9e8277, PID 2326337, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only the three item-readableEncoding files.
 
 Pending: nothing for this item; committed locally, not pushed in this stretch.
+
+## Push window (2026-11-20, minute 132): 7f02efa7 pushed
+
+Journal of the window job: the gate and scripts/heavy-jobs.cjs (bevy 495fff6) read clear on the sample at minute 132 (si 236, so 0, HEAVY_JOBS clear), and the push ran at minute 137. Output: `b7d2c233..7f02efa7  main -> main`. git ls-remote origin main: 7f02efa7d081c364f5525b3d7e7aa90508012a0a. No step ran inside this window: the cited runs for this source were 2026-11-20-06-38-34-0e1012 (txiki parity, PID 2323285, shared 746, mismatches [], unexpectedGaps []), the Node parity 746/746 (PID 2323086), and the readableEncoding red check 2026-11-20-06-41-40-9e8277 (PID 2326337). git diff 7f02efa7 HEAD -- packages/util/runtime was empty at the push.
+
+## fx split: fs.createReadStream readableEncoding (7av), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/fs-readable-encoding-node.cjs; output runs/analysis/fs-readable-encoding-node.out. Default: null. encoding 'hex': 'hex'. encoding 'UTF-8': 'UTF-8' (as given). string option 'hex': 'hex'. setEncoding('UTF-8') after creation: 'utf8'.
+
+txiki probe on a copy (/tmp/fsR-copy/txiki.js; body runs/analysis/fs-readable-encoding-body.js): before, runs/analysis/fs-readable-encoding-txiki-before.out: null, 'hex', 'hex' and 'utf8' for the UTF-8 option (against Node's 'UTF-8'), 'hex', 'utf8'. After, runs/analysis/fs-readable-encoding-txiki-after.out: all five match Node.
+
+gapCases search before commit: no entry names createReadStream's readableEncoding (count 0).
+
+Change (Phase A): src/txiki.js: the FileReadStream constructor passes encoding to the Readable constructor (which stores the option as given); createReadStream passes encoding in the constructor options and no longer calls setEncoding afterwards. test/parity-cases.js: a helper streamReadableEncoding (creates a stream on a file and destroys it), and four shared witnesses (null without an option; hex option; UTF-8 option as given; setEncoding UTF-8 gives utf8).
+
+Correction: the 7au entry of commit 7f02efa7 replaced the anchor for the held list and did not write back the line "8. process.exitCode: held.". That line is restored here, unchanged from b7d2c233 (line 724 of that commit).
+
+Phase A checks: Node parity on the tree: 750/750 (PID 2342802, exit 0, 9993 ms). txiki parity on the tree: shared 750, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-07-24-45-d128b8, PID 2343081, exit 0, 14344 ms). Red check RC-fsre (the option lowercased in the FileReadStream super call): red only on 'fs.createReadStream readableEncoding keeps the UTF-8 option as given' (got utf-8, expected UTF-8) (run 2026-11-20-07-27-54-83d6d1, PID 2347056, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed the three Phase A files.
+
+Pending: nothing for this item; committed locally, not pushed in this stretch.

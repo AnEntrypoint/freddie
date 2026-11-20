@@ -2972,7 +2972,7 @@ class FileReadStream extends Readable {
   #autoClose
 
   constructor(path, options) {
-    super({ read: () => this.#readBlock(), highWaterMark: options.highWaterMark })
+    super({ read: () => this.#readBlock(), highWaterMark: options.highWaterMark, encoding: options.encoding })
     this.#autoClose = options.autoClose
     if (options.signal !== undefined) this.#watchAbort(options.signal)
     this.#block = options.highWaterMark
@@ -3067,8 +3067,7 @@ function createReadStream(path, options) {
   const end = opts.end === Infinity ? undefined : positionOf('end', opts.end, undefined)
   if (end !== undefined && end < start) throw outOfRangeError('start', '<= "end" (here: ' + end + ')', start)
   const highWaterMark = highWaterMarkOf(opts)
-  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags, autoClose })
-  if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
+  const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags, autoClose, encoding: opts.encoding })
   return stream
 }
 
