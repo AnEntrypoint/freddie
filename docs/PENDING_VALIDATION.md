@@ -2477,3 +2477,31 @@ Open, found while probing (not in this stretch): highWaterMark 2^32 reads in Nod
 Phase A red check (RC-hwm: the separator disabled in numberReceived, tree mutated, restored by cmp: RESTORED_IDENTICAL; git status showed only the four Phase A files): 'fs.createReadStream highWaterMark 1e300 emits the size message with Node separators' got 'Received 1e+300'; 'fs.createReadStream highWaterMark 1e21 emits the size message with Node separators' got 'Received 1e+21'. The 2^53 witness was cut off by the summary's length limit and is not verified red here; the Phase B run prints the full list. Good tree: shared 732, gaps 15, mismatches [], unexpectedGaps [] (runs/analysis/hwmA-good.out in /tmp).
 
 Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required), the Node parity run, and the red check RC-hwm with the full mismatch list.
+
+## Phase B: fs.createReadStream out-of-range highWaterMark message (7ar), window not cleared (2026-11-20)
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 18 samples at about 30 s (slots 0 to 17, span 552 s). Clear samples: none. No step started: the txiki parity run, the Node parity run and the RC-hwm red check were not run. Nothing was pushed.
+
+Readings (si / so KB/s; heavy-jobs):
+- slot 0 (min 2): 5940 / 0; busy, chromium renderer PID 2212379 at 106.9% CPU
+- slot 1 (min 35): 2428 / 3972; busy, same renderer
+- slot 2 (min 67): 1416 / 55612; busy, same renderer
+- slot 3 (min 99): 7348 / 1580; busy, same renderer
+- slot 4 (min 132): 3668 / 3184; busy, same renderer
+- slot 5 (min 164): 340 / 60; busy, same renderer (gate under, heavy busy)
+- slot 6 (min 196): 3540 / 308; busy, same renderer and a claude haiku session (PID 1998)
+- slot 7 (min 229): 2448 / 29076; busy, same renderer
+- slot 8 (min 261): 832 / 3384; busy, same renderer
+- slot 9 (min 293): 25492 / 0; busy, same renderer
+- slot 10 (min 326): 5636 / 1252; busy, same renderer and selkies (PID 471)
+- slot 11 (min 358): 400 / 564; busy, same renderer and selkies (gate under, heavy busy)
+- slot 12 (min 390): 2448 / 1812; busy, same renderer and selkies
+- slot 13 (min 423): 2624 / 0; busy, same renderer and selkies
+- slot 14 (min 455): 892 / 0; busy, same renderer and selkies (gate under, heavy busy)
+- slot 15 (min 487): 2384 / 2372; busy, same renderer
+- slot 16 (min 520): 10740 / 18872; busy, same renderer
+- slot 17 (min 552): 6192 / 0; heavy clear, gate over (si above 1000)
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/hwmB-good-txiki.js); git status was empty. The processes listed were not started or stopped by this run.
+
+Pending: the same Phase B (txiki parity with mismatches [] and unexpectedGaps [] required, Node parity, and RC-hwm with the full mismatch list) when a window clears. Phase A commit 4c981765 is local and not pushed.
