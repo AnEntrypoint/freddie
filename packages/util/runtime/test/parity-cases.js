@@ -2714,7 +2714,6 @@ export const gapCases = [
   { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
   { name: 'fs.createReadStream start -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: -1 }) },
   { name: 'fs.createReadStream end before start', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: 5, end: 2 }) },
-  { name: 'fs.createReadStream highWaterMark 0', run: () => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 0 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with mode zz', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: 'zz' }) },

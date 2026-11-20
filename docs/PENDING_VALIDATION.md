@@ -2228,3 +2228,23 @@ Change (Phase A): src/txiki.js: highWaterMarkOf uses Number.isInteger (Node's ru
 Open, not witnessed (remaining items on the ranked list): fs 2^40 and 1e300 error codes (txiki RangeError has no code; reopen: a probe mapping the tjs allocation and range errors to Node's codes); negative values give name Error in txiki (reopen: a probe of the name Node uses, TypeError, on the invalidArgValue path).
 
 Pending (Phase B window): the Node probe, the Node parity run, the txiki parity run, and the red check RC-hwm: the fs 0 path returned to the gap throw.
+
+## Phase B: highWaterMark 0 and very large values (7ak), one window of 379 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 11 samples at 30 s (slots 0 to 10). Clear samples: slots 6 to 10 (five). Closed: a zig test process (cpu 97 to 100%) at slots 0, 2, 3 and 4; slot 1 and slot 5 had a clear checker reading but si 2188 and 2824 KB/s.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| Node probe, runs/analysis/highwatermark-node.mjs (PID 2081313, exit 0) | 6 | 12 ERR_INVALID_ARG_VALUE matches in the output file | 0.57 s |
+| Node parity (PID 2081635, exit 0) | 7 | node: 697/697 shared cases match; 0/0 gaps throw the documented message | 9.88 s |
+| txiki parity on 83d7a7e0 (PID 2082284, exit 0) | 8 | mismatches []; unexpectedGaps [{name: 'fs.createReadStream highWaterMark 0', message: 'resolved'}]. FAILED: the gapCases entry for fs 0 still asserted the gap | 14.45 s |
+| RC-hwm-zero: the fs 0 gap line restored (PID 2084580, exit 0) | 9 | red on 'fs.createReadStream highWaterMark 0 reads nothing and ends' only, got the gap message. Restored: RESTORED_IDENTICAL | 14.49 s |
+| RC-hwm-int: Number.isSafeInteger restored (PID 2086611, exit 0) | 10 | red on 'stream.Readable highWaterMark 1e300 push returns true' and 'stream.Writable highWaterMark 1e300 write returns true' (both threw ERR_INVALID_ARG_VALUE). Restored: RESTORED_IDENTICAL | 14.46 s |
+
+Result: open. The txiki parity run on 83d7a7e0 reported one unexpected gap (the stale gapCases entry), so the witness did not pass and nothing was pushed. Fix (test manifest only, no source change): the gapCases line 'fs.createReadStream highWaterMark 0' is removed from test/parity-cases.js. The txiki parity has not yet run on that commit.
+
+Restore: /tmp/stageL-good-txiki.js is the committed source; each red check gave RESTORED_IDENTICAL, the final `cmp` gave FINAL_IDENTICAL, and `git status --short` was empty before the manifest edit.
+
+Open items (not witnessed, as in Phase A): fs 2^40 and 1e300 give a RangeError with no code in txiki (Node: ERR_MEMORY_ALLOCATION_FAILED and ERR_OUT_OF_RANGE); negative values give name Error in txiki (Node: TypeError).
+
+Reopen: one clear window running the txiki parity on this commit (expect shared 697, gaps 20, mismatches [], unexpectedGaps []), then push 6dad8a16..HEAD... (origin is at cacf5f53, so push cacf5f53..HEAD).
