@@ -3009,6 +3009,15 @@ sharedCases.push(
   { name: 'fs.statSync of a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.statSync('/nonexistent-freddie-stat')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, stat '/nonexistent-freddie-stat'" } },
 )
 
+sharedCases.push(
+  { name: 'fs.mkdirSync makes a directory', run: () => withScratch(async (dir) => { s.fs.mkdirSync(dir + '/d'); return s.fs.statSync(dir + '/d').isDirectory() }), expected: true },
+  { name: 'fs.mkdirSync over an existing path throws EEXIST', run: () => withScratch(async (dir) => { try { s.fs.mkdirSync(dir); return 'no throw' } catch (error) { return error.code } }), expected: 'EEXIST' },
+  { name: 'fs.unlinkSync removes a file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); s.fs.unlinkSync(dir + '/f'); return s.fs.existsSync(dir + '/f') }), expected: false },
+  { name: 'fs.unlinkSync of a missing path throws ENOENT', run: () => withScratch(async (dir) => { try { s.fs.unlinkSync(dir + '/none'); return 'no throw' } catch (error) { return error.code } }), expected: 'ENOENT' },
+  { name: 'fs.rmSync removes a file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); const before = s.fs.existsSync(dir + '/f'); s.fs.rmSync(dir + '/f'); return [before, s.fs.existsSync(dir + '/f')] }), expected: [true, false] },
+  { name: 'fs.rmSync of a missing path throws ENOENT', run: () => withScratch(async (dir) => { try { s.fs.rmSync(dir + '/none'); return 'no throw' } catch (error) { return error.code } }), expected: 'ENOENT' },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

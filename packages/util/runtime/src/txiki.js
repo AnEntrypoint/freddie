@@ -10,7 +10,6 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['mkdirSync', 'rmSync', 'unlinkSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -435,6 +434,34 @@ function symlinkSync(target, path) {
     txikiCore.symlinkSync(target, path)
   } catch (error) {
     throw linkError(error, target, path)
+  }
+}
+
+function mkdirSync(path, options) {
+  if (typeof options === 'object' && options?.recursive) throw gapError('fs.mkdirSync recursive')
+  const mode = typeof options === 'number' ? options : options?.mode ?? 0o777
+  try {
+    txikiCore.mkdirSync(path, mode)
+  } catch (error) {
+    throw fsPathError(error, 'mkdir', path)
+  }
+}
+
+function unlinkSync(path) {
+  try {
+    txikiCore.unlinkSync(path)
+  } catch (error) {
+    throw fsPathError(error, 'unlink', path)
+  }
+}
+
+function rmSync(path, options) {
+  if (options !== undefined) throw gapError('fs.rmSync with options')
+  if (statSync(path).isDirectory()) throw gapError('fs.rmSync of a directory')
+  try {
+    txikiCore.rmSync(path)
+  } catch (error) {
+    throw fsPathError(error, 'rm', path)
   }
 }
 
@@ -3645,7 +3672,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, lstatSync, mkdtempSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

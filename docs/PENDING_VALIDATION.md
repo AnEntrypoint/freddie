@@ -3157,3 +3157,13 @@ Witness (freddie, both runtimes): statSync of a three-byte file gives [isFile tr
 Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (lstatSync against statSync).
 
 Red check (mutation, witness, restore, cmp, git status): statSync calls txikiCore.lstatSync (it does not follow the link). Witness: 'txiki parity failed' with mismatch 'fs.lstatSync reports a symlink and statSync follows it to its file' (got [true, false], expected [true, true]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (sync names, 5 of 5): fs.mkdirSync, unlinkSync and rmSync to core; FS_SYNC_NAMES removed (gm handoff 2, 2026-11-20)
+
+Change: mkdirSync(path, mode) calls txikiCore.mkdirSync (a number, or options.mode, default 0o777) with fsPathError(..., 'mkdir', path); an options object with recursive is a gap. unlinkSync calls txikiCore.unlinkSync with fsPathError(..., 'unlink', path). rmSync calls txikiCore.rmSync for a file; options are a gap, and a directory target is a gap (the native rmSync removes an empty directory, which Node refuses without recursive, so the difference is not wired). With these, every sync name of the handoff is wired: FS_SYNC_NAMES is removed. Record: shared 828 -> 834, gaps unchanged at 3.
+
+Witness (freddie, both runtimes): mkdirSync makes a directory (true); mkdirSync over an existing path throws EEXIST; unlinkSync removes a file (false afterwards); unlinkSync of a missing path throws ENOENT; rmSync removes a file ([true, false]); rmSync of a missing path throws ENOENT. Node: 834/834 shared cases match (exit 0). Probe: shared 834, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (the native rmSync and unlinkSync).
+
+Red check (mutation, witness, restore, cmp, git status): unlinkSync checks access instead of unlinking. Witness: 'txiki parity failed' with mismatch 'fs.unlinkSync removes a file' (got true, expected false). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
