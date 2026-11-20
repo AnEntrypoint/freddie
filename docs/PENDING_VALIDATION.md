@@ -2995,3 +2995,11 @@ Measured (probe runs/analysis/stretchF-gzip-body.js, through txikiRuntime.zlib.g
 Exact difference: txiki's gzipBytes (src/txiki.js, around line 1960) writes stored blocks only (BTYPE 00, raw bytes). Node's zlib writes compressed blocks: a fixed-Huffman block (BTYPE 01) with literals, and matches at level 6 (lazy LZ77 matching). txiki has no LZ77 match finder, no Huffman tree builder and no block-type choice.
 
 Decision: not reachable in this repo's txiki code without a deflate port. Byte parity would need the full deflate of Node's build (match finder with its hash, lazy matching at level 6, block splitting, Huffman tree construction, and the fixed-or-dynamic-or-stored choice). That port is a separate row, and Node's build is a fork, so its output must be checked against that build itself. Held with that cause. The existing witnesses (round trip, header bytes, trailer length) remain the taken part.
+
+## Stretch F row 2 fix (2026-11-20): the child-process subpath exports exec
+
+Found by the Node parity run in window rM (792/795): test/subpaths.js maps 's[child-process]' to src/child-process.js, which re-exports four names by hand (execFile, execFileSync, spawn, spawnSync). exec was not in that list, so s['child-process'].exec was undefined on both runtimes. The earlier smoke run did not cover the subpath, so the exec commit (eb33671e) was incomplete.
+
+Change: src/child-process.js adds export const exec = childProcess.exec before execFile. Witnesses: the three 'child-process.exec ...' shared cases (unchanged), which now reach the export on Node and txiki.
+
+Red check (Phase B): mutation: remove the 'export const exec' line. Witness: the three exec cases fail with 'is not a function' on the Node run (s.child-process.exec is not a function). Restore: copy back; cmp; git status shows the subpath file and this ledger.
