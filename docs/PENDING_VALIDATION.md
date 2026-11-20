@@ -2679,3 +2679,20 @@ Witness: the txiki parity after the change: shared 751, gaps 15, mismatches [], 
 Red check: the same-file message with '!' after 'same' (src and dest cannot be the same!). Red: fs.promises.cp: links into their own source subdirectory, links onto a hard link, and the hard-link inode check report Node errors (PID 158816, exit 0; output /tmp/yg3-RC.out, which gm cut at 20000 characters, so the mismatch line was read from the probe output by grep). Restore: cmp RESTORED_IDENTICAL against the changed file (/tmp/yg3-final.js); git status showed src/txiki.js only.
 
 Pending: gzip and gunzip still repeat the done-selection line and the setTimeout tail (two sites; small).
+
+## Reachable row (Phase A, 2026-11-20): crypto.createHash shake outputLength
+
+Row: the two gapCases entries crypto.createHash outputLength abc and crypto.createHash shake256 (outputLength on a shake name threw the declared gap). Status before: reachable (Keccak was already in source; only the length and the option were missing).
+
+Node oracle (one process per shape, runs/analysis/shake-outputlen-node.cjs; output runs/analysis/shake-outputlen-node.out): shake256 outputLength 8 gives 8 bytes (483366601360a877 for abc, same when chunked); shake128 outputLength 0 is the empty string; outputLength 200 and 300 squeeze past one rate block (400 and 600 hex characters); outputLength 32 on shake256 is the default digest; sha256 outputLength 32 is the normal digest; sha256 outputLength 16 throws ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH; a string outputLength throws ERR_INVALID_ARG_TYPE with the options.outputLength message; -1 and 1.5 throw ERR_OUT_OF_RANGE with the Node messages.
+
+Change: src/txiki.js: keccakDigest squeezes in rate-sized blocks past one block (it sliced 200 bytes before); shake128 and shake256 take the output length (default 16 and 32); Hash keeps outputLength for the shake names only (other digests get undefined, so their default parameters apply: a first attempt passed outputLength into sha256Digest's initial argument and the witness caught it); createHash validates the option with codedError, outOfRangeError and describeReceived, and notXofError is removed (one caller, folded into codedError).
+
+Witnesses: test/parity-cases.js: 11 shared cases added (8 shake and sha256 digests, 4 errors through errorOf); the two gapCases entries removed.
+
+Checks: Node parity 762/762 shared cases match (PID 227943, exit 0, 10.1 s). txiki parity on the tree: shared 762, gaps 13, mismatches [], unexpectedGaps [] (PID 230396, exit 0; output /tmp/xof-good2.out).
+
+Red check: the squeeze re-permute removed (if (offset + rate < length) keccakPermute(state) replaced by nothing). Red: shake128 outputLength 200 squeezes past one rate block (got the first 168-byte block repeated); the probe exited 0 (PID 232499; output /tmp/xof-RC.out). Restore: cmp RESTORED_IDENTICAL against the changed file; git status showed only src/txiki.js and test/parity-cases.js.
+shake256 outputLength 300 squeezes past one rate block
+1
+Pending: none for this row.

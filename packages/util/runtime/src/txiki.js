@@ -1425,10 +1425,15 @@ function keccakDigest(bytes, rate, domain, length) {
     for (let i = 0; i < rate / 8; i++) state[i] ^= view.getBigUint64(offset + 8 * i, true)
     keccakPermute(state)
   }
-  const lanes = new Uint8Array(200)
-  const laneView = new DataView(lanes.buffer)
-  state.forEach((lane, i) => laneView.setBigUint64(i * 8, lane, true))
-  return lanes.slice(0, length)
+  const output = new Uint8Array(length)
+  for (let offset = 0; offset < length; offset += rate) {
+    const lanes = new Uint8Array(200)
+    const laneView = new DataView(lanes.buffer)
+    state.forEach((lane, i) => laneView.setBigUint64(i * 8, lane, true))
+    output.set(lanes.subarray(0, Math.min(rate, length - offset)), offset)
+    if (offset + rate < length) keccakPermute(state)
+  }
+  return output
 }
 
 const RIPEMD_RHO = [7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8]
@@ -1613,8 +1618,8 @@ const HASH_FUNCTIONS = {
   'sha3-256': (bytes) => keccakDigest(bytes, 136, 0x06, 32),
   'sha3-384': (bytes) => keccakDigest(bytes, 104, 0x06, 48),
   'sha3-512': (bytes) => keccakDigest(bytes, 72, 0x06, 64),
-  shake128: (bytes) => keccakDigest(bytes, 168, 0x1f, 16),
-  shake256: (bytes) => keccakDigest(bytes, 136, 0x1f, 32),
+  shake128: (bytes, length = 16) => keccakDigest(bytes, 168, 0x1f, length),
+  shake256: (bytes, length = 32) => keccakDigest(bytes, 136, 0x1f, length),
 }
 
 function concatBytes(chunks) {
@@ -1640,8 +1645,9 @@ function hashFinalizedError() {
 }
 
 class Hash {
-  constructor(algorithm) {
+  constructor(algorithm, outputLength) {
     this.algorithm = algorithm
+    this.outputLength = outputLength
     this.chunks = []
     this.finalized = false
   }
@@ -1655,15 +1661,9 @@ class Hash {
   digest(encoding) {
     if (this.finalized) throw hashFinalizedError()
     this.finalized = true
-    const buffer = Buffer.from(HASH_FUNCTIONS[this.algorithm](concatBytes(this.chunks)))
+    const buffer = Buffer.from(HASH_FUNCTIONS[this.algorithm](concatBytes(this.chunks), this.outputLength))
     return encoding === undefined || encoding === 'buffer' ? buffer : buffer.toString(encoding)
   }
-}
-
-function notXofError() {
-  const error = new Error('error:030000B2:digital envelope routines::not XOF or invalid length')
-  error.code = 'ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH'
-  return error
 }
 
 function createHash(algorithm, options) {
@@ -1671,12 +1671,14 @@ function createHash(algorithm, options) {
   const key = Object.keys(options ?? {}).find((option) => option !== 'outputLength')
   if (key !== undefined) throw gapError('crypto.createHash option ' + key)
   if (!Object.hasOwn(HASH_FUNCTIONS, name)) throw gapError('crypto.createHash ' + name)
-  if (options?.outputLength !== undefined) {
-    if (name.startsWith('shake')) throw gapError('crypto.createHash ' + name)
-    if (typeof options.outputLength !== 'number') throw gapError('crypto.createHash outputLength ' + String(options.outputLength))
-    if (options.outputLength !== HASH_FUNCTIONS[name](new Uint8Array()).length) throw notXofError()
+  const outputLength = options?.outputLength
+  if (outputLength !== undefined) {
+    if (typeof outputLength !== 'number') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.outputLength" property must be of type number. Received ' + describeReceived(outputLength))
+    if (!Number.isInteger(outputLength)) throw outOfRangeError('options.outputLength', 'an integer', outputLength)
+    if (outputLength < 0 || outputLength > 4294967295) throw outOfRangeError('options.outputLength', '>= 0 && <= 4294967295', outputLength)
+    if (!name.startsWith('shake') && outputLength !== HASH_FUNCTIONS[name](new Uint8Array()).length) throw codedError(Error, 'ERR_OSSL_EVP_NOT_XOF_OR_INVALID_LENGTH', 'error:030000B2:digital envelope routines::not XOF or invalid length')
   }
-  return new Hash(name)
+  return new Hash(name, name.startsWith('shake') ? outputLength : undefined)
 }
 
 const DEFLATE_LENGTH_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258]

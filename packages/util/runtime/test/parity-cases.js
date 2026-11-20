@@ -2827,6 +2827,19 @@ sharedCases.push(
 
 const errorOf = (run) => { try { run() } catch (error) { return { code: error.code, message: error.message } } return 'no throw' }
 sharedCases.push(
+  { name: "crypto.createHash shake256 outputLength 8 digest of abc", run: () => s.crypto.createHash('shake256', { outputLength: 8 }).update('abc').digest('hex'), expected: "483366601360a877" },
+  { name: "crypto.createHash shake256 outputLength 8 chunked updates like one update", run: () => s.crypto.createHash('shake256', { outputLength: 8 }).update('a').update('bc').digest('hex'), expected: "483366601360a877" },
+  { name: "crypto.createHash shake256 outputLength 8 digest length is 8", run: () => s.crypto.createHash('shake256', { outputLength: 8 }).update('abc').digest().length, expected: 8 },
+  { name: "crypto.createHash shake128 outputLength 0 digest is empty", run: () => s.crypto.createHash('shake128', { outputLength: 0 }).update('abc').digest('hex'), expected: "" },
+  { name: "crypto.createHash shake128 outputLength 200 squeezes past one rate block", run: () => s.crypto.createHash('shake128', { outputLength: 200 }).update('abc').digest('hex'), expected: "5881092dd818bf5cf8a3ddb793fbcba74097d5c526a6d35f97b83351940f2cc844c50af32acd3f2cdd066568706f509bc1bdde58295dae3f891a9a0fca5783789a41f8611214ce612394df286a62d1a2252aa94db9c538956c717dc2bed4f232a0294c857c730aa16067ac1062f1201fb0d377cfb9cde4c63599b27f3462bba4a0ed296c801f9ff7f57302bb3076ee145f97a32ae68e76ab66c48d51675bd49acc29082f5647584e6aa01b3f5af057805f973ff8ecb8b226ac32ada6f01c1fcd4818cb006aa5b4cd" },
+  { name: "crypto.createHash shake256 outputLength 300 squeezes past one rate block", run: () => s.crypto.createHash('shake256', { outputLength: 300 }).update('abc').digest('hex'), expected: "483366601360a8771c6863080cc4114d8db44530f8f1e1ee4f94ea37e78b5739d5a15bef186a5386c75744c0527e1faa9f8726e462a12a4feb06bd8801e751e41385141204f329979fd3047a13c5657724ada64d2470157b3cdc288620944d78dbcddbd912993f0913f164fb2ce95131a2d09a3e6d51cbfc622720d7a75c6334e8a2d7ec71a7cc29cf0ea610eeff1a588290a53000faa79932becec0bd3cd0b33a7e5d397fed1ada9442b99903f4dcfd8559ed3950faf40fe6f3b5d710ed3b677513771af6bfe11934817e8762d9896ba579d88d84ba7aa3cdc7055f6796f195bd9ae788f2f5bb96100d6bbaff7fbc6eea24d4449a2477d172a5507dcc931412fc346b1bb39b878330e026b12ddf384af3334560ea1d363966caa7d8ddcbec7da52b42215c11d5f8ee57f341" },
+  { name: "crypto.createHash sha256 outputLength 32 digests as sha256", run: () => s.crypto.createHash('sha256', { outputLength: 32 }).update('abc').digest('hex'), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+  { name: "crypto.createHash sha256 outputLength abc throws ERR_INVALID_ARG_TYPE", run: () => errorOf(() => s.crypto.createHash('sha256', { outputLength: 'abc' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.outputLength\" property must be of type number. Received type string ('abc')"} },
+  { name: "crypto.createHash shake256 outputLength abc throws ERR_INVALID_ARG_TYPE", run: () => errorOf(() => s.crypto.createHash('shake256', { outputLength: 'abc' })), expected: {"code":"ERR_INVALID_ARG_TYPE","message":"The \"options.outputLength\" property must be of type number. Received type string ('abc')"} },
+  { name: "crypto.createHash shake256 outputLength -1 throws ERR_OUT_OF_RANGE", run: () => errorOf(() => s.crypto.createHash('shake256', { outputLength: -1 })), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"options.outputLength\" is out of range. It must be >= 0 && <= 4294967295. Received -1"} },
+  { name: "crypto.createHash shake256 outputLength 1.5 throws ERR_OUT_OF_RANGE", run: () => errorOf(() => s.crypto.createHash('shake256', { outputLength: 1.5 })), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"options.outputLength\" is out of range. It must be an integer. Received 1.5"} },
+)
+sharedCases.push(
   { name: 'stream.Readable highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
   { name: 'stream.Readable highWaterMark string 4 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: '4' })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received '4'" } },
   { name: 'stream.Readable highWaterMark 1.5 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: 1.5 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received 1.5" } },
@@ -2851,8 +2864,6 @@ export const gapCases = [
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
   { name: 'child-process windowsHide yes', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { windowsHide: 'yes' }, () => {}) },
-  { name: 'crypto.createHash outputLength abc', run: () => s.crypto.createHash('sha256', { outputLength: 'abc' }) },
-  { name: 'crypto.createHash shake256', run: () => s.crypto.createHash('shake256', { outputLength: 8 }) },
   { name: 'util.parseArgs without args', run: () => s.util.parseArgs() },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
