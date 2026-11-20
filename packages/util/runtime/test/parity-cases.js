@@ -2892,6 +2892,11 @@ sharedCases.push(
   { name: 'child-process timeout 1.5 throws ERR_OUT_OF_RANGE at spawn', run: () => errorOf(() => s['child-process'].spawn('sh', ['-c', 'echo ok'], { timeout: 1.5 })), expected: {"code":"ERR_OUT_OF_RANGE","message":"The value of \"timeout\" is out of range. It must be an unsigned integer. Received 1.5"} },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream autoClose 0 reads the data and never emits close', run: async () => { const { file } = await streamFile('ten.txt', 'abcdefghij'); return collectFor(s.fs.createReadStream(file, { autoClose: 0 }), 300) }, expected: ['data abcdefghij', 'end'] },
+  { name: 'fs.createReadStream autoClose yes closes after end like true', run: async () => { const { file } = await streamFile('ac-yes.txt', 'abc'); return streamEvents(s.fs.createReadStream(file, { autoClose: 'yes' })) }, expected: ["data abc","close"] },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },

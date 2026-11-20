@@ -2816,3 +2816,15 @@ Change: src/txiki.js timeoutOf throws outOfRangeError for a value that is not an
 Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process timeout abc throws ERR_OUT_OF_RANGE at execFile" and "child-process timeout 1.5 throws ERR_OUT_OF_RANGE at spawn".
 
 Red check (run in Phase B): mutation: the timeoutOf check restored to the old gap predicate; witness: the abc case reports the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): fs.createReadStream autoClose value
+
+Row: fs.createReadStream with an autoClose that is not a boolean threw the declared gap (doc: createReadStream options).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): the ReadStream constructor sets this.autoClose = options.autoClose === undefined ? true : options.autoClose, with no type check; the stream then tests it for truthiness. So a non-boolean value is accepted and behaves by truthiness.
+
+Change: src/txiki.js createReadStream passes autoClose through as given (undefined becomes true). FileReadStream already tests the value for truthiness. test/parity-cases.js: two sharedCases witnesses: autoClose 0 (a copy of the existing autoClose false row with 0, same expected output) and autoClose 'yes' (closes after end, expected data abc then close).
+
+Witnesses (expected from the Node source; the Phase B oracle run is the check): "fs.createReadStream autoClose 0 reads the data and never emits close", "fs.createReadStream autoClose yes closes after end like true".
+
+Red check (run in Phase B): mutation: the gap line restored in createReadStream; witness: the 'yes' case reports the gap message; restore: copy back; cmp; git status shows the two files only.

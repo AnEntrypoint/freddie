@@ -3029,8 +3029,7 @@ function createReadStream(path, options) {
   if (opts.signal !== undefined && !opts.signal.aborted && typeof opts.signal.addEventListener !== 'function') throw new TypeError('signal.addEventListener is not a function')
   const flags = opts.flags ?? 'r'
   if (!READ_STREAM_FLAGS.includes(flags)) return invalidFlagStream(flags)
-  const autoClose = opts.autoClose ?? true
-  if (typeof autoClose !== 'boolean') throw gapError('fs.createReadStream autoClose ' + String(autoClose))
+  const autoClose = opts.autoClose === undefined ? true : opts.autoClose
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'")
   }
