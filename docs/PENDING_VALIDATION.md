@@ -3147,3 +3147,13 @@ Witness (freddie, both runtimes): readdirSync lists two files ['a','b'] (sorted 
 Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (readdirSync, readlinkSync, realpathSync, mkdtempSync).
 
 Red check (mutation, witness, restore, cmp, git status): realpathSync returns its input path. Witness: 'txiki parity failed' with mismatch 'fs.realpathSync resolves a symlink to the file it names' (got false, expected true). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (sync names, 4 of 5): fs.statSync and fs.lstatSync to core (gm handoff 2, 2026-11-20)
+
+Change: statSync and lstatSync call txikiCore.statSync and txikiCore.lstatSync and map the result with statsOf (the helper the async stat already uses). Errors map with fsPathError (syscall stat or lstat). An options argument is a gap (its message names the function). Record: shared 825 -> 828, gaps unchanged at 3.
+
+Witness (freddie, both runtimes): statSync of a three-byte file gives [isFile true, isDirectory false, size 3]; lstatSync of a symlink reports isSymbolicLink and statSync of the same link reports isFile ([true, true]); statSync of a missing path throws ENOENT with Node's message (stat '<path>'). Node: 828/828 shared cases match (exit 0). Probe: shared 828, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (lstatSync against statSync).
+
+Red check (mutation, witness, restore, cmp, git status): statSync calls txikiCore.lstatSync (it does not follow the link). Witness: 'txiki parity failed' with mismatch 'fs.lstatSync reports a symlink and statSync follows it to its file' (got [true, false], expected [true, true]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

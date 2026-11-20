@@ -10,7 +10,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['lstatSync', 'mkdirSync', 'rmSync', 'statSync', 'unlinkSync']
+const FS_SYNC_NAMES = ['mkdirSync', 'rmSync', 'unlinkSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -435,6 +435,24 @@ function symlinkSync(target, path) {
     txikiCore.symlinkSync(target, path)
   } catch (error) {
     throw linkError(error, target, path)
+  }
+}
+
+function statSync(path, options) {
+  if (options !== undefined) throw gapError('fs.statSync with options')
+  try {
+    return statsOf(txikiCore.statSync(path))
+  } catch (error) {
+    throw fsPathError(error, 'stat', path)
+  }
+}
+
+function lstatSync(path, options) {
+  if (options !== undefined) throw gapError('fs.lstatSync with options')
+  try {
+    return statsOf(txikiCore.lstatSync(path))
+  } catch (error) {
+    throw fsPathError(error, 'lstat', path)
   }
 }
 
@@ -3627,7 +3645,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, mkdtempSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), accessSync, closeSync, existsSync, lstatSync, mkdtempSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

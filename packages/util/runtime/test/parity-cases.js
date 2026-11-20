@@ -3003,6 +3003,12 @@ sharedCases.push(
   { name: 'fs.mkdtempSync makes a directory named with the prefix and six characters', run: () => withScratch(async (dir) => { const made = s.fs.mkdtempSync(dir + '/t-'); return [made.startsWith(dir + '/t-'), made.length === (dir + '/t-').length + 6, s.fs.existsSync(made)] }), expected: [true, true, true] },
 )
 
+sharedCases.push(
+  { name: 'fs.statSync reports the type and size of a file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', 'abc'); const st = s.fs.statSync(dir + '/f'); return [st.isFile(), st.isDirectory(), st.size] }), expected: [true, false, 3] },
+  { name: 'fs.lstatSync reports a symlink and statSync follows it to its file', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', 'abc'); s.fs.symlinkSync(dir + '/f', dir + '/link'); const l = s.fs.lstatSync(dir + '/link'); const t = s.fs.statSync(dir + '/link'); return [l.isSymbolicLink(), t.isFile()] }), expected: [true, true] },
+  { name: 'fs.statSync of a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.statSync('/nonexistent-freddie-stat')), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, stat '/nonexistent-freddie-stat'" } },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
