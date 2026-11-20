@@ -3144,12 +3144,14 @@ function idOption(opts, key) {
   return value
 }
 
+const STDIO_KINDS = ['pipe', 'overlapped', 'inherit', 'ignore']
+
 function stdioOf(opts) {
   const stdio = opts.stdio ?? 'pipe'
-  if (typeof stdio === 'string' && !['pipe', 'overlapped', 'inherit', 'ignore'].includes(stdio)) throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'stdio' is invalid. Received '" + stdio + "'")
+  if (typeof stdio === 'string' && !STDIO_KINDS.includes(stdio)) throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'stdio' is invalid. Received '" + stdio + "'")
   const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : Array.isArray(stdio) && stdio.length <= 3 ? [0, 1, 2].map((i) => stdio[i] ?? 'pipe') : stdio
-  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => kind !== 'pipe' && kind !== 'inherit' && kind !== 'ignore')) throw gapError('child-process stdio ' + String(stdio))
-  return list
+  if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => !STDIO_KINDS.includes(kind))) throw gapError('child-process stdio ' + String(stdio))
+  return list.map((kind) => (kind === 'overlapped' ? 'pipe' : kind))
 }
 
 function shellArguments(file, argv, shell) {

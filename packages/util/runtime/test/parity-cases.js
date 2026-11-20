@@ -2904,6 +2904,7 @@ sharedCases.push(
 
 sharedCases.push(
   { name: 'child-process.spawn stdio of one entry pads the rest with pipes', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: ['pipe'] })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: 'child-process.spawn stdio overlapped is a pipe on POSIX, as in Node', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: 'overlapped' })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
   { name: 'child-process.spawn stdio undefined and null entries default to pipes', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: ['ignore', undefined, null] })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
 )
 
