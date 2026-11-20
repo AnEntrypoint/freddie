@@ -2127,9 +2127,15 @@ function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property =
   return value
 }
 
-function positionOf(name, value, fallback) {
+function outOfRangeError(property, requirement, value) {
+  return Object.assign(new RangeError('The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + String(value)), { code: 'ERR_OUT_OF_RANGE' })
+}
+
+function positionOf(property, value, fallback) {
   if (value === undefined) return fallback
-  if (!Number.isSafeInteger(value) || value < 0) throw gapError(name + ' ' + String(value))
+  if (typeof value !== 'number') throw Object.assign(new TypeError('The "' + property + '" argument must be of type number. Received ' + describeReceived(value)), { code: 'ERR_INVALID_ARG_TYPE' })
+  if (!Number.isInteger(value)) throw outOfRangeError(property, 'an integer', value)
+  if (value < 0 || value > Number.MAX_SAFE_INTEGER) throw outOfRangeError(property, '>= 0 && <= 9007199254740991', value)
   return value
 }
 
@@ -2999,9 +3005,9 @@ function createReadStream(path, options) {
   if (opts.encoding !== undefined && opts.encoding !== null && !ENCODINGS.has(String(opts.encoding).toLowerCase())) {
     throw Object.assign(new TypeError("The argument 'encoding' is invalid encoding. Received '" + String(opts.encoding) + "'"), { code: 'ERR_INVALID_ARG_VALUE' })
   }
-  const start = positionOf('fs.createReadStream start', opts.start, 0)
-  const end = positionOf('fs.createReadStream end', opts.end, undefined)
-  if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
+  const start = positionOf('start', opts.start, 0)
+  const end = opts.end === Infinity ? undefined : positionOf('end', opts.end, undefined)
+  if (end !== undefined && end < start) throw outOfRangeError('start', '<= "end" (here: ' + end + ')', start)
   const highWaterMark = highWaterMarkOf(opts)
   const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags, autoClose })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)

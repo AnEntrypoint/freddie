@@ -2371,3 +2371,15 @@ Result: pass. Every listed step ran and passed.
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageQ-good-txiki.js); `git status --short` was empty.
 
 Still open, not witnessed (see 7an in docs/fx-split.md): an object with addEventListener and no removeEventListener. Node dies at close with an uncaught TypeError (exit 1); txiki completes normally. A parity witness cannot express this, so the divergence is recorded, not forced. Reopen: a decision whether txiki should reproduce the uncaught error, or to accept the divergence in docs/fx-split.md.
+
+## fx split: fs.createReadStream start and end invalid values (7ao), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/startend-node.mjs; output runs/analysis/startend-node.out. start -1: RangeError ERR_OUT_OF_RANGE "The value of \"start\" is out of range. It must be >= 0 && <= 9007199254740991. Received -1". start 5 with end 2: RangeError ERR_OUT_OF_RANGE "The value of \"start\" is out of range. It must be <= \"end\" (here: 2). Received 5". start 1.5 and start Infinity: RangeError ERR_OUT_OF_RANGE "It must be an integer. Received 1.5" (and Infinity). start "1": TypeError ERR_INVALID_ARG_TYPE "The \"start\" argument must be of type number. Received type string ('1')". start null: TypeError ERR_INVALID_ARG_TYPE "...Received null". end -1, end 1.5: the same RangeError shapes with "end". end "9": TypeError ERR_INVALID_ARG_TYPE for end. end Infinity: accepted, reads data abcdefghij, end, close. start 3 with end 3: accepted, reads data d, end, close.
+
+txiki probe on a copy (/tmp/startend-copy/txiki.js; body runs/analysis/startend-body.js): before, runs/analysis/startend-txiki-before.out: every shape gaps (the gap message) except start 3 with end 3 (reads d). After, runs/analysis/startend-txiki-after.out: every shape matches Node's name, code and message; end Infinity reads to the end.
+
+gapCases search before commit: two stale entries were found, 'fs.createReadStream start -1' and 'fs.createReadStream end before start' (both asserted the gap). Both removed. No other gapCases entry names a start or end value.
+
+Change (Phase A): src/txiki.js: outOfRangeError (RangeError with code ERR_OUT_OF_RANGE, Node's message form); positionOf takes the property name and throws the TypeError for a non-number and the RangeError for a non-integer or out-of-range value; createReadStream treats end Infinity as no end, and end before start throws outOfRangeError('start', ...). test/parity-cases.js: two gapCases entries removed; ten shared cases through streamOptionThrow (code, name, message) and two read cases (end Infinity, start equal to end).
+
+Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []; gaps should drop from 20 to 18), the Node parity run, and the red check RC-se: the end-before-start check reverted to the gap, so the end-before-start witness falls back to the gap.

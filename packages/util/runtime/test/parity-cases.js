@@ -2663,6 +2663,24 @@ sharedCases.push(
   { name: 'fs.createReadStream signal { aborted: true } emits ABORT_ERR AbortError then close', run: async () => { const { file } = await streamFile('aborted-shape.txt', 'abcdefghij'); return streamEvents(s.fs.createReadStream(file, { signal: { aborted: true } })) }, expected: ['error ABORT_ERR AbortError', 'close'] },
 )
 
+const streamOptionThrow = (options) => {
+  try { s.fs.createReadStream('/tmp/never-read-range', options) } catch (error) { return { code: error.code, name: error.name, message: error.message } }
+  return 'no throw'
+}
+sharedCases.push(
+  { name: 'fs.createReadStream start -1 throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ start: -1 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "start" is out of range. It must be >= 0 && <= 9007199254740991. Received -1' } },
+  { name: 'fs.createReadStream end before start throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ start: 5, end: 2 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "start" is out of range. It must be <= "end" (here: 2). Received 5' } },
+  { name: 'fs.createReadStream start 1.5 throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ start: 1.5 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "start" is out of range. It must be an integer. Received 1.5' } },
+  { name: 'fs.createReadStream start Infinity throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ start: Infinity }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "start" is out of range. It must be an integer. Received Infinity' } },
+  { name: 'fs.createReadStream start "1" throws ERR_INVALID_ARG_TYPE TypeError', run: () => streamOptionThrow({ start: '1' }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "start" argument must be of type number. Received type string (\'1\')' } },
+  { name: 'fs.createReadStream start null throws ERR_INVALID_ARG_TYPE TypeError', run: () => streamOptionThrow({ start: null }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "start" argument must be of type number. Received null' } },
+  { name: 'fs.createReadStream end -1 throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ end: -1 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "end" is out of range. It must be >= 0 && <= 9007199254740991. Received -1' } },
+  { name: 'fs.createReadStream end 1.5 throws ERR_OUT_OF_RANGE RangeError', run: () => streamOptionThrow({ end: 1.5 }), expected: { code: 'ERR_OUT_OF_RANGE', name: 'RangeError', message: 'The value of "end" is out of range. It must be an integer. Received 1.5' } },
+  { name: 'fs.createReadStream end "9" throws ERR_INVALID_ARG_TYPE TypeError', run: () => streamOptionThrow({ end: '9' }), expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "end" argument must be of type number. Received type string (\'9\')' } },
+  { name: 'fs.createReadStream end Infinity reads to the end', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { end: Infinity })) }, expected: 'abcdefghij' },
+  { name: 'fs.createReadStream start equal to end reads one byte', run: async () => { const { file } = await streamFile('rng.txt', 'abcdefghij'); return readStreamText(s.fs.createReadStream(file, { start: 3, end: 3 })) }, expected: 'd' },
+)
+
 const highWaterMarkEvents = async (options) => {
   const { file } = await streamFile('hwm.txt', 'abcdefghij')
   const got = []
@@ -2731,8 +2749,6 @@ export const gapCases = [
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'stream.Readable encoding with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'hex' }) },
   { name: 'stream.Readable unshift with objectMode', run: () => new s.stream.Readable({ read() {}, objectMode: true }).unshift({ a: 1 }) },
-  { name: 'fs.createReadStream start -1', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: -1 }) },
-  { name: 'fs.createReadStream end before start', run: () => s.fs.createReadStream('/tmp/gap-never-read', { start: 5, end: 2 }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'fs.promises.writeFile with mode zz', run: () => s['fs-promises'].writeFile('/tmp/gap-never-written', 'x', { mode: 'zz' }) },
