@@ -2897,6 +2897,11 @@ sharedCases.push(
   { name: 'fs.createReadStream autoClose yes closes after end like true', run: async () => { const { file } = await streamFile('ac-yes.txt', 'abc'); return streamEvents(s.fs.createReadStream(file, { autoClose: 'yes' })) }, expected: ["data abc","close"] },
 )
 
+sharedCases.push(
+  { name: 'child-process killSignal SIGFOO throws ERR_UNKNOWN_SIGNAL at execFile', run: () => errorOf(() => s['child-process'].execFile('sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 'SIGFOO' }, () => {})), expected: {"code":"ERR_UNKNOWN_SIGNAL","message":"Unknown signal: SIGFOO"} },
+  { name: 'child-process kill SIGFOO throws ERR_UNKNOWN_SIGNAL before the signal is sent', run: () => { const child = s['child-process'].spawn('sleep', ['5']); const outcome = errorOf(() => child.kill('SIGFOO')); child.kill('SIGTERM'); return outcome }, expected: {"code":"ERR_UNKNOWN_SIGNAL","message":"Unknown signal: SIGFOO"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },

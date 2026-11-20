@@ -3063,11 +3063,22 @@ const ASYNC_SPAWN_ERRORS = ['ENOENT', 'EACCES', 'EAGAIN', 'EMFILE', 'ENFILE']
 
 const KILL_SIGNALS = ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP', 'SIGUSR1', 'SIGUSR2', 'SIGQUIT', 'SIGALRM', 'SIGPIPE', 'SIGABRT']
 
+const NODE_SIGNAL_NAMES = ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT', 'SIGIOT', 'SIGBUS', 'SIGFPE', 'SIGKILL', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGPIPE', 'SIGALRM', 'SIGTERM', 'SIGCHLD', 'SIGSTKFLT', 'SIGCONT', 'SIGSTOP', 'SIGTSTP', 'SIGTTIN', 'SIGTTOU', 'SIGURG', 'SIGXCPU', 'SIGXFSZ', 'SIGVTALRM', 'SIGPROF', 'SIGWINCH', 'SIGIO', 'SIGPOLL', 'SIGPWR', 'SIGSYS']
+
+function knownSignal(signal) {
+  if (typeof signal === 'number') return Number.isInteger(signal) && signal >= 1 && signal <= 31
+  return NODE_SIGNAL_NAMES.includes(signal.toUpperCase())
+}
+
+function checkSignal(signal) {
+  if ((typeof signal === 'string' || typeof signal === 'number') && !knownSignal(signal)) throw codedError(TypeError, 'ERR_UNKNOWN_SIGNAL', 'Unknown signal: ' + signal)
+}
+
 const LINUX_SIGNAL_NUMBERS = { 1: 'SIGHUP', 2: 'SIGINT', 3: 'SIGQUIT', 6: 'SIGABRT', 9: 'SIGKILL', 10: 'SIGUSR1', 12: 'SIGUSR2', 13: 'SIGPIPE', 14: 'SIGALRM', 15: 'SIGTERM' }
 
 function killSignalOf(opts) {
   const requested = opts.killSignal ?? 'SIGTERM'
-  if (typeof requested === 'number' && (!Number.isInteger(requested) || requested < 1 || requested > 31)) throw codedError(TypeError, 'ERR_UNKNOWN_SIGNAL', 'Unknown signal: ' + requested)
+  checkSignal(requested)
   const signal = typeof requested === 'number' && osPlatform === 'linux' ? LINUX_SIGNAL_NUMBERS[requested] : requested
   if (!KILL_SIGNALS.includes(signal)) throw gapError('child-process killSignal ' + String(requested))
   return signal
@@ -3323,6 +3334,7 @@ class ChildProcess extends Emitter {
   }
 
   kill(signal = 'SIGTERM') {
+    if (signal !== 0) checkSignal(signal)
     if (this.#process === undefined || this.#exited) return false
     try {
       this.#process.kill(signal)

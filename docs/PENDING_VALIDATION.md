@@ -2828,3 +2828,15 @@ Change: src/txiki.js createReadStream passes autoClose through as given (undefin
 Witnesses (expected from the Node source; the Phase B oracle run is the check): "fs.createReadStream autoClose 0 reads the data and never emits close", "fs.createReadStream autoClose yes closes after end like true".
 
 Red check (run in Phase B): mutation: the gap line restored in createReadStream; witness: the 'yes' case reports the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): unknown signal names and kill
+
+Row: a signal name that Node does not know (killSignal 'SIGFOO', ChildProcess.kill('SIGFOO')) threw the declared gap. A numeric killSignal outside 1 to 31 was handled in the earlier numeric row (commit 4a665459); that check is now the shared checkSignal, so there is one rule.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): convertToValidSignal accepts a number that the signal mapping has, and a string whose upper-case form is in the mapping; anything else throws ERR_UNKNOWN_SIGNAL with message "Unknown signal: %s" (TypeError). sanitizeKillSignal runs it for killSignal in execFile and spawn. ChildProcess.kill runs it first, except for sig 0. The mapping on Linux is the 33 standard names (the binary lists SIGIOT, SIGPOLL and SIGSTKFLT among them) and the numbers 1 to 31.
+
+Change: src/txiki.js adds NODE_SIGNAL_NAMES, knownSignal and checkSignal (one rule for both call sites). killSignalOf calls checkSignal; ChildProcess.kill calls checkSignal unless the signal is 0, before the exited check, as Node validates first. Names Node knows that txiki cannot send (SIGSTOP and similar) keep the gap. test/parity-cases.js: two sharedCases witnesses added.
+
+Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process killSignal SIGFOO throws ERR_UNKNOWN_SIGNAL at execFile" and "child-process kill SIGFOO throws ERR_UNKNOWN_SIGNAL before the signal is sent".
+
+Red check (run in Phase B): mutation: the checkSignal call removed from ChildProcess.kill; witness: the kill case reports no throw (the native gap or no error); restore: copy back; cmp; git status shows the two files only.
