@@ -1058,6 +1058,8 @@ const osPlatform = await kernelName().then(
   () => undefined,
 )
 
+let exitCode
+
 const processObject = withGaps('process', {
   ...(osPlatform === undefined ? {} : { platform: osPlatform }),
   argv: [tjs.exePath, ...tjs.args],
@@ -1069,6 +1071,14 @@ const processObject = withGaps('process', {
   kill: (pid, signal) => tjs.kill(pid, signal),
   pid: tjs.pid,
   ppid: tjs.ppid,
+  get exitCode() {
+    return exitCode
+  },
+  set exitCode(code) {
+    if (code !== undefined && code !== null && !Number.isInteger(code)) throw gapError('process.exitCode with a value that is not an integer')
+    exitCode = code
+    txikiCore.setExitCode(code ?? 0)
+  },
 })
 
 const osRelease = await tjs.readFile('/proc/sys/kernel/osrelease').then(

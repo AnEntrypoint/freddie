@@ -3051,3 +3051,13 @@ Witness: node --openssl-legacy-provider test/parity-node.js prints 796/796 share
 Red check (mutation, witness, restore, cmp, git status): parity-expected.js shared 796 -> 797. Witness: node parity exits 1 with 'parity record drift: shared 796, record 797'. Restored; cmp RESTORED_IDENTICAL; git status shows only the files of this commit.
 
 window.mjs reads its default expected counts from the record, so the window's txiki check follows the record.
+
+## Wired: process.exitCode to core.setExitCode (gm handoff 6, 2026-11-20)
+
+Change: src/txiki.js process gets an accessor pair for exitCode. The setter keeps the value (undefined, null or an integer) and calls txikiCore.setExitCode(code ?? 0), so a cleared value is status 0. A non-integer value throws the gap message 'process.exitCode with a value that is not an integer' (no witness for it, so it stays a gap). The gapCases row 'process.exitCode' is removed; two shared rows replace it. Record: shared 796 -> 798, gaps applied 4 -> 3, inactive 1 unchanged.
+
+Witness (freddie, both runtimes): 'process.exitCode reads back the integer set and clears to undefined' ([7, undefined]) and 'process.exitCode is undefined until set and returns to undefined' ([undefined, 0, undefined]). Node: 798/798 shared cases match (exit 0). Probe: shared 798, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-process-exit-code: ok (setExitCode sets the status serve exits with, and a run without it exits 0). The freddie witness reads the JS mirror, so it cannot see the native status; the native forward is covered by the gm witness, and it is part of the Phase B window.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js setter stores undefined in place of the value. Witness: 'txiki parity failed' with mismatch 'process.exitCode reads back the integer set and clears to undefined' (got ['undefined','undefined']). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

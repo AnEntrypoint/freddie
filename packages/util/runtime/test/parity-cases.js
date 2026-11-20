@@ -2933,8 +2933,12 @@ sharedCases.push(
   { name: 'crypto.createHash md4 digest of utf8', run: () => s.crypto.createHash('md4').update('h\u00e9llo \u2713').digest('hex'), expected: 'b3e15b9eba60f4fbf4d02f6f84cd7d35' },
 )
 
+sharedCases.push(
+  { name: 'process.exitCode reads back the integer set and clears to undefined', run: () => { proc.exitCode = 7; const set = String(proc.exitCode); proc.exitCode = undefined; return [set, String(proc.exitCode)] }, expected: ['7', 'undefined'] },
+  { name: 'process.exitCode is undefined until set and returns to undefined', run: () => { const before = String(proc.exitCode); proc.exitCode = 0; const zero = String(proc.exitCode); proc.exitCode = undefined; return [before, zero, String(proc.exitCode)] }, expected: ['undefined', '0', 'undefined'] },
+)
+
 export const gapCases = [
-  { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
