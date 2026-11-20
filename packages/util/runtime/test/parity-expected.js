@@ -1,6 +1,6 @@
 export const expectedRecord = {
-  shared: 834,
-  gapsApplied: 3,
+  shared: 835,
+  gapsApplied: 2,
   gapsInactive: 1,
   inactiveReason: {
     'os.release': 'applies only when /proc/sys/kernel/osrelease is absent; this host reads it, so the gap is inactive here by design',

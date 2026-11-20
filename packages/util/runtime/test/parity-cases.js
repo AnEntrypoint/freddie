@@ -3018,10 +3018,19 @@ sharedCases.push(
   { name: 'fs.rmSync of a missing path throws ENOENT', run: () => withScratch(async (dir) => { try { s.fs.rmSync(dir + '/none'); return 'no throw' } catch (error) { return error.code } }), expected: 'ENOENT' },
 )
 
+const WORKER_ENTRY = `if (typeof self !== 'undefined' && self.addEventListener) {
+  self.addEventListener('message', (event) => self.postMessage(event.data * 2))
+} else {
+  import('node:worker_threads').then(({ parentPort }) => parentPort.on('message', (value) => parentPort.postMessage(value * 2)))
+}
+`
+sharedCases.push(
+  { name: 'worker_threads.Worker replies to a message with the doubled value', run: () => withScratch(async (dir) => { const entry = dir + '/entry.js'; await fsp.writeFile(entry, WORKER_ENTRY); return new Promise((resolve, reject) => { const worker = new s['worker-threads'].Worker(entry); const timer = setTimeout(() => { worker.terminate(); reject(new Error('no reply')) }, 8000); worker.on('message', (value) => { clearTimeout(timer); resolve(value); worker.terminate() }); worker.on('error', reject); worker.postMessage(21) }) }), expected: 42 },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
-  { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
 

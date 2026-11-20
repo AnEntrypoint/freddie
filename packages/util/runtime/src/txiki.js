@@ -1241,6 +1241,7 @@ const osPlatform = await kernelName().then(
 
 let exitCode
 
+
 const processObject = withGaps('process', {
   ...(osPlatform === undefined ? {} : { platform: osPlatform }),
   argv: [tjs.exePath, ...tjs.args],
@@ -3395,6 +3396,28 @@ function idOption(opts, key) {
   return value
 }
 
+class Worker extends Emitter {
+  #native
+
+  constructor(filename, options) {
+    super()
+    if (typeof filename !== 'string' || options !== undefined) throw gapError('worker_threads.Worker with a file name and options')
+    this.#native = new txikiCore.Worker(filename)
+    const port = this.#native.messagePipe
+    port.onmessage = (event) => this.emit('message', event.data)
+    port.start()
+  }
+
+  postMessage(value) {
+    this.#native.messagePipe.postMessage(value)
+  }
+
+  terminate() {
+    this.#native.terminate()
+    return Promise.resolve(0)
+  }
+}
+
 const STDIO_KINDS = ['pipe', 'overlapped', 'inherit', 'ignore']
 
 function stdioOf(opts) {
@@ -3710,7 +3733,7 @@ export const txikiRuntime = {
   }),
   workerThreads: withGaps('worker_threads', {
     MessageChannel: globalThis.MessageChannel,
-    Worker: gapClass('worker_threads.Worker'),
+    Worker,
     parentPort: withGaps('worker_threads.parentPort', {}),
     workerData: withGaps('worker_threads.workerData', {}),
   }),

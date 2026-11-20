@@ -3134,7 +3134,7 @@ Change: openSync(path, flags, mode) calls txikiCore.openSync with fsPathError(er
 
 Witness (freddie, both runtimes): a write of [104, 105] returns 2, readSync reads it back as [2, 2, 104, 105]; readSync at explicit position 1 returns [1, 105]; openSync of a missing file throws ENOENT with Node's message (open '<path>'); writeFileSync overwrites a file with 'x' and readFileSync reads 'x' (the w flag truncates). Node: 819/819 shared cases match (exit 0). Probe: shared 819, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
 
-Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (covers writeSync and readSync with an explicit position, closeSync on a bad fd).
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok, RC 0.
 
 Red check (mutation, witness, restore, cmp, git status): readSync ignores its position argument (always -1). Witness: 'txiki parity failed' with mismatch 'fs.readSync reads at an explicit position' (got [1, 104], expected [1, 105]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
@@ -3144,7 +3144,7 @@ Change: each function calls its txikiCore sync variant. readdirSync returns the 
 
 Witness (freddie, both runtimes): readdirSync lists two files ['a','b'] (sorted in the row); readdirSync of a missing path throws ENOENT with Node's message (scandir '<path>'); readlinkSync returns the stored target (true); realpathSync of a symlink equals realpathSync of its file (true); symlinkSync over an existing path throws EEXIST; mkdtempSync makes a directory with the prefix, six more characters, and exists ([true, true, true]). Node: 825/825 shared cases match (exit 0). Probe: shared 825, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
 
-Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (readdirSync, readlinkSync, realpathSync, mkdtempSync).
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok, RC 0.
 
 Red check (mutation, witness, restore, cmp, git status): realpathSync returns its input path. Witness: 'txiki parity failed' with mismatch 'fs.realpathSync resolves a symlink to the file it names' (got false, expected true). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
@@ -3154,7 +3154,7 @@ Change: statSync and lstatSync call txikiCore.statSync and txikiCore.lstatSync a
 
 Witness (freddie, both runtimes): statSync of a three-byte file gives [isFile true, isDirectory false, size 3]; lstatSync of a symlink reports isSymbolicLink and statSync of the same link reports isFile ([true, true]); statSync of a missing path throws ENOENT with Node's message (stat '<path>'). Node: 828/828 shared cases match (exit 0). Probe: shared 828, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
 
-Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (lstatSync against statSync).
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok, RC 0.
 
 Red check (mutation, witness, restore, cmp, git status): statSync calls txikiCore.lstatSync (it does not follow the link). Witness: 'txiki parity failed' with mismatch 'fs.lstatSync reports a symlink and statSync follows it to its file' (got [true, false], expected [true, true]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
@@ -3164,6 +3164,18 @@ Change: mkdirSync(path, mode) calls txikiCore.mkdirSync (a number, or options.mo
 
 Witness (freddie, both runtimes): mkdirSync makes a directory (true); mkdirSync over an existing path throws EEXIST; unlinkSync removes a file (false afterwards); unlinkSync of a missing path throws ENOENT; rmSync removes a file ([true, false]); rmSync of a missing path throws ENOENT. Node: 834/834 shared cases match (exit 0). Probe: shared 834, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
 
-Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok (the native rmSync and unlinkSync).
+Native witness (gm, re-run): gm-tool check check-txiki-sync-names: ok, RC 0.
 
 Red check (mutation, witness, restore, cmp, git status): unlinkSync checks access instead of unlinking. Witness: 'txiki parity failed' with mismatch 'fs.unlinkSync removes a file' (got true, expected false). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired (worker_threads): Worker from a file path, messages delivered to 'message' listeners (gm handoff 7, 2026-11-20)
+
+Change: class Worker extends Emitter wraps txikiCore.Worker(filename). Its messagePipe gets onmessage, which emits 'message' with event.data, and start() is called so messages are delivered. postMessage forwards to the pipe; terminate() terminates the native worker and returns a resolved promise of 0. A non-string file name, or an options argument, is a gap (the message names the case). gapCases row 'worker_threads.Worker' is removed; the shared row is added. Record: shared 834 -> 835, gaps 3 -> 2 (the row removed is a gap, the new witness is shared). The Worker class sits after Emitter so the class is defined when it is used.
+
+Witness (freddie, both runtimes): a worker file that doubles a posted number replies 42 to a 21 post. The entry file detects self.addEventListener (txiki) and falls back to parentPort (Node). A stub cannot pass: it would need a reply from another realm. Node: 835/835 shared cases match (exit 0). Probe: shared 835, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-worker-message-channel: ok, RC 0 (a port started without a delivery function delivers to onmessage, and the worker's reply arrives).
+
+Native failure recorded for gm (not worked around in freddie): before gm 213c830-era fixes, a worker started with a port that had no delivery function aborted in mod_channel.c port_dispatch_one (see gm handoff 7 above); the current build passes its witness, so the wrapper calls start() as the witness shows.
+
+Red check (mutation, witness, restore, cmp, git status): the port.start() call is removed from Worker's constructor. Witness: 'txiki parity failed' with mismatch 'worker_threads.Worker replies to a message with the doubled value' (got 'threw: no reply', expected 42). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
