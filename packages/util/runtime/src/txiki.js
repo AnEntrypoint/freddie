@@ -2408,7 +2408,10 @@ class Readable extends Emitter {
     this.#objectMode = Boolean(options?.objectMode)
     this.#highWaterMark = highWaterMarkOf(options, this.#objectMode ? 16 : DEFAULT_HIGH_WATER_MARK)
     if (options?.encoding !== undefined && options.encoding !== null) {
-      if (this.#objectMode) this.#objectEncoding = true
+      if (this.#objectMode) {
+        encodingOf(options.encoding)
+        this.#objectEncoding = true
+      }
       else this.setEncoding(options.encoding)
     }
   }

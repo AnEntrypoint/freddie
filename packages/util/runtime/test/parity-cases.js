@@ -2753,6 +2753,13 @@ sharedCases.push(
   { name: 'fs.createReadStream highWaterMark 2^35 reads no data and ends', run: () => highWaterMarkEvents({ highWaterMark: 2 ** 35 }), expected: ['end', 'close'] },
 )
 
+sharedCases.push(
+  { name: 'stream.Readable objectMode with an unknown encoding throws TypeError ERR_UNKNOWN_ENCODING', run: () => objectChunkThrow(() => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'bogus' })), expected: { code: 'ERR_UNKNOWN_ENCODING', name: 'TypeError', message: 'Unknown encoding: bogus' } },
+  { name: 'stream.Readable objectMode with a numeric encoding throws TypeError ERR_UNKNOWN_ENCODING', run: () => objectChunkThrow(() => new s.stream.Readable({ read() {}, objectMode: true, encoding: 5 })), expected: { code: 'ERR_UNKNOWN_ENCODING', name: 'TypeError', message: 'Unknown encoding: 5' } },
+  { name: 'stream.PassThrough objectMode with an unknown encoding throws TypeError ERR_UNKNOWN_ENCODING', run: () => objectChunkThrow(() => new s.stream.PassThrough({ objectMode: true, encoding: 'bogus' })), expected: { code: 'ERR_UNKNOWN_ENCODING', name: 'TypeError', message: 'Unknown encoding: bogus' } },
+  { name: 'stream.Readable objectMode with encoding UTF-8 passes a string push through as is', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true, encoding: 'UTF-8' }); r.push('6869'); return r.read() }, expected: '6869' },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'

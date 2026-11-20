@@ -2567,3 +2567,21 @@ Readings (si / so KB/s; heavy-jobs):
 Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/hwmF-good-txiki.js); git status was empty.
 
 Pending: the same Phase B (txiki parity with mismatches [] and unexpectedGaps [] required, Node parity, and RC32 with the full mismatch list) when a window clears. Phase A commit f4ee433c is local and not pushed.
+
+## Push window (2026-11-20, minute 196): f4ee433c and 706469b8 pushed
+
+The gate and scripts/heavy-jobs.cjs (bevy 495fff6) read clear on the sample at minute 196 (si 192, so 64, HEAVY_JOBS clear), and the push ran at once. Output: `0eb68062..706469b8  main -> main`. git ls-remote origin main: 706469b81de3d826e41369c0ab4a92d3da61b0a7. No parity run repeated: the cited runs for this source are 2026-11-20-05-30-57-16eb86 (txiki parity, PID 2274889) and the RC32 red check 2026-11-20-05-34-00-3124a3 (PID 2278148).
+
+## fx split: stream.Readable objectMode with an unknown encoding (7at, item 4), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/objectmode-encoding-node.cjs; output runs/analysis/objectmode-encoding-node.out. Readable objectMode with 'bogus': TypeError ERR_UNKNOWN_ENCODING "Unknown encoding: bogus". Without objectMode: the same. Readable objectMode with the number 5: "Unknown encoding: 5". setEncoding('bogus') in objectMode: the same. PassThrough objectMode with 'bogus': the same. Readable objectMode with 'UTF-8': accepted, readableEncoding 'UTF-8', push '6869' reads back as '6869'. 'base64' accepted and reads back as pushed.
+
+txiki probe on a copy (/tmp/enc-copy/txiki.js; body runs/analysis/objectmode-encoding-body.js): before, runs/analysis/objectmode-encoding-txiki-before.out: objectMode 'bogus', objectMode 5 and PassThrough objectMode 'bogus' returned no error; the non-objectMode 'bogus' and setEncoding('bogus') threw ERR_UNKNOWN_ENCODING; 'UTF-8' push returned '6869'. After (copy, runs/analysis/objectmode-encoding-txiki-after.out): all objectMode name checks throw the Node error; 'UTF-8' still returns '6869'.
+
+gapCases search before commit: no entry names an objectMode encoding or ERR_UNKNOWN_ENCODING (count 0).
+
+Change (Phase A): src/txiki.js: the objectMode branch of the Readable constructor calls encodingOf(options.encoding) before setting #objectEncoding, so the name is validated as in the non-objectMode path. test/parity-cases.js: four shared witnesses (bogus, the number 5, PassThrough bogus, UTF-8 push returns as pushed), the first three through objectChunkThrow.
+
+Phase A checks: Node parity on the tree: 740/740 shared cases match (PID 2304467, exit 0, 9596 ms). txiki parity on the tree: shared 740, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-06-16-22-d7c6af, PID 2304652, exit 0, 14286 ms). Red check RC-enc (the validation line removed): the bogus, numeric and PassThrough witnesses got no throw; the UTF-8 witness stayed green (run 2026-11-20-06-19-17-192aea, PID 2307565, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only the three item-4 files.
+
+Pending: nothing for this item; it is committed locally and not pushed in this stretch.
