@@ -2123,7 +2123,7 @@ function invalidArgValue(property, value) {
 function highWaterMarkOf(options, fallback = DEFAULT_HIGH_WATER_MARK, property = 'highWaterMark') {
   const value = options?.highWaterMark
   if (value === undefined) return fallback
-  if (!Number.isSafeInteger(value) || value < 0) throw invalidArgValue('options.' + property, value)
+  if (!Number.isInteger(value) || value < 0) throw invalidArgValue('options.' + property, value)
   return value
 }
 
@@ -2994,7 +2994,6 @@ function createReadStream(path, options) {
   const end = positionOf('fs.createReadStream end', opts.end, undefined)
   if (end !== undefined && end < start) throw gapError('fs.createReadStream end before start')
   const highWaterMark = highWaterMarkOf(opts)
-  if (highWaterMark === 0) throw gapError('fs.createReadStream highWaterMark 0')
   const stream = new FileReadStream(path, { start, end, highWaterMark, signal: opts.signal, flags, autoClose })
   if (opts.encoding !== undefined && opts.encoding !== null) stream.setEncoding(opts.encoding)
   return stream

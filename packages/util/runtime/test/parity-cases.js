@@ -2654,6 +2654,31 @@ sharedCases.push(
   { name: 'fs.createReadStream signal function throws ERR_INVALID_ARG_TYPE', run: () => { function namedSignal() {} return signalTypeError(namedSignal) }, expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received function namedSignal' } },
 )
 
+const highWaterMarkEvents = async (options) => {
+  const { file } = await streamFile('hwm.txt', 'abcdefghij')
+  const got = []
+  await new Promise((resolve) => {
+    const stream = s.fs.createReadStream(file, options)
+    stream.on('data', (chunk) => got.push('data ' + String(chunk)))
+    stream.on('end', () => got.push('end'))
+    stream.on('error', (error) => got.push('error ' + error.code + ' ' + error.name))
+    stream.on('close', () => { got.push('close'); resolve() })
+  })
+  return got
+}
+const highWaterMarkThrow = (highWaterMark) => {
+  try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
+  return 'no throw'
+}
+sharedCases.push(
+  { name: 'fs.createReadStream highWaterMark 0 reads nothing and ends', run: () => highWaterMarkEvents({ highWaterMark: 0 }), expected: ['end', 'close'] },
+  { name: 'fs.createReadStream highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => highWaterMarkThrow(-1), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+  { name: 'stream.Readable highWaterMark 0 push returns false', run: () => { const r = new s.stream.Readable({ read() {}, highWaterMark: 0 }); return [r.push(Buffer.from('ab')), r.push(Buffer.from('c'))] }, expected: [false, false] },
+  { name: 'stream.Writable highWaterMark 0 write returns false', run: () => { const w = new s.stream.Writable({ highWaterMark: 0, write(chunk, enc, cb) {} }); return [w.write(Buffer.from('abc')), w.write(Buffer.from('d'))] }, expected: [false, false] },
+  { name: 'stream.Readable highWaterMark 1e300 push returns true', run: () => { const r = new s.stream.Readable({ read() {}, highWaterMark: 1e300 }); return [r.push(Buffer.from('ab')), r.push(Buffer.from('c'))] }, expected: [true, true] },
+  { name: 'stream.Writable highWaterMark 1e300 write returns true', run: () => { const w = new s.stream.Writable({ highWaterMark: 1e300, write(chunk, enc, cb) {} }); return [w.write(Buffer.from('abc')), w.write(Buffer.from('d'))] }, expected: [true, true] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

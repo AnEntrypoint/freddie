@@ -2216,3 +2216,15 @@ Not witnessed, kept as a gap: `{ aborted: false }`, which Node accepts and then 
 Restore: the good copy /tmp/stageK-good-txiki.js is the committed 24997b36 source; `cmp` gave identical files after RC-aj, `git status --short` was empty, and `git diff` of the source against 24997b36 is empty. No process of mine was left running.
 
 Longest step: the txiki parity run and the red check (14.5 s each). The longest wait was one closed sample (slot 0).
+
+## fx split: highWaterMark 0 and very large values (7ak), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/highwatermark-node.mjs, output runs/analysis/highwatermark-node.out (Node output only). fs.createReadStream: 0 is accepted and gives end then close with no data; negative -1, '8', 2.5 and Infinity throw ERR_INVALID_ARG_VALUE synchronously (TypeError, "The property 'options.highWaterMark' is invalid. Received <value>"); 2^40 creates and then errors asynchronously (ERR_MEMORY_ALLOCATION_FAILED, RangeError), then close; 1e300 creates and errors asynchronously (ERR_OUT_OF_RANGE, RangeError), then close. Readable and Writable: 0 gives push and write false; 2^40 and 1e300 give true; negative, string, fraction and Infinity throw as above.
+
+txiki probe on a copy (/tmp/hwm-copy/txiki.js, a single-file copy; txiki.js imports only tjs modules): runs/analysis/highwatermark-body.js; before the change, output runs/analysis/highwatermark-txiki.out: fs 0 gap; Readable and Writable 1e300 threw ERR_INVALID_ARG_VALUE (Number.isSafeInteger rejects it); fs 2^40 and 1e300 differ from Node (RangeError with no code; 1e300 thrown synchronously). After the change, output runs/analysis/highwatermark-txiki-after.out: fs 0 ends then closes; Readable and Writable 0 and 1e300 match Node; the fs error paths are unchanged from before.
+
+Change (Phase A): src/txiki.js: highWaterMarkOf uses Number.isInteger (Node's rule); the createReadStream line that threw the 0 gap is removed. test/parity-cases.js: six shared cases (fs 0, fs -1, Readable 0, Writable 0, Readable 1e300, Writable 1e300).
+
+Open, not witnessed (remaining items on the ranked list): fs 2^40 and 1e300 error codes (txiki RangeError has no code; reopen: a probe mapping the tjs allocation and range errors to Node's codes); negative values give name Error in txiki (reopen: a probe of the name Node uses, TypeError, on the invalidArgValue path).
+
+Pending (Phase B window): the Node probe, the Node parity run, the txiki parity run, and the red check RC-hwm: the fs 0 path returned to the gap throw.
