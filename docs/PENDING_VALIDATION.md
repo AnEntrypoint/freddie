@@ -2585,3 +2585,21 @@ Change (Phase A): src/txiki.js: the objectMode branch of the Readable constructo
 Phase A checks: Node parity on the tree: 740/740 shared cases match (PID 2304467, exit 0, 9596 ms). txiki parity on the tree: shared 740, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-06-16-22-d7c6af, PID 2304652, exit 0, 14286 ms). Red check RC-enc (the validation line removed): the bogus, numeric and PassThrough witnesses got no throw; the UTF-8 witness stayed green (run 2026-11-20-06-19-17-192aea, PID 2307565, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only the three item-4 files.
 
 Pending: nothing for this item; it is committed locally and not pushed in this stretch.
+
+## Push window (2026-11-20, minute 358): b7d2c233 pushed
+
+The gate and scripts/heavy-jobs.cjs (bevy 495fff6) read clear on the sample at minute 358 (si 716, so 0, HEAVY_JOBS clear), and the push ran at once. Output: `706469b8..b7d2c233  main -> main`. git ls-remote origin main: b7d2c2337fbe6383b2ad6e7fdb727d3f2f676bfc. No parity run repeated: the cited runs for this source are 2026-11-20-06-16-22-d7c6af (txiki parity, PID 2304652), Node parity 740/740 (PID 2304467) and the red check 2026-11-20-06-19-17-192aea (PID 2307565).
+
+## fx split: stream.Readable readableEncoding (7au), Phase A (2026-11-20)
+
+Node oracle, each shape in its own process: runs/analysis/readable-encoding-node.cjs; output runs/analysis/readable-encoding-node.out. Default Readable: null. encoding 'hex' option: 'hex'. encoding 'UTF-8' option: 'UTF-8' (as given). objectMode with 'base64': 'base64'. setEncoding('hex'): 'hex'. setEncoding('UTF-8'): 'utf8' (normalized). objectMode default: null. PassThrough with 'hex': 'hex'. PassThrough default: null. fs.createReadStream with 'hex': 'hex'; default: null. Writable: no readableEncoding (undefined).
+
+txiki probe on a copy (/tmp/rE-copy/txiki.js; body runs/analysis/readable-encoding-body.js): before, runs/analysis/readable-encoding-txiki-before.out: every shape undefined (no getter). After (copy, runs/analysis/readable-encoding-txiki-after.out): every shape matches Node (null, 'hex', 'UTF-8', 'base64', 'hex', 'utf8', null, 'hex').
+
+gapCases search before commit: no entry names readableEncoding or an encoding property (count 0).
+
+Change (Phase A): src/txiki.js: #readableEncoding = null; the getter readableEncoding; the constructor stores the encoding option as given (after validation, both for objectMode and not); setEncoding stores the normalized name. test/parity-cases.js: six shared witnesses (default null; option 'UTF-8' as given; setEncoding 'UTF-8' gives 'utf8'; setEncoding 'hex'; objectMode 'base64' option; PassThrough 'hex' option).
+
+Phase A checks: Node parity on the tree: 746/746 (PID 2323086, exit 0, 9614 ms). txiki parity on the tree: shared 746, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-06-38-34-0e1012, PID 2323285, exit 0, 14299 ms). Red check RC-re (the constructor's raw assignment removed): red on the 'keeps the encoding option as given' witness (got utf8, expected UTF-8) and on the 'objectMode with an encoding option' witness (got null, expected base64); the default, setEncoding and PassThrough witnesses stayed green (run 2026-11-20-06-41-40-9e8277, PID 2326337, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only the three item-readableEncoding files.
+
+Pending: nothing for this item; committed locally, not pushed in this stretch.

@@ -2760,6 +2760,15 @@ sharedCases.push(
   { name: 'stream.Readable objectMode with encoding UTF-8 passes a string push through as is', run: () => { const r = new s.stream.Readable({ read() {}, objectMode: true, encoding: 'UTF-8' }); r.push('6869'); return r.read() }, expected: '6869' },
 )
 
+sharedCases.push(
+  { name: 'stream.Readable readableEncoding is null by default', run: () => new s.stream.Readable({ read() {} }).readableEncoding, expected: null },
+  { name: 'stream.Readable readableEncoding keeps the encoding option as given', run: () => new s.stream.Readable({ read() {}, encoding: 'UTF-8' }).readableEncoding, expected: 'UTF-8' },
+  { name: 'stream.Readable readableEncoding after setEncoding is the normalized name', run: () => { const r = new s.stream.Readable({ read() {} }); r.setEncoding('UTF-8'); return r.readableEncoding }, expected: 'utf8' },
+  { name: 'stream.Readable readableEncoding after setEncoding hex', run: () => { const r = new s.stream.Readable({ read() {} }); r.setEncoding('hex'); return r.readableEncoding }, expected: 'hex' },
+  { name: 'stream.Readable readableEncoding for objectMode with an encoding option', run: () => new s.stream.Readable({ read() {}, objectMode: true, encoding: 'base64' }).readableEncoding, expected: 'base64' },
+  { name: 'stream.PassThrough readableEncoding with the encoding option', run: () => new s.stream.PassThrough({ encoding: 'hex' }).readableEncoding, expected: 'hex' },
+)
+
 const highWaterMarkThrow = (highWaterMark) => {
   try { s.fs.createReadStream('/tmp/never-read-hwm', { highWaterMark }) } catch (error) { return { code: error.code, message: error.message } }
   return 'no throw'

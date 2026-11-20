@@ -2397,6 +2397,7 @@ class Readable extends Emitter {
   #decoder = null
   #encoding = null
   #objectEncoding = false
+  #readableEncoding = null
   #highWaterMark = DEFAULT_HIGH_WATER_MARK
   #objectMode = false
 
@@ -2413,6 +2414,7 @@ class Readable extends Emitter {
         this.#objectEncoding = true
       }
       else this.setEncoding(options.encoding)
+      this.#readableEncoding = options.encoding
     }
   }
 
@@ -2612,6 +2614,10 @@ class Readable extends Emitter {
     return this
   }
 
+  get readableEncoding() {
+    return this.#readableEncoding
+  }
+
   setEncoding(encoding) {
     const name = encodingOf(encoding)
     const decoder = new StringDecoder(name)
@@ -2619,6 +2625,7 @@ class Readable extends Emitter {
     for (const chunk of this.#buffer) content += typeof chunk === 'string' ? chunk : decoder.write(chunk)
     this.#decoder = decoder
     this.#encoding = name
+    this.#readableEncoding = name
     this.#buffer = content === '' ? [] : [content]
     this.#length = content.length
     return this
