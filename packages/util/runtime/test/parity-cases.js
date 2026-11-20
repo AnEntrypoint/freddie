@@ -3047,6 +3047,11 @@ sharedCases.push(
   { name: 'module.createRequire accepts a file URL', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/package.json', '{"type":"commonjs"}'); await fsp.writeFile(dir + '/dep.js', 'module.exports = { value: 7 }'); const req = s.module.createRequire(s.url.pathToFileURL(dir + '/main.js')); return req('./dep.js').value }), expected: 7 },
 )
 
+sharedCases.push(
+  { name: 'fs.readdirSync withFileTypes reports the kind of each entry', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); s.fs.mkdirSync(dir + '/d'); s.fs.symlinkSync(dir + '/f', dir + '/l'); return s.fs.readdirSync(dir, { withFileTypes: true }).map((e) => [e.name, e.isFile(), e.isDirectory(), e.isSymbolicLink()]).sort((x, y) => (x[0] < y[0] ? -1 : 1)) }), expected: [['d', false, true, false], ['f', true, false, false], ['l', false, false, true]] },
+  { name: 'fs.readdirSync withFileTypes of a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.readdirSync('/nonexistent-freddie-dirent', { withFileTypes: true })), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, scandir '/nonexistent-freddie-dirent'" } },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

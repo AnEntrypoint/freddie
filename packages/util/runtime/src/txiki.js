@@ -405,12 +405,14 @@ function writeSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, 
 }
 
 function readdirSync(path, options) {
-  if (options?.withFileTypes === true) throw gapError('fs.readdirSync withFileTypes')
+  let names
   try {
-    return txikiCore.readdirSync(path)
+    names = txikiCore.readdirSync(path)
   } catch (error) {
     throw fsPathError(error, 'scandir', path)
   }
+  if (options?.withFileTypes !== true) return names
+  return names.map((name) => ({ name, parentPath: path, ...fileTypeMethods(txikiCore.lstatSync(tjsPath.join(path, name))) }))
 }
 
 function readlinkSync(path) {

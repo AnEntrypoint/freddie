@@ -3250,3 +3250,13 @@ Witness (freddie, both runtimes, three shared rows a stub cannot satisfy): a rel
 Red check (mutation, witness, restore, cmp, git status): loadModule returns {} instead of module.exports. Witness: 'parity failed' with mismatches 'module.createRequire loads a relative .js file and a .json file' (got [null, null], expected [7, 3]) and the identity row. PID 1060765. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
 Not covered: bare specifiers (Node: MODULE_NOT_FOUND for a missing package, node_modules lookup otherwise), require.resolve, require.cache, and a cycle that reads a partially filled exports object. These remain gaps. The call sites that need only path forms are framework/hmr, framework/loader, bundle/web-app and host/product-telemetry-otel; packages/boot/app-boot uses createRequire(anchor).resolve.paths, which is not wired.
+
+## Wired: fs.readdirSync with { withFileTypes: true } (ranked gap 4, adapter-only, 2026-11-20)
+
+Change: readdirSync keeps the name list from txikiCore.readdirSync and, for withFileTypes, returns { name, parentPath, ...fileTypeMethods(lstat) } per entry, where the lstat is txikiCore.lstatSync on the joined path. The lstat (not stat) is what makes a symbolic link report isSymbolicLink. The existing async direntOf(raw) is unchanged; the sync path reuses fileTypeMethods rather than adding a second helper. The gap 'fs.readdirSync withFileTypes' is removed. Record: shared 845 -> 847, gaps unchanged at 2 applied, 1 inactive.
+
+Witness (freddie, both runtimes, two shared rows): entries of a directory holding a file, a directory and a symbolic link report [name, isFile, isDirectory, isSymbolicLink] as [['d', false, true, false], ['f', true, false, false], ['l', false, false, true]] (sorted, since directory order is not part of Node's contract); a missing path throws ENOENT with Node's message. Node: 847/847 shared cases match (exit 0). Probe: shared 847, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0, PID 1066107).
+
+Red check (mutation, witness, restore, cmp, git status): the sync entry uses txikiCore.statSync instead of lstatSync, so a link reports its target's kind. Witness: 'parity failed' with mismatch 'fs.readdirSync withFileTypes reports the kind of each entry' (got the link as [l, true, false, false], expected [l, false, false, true]). PID 1068310. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+Not covered: Dirent.path (deprecated in Node) and the entry's type when an entry is removed between the readdir and the lstat (the lstat error propagates as the native error).
