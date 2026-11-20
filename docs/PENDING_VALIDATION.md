@@ -2971,3 +2971,15 @@ Change: src/txiki.js adds exec before execFile and exports it under child_proces
 Witnesses: 'child-process.exec runs the string in a shell and captures stdout and stderr', 'child-process.exec reports a nonzero exit as Node does', 'child-process.exec passes cwd to the shell'.
 
 Red check (Phase B): mutation: 'shell: typeof opts.shell === 'string' ? opts.shell : true' replaced by 'shell: false' (exec runs the command as a file). Witness: the shell cases fail (ENOENT for the file 'printf out; printf err >&2'). Restore: copy back; cmp; git status shows the three files and this ledger.
+
+## Stretch F row 3 (2026-11-20): crypto md4, with the OpenSSL legacy provider as the oracle
+
+Oracle check: Node 24.22 (OpenSSL 3.5.5, the Node build here) refuses createHash('md4') with ERR_OSSL_EVP_UNSUPPORTED by default. With node --openssl-legacy-provider it returns the digests below. The OpenSSL CLI (openssl dgst -md4 -provider legacy -provider default) gives the same values for 'abc' and ''. The values match the RFC 1320 test vectors for '', 'a', 'abc', 'message digest', the lowercase alphabet, the alphanumerics and 80 digits, so the oracle is byte-exact (probe runs/analysis/stretchF-md4-oracle.cjs).
+
+Consequence: the Node parity run must start with node --openssl-legacy-provider, so that the md4 witnesses can compute the Node side. Other Node witnesses are not affected (the flag only adds legacy algorithms). The window command is changed for this stretch and recorded in the window log.
+
+Change: src/txiki.js adds md4Digest (RFC 1320: three rounds of 16 steps, the F, G and H functions, the constants 0, 0x5a827999 and 0x6ed9eba1, the word order and shifts of each round), reusing padMessage, wordsToBytes and rotl32 (dedup), and registers md4 in HASH_FUNCTIONS. createHash('md4') no longer gaps.
+
+Witnesses (test/parity-cases.js, six shared cases, expected from the oracle): empty, abc, 'message digest', 80 digits (two blocks), 200 x (four blocks), utf8 'héllo ✓'.
+
+Red check (Phase B): mutation: remove the 'md4: md4Digest' registration from HASH_FUNCTIONS. Witness: the six md4 cases report the gap message 'crypto.createHash md4'. Restore: copy back; cmp; git status shows the txiki source and this ledger.

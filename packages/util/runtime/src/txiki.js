@@ -1254,6 +1254,48 @@ function md5Digest(bytes) {
   return wordsToBytes(state, true)
 }
 
+const MD4_ORDER = [
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+  [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15],
+  [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15],
+]
+const MD4_SHIFTS = [
+  [3, 7, 11, 19],
+  [3, 5, 9, 13],
+  [3, 9, 11, 15],
+]
+const MD4_CONSTANTS = [0, 0x5a827999, 0x6ed9eba1]
+const MD4_FUNCTIONS = [
+  (b, c, d) => (b & c) | (~b & d),
+  (b, c, d) => (b & c) | (b & d) | (c & d),
+  (b, c, d) => b ^ c ^ d,
+]
+
+function md4Digest(bytes) {
+  const blocks = padMessage(bytes, 64, 8, true)
+  const view = new DataView(blocks.buffer)
+  const state = [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]
+  for (let offset = 0; offset < blocks.length; offset += 64) {
+    const words = Array.from({ length: 16 }, (_, i) => view.getUint32(offset + i * 4, true))
+    let [a, b, c, d] = state
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < 16; i++) {
+        const next = rotl32((a + MD4_FUNCTIONS[round](b, c, d) + words[MD4_ORDER[round][i]] + MD4_CONSTANTS[round]) | 0, MD4_SHIFTS[round][i % 4])
+        const spare = d
+        d = c
+        c = b
+        b = next
+        a = spare
+      }
+    }
+    const working = [a, b, c, d]
+    state.forEach((value, j) => {
+      state[j] = (value + working[j]) | 0
+    })
+  }
+  return wordsToBytes(state, true)
+}
+
 function sha1Round(round, b, c, d) {
   if (round < 20) return [(b & c) | (~b & d), 0x5a827999]
   if (round < 40) return [b ^ c ^ d, 0x6ed9eba1]
@@ -1616,6 +1658,7 @@ function blake2sDigest(bytes, length) {
 }
 
 const HASH_FUNCTIONS = {
+  md4: md4Digest,
   md5: md5Digest,
   sha1: sha1Digest,
   sha224: (bytes) => sha256Digest(bytes, SHA224_INITIAL, 28),

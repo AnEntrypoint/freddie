@@ -2922,6 +2922,15 @@ sharedCases.push(
   { name: 'child-process.exec passes cwd to the shell', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/marker.txt', 'x'); return shellOutcome('ls marker.txt', { cwd: dir }) }), expected: { code: null, signal: null, killed: null, cmd: null, message: null, stdout: 'marker.txt\n', stderr: '' } },
 )
 
+sharedCases.push(
+  { name: 'crypto.createHash md4 digest of empty', run: () => s.crypto.createHash('md4').update('').digest('hex'), expected: '31d6cfe0d16ae931b73c59d7e0c089c0' },
+  { name: 'crypto.createHash md4 digest of abc', run: () => s.crypto.createHash('md4').update('abc').digest('hex'), expected: 'a448017aaf21d8525fc10ae87aa6729d' },
+  { name: 'crypto.createHash md4 digest of message digest', run: () => s.crypto.createHash('md4').update('message digest').digest('hex'), expected: 'd9130a8164549fe818874806e1c7014b' },
+  { name: 'crypto.createHash md4 digest of 80 digits spans two blocks', run: () => s.crypto.createHash('md4').update('1234567890'.repeat(8)).digest('hex'), expected: 'e33b4ddc9c38f2199c3e7b164fcc0536' },
+  { name: 'crypto.createHash md4 digest of 200 x spans four blocks', run: () => s.crypto.createHash('md4').update('x'.repeat(200)).digest('hex'), expected: 'ebd2de6bd766c2812cd60598d8d1c69f' },
+  { name: 'crypto.createHash md4 digest of utf8', run: () => s.crypto.createHash('md4').update('h\u00e9llo \u2713').digest('hex'), expected: 'b3e15b9eba60f4fbf4d02f6f84cd7d35' },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync error for a file that cannot be read', run: () => s.fs.readFileSync('/nonexistent-freddie-readfilesync') },
   { name: 'process.exitCode', run: () => proc.exitCode },
