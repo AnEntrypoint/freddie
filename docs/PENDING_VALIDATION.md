@@ -2199,3 +2199,20 @@ txiki probe on a copy: runs/analysis/signal-type-txiki.out (clear sample, slot 2
 Change (Phase A): src/txiki.js: describeReceived (null, function, object constructor name, string in single quotes, other primitives as type and value) and invalidArgType (TypeError with code ERR_INVALID_ARG_TYPE and Node's message); the createReadStream check is now 'aborted' in signal (as Node validates), then addEventListener for an object that has the property but no listener (still a gap). test/parity-cases.js: six shared cases (number, string, boolean, null, object, function), each through signalTypeError, which records code, name and message.
 
 Pending (Phase B window): the Node probe, the Node and txiki parity runs, and the red check RC-aj: the check reverted to the gap for every value.
+
+## Phase B: createReadStream signal, non-AbortSignal values (7aj), one window of 170 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. Samples: slot 0 closed (si 360, so 3028); slots 1 to 4 clear; the window ended when the queue was empty.
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| Node probe, runs/analysis/signal-type-node.mjs (PID 2053441, exit 0) | 1 | six ERR_INVALID_ARG_TYPE throws: "Received type number (1)", "Received type string ('abc')", "Received type boolean (true)", "Received null", "Received an instance of Object", "Received function fn" | 0.04 s |
+| Node parity (PID 2053976, exit 0) | 2 | node: 691/691 shared cases match; 0/0 gaps throw the documented message; 9515 ms | 9.61 s |
+| txiki parity, committed source 24997b36 (PID 2054317, exit 0) | 3 | shared 691, gaps 21, mismatches [], unexpectedGaps [] | 14.53 s |
+| RC-aj: the check reverted to the gap for every value (PID 2056243, exit 0) | 4 | red on all six signal witnesses (numbers, string, boolean, null, object, function), each threw the gap message. Restored: RESTORED_IDENTICAL | 14.53 s |
+
+Not witnessed, kept as a gap: `{ aborted: false }`, which Node accepts and then fails with a plain TypeError ("signal.addEventListener is not a function", no code); txiki keeps its gap for it. Reopen: a witness for that message, once the code-less TypeError is a parity target.
+
+Restore: the good copy /tmp/stageK-good-txiki.js is the committed 24997b36 source; `cmp` gave identical files after RC-aj, `git status --short` was empty, and `git diff` of the source against 24997b36 is empty. No process of mine was left running.
+
+Longest step: the txiki parity run and the red check (14.5 s each). The longest wait was one closed sample (slot 0).
