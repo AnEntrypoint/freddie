@@ -1889,7 +1889,7 @@ Oracle: runs/analysis/createreadstream-options-node.mjs (timeout 60, PID 1491617
 - signal already aborted: error ABORT_ERR (AbortError), then close, no data.
 - signal aborted inside the first data handler (highWaterMark 4): data 'abcd', error ABORT_ERR (AbortError), close.
 - non-AbortSignal signal: ERR_INVALID_ARG_TYPE thrown synchronously ("The \"options.signal\" property must be an instance of AbortSignal").
-- flags 'r' and 'r+' read the file; flags 'w' gives EBADF on the read stream and truncates the file; flags 'wx' on an existing file gives EEXIST; mode 0o600 on an existing file leaves its mode at 644; autoClose false gives data, end, close.
+- flags 'r' and 'r+' read the file; flags 'w' gives EBADF on the read stream and truncates the file; flags 'wx' on an existing file gives EEXIST; mode 0o600 on an existing file leaves its mode at 644; autoClose false gives (data and end, no close: corrected, fd still open, see 7x).
 
 Change (Phase A): src/txiki.js FileReadStream #watchAbort (already aborted → nextTick destroy with abortError; otherwise an abort listener); createReadStream accepts the signal option and throws gapError for a non-AbortSignal value; the other options (flags as a non-read value, mode, autoClose) stay gapped, as before. test/parity-cases.js: shared cases 'fs.createReadStream signal already aborted emits AbortError then close' (expected ['error ABORT_ERR AbortError', 'close']) and 'fs.createReadStream signal aborted during a read stops after the chunk in flight' (expected ['data abcd', 'error ABORT_ERR AbortError', 'close']).
 
@@ -2005,3 +2005,11 @@ Not run in this window (the window ended with no clear sample after slot 9): AC-
 Restore: /tmp/stageI-good-txiki.js is the committed source; after MO-1, `cmp` gave identical files and `git status --short` was empty. No process of mine was left running.
 
 Longest step: the txiki parity run (14.45 s). The longest wait was the closed gate (18 of 21 samples).
+
+## autoClose oracle: the cause of the close in the options probe (Phase A, 2026-11-20)
+
+Cause: runs/analysis/createreadstream-options-node.mjs set out.autoCloseFalse = ev4, the live array, and then called tmp.destroy() and waited 50 ms before printing. The destroy emits close into that same array, so the printed result showed data, end, close. Node was not closing on its own: the variant probe (runs/analysis/createreadstream-autoclose-variants-node.mjs) copies the array before destroy and shows data and end with no close, with and without the new listeners, at 150, 200 and 1000 ms.
+
+Fix: out.autoCloseFalse = [...ev4] before the destroy. The buggy output is kept as runs/analysis/createreadstream-options-node.buggy-snapshot.out. The fixed probe runs once in the Phase B window below; the result is recorded there.
+
+Correction in the docs: fx-split 7u and 7v, and the flags Phase B note, now say autoClose: false gives data and end with no close and the fd still open (the variant probe is the source).
