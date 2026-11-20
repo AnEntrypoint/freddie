@@ -2633,6 +2633,10 @@ sharedCases.push(
   { name: 'fs.createReadStream flags as reads or fails as Node does', run: () => flagsOutcome('as'), expected: ['error EBADF Error', 'close', 'file "abcdefghij"'] },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream flags as+ reads or fails as Node does', run: () => flagsOutcome('as+'), expected: ['data abcdefghij', 'close', 'file "abcdefghij"'] },
+)
+
 const readObjects = (stream) => new Promise((resolve) => {
   const got = []
   stream.on('data', (chunk) => got.push(typeof chunk + ':' + JSON.stringify(chunk)))

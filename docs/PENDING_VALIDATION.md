@@ -2115,3 +2115,12 @@ txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 
 Change: src/txiki.js: READ_STREAM_FLAGS includes 'as'. test/parity-cases.js: shared case 'fs.createReadStream flags as reads or fails as Node does' (expected ["error EBADF Error","close","file \"abcdefghij\""]).
 
 Pending (Phase B window): the Node and txiki parity runs, and the red check RC-as: 'as' removed from the accepted list.
+
+## fx split: createReadStream flag as+ (7ah), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/createreadstream-flags-node.out (clear sample, PID 1893227, exit 0): sync append and read: reads the file and keeps it.
+txiki probe: runs/analysis/tjs-flags.out (tjs.open on copies, clear sample, PID 1894026, exit 0). tjs.open takes the flag, so only the accepted list changes.
+
+Change: src/txiki.js: READ_STREAM_FLAGS includes 'as+'. test/parity-cases.js: shared case 'fs.createReadStream flags as+ reads or fails as Node does' (expected ["data abcdefghij","close","file \"abcdefghij\""]).
+
+Pending (Phase B window): the Node and txiki parity runs, and the red check RC-as+: 'as+' removed from the accepted list.
