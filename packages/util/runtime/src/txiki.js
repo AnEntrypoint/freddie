@@ -3234,9 +3234,10 @@ function processEnv(env) {
   return Object.fromEntries(Object.entries(env).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))
 }
 
-function startProcess(file, argv, { cwd, env, uid, gid, stdio = ['pipe', 'pipe', 'pipe'], stdin = false } = {}) {
+function startProcess(file, argv, { cwd, env, uid, gid, detached = false, stdio = ['pipe', 'pipe', 'pipe'], stdin = false } = {}) {
   const options = { stdout: stdio[1], stderr: stdio[2] }
   if (stdin) options.stdin = stdio[0]
+  if (detached) options.detached = true
   if (cwd !== undefined) options.cwd = cwd
   if (env !== undefined) options.env = processEnv(env)
   if (uid !== undefined) options.uid = uid
@@ -3451,11 +3452,11 @@ class ChildProcess extends Emitter {
 
 function spawn(file, args, options) {
   const { argv, opts } = spawnArguments(args, options)
-  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio' && name !== 'signal' && name !== 'windowsHide')
+  const key = Object.keys(opts).find((name) => name !== 'cwd' && name !== 'env' && name !== 'timeout' && name !== 'killSignal' && name !== 'shell' && name !== 'uid' && name !== 'gid' && name !== 'stdio' && name !== 'signal' && name !== 'windowsHide' && name !== 'detached')
   if (key !== undefined) throw gapError('child-process.spawn option ' + key)
   windowsHideChecked(opts)
   const shelled = shellArguments(file, argv, opts.shell)
-  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts), signal: signalOf(opts) })
+  return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts), signal: signalOf(opts), detached: Boolean(opts.detached) })
 }
 
 export const txikiRuntime = {

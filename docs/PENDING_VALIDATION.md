@@ -3061,3 +3061,13 @@ Witness (freddie, both runtimes): 'process.exitCode reads back the integer set a
 Native witness (gm, re-run): gm-tool check check-process-exit-code: ok (setExitCode sets the status serve exits with, and a run without it exits 0). The freddie witness reads the JS mirror, so it cannot see the native status; the native forward is covered by the gm witness, and it is part of the Phase B window.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js setter stores undefined in place of the value. Witness: 'txiki parity failed' with mismatch 'process.exitCode reads back the integer set and clears to undefined' (got ['undefined','undefined']). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired: child-process.spawn option detached to core.spawn (gm handoff 4, 2026-11-20)
+
+Change: spawn accepts detached (Boolean, as Node reads it) and passes it through ChildProcess to startProcess, which sets options.detached = true for tjs.spawn (libuv UV_PROCESS_DETACHED). The option allow-list in spawn gains detached. The gapCases row 'child-process.spawn option detached' is removed. Record: shared 798 -> 800, gaps applied 3 -> 2, inactive 1 unchanged.
+
+Witness (freddie, both runtimes): a shell tests that its own session id equals its pid (cut field 6 of /proc/$$/stat), and exits with that result. 'child-process.spawn detached makes the child its own session leader' exits 0; 'child-process.spawn without detached keeps the parent session' exits 1. A stub throws the gap message, so the detached row cannot pass without the native flag. Node: 800/800 shared cases match (exit 0). Probe: shared 800, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-spawn-detached: ok.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js startProcess drops the line that sets options.detached. Witness: 'txiki parity failed' with mismatch 'child-process.spawn detached makes the child its own session leader' (got 1, expected 0). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

@@ -2938,10 +2938,20 @@ sharedCases.push(
   { name: 'process.exitCode is undefined until set and returns to undefined', run: () => { const before = String(proc.exitCode); proc.exitCode = 0; const zero = String(proc.exitCode); proc.exitCode = undefined; return [before, zero, String(proc.exitCode)] }, expected: ['undefined', '0', 'undefined'] },
 )
 
+const exitCodeOf = (file, args, options) => new Promise((resolve, reject) => {
+  const child = s['child-process'].spawn(file, args, options)
+  child.on('error', reject)
+  child.on('close', (code) => resolve(code))
+})
+const SESSION_LEADER_TEST = ['sh', ['-c', 'test "$(cut -d " " -f6 /proc/$$/stat)" = "$$"']]
+sharedCases.push(
+  { name: 'child-process.spawn detached makes the child its own session leader', run: () => exitCodeOf(...SESSION_LEADER_TEST, { detached: true }), expected: 0 },
+  { name: 'child-process.spawn without detached keeps the parent session', run: () => exitCodeOf(...SESSION_LEADER_TEST, {}), expected: 1 },
+)
+
 export const gapCases = [
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },
-  { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
 
