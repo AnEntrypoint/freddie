@@ -2917,3 +2917,33 @@ Change: src/txiki.js imports txikiCore from 'tjs:internal/core'; readFileSync(pa
 Witnesses: test/parity-cases.js two shared cases ('fs.readFileSync returns the file bytes as a Buffer', expected [97, 98, 99]; 'fs.readFileSync with utf8 returns the text', expected the text with é) and one gap case for a missing file ('fs.readFileSync error for a file that cannot be read'). The old gap case 'fs.readFileSync' on /etc/hostname is removed, since the success path is now shared.
 
 Red check (Phase B): mutation: 'const bytes = txikiCore.syncReadFile(path)' replaced by 'const bytes = undefined'. Witness: the two shared readFileSync cases fail (gap thrown). Restore: copy back; cmp; git status shows the two files and this ledger.
+
+## Stretch E: held rows, with the host file and change for each (2026-11-20, no code change)
+
+Where the txiki host lives: freddie does not build txiki. The txiki C sources are vendored in the /workspace/gm repo at /workspace/gm/native/third_party/txiki/txiki/src, and the gm-core host (the process freddie runs under) is built from /workspace/gm/native/components/host and /workspace/gm/native/components/quickjs. Those are outside this repo, so the changes below are handed off, not edited here.
+
+Sync family (fs.readFileSync done in 4de978a4 on the success path; the rest open):
+- Error path of readFileSync: /workspace/gm/native/third_party/txiki/txiki/src/vm.c, tjs__sync_read_file (about line 203). A failed read returns JS_UNDEFINED, and tjs__load_file (vm.c line 1202) returns the negative libuv error r from uv_fs_open. Change: on r != 0, throw through tjs_throw_errno(ctx, r) so the errno reaches JS, and freddie's readFileSync maps it to the Node ENOENT or EACCES error.
+- The other 17 sync names (accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readSync, readdirSync, readlinkSync, realpathSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync, writeSync): no sync binding exists on core (the core keys carry only syncReadFile). Change: in /workspace/gm/native/third_party/txiki/txiki/src/mod_fs.c, add sync variants of each call by passing a NULL callback to the uv_fs_* function (libuv runs it blocking when the callback is NULL, as tjs__load_file already does), and register them next to the async table at about line 1618.
+
+spawn detached (held, native):
+- File: /workspace/gm/native/third_party/txiki/txiki/src/mod_process.c, tjs_spawn. Change: after options.flags = UV_PROCESS_WINDOWS_FILE_PATH_EXACT_NAME (about line 171), read the detached property from the options object the way uid is read (about line 301), and when it is truthy set options.flags |= UV_PROCESS_DETACHED (uv.h line 1184, which calls setsid on POSIX). Witness after the change: the child's session id equals its pid, as in Node (probe: runs/analysis/stretchD-node.mjs).
+
+stdio entries beyond three (held, native):
+- File: /workspace/gm/native/third_party/txiki/txiki/src/mod_process.c, tjs_spawn. The fixed array uv_stdio_container_t stdio[3] (about line 173) and options.stdio_count = 3 (about line 180) hold only three fds. Change: size the array from the options.stdio array length, parse each entry with the same rules as the three existing ones (about lines 337-383), and return the parent-side pipe streams for fds 3 and up on the Process object (for example a fds array). Freddie then maps stdio[3..] onto that array.
+
+process.exitCode (held, native):
+- Files: /workspace/gm/native/third_party/txiki/txiki/src/vm.c (register a setter on the core object next to syncReadFile, at about line 294) and /workspace/gm/native/components/host/serve.cpp, run_serve (line 95). Change: the setter stores an int in the runtime; run_serve returns that stored value as the gm-core exit status after the loop drains, instead of its current status. Freddie's process.exitCode setter calls the native setter.
+
+fs.promises.access with a mode other than F_OK (held, native):
+- File: /workspace/gm/native/third_party/txiki/txiki/src/mod_fs.c. Change: add tjs_fs_access, which wraps uv_fs_access (uv.h line 1636) in the same async pattern as tjs_fs_readfile, and register "access" next to "stat" (about line 1618). Freddie then calls it through the core object for the non-F_OK path.
+
+worker_threads.Worker (held):
+- Feasibility probe (runs/analysis/stretchE-worker-body.js, stretchE-worker-entry.js): core.Worker constructs, and w.messagePipe exposes postMessage, start and close. A parent with onmessage and a postMessage, and a worker entry on self.onmessage, got no reply within 8 s. The same parent with addEventListener on the port and start(), against a worker entry that uses self.addEventListener, aborted the worker thread with exit code 134 (the gm-core probe reported "the worker exited unexpectedly (code 134)").
+- Native owner: /workspace/gm/native/third_party/txiki/txiki/src/worker.c (tjs_worker_constructor about line 349, the worker thread in worker_entry, and the messagePipe getter about line 435) and /workspace/gm/native/third_party/txiki/txiki/src/bundles/c/core/worker-bootstrap.c. Change: fix the message channel so the worker entry receives its messages without aborting the thread, then add the Node contract (parentPort, workerData, and the exit event) on top. Node's ERR_WORKER_PATH check for relative names that do not start with ./ or ../ can be done in freddie without the host.
+
+vm.Script (held, native):
+- Constructor timing: /workspace/gm/native/third_party/txiki/txiki/src/mod_sys.c tjs_evalScript (about line 62) evaluates with JS_EVAL_TYPE_GLOBAL | JS_EVAL_FLAG_ASYNC at once. Node compiles in the constructor and throws the SyntaxError there. Change: add a compile-only native binding (JS_EVAL_FLAG_COMPILE_ONLY, then JS_EvalFunction) to mod_sys.c.
+- Second realm (runInNewContext, createContext): /workspace/gm/native/third_party/txiki/txiki/src/vm.c creates one context with JS_NewContext (about line 509) and never exposes a second one. Change: a binding that calls JS_NewContext for a new realm and runs compiled code in it, in vm.c.
+
+Decisions recorded: each held row above names its host file and change. Freddie-side work that does not need the host (ERR_WORKER_PATH, and the encoding step) is noted in the row it belongs to.
