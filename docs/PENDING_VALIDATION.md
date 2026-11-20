@@ -2247,4 +2247,4 @@ Restore: /tmp/stageL-good-txiki.js is the committed source; each red check gave 
 
 Open items (not witnessed, as in Phase A): fs 2^40 and 1e300 give a RangeError with no code in txiki (Node: ERR_MEMORY_ALLOCATION_FAILED and ERR_OUT_OF_RANGE); negative values give name Error in txiki (Node: TypeError).
 
-Reopen: one clear window running the txiki parity on this commit (expect shared 697, gaps 20, mismatches [], unexpectedGaps []), then push 6dad8a16..HEAD... (origin is at cacf5f53, so push cacf5f53..HEAD).
+Reopen: one clear window running the txiki parity on this commit (expect shared 697, gaps 20, mismatches [], unexpectedGaps []), then push cacf5f53..HEAD (origin main is cacf5f53).
