@@ -2413,3 +2413,20 @@ gapCases search before commit: one stale entry, 'fs.promises.writeFile with mode
 Change (Phase A): src/txiki.js: modeOf throws Node's TypeError for a string mode that is not octal digits (non-string values keep their gap); writeFile validates signal (invalidArgType, aborts with abortError when aborted) and flush (TypeError ERR_INVALID_ARG_TYPE), and maps the open error with fsPathError. test/parity-cases.js: ten shared cases (missing rs+ with code and name, as and as+ text, mode zz and 0o600, signal aborted, signal 1, signal plain object text, flush true text, flush yes).
 
 Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required; gaps should drop from 18 to 17), the Node parity run, and two red checks: RC-wfs (the signal aborted line removed, so the aborted witness resolves) and RC-wfm (the string mode throw disabled, so the mode witnesses fall back to the gap).
+
+## Phase B: fs.promises.writeFile string modes, signal and flush (7ap), window of 541 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 16 samples at about 33 s (slots 0 to 15). Clear samples that started a step: slots 7, 8, 10 and 15 (four). Closed samples (no step started, no ledger line): a zig compile of another peer (slots 3 to 5), chromium renderer at 22.8 to 34.7% (slots 11 to 13), and si from 1048 to 41612 KB/s (slots 0, 1, 2, 6, 9, 14).
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on a3eeb9aa (PID 2179929, exit 0) | 7 | shared 724, gaps 17, mismatches [], unexpectedGaps [] | 14.51 s |
+| Node parity (PID 2182196, exit 0) | 8 | node: 724/724 shared cases match; 0/0 gaps throw the documented message | 9.70 s |
+| RC-wfs: the signal aborted throw removed (PID 2182911, exit 0) | 10 | red only on 'fs.promises.writeFile signal aborted rejects with AbortError' (got no throw). Restored: RESTORED_IDENTICAL | 14.61 s |
+| RC-wfm: the string mode throw disabled (PID 2186579, exit 0) | 15 | red on the two mode witnesses, 'mode zz' and 'mode 0o600' (both fell back to the gap). Restored: RESTORED_IDENTICAL | 14.52 s |
+
+Result: pass. Every listed step ran and passed. The RC-wfm red check covers both mode witnesses by design, since one mutation disables the string branch.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/stageS-good-txiki.js); `git status --short` was empty.
+
+Open within item 5: none for these shapes. The flag rs+ message now carries the open path as Node does; a witness checks code and name only.
