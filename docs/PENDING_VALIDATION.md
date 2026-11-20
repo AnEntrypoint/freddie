@@ -2744,3 +2744,15 @@ Change: src/txiki.js killSignalOf throws ERR_UNKNOWN_SIGNAL only for a number th
 Witness: sharedCases "child-process killSignal 99 throws ERR_UNKNOWN_SIGNAL at execFile" (expected from the Node source; the Phase B oracle run is the check).
 
 Red check (run in Phase B): mutation: the new killSignalOf line removed; witness: the shared case reports the gap message instead; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process windowsHide type
+
+Row: child-process windowsHide yes (gapCases; a non-boolean windowsHide threw the declared gap). The Windows effect of windowsHide stays unverified on this Linux host and is not part of this row.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): normalizeSpawnArguments runs validateBoolean(options.windowsHide, 'options.windowsHide') when windowsHide is not null, which throws ERR_INVALID_ARG_TYPE "must be of type boolean. Received type string ('yes')".
+
+Change: src/txiki.js windowsHideChecked throws ERR_INVALID_ARG_TYPE for a value that is neither null nor undefined and not a boolean (null passes, as in Node). It is shared by execFile and spawn. test/parity-cases.js: gapCases entry removed; sharedCases witness added.
+
+Witness: sharedCases "child-process windowsHide yes throws ERR_INVALID_ARG_TYPE at execFile" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: the windowsHideChecked line removed; witness: the shared case reports no throw; restore: copy back; cmp; git status shows the two files only.

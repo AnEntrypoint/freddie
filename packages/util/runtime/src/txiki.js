@@ -3086,7 +3086,7 @@ function signalOf(opts) {
 
 function windowsHideChecked(opts) {
   const value = opts.windowsHide
-  if (value !== undefined && typeof value !== 'boolean') throw gapError('child-process windowsHide ' + String(value))
+  if (value != null && typeof value !== 'boolean') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.windowsHide" property must be of type boolean. Received ' + describeReceived(value))
 }
 
 function maxBufferError(stream) {
