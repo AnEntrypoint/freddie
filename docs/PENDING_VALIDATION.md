@@ -3039,3 +3039,15 @@ Decisions (none implemented, no mutation or red check, since no code changed):
 - zlib.brotliCompress, zlib.zstdCompress, zlib.zstdDecompress, zlib.zstdDecompressSync, zlib.createZstdDecompress: dropped. No witness. Need the native brotli and zstd backend (cause as recorded before).
 
 Reconsider a row only when a witness in test/parity-cases.js calls it. Then implement it with its own witness and red check.
+
+## Expected parity record corrected to 796 shared, 4 applied and 1 inactive (2026-11-20)
+
+Change: test/parity-expected.js holds the record (shared 796, gapsApplied 4, gapsInactive 1, and inactiveReason for os.release). recordDrift compares the run summary with the record, and runParity throws 'parity record drift' when the shared count differs (both runtimes) or, on the txiki run, when the applied or inactive gap count differs. The record replaces the stale 786/5 figure of run 6fe09832 (18:05), which predates ten shared cases added since (parseArgs, readFileSync, exec, md4).
+
+Inactive gap: os.release applies only when /proc/sys/kernel/osrelease is absent; this host reads it, so the gap is inactive here by design (recorded in the record, not in a comment).
+
+Witness: node --openssl-legacy-provider test/parity-node.js prints 796/796 shared cases match (exit 0). The txiki probe reads shared 796, gaps 4, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Red check (mutation, witness, restore, cmp, git status): parity-expected.js shared 796 -> 797. Witness: node parity exits 1 with 'parity record drift: shared 796, record 797'. Restored; cmp RESTORED_IDENTICAL; git status shows only the files of this commit.
+
+window.mjs reads its default expected counts from the record, so the window's txiki check follows the record.

@@ -1,4 +1,5 @@
 import { subpaths as s } from './subpaths.js'
+import { recordDrift } from './parity-expected.js'
 
 const { Buffer } = s.buffer
 const { StringDecoder } = s['string-decoder']
@@ -2982,6 +2983,8 @@ export async function runParity(label, withGaps) {
   const elapsedMs = Math.round(performance.now() - started)
   const summary = { label, shared: sharedCases.length, gapAsserted, gaps: gapApplied, gapInactive, mismatches, unexpectedGaps, elapsedMs }
   console.log(label + ': ' + (sharedCases.length - mismatches.length) + '/' + sharedCases.length + ' shared cases match; ' + (gapApplied - unexpectedGaps.length) + '/' + gapApplied + ' gaps throw the documented message; ' + elapsedMs + ' ms')
+  const drift = recordDrift(summary, withGaps)
+  if (drift.length > 0) throw new Error(label + ' parity record drift: ' + drift.join('; '))
   if (mismatches.length > 0 || unexpectedGaps.length > 0) throw new Error(label + ' parity failed: ' + JSON.stringify({ mismatches, unexpectedGaps }))
   return summary
 }
