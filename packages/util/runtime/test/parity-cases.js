@@ -2654,6 +2654,11 @@ sharedCases.push(
   { name: 'fs.createReadStream signal function throws ERR_INVALID_ARG_TYPE', run: () => { function namedSignal() {} return signalTypeError(namedSignal) }, expected: { code: 'ERR_INVALID_ARG_TYPE', name: 'TypeError', message: 'The "options.signal" property must be an instance of AbortSignal. Received function namedSignal' } },
 )
 
+sharedCases.push(
+  { name: 'fs.createReadStream signal { aborted: false } without addEventListener throws a TypeError', run: () => signalTypeError({ aborted: false }), expected: { name: 'TypeError', message: 'signal.addEventListener is not a function' } },
+  { name: 'fs.createReadStream signal { aborted: false, addEventListener: 1 } throws a TypeError', run: () => signalTypeError({ aborted: false, addEventListener: 1 }), expected: { name: 'TypeError', message: 'signal.addEventListener is not a function' } },
+)
+
 const highWaterMarkEvents = async (options) => {
   const { file } = await streamFile('hwm.txt', 'abcdefghij')
   const got = []

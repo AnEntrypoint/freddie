@@ -2268,3 +2268,15 @@ Correction 2: the Phase A probe for highWaterMark ran against a copy in /tmp (/t
 Restore: /tmp/stageM-good-txiki.js is the committed source (83d7a7e0); RC-hwm-zero gave RESTORED_IDENTICAL; the final `cmp` gave FINAL_IDENTICAL; `git status --short` was empty before the push.
 
 Open, not witnessed (as in Phase A): fs 2^40 and 1e300 give a code-less RangeError in txiki (Node: ERR_MEMORY_ALLOCATION_FAILED and ERR_OUT_OF_RANGE); negative values give name Error in txiki (Node: TypeError).
+
+## fx split: fs.createReadStream signal { aborted: false } without addEventListener (7al), Phase A (2026-11-20)
+
+Node oracle: runs/analysis/signal-addlistener-node.mjs, one process per shape (output runs/analysis/signal-addlistener-node.out). { aborted: false }: synchronous TypeError, no code, "signal.addEventListener is not a function". { aborted: false, addEventListener: 1 }: the same. { aborted: true }: accepted; then error ABORT_ERR AbortError, then close (not in this change). { aborted: false, addEventListener() {} }: Node crashes the process at close with an uncaught TypeError "signal.removeEventListener is not a function" (not witnessed).
+
+txiki probe on a copy (/tmp/sigal-copy/txiki.js, not the tree file): body runs/analysis/signal-addlistener-body.js. Before: runs/analysis/signal-addlistener-txiki-before.out, all three shapes gave the gap message. After: runs/analysis/signal-addlistener-txiki-after.out, { aborted: false } and { aborted: false, addEventListener: 1 } give TypeError "signal.addEventListener is not a function" (matches Node); { aborted: true } still gives the gap.
+
+gapCases search before commit: no entry names this shape (the only gapCases line with "signal" is child-process signal abc). No stale entry to remove.
+
+Change (Phase A): src/txiki.js: a new line throws new TypeError('signal.addEventListener is not a function') when the signal is not aborted and addEventListener is not a function; the existing gap line stays for the other shapes. test/parity-cases.js: two shared cases (plain and addEventListener 1), through signalTypeError (code, name, message).
+
+Pending (Phase B window): the txiki parity run (must show mismatches [] and unexpectedGaps []), the Node parity run, and the red check RC-als: the new TypeError line reverted, both witnesses back to the gap.

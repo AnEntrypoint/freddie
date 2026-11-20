@@ -2982,6 +2982,7 @@ function createReadStream(path, options) {
   assertNoOptions('fs.createReadStream', opts, ['encoding', 'start', 'end', 'highWaterMark', 'signal', 'flags', 'mode', 'autoClose'])
   const signalLike = opts.signal !== null && typeof opts.signal === 'object' && 'aborted' in opts.signal
   if (opts.signal !== undefined && !signalLike) throw invalidArgType('options.signal', opts.signal, 'AbortSignal')
+  if (opts.signal !== undefined && !opts.signal.aborted && typeof opts.signal.addEventListener !== 'function') throw new TypeError('signal.addEventListener is not a function')
   if (opts.signal !== undefined && typeof opts.signal.addEventListener !== 'function') throw gapError('fs.createReadStream signal ' + String(opts.signal))
   const flags = opts.flags ?? 'r'
   if (!READ_STREAM_FLAGS.includes(flags)) return invalidFlagStream(flags)
