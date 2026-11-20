@@ -2444,3 +2444,20 @@ Change (Phase A): src/txiki.js: #objectEncoding flag replaces the encoding gap; 
 Phase A red checks (tree mutated, witnesses run, restored by cmp: RESTORED_IDENTICAL; git status showed only the four Phase A files): RC-om (unshift branch disabled): 'stream.Readable unshift with objectMode into an empty stream returns the object' got [true, null]; the second unshift witness was not captured in the summary. RC-oe (object-push guard removed): 'stream.Readable objectMode with encoding rejects an object push' and 'stream.PassThrough objectMode with encoding rejects an object write' both got no throw. Good tree: shared 729, gaps 15, mismatches [], unexpectedGaps [] (Phase A probe, runs/analysis/omA-good.out in /tmp).
 
 Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required), the Node parity run, and the same two red checks, with the full mismatch list captured.
+
+## Phase B: stream.Readable objectMode with encoding, and unshift with objectMode (7aq), window of 498 s, 2026-11-20
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 14 samples at about 30 s (slots 0 to 13). Clear samples that started a step: slots 0, 5, 10 and 13 (four). Closed samples (no step started, no ledger line): a zig test and compile of other peers (slots 1 to 4, 7 to 9), and si between 1000 and 8508 KB/s (slots 6, 11, 12).
+
+| Step | Slot | Result | Wall time |
+|---|---|---|---|
+| txiki parity on 7fb488a3 (PID 2205374, exit 0) | 0 | shared 729, gaps 15, mismatches [], unexpectedGaps [] | 14.45 s |
+| Node parity (PID 2210589, exit 0) | 5 | node: 729/729 shared cases match; 0/0 gaps throw the documented message | 9.69 s |
+| RC-om: unshift branch disabled (PID 2213283, exit 0) | 10 | red on both unshift witnesses: 'returns the object' got [true, null]; 'puts the object in front of a pushed one' got [true, {b: 2}, null]. Restored: FINAL_IDENTICAL | 14.63 s |
+| RC-oe: object-push guard removed (PID 2216514, exit 0) | 13 | red on both object-chunk witnesses: 'Readable objectMode with encoding rejects an object push' and 'PassThrough objectMode with encoding rejects an object write', both no throw | 14.49 s |
+
+Result: pass. Every listed step ran and passed. Both red checks went red only on their own witnesses.
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/omB-good-txiki.js); git status was empty before the ledger commit.
+
+Open within item 7aq: the encoding name is not validated in object mode (not probed).
