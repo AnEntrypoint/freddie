@@ -2776,3 +2776,9 @@ Phase B window rE: the Node oracle (PID 255744, exit 1, 768/769) rejected the wi
 Change: src/txiki.js execFile no longer calls windowsHideChecked (spawn still does). test/parity-cases.js: the windowsHide witness now runs at spawn, and a new witness checks that execFile with windowsHide 'yes' does not throw (expected "no throw", as Node).
 
 Red check for the windowsHide row (run in Phase B): mutation: the windowsHideChecked line removed from spawn; witness: the spawn witness reports no throw; restore: copy back; cmp; git status shows the two files only.
+
+## Refactor (Phase A, 2026-11-20): one formatter for a received value
+
+invalidArgValue and outOfRangeError each quoted a string value the same way (the rule Node's inspect applies to a string). inspectReceived now holds that rule; both callers use it. Their text is unchanged for every value they already produced.
+
+Red check for this change (run in Phase B): mutation: inspectReceived returns String(value) for strings; witness: the maxBuffer witness (ERR_OUT_OF_RANGE, Received 'abc') and the invalidArgValue witnesses report the unquoted text; restore: copy back; cmp; git status shows the two files only.

@@ -2102,8 +2102,12 @@ function assertNoOptions(name, options, allowed) {
   }
 }
 
+function inspectReceived(value) {
+  return typeof value === 'string' ? "'" + value + "'" : String(value)
+}
+
 function invalidArgValue(property, value) {
-  const received = typeof value === 'string' ? "'" + value + "'" : String(value)
+  const received = inspectReceived(value)
   return codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The property '" + property + "' is invalid. Received " + received)
 }
 
@@ -2124,7 +2128,7 @@ function addNumericalSeparator(text) {
 
 function outOfRangeError(property, requirement, value) {
   const large = Number.isInteger(value) && Math.abs(value) > 2 ** 32
-  const received = large ? addNumericalSeparator(String(value)) : typeof value === 'string' ? "'" + value + "'" : String(value)
+  const received = large ? addNumericalSeparator(String(value)) : inspectReceived(value)
   return codedError(RangeError, 'ERR_OUT_OF_RANGE', 'The value of "' + property + '" is out of range. It must be ' + requirement + '. Received ' + received)
 }
 
