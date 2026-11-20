@@ -2669,3 +2669,13 @@ Witness: the txiki parity after the change: shared 751, gaps 15, mismatches [], 
 Red check: the helper with code: code + '_' (a suffix on every coded error). Red: 'stream Readable: a push after end emits ERR_STREAM_PUSH_AFTER_EOF and no end' got 'ERR_STREAM_PUSH_AFTER_EOF_' (PID 151933, exit 0). The run's output (26 KB) was cut by gm, so the summary tool could not read it; the mismatch line is taken from the full run output file runs/2026-11-20-14-05-08-cf0882/outputs/bbb36e8443b31fcd-run_code.txt by grep. Restore: cmp RESTORED_IDENTICAL against the changed file (/tmp/yg2-final.js); git status showed only src/txiki.js in this change.
 
 Pending: the 5 remaining sites with extra fields keep Object.assign; a later dedup could give them a shared extras argument, but they are not duplicates of each other.
+
+## Dedup and dead code (Phase A): single-caller cp wrappers inlined
+
+Single-caller abstraction: cpNonDirToDir, cpDirToNonDir, cpSameFile and cpSymlinkToSubdirectory each had exactly one caller and only built a cpError(...) call. Each call site now calls cpError with the same code, errno and message expression the wrapper built (the message text is unchanged, including the trailing + destination that HEAD already had). cpSubdirectory has two callers and stays.
+
+Witness: the txiki parity after the change: shared 751, gaps 15, mismatches [], unexpectedGaps [] (PID 156620, exit 0; output /tmp/yg3-good.out).
+
+Red check: the same-file message with '!' after 'same' (src and dest cannot be the same!). Red: fs.promises.cp: links into their own source subdirectory, links onto a hard link, and the hard-link inode check report Node errors (PID 158816, exit 0; output /tmp/yg3-RC.out, which gm cut at 20000 characters, so the mismatch line was read from the probe output by grep). Restore: cmp RESTORED_IDENTICAL against the changed file (/tmp/yg3-final.js); git status showed src/txiki.js only.
+
+Pending: gzip and gunzip still repeat the done-selection line and the setTimeout tail (two sites; small).

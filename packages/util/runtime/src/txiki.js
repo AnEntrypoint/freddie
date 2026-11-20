@@ -388,26 +388,8 @@ function cpError(code, errno, message) {
   return Object.assign(new Error(message), { code, errno, syscall: 'cp' })
 }
 
-function cpNonDirToDir(source, destination) {
-  const message = 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ' + destination + ' with non-directory ' + source + ') ' + destination
-  return cpError('ERR_FS_CP_NON_DIR_TO_DIR', 20, message)
-}
-
-function cpDirToNonDir(source, destination) {
-  const message = 'Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ' + destination + ' with directory ' + source + ') ' + destination
-  return cpError('ERR_FS_CP_DIR_TO_NON_DIR', 21, message)
-}
-
-function cpSameFile(destination) {
-  return cpError('ERR_FS_CP_EINVAL', 22, 'Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ' + destination)
-}
-
 function cpSubdirectory(source, destination, path) {
   return cpError('ERR_FS_CP_EINVAL', 22, 'Invalid src or dest: cp returned EINVAL (cannot copy ' + source + ' to a subdirectory of self ' + destination + ') ' + path)
-}
-
-function cpSymlinkToSubdirectory(destination, source, path) {
-  return cpError('ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY', 22, 'Cannot overwrite symlink in subdirectory of self: cp returned EINVAL (cannot overwrite ' + destination + ' with ' + source + ') ' + path)
 }
 
 function isSrcSubdir(source, destination) {
@@ -430,7 +412,7 @@ async function copyLink(source, destination, destinationEntry) {
     const resolvedDestination = tjsPath.resolve(tjsPath.dirname(destination), await tjs.readLink(destination))
     if (await sourceIsDirectory(source)) {
       if (isSrcSubdir(target, resolvedDestination)) throw cpSubdirectory(target, resolvedDestination, destination)
-      if (isSrcSubdir(resolvedDestination, target)) throw cpSymlinkToSubdirectory(resolvedDestination, target, destination)
+      if (isSrcSubdir(resolvedDestination, target)) throw cpError('ERR_FS_CP_SYMLINK_TO_SUBDIRECTORY', 22, 'Cannot overwrite symlink in subdirectory of self: cp returned EINVAL (cannot overwrite ' + resolvedDestination + ' with ' + target + ') ' + destination)
     }
     await unlink(destination)
   }
@@ -441,9 +423,9 @@ async function cp(source, destination, options = {}) {
   const dereference = options.dereference === true
   const sourceEntry = await statFor(source, dereference)
   const destinationEntry = await statFor(destination, dereference).catch(() => null)
-  if (destinationEntry !== null && sameFile(sourceEntry, destinationEntry)) throw cpSameFile(destination)
-  if (destinationEntry?.isDirectory() && !sourceEntry.isDirectory()) throw cpNonDirToDir(source, destination)
-  if (sourceEntry.isDirectory() && destinationEntry !== null && !destinationEntry.isDirectory()) throw cpDirToNonDir(source, destination)
+  if (destinationEntry !== null && sameFile(sourceEntry, destinationEntry)) throw cpError('ERR_FS_CP_EINVAL', 22, 'Invalid src or dest: cp returned EINVAL (src and dest cannot be the same) ' + destination)
+  if (destinationEntry?.isDirectory() && !sourceEntry.isDirectory()) throw cpError('ERR_FS_CP_NON_DIR_TO_DIR', 20, 'Cannot overwrite directory with non-directory: cp returned ENOTDIR (cannot overwrite directory ' + destination + ' with non-directory ' + source + ') ' + destination)
+  if (sourceEntry.isDirectory() && destinationEntry !== null && !destinationEntry.isDirectory()) throw cpError('ERR_FS_CP_DIR_TO_NON_DIR', 21, 'Cannot overwrite non-directory with directory: cp returned EISDIR (cannot overwrite non-directory ' + destination + ' with directory ' + source + ') ' + destination)
   if (sourceEntry.isDirectory() && options.recursive !== true) throw new Error('fs.promises.cp: ' + source + ' is a directory; pass { recursive: true }')
   if (sourceEntry.isDirectory() && isSrcSubdir(source, destination)) throw cpSubdirectory(source, destination, destination)
   await mkdir(tjsPath.dirname(destination), { recursive: true })
