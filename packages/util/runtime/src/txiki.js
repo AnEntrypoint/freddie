@@ -438,13 +438,26 @@ function symlinkSync(target, path) {
 }
 
 function mkdirSync(path, options) {
-  if (typeof options === 'object' && options?.recursive) throw gapError('fs.mkdirSync recursive')
   const mode = typeof options === 'number' ? options : options?.mode ?? 0o777
+  if (options?.recursive) return mkdirRecursive(path, mode)
   try {
     txikiCore.mkdirSync(path, mode)
   } catch (error) {
     throw fsPathError(error, 'mkdir', path)
   }
+}
+
+function mkdirRecursive(path, mode) {
+  try {
+    txikiCore.mkdirSync(path, mode)
+    return path
+  } catch (error) {
+    if (error.code === 'EEXIST' && statSync(path).isDirectory()) return undefined
+    if (error.code !== 'ENOENT') throw fsPathError(error, 'mkdir', path)
+  }
+  const first = mkdirRecursive(tjsPath.dirname(path), mode)
+  mkdirRecursive(path, mode)
+  return first ?? path
 }
 
 function unlinkSync(path) {

@@ -3220,3 +3220,13 @@ Native requests for gm (the call, the Node behaviour, and what txiki does today)
 - G6 http.createServer. Call: a listening socket with a per-request handler. Node: a request to the port reaches the handler. txiki today: the stub throws when called. Not implemented in freddie without a witness that exercises it.
 
 Taken in Phase A this round (each with a witness a stub cannot satisfy, a red check, and a commit): items 1 to 4.
+
+## Wired: fs.mkdirSync with { recursive: true } (ranked gap 1, adapter-only, 2026-11-20)
+
+Change: mkdirSync calls mkdirRecursive when options.recursive is set. mkdirRecursive tries txikiCore.mkdirSync; on EEXIST for a directory it returns undefined; on ENOENT it recurses on the parent (tjsPath.dirname), then retries the path, and returns the first directory it created (or the path itself). Other errors map through fsPathError. The gap 'fs.mkdirSync recursive' is removed. Record: shared 835 -> 839, gaps unchanged at 2 applied, 1 inactive.
+
+Witness (freddie, both runtimes, four shared rows a stub cannot satisfy): nested creation returns the first created directory and makes the leaf (first === dir/a and the leaf is a directory, [true, true]); a second call on an existing directory returns undefined; over an existing file throws EEXIST; through a file throws ENOTDIR. Node: 839/839 shared cases match (exit 0, its own run). Probe: shared 839, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0, PID 1041724).
+
+Red check (mutation, witness, restore, cmp, git status): mkdirRecursive returns path instead of the first created directory. Witness: 'parity failed' with mismatch 'fs.mkdirSync recursive creates nested directories and returns the first one made' (got [false, true], expected [true, true]). PID 1044265. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+Not covered: a relative input path (Node returns the resolved path; the adapter returns the given form). The witness uses absolute paths only.

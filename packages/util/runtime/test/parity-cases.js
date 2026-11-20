@@ -3028,6 +3028,13 @@ sharedCases.push(
   { name: 'worker_threads.Worker replies to a message with the doubled value', run: () => withScratch(async (dir) => { const entry = dir + '/entry.js'; await fsp.writeFile(entry, WORKER_ENTRY); return new Promise((resolve, reject) => { const worker = new s['worker-threads'].Worker(entry); const timer = setTimeout(() => { worker.terminate(); reject(new Error('no reply')) }, 8000); worker.on('message', (value) => { clearTimeout(timer); resolve(value); worker.terminate() }); worker.on('error', reject); worker.postMessage(21) }) }), expected: 42 },
 )
 
+sharedCases.push(
+  { name: 'fs.mkdirSync recursive creates nested directories and returns the first one made', run: () => withScratch(async (dir) => { const first = s.fs.mkdirSync(dir + '/a/b/c', { recursive: true }); return [first === dir + '/a', s.fs.statSync(dir + '/a/b/c').isDirectory()] }), expected: [true, true] },
+  { name: 'fs.mkdirSync recursive returns undefined when the directory exists', run: () => withScratch(async (dir) => { s.fs.mkdirSync(dir + '/d', { recursive: true }); return s.fs.mkdirSync(dir + '/d', { recursive: true }) === undefined }), expected: true },
+  { name: 'fs.mkdirSync recursive over a file throws EEXIST as Node does', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); try { s.fs.mkdirSync(dir + '/f', { recursive: true }); return 'no throw' } catch (error) { return error.code } }), expected: 'EEXIST' },
+  { name: 'fs.mkdirSync recursive through a file throws ENOTDIR as Node does', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', ''); try { s.fs.mkdirSync(dir + '/f/x', { recursive: true }); return 'no throw' } catch (error) { return error.code } }), expected: 'ENOTDIR' },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
