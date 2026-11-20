@@ -2902,6 +2902,11 @@ sharedCases.push(
   { name: 'child-process kill SIGFOO throws ERR_UNKNOWN_SIGNAL before the signal is sent', run: () => { const child = s['child-process'].spawn('sleep', ['5']); const outcome = errorOf(() => child.kill('SIGFOO')); child.kill('SIGTERM'); return outcome }, expected: {"code":"ERR_UNKNOWN_SIGNAL","message":"Unknown signal: SIGFOO"} },
 )
 
+sharedCases.push(
+  { name: 'child-process.spawn stdio of one entry pads the rest with pipes', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: ['pipe'] })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: 'child-process.spawn stdio undefined and null entries default to pipes', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: ['ignore', undefined, null] })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },

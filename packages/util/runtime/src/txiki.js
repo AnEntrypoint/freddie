@@ -3147,7 +3147,7 @@ function idOption(opts, key) {
 function stdioOf(opts) {
   const stdio = opts.stdio ?? 'pipe'
   if (typeof stdio === 'string' && !['pipe', 'overlapped', 'inherit', 'ignore'].includes(stdio)) throw codedError(TypeError, 'ERR_INVALID_ARG_VALUE', "The argument 'stdio' is invalid. Received '" + stdio + "'")
-  const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : stdio
+  const list = typeof stdio === 'string' ? [stdio, stdio, stdio] : Array.isArray(stdio) && stdio.length <= 3 ? [0, 1, 2].map((i) => stdio[i] ?? 'pipe') : stdio
   if (!Array.isArray(list) || list.length !== 3 || list.some((kind) => kind !== 'pipe' && kind !== 'inherit' && kind !== 'ignore')) throw gapError('child-process stdio ' + String(stdio))
   return list
 }

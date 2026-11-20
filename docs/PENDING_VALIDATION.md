@@ -2852,3 +2852,20 @@ Change: src/txiki.js FileReadStream tests #autoClose !== false in both places (t
 Witness: "fs.createReadStream autoClose 0 closes after end like true, as Node does" (expected from the Node oracle output in window rH; the next window checks it).
 
 Red check (run in Phase B): mutation: the end-path gate back to truthiness (if (this.#autoClose) super._afterEnd()); witness: the autoClose 0 case reports data, end without close; restore: copy back; cmp; git status shows the two files only.
+
+## Reachable row (Phase A, 2026-11-20): child-process stdio short arrays and defaults
+
+Row: stdio arrays shorter than three entries, and undefined or null entries, threw the declared gap. This is the case the 2026-11-19 child-process stdio section (rank 7h in docs/fx-split.md) left as a gap; set aside on 2026-11-20.
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): getValidStdio pushes undefined until the array has three entries, then for each entry sets stdio ??= (i < 3 ? 'pipe' : 'ignore'). So a short array and undefined or null entries among the first three become pipes. Arrays longer than three keep the gap (extra entries need real fds).
+
+Change: src/txiki.js stdioOf pads an array of at most three entries to three, with each missing, undefined or null entry set to 'pipe'. Longer arrays, overlapped and non-array values keep the gap. test/parity-cases.js: two sharedCases witnesses copied from the stdout Buffer-chunks row: stdio ['pipe'] and stdio ['ignore', undefined, null].
+
+Witnesses (expected from the Node source; the Phase B oracle run is the check): "child-process.spawn stdio of one entry pads the rest with pipes" and "child-process.spawn stdio undefined and null entries default to pipes".
+
+Red check (run in Phase B): mutation: the padding removed (the list is stdio again); witnesses: both cases report the gap message; restore: copy back; cmp; git status shows the two files only.
+
+## Set-aside rows settled on 2026-11-20 (no code change)
+
+- fs.promises.writeFile flags rs+, as, as+ and string modes: settled by the 2026-11-19 section above (line "fx split: writeFile flags rs+, as, as+ and string modes"). The 2026-11-20 probe (runs/analysis/probe-set-aside-body.js, under mcp-probe) gave the same contents as Node's (runs/analysis/probe-set-aside-node.mjs): rs+ and r+ overwrite from the start ("X\nse\n"), as and as+ append ("base\nX\n"), w truncates ("X\n"). The "Not verified" line in the earlier writeFile section is stale.
+- fs.promises.access with a mode other than F_OK: held. The txiki build has no access function; its tjs surface is chmod, lstat, open, stat and statFs. A probe shows open(path, 'r') on a mode-0 file gives EACCES, matching Node's accessSync(R_OK) (EACCES), but this answers only R_OK for files. W_OK on a directory and X_OK have no primitive, so a stat-bit emulation would be wrong for root and ownership. Stays held.
