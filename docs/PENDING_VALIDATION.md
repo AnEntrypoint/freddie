@@ -2534,6 +2534,36 @@ gapCases search before commit: no entry names highWaterMark, a 2^32+ size, or a 
 
 Change (Phase A): src/txiki.js: NODE_ALLOCATION_CEILING = 2^35; memoryError and checkedBlockSize (size range error for a non-safe integer; memory error above the ceiling); fileBlock uses them. FileReadStream: the read length is highWaterMark | 0 (32-bit truncation as in Node), a negative length returns without a push (the stall); the read size is min(length, remaining), with remaining unchanged (end-based); the buffer is bounded by the file size minus start (#fileBytes from tjs.stat at open, at least 1 byte so the read is still attempted, as Node does). A first version clamped remaining to the file size and broke the existing flags w EBADF witness (no read on an emptied file); the clamp was replaced by the buffer bound. test/parity-cases.js: four shared witnesses through highWaterMarkEvents (2^31-1 reads the data; 2^32, 2^33, 2^35 end with no data).
 
-Phase A checks: txiki parity on the tree, good: shared 736, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-05-34-00-3124a3, PID 2278148 exited on stdin close; the first good run is 2026-11-20-05-30-57-16eb86, PID 2274889). Node parity on the tree: 736/736 shared cases match (EXIT 0, 9683 ms). Red check RC32 (the 32-bit truncation disabled: const length = block): red only on the three no-data witnesses, 2^32, 2^33 and 2^35, each got [data abcdefghij, end, close] (PID 2278148's sibling run 2278148 is the good one; RC32 PID 2278148 is not used; the RC32 run is PID 2278148 in the log). Restore: cmp RESTORED_IDENTICAL; git status showed only the three Phase A files.
+Phase A checks: txiki parity on the tree, good: shared 736, gaps 15, mismatches [], unexpectedGaps [] (run 2026-11-20-05-30-57-16eb86, PID 2274889, exit 0). Node parity on the tree: 736/736 shared cases match (EXIT 0, 9683 ms). Red check RC32 (the 32-bit truncation disabled: const length = block): red only on the three no-data witnesses, 2^32, 2^33 and 2^35, each got [data abcdefghij, end, close] (run 2026-11-20-05-34-00-3124a3, PID 2278148, exit 0). Restore: cmp RESTORED_IDENTICAL; git status showed only the three Phase A files.
 
 Pending (Phase B window): the txiki parity run (mismatches [] and unexpectedGaps [] required), the Node parity run, and the red check RC32 with the full mismatch list. The Phase A parity and red check are the same source, so the Phase B run repeats them under the gate.
+
+## Phase B: fs.createReadStream highWaterMark 2^32 to 2^35 (7as), window not cleared (2026-11-20)
+
+Correction to the Phase A section above: the good txiki parity run is 2026-11-20-05-30-57-16eb86 (PID 2274889, exit 0); the red check RC32 is run 2026-11-20-05-34-00-3124a3 (PID 2278148, exit 0). The first Phase A line had those two swapped.
+
+Checker: scripts/heavy-jobs.cjs from bevy commit 495fff6 (exit 0 is clear). Gate: `vmstat 1 2` second sample, si and so both under 1000 KB/s. 18 samples at about 30 s (slots 0 to 17, span 552 s). Clear samples: none. No step started: the txiki parity run, the Node parity run and the RC32 red check were not run. Nothing was pushed.
+
+Readings (si / so KB/s; heavy-jobs):
+- slot 0 (min 2): 132 / 0; busy (playwriter PID 2088755; chromium PID 2266583)
+- slot 1 (min 35): 1956 / 0; busy (chromium renderer PID 2266732)
+- slot 2 (min 67): 940 / 0; busy (same renderer)
+- slot 3 (min 99): 216 / 0; busy (same renderer)
+- slot 4 (min 132): 20376 / 0; busy (claude PID 1629; chromium gpu PID 2282536)
+- slot 5 (min 164): 152 / 0; busy (playwriter; chromium PID 2282490)
+- slot 6 (min 196): 284 / 1280; busy (claude PID 1998; chromium renderer PID 2282574)
+- slot 7 (min 229): 808 / 18408; busy (same renderer)
+- slot 8 (min 261): 10760 / 55904; busy (same renderer)
+- slot 9 (min 293): 400 / 0; busy (playwriter; chromium PID 2284595)
+- slot 10 (min 326): 316 / 0; busy (chromium PID 2284595)
+- slot 11 (min 358): 10256 / 0; busy (claude PID 2225; chromium PID 2284679)
+- slot 12 (min 390): 1984 / 0; busy (chromium renderer PID 2284679)
+- slot 13 (min 423): 240 / 0; busy (claude PID 1998; chromium PID 2284679)
+- slot 14 (min 455): 636 / 136; busy (chromium PID 2286553)
+- slot 15 (min 487): 1044 / 0; busy (chromium renderer PID 2286641)
+- slot 16 (min 520): 5456 / 0; busy (same renderer)
+- slot 17 (min 552): 20 / 0; busy (same renderer)
+
+Restore: the working file equals the committed source (FINAL_IDENTICAL against /tmp/hwmF-good-txiki.js); git status was empty.
+
+Pending: the same Phase B (txiki parity with mismatches [] and unexpectedGaps [] required, Node parity, and RC32 with the full mismatch list) when a window clears. Phase A commit f4ee433c is local and not pushed.
