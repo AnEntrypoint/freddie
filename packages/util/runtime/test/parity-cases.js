@@ -1994,8 +1994,8 @@ sharedCases.push(
 
 const execText = (value) => (typeof value === 'string' ? value : 'buffer:' + value.toString('hex'))
 
-const execOutcome = (file, args, options) => new Promise((resolve) => {
-  s['child-process'].execFile(file, args, options ?? {}, (error, stdout, stderr) => resolve({
+const captureExec = (call) => new Promise((resolve) => {
+  call((error, stdout, stderr) => resolve({
     code: error?.code ?? null,
     signal: error?.signal ?? null,
     killed: error?.killed ?? null,
@@ -2005,6 +2005,8 @@ const execOutcome = (file, args, options) => new Promise((resolve) => {
     stderr: execText(stderr),
   }))
 })
+const execOutcome = (file, args, options) => captureExec((done) => s['child-process'].execFile(file, args, options ?? {}, done))
+const shellOutcome = (command, options) => captureExec((done) => s['child-process'].exec(command, options ?? {}, done))
 
 const callbackOrder = () => new Promise((resolve) => {
   const order = []
@@ -2912,6 +2914,12 @@ sharedCases.push(
 sharedCases.push(
   { name: 'fs.readFileSync returns the file bytes as a Buffer', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'abc'); return Array.from(s.fs.readFileSync(dir + '/r.txt')) }), expected: [97, 98, 99] },
   { name: 'fs.readFileSync with utf8 returns the text', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'h\u00e9llo'); return s.fs.readFileSync(dir + '/r.txt', 'utf8') }), expected: 'h\u00e9llo' },
+)
+
+sharedCases.push(
+  { name: 'child-process.exec runs the string in a shell and captures stdout and stderr', run: () => shellOutcome('printf out; printf err >&2'), expected: { code: null, signal: null, killed: null, cmd: null, message: null, stdout: 'out', stderr: 'err' } },
+  { name: 'child-process.exec reports a nonzero exit as Node does', run: () => shellOutcome('printf out; exit 3'), expected: { code: 3, signal: null, killed: false, cmd: 'printf out; exit 3', message: 'Command failed: printf out; exit 3\n', stdout: 'out', stderr: '' } },
+  { name: 'child-process.exec passes cwd to the shell', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/marker.txt', 'x'); return shellOutcome('ls marker.txt', { cwd: dir }) }), expected: { code: null, signal: null, killed: null, cmd: null, message: null, stdout: 'marker.txt\n', stderr: '' } },
 )
 
 export const gapCases = [

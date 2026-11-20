@@ -9,7 +9,7 @@ export const contract = {
   "util": ['TextDecoder', 'inspect', 'isDeepStrictEqual', 'parseArgs', 'parseEnv', 'promisify'],
   "util-types": ['isPromise'],
   "module": ['createRequire', 'stripTypeScriptTypes'],
-  "child-process": ['execFile', 'execFileSync', 'spawn', 'spawnSync'],
+  "child-process": ['exec', 'execFile', 'execFileSync', 'spawn', 'spawnSync'],
   "os": ['availableParallelism', 'constants', 'homedir', 'networkInterfaces', 'platform', 'release', 'tmpdir'],
   "worker-threads": ['MessageChannel', 'Worker', 'parentPort', 'workerData'],
   "async-hooks": ['AsyncLocalStorage'],

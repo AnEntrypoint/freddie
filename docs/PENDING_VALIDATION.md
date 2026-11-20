@@ -2959,3 +2959,15 @@ Witness: the existing shared cases 'fs.readFileSync returns the file bytes as a 
 Red check (Phase B): mutation: 'const syncReadFile = txikiCore.syncReadFile' replaced by 'const syncReadFile = txikiCore.syncReadFileRemoved' (the host export is missing). Witness: the two readFileSync shared cases fail, and the probe output contains the guard message 'fs.readFileSync needs syncReadFile from tjs:internal/core'. Restore: copy back; cmp; git status shows the txiki source and this ledger.
 
 This replaces the red check written for 4de978a4 (the anchor 'const bytes = txikiCore.syncReadFile(path)' no longer exists).
+
+## Stretch F row 2 (2026-11-20): child-process.exec
+
+Decision (from Node's embedded lib, function exec and normalizeExecArgs): exec(command, options, callback) is execFile(command, [], options with shell set to the string option or true, callback). Node passes the command string as the file and runs it through the shell, reports a non-zero exit with the command string as error.cmd and the message 'Command failed: <cmd>\n<stderr>' (probe runs/analysis/stretchF-md4-oracle.cjs and /tmp/sF-exec.cjs: code 3, cmd 'printf out; exit 3', stdout 'out'). txiki's execFile already takes the shell option and builds the same error, so exec is a thin mapping. Reachable: taken.
+
+Not matched, held: Node's exec returns the ChildProcess (probe: typeof cp.exec(...) is 'object'); txiki's execFile returns nothing, because its capture path reads the raw host process, not a ChildProcess, so exec returns undefined too. util.promisify(exec) (Node's custom promisify returns {stdout, stderr}) is also not provided. Cause: both need execFile to build on ChildProcess, which is the separate capture refactor. The command type check (ERR_INVALID_ARG_TYPE for a non-string command) is not matched either; no witness covers it.
+
+Change: src/txiki.js adds exec before execFile and exports it under child_process; test/contract-names.js lists 'exec' for child-process. test/parity-cases.js: the execOutcome helper is split into captureExec (the shared result shape) with execOutcome and shellOutcome on top (dedup); three shared cases: shell output and stderr, nonzero exit, cwd.
+
+Witnesses: 'child-process.exec runs the string in a shell and captures stdout and stderr', 'child-process.exec reports a nonzero exit as Node does', 'child-process.exec passes cwd to the shell'.
+
+Red check (Phase B): mutation: 'shell: typeof opts.shell === 'string' ? opts.shell : true' replaced by 'shell: false' (exec runs the command as a file). Witness: the shell cases fail (ENOENT for the file 'printf out; printf err >&2'). Restore: copy back; cmp; git status shows the three files and this ledger.

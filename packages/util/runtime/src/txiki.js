@@ -3213,6 +3213,11 @@ function decodeExecOutput(bytes, encoding) {
   return encoding === null || encoding === 'buffer' ? buffer : buffer.toString(encoding)
 }
 
+function exec(command, options, callback) {
+  const [opts, done] = typeof options === 'function' ? [{}, options] : [options ?? {}, callback]
+  return execFile(command, [], { ...opts, shell: typeof opts.shell === 'string' ? opts.shell : true }, done)
+}
+
 function execFile(file, args, options, callback) {
   const { argv, opts, done } = execFileArguments(args, options, callback)
   for (const key of Object.keys(opts)) {
@@ -3423,7 +3428,7 @@ export const txikiRuntime = {
   }),
   utilTypes: withGaps('util.types', { isPromise }),
   module: withGaps('module', gapFunctions('module', ['createRequire', 'stripTypeScriptTypes'])),
-  childProcess: withGaps('child_process', { execFile, spawn, ...gapFunctions('child_process', ['execFileSync', 'spawnSync']) }),
+  childProcess: withGaps('child_process', { exec, execFile, spawn, ...gapFunctions('child_process', ['execFileSync', 'spawnSync']) }),
   os: withGaps('os', {
     availableParallelism,
     constants: withGaps('os.constants', {}),
