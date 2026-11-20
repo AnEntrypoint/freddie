@@ -2696,3 +2696,15 @@ Red check: the squeeze re-permute removed (if (offset + rate < length) keccakPer
 shake256 outputLength 300 squeezes past one rate block
 1
 Pending: none for this row.
+
+## Reachable row (Phase A, 2026-11-20): child-process stdio string
+
+Row: child-process stdio foo (gapCases; spawn with stdio 'foo' threw the declared gap).
+
+Node source (read from the embedded lib of /data/cache/node/current/bin/node, no Node run): stdioStringToArray has default: throw new ERR_INVALID_ARG_VALUE('stdio', stdio); ERR_INVALID_ARG_VALUE formats "The argument 'stdio' is invalid. Received 'foo'" (inspect of the value).
+
+Change: src/txiki.js stdioOf throws ERR_INVALID_ARG_VALUE for a string outside pipe, overlapped, inherit, ignore (overlapped stays a gap). test/parity-cases.js: gapCases entry removed; sharedCases witness added with the Node message.
+
+Witness: sharedCases "child-process stdio foo throws ERR_INVALID_ARG_VALUE at spawn" (expected from the Node source; the Phase B oracle run is the check).
+
+Red check (run in Phase B): mutation: stdioOf's string check removed; witness: the shared case reports the gap message; restore: copy back; cmp; git status shows the two files only.

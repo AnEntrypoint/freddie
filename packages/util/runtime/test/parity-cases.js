@@ -2851,6 +2851,10 @@ sharedCases.push(
   { name: 'stream.Readable highWaterMark 0 is accepted', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: 0 })), expected: 'no throw' },
 )
 
+sharedCases.push(
+  { name: 'child-process stdio foo throws ERR_INVALID_ARG_VALUE at spawn', run: () => errorOf(() => s['child-process'].spawn('/bin/sh', ['-c', 'echo ok'], { stdio: 'foo' })), expected: {"code":"ERR_INVALID_ARG_VALUE","message":"The argument 'stdio' is invalid. Received 'foo'"} },
+)
+
 export const gapCases = [
   { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
   { name: 'process.exitCode', run: () => proc.exitCode },
@@ -2859,7 +2863,6 @@ export const gapCases = [
   { name: 'child-process uid 1000', run: () => s['child-process'].spawn('id', ['-u'], { uid: '1000' }) },
   { name: 'child-process gid 1000', run: () => s['child-process'].spawn('id', ['-g'], { gid: '1000' }) },
   { name: 'child-process.spawn option detached', run: () => s['child-process'].spawn('true', [], { detached: true }) },
-  { name: 'child-process stdio foo', run: () => s['child-process'].spawn('/bin/sh', ['-c', 'echo ok'], { stdio: 'foo' }) },
   { name: 'child-process maxBuffer abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { maxBuffer: 'abc' }, () => {}) },
   { name: 'child-process signal abc', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'echo ok'], { signal: 'abc' }, () => {}) },
   { name: 'child-process killSignal 99', run: () => s['child-process'].execFile('/bin/sh', ['-c', 'exec sleep 5'], { timeout: 100, killSignal: 99 }, () => {}) },
