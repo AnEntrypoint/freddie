@@ -2967,10 +2967,14 @@ sharedCases.push(
   { name: 'fs.promises.access with X_OK rejects a file with no execute bit as EACCES', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/f', 'x'); await fsp.chmod(dir + '/f', 0o644); return fsp.access(dir + '/f', s.fs.constants.X_OK).then(() => 'ok', (error) => error.code) }), expected: 'EACCES' },
 )
 
+sharedCases.push(
+  { name: 'vm.Script compiles without running and runs more than once', run: () => { const script = new s.vm.Script('globalThis.freddieVmScriptSet = 41; 2'); const before = String(globalThis.freddieVmScriptSet); const first = script.runInThisContext(); const during = String(globalThis.freddieVmScriptSet); const second = script.runInThisContext(); delete globalThis.freddieVmScriptSet; return [before, first, during, second] }, expected: ['undefined', 2, '41', 2] },
+  { name: 'vm.Script with a syntax error throws SyntaxError at construction', run: () => { try { new s.vm.Script('1 +'); return 'no throw' } catch (error) { return error.name } }, expected: 'SyntaxError' },
+)
+
 export const gapCases = [
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
-  { name: 'vm.Script', run: () => new s.vm.Script('1') },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },
 ]
 

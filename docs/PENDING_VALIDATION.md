@@ -3097,3 +3097,13 @@ Witness (freddie, both runtimes): 'fs.promises.access with R_OK resolves for a r
 Native witness (gm, re-run): gm-tool check check-txiki-fs-access: ok.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js access calls tjs.stat in place of txikiCore.access. Witness: 'txiki parity failed' with mismatch 'fs.promises.access with X_OK rejects a file with no execute bit as EACCES' (got 'ok', expected 'EACCES'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired: vm.Script compiles without running, to core.compileScript and core.runCompiledScript (gm handoff 8, 2026-11-20)
+
+Change: vm.Script is a class (VmScript) whose constructor calls txikiCore.compileScript(code) (a compile with no run; a syntax error throws there) and whose runInThisContext calls txikiCore.runCompiledScript on the compiled function, so one script runs more than once. runInContext and runInNewContext throw the gap messages (gapError vm.Script.runInContext, vm.Script.runInNewContext), so they are not undefined. Limit kept as a gap: the filename option is not carried (handoff 8: fixed name), and the option argument is not read. The gapCases row 'vm.Script' is removed. Record: shared 804 -> 806, gaps applied 3 -> 2, inactive 1 unchanged.
+
+Witness (freddie, both runtimes): 'vm.Script compiles without running and runs more than once' ([undefined, 2, 41, 2]: the global is unset after the compile, 2 on each run, 41 after the first run) and 'vm.Script with a syntax error throws SyntaxError at construction' (SyntaxError). Node: 806/806 shared cases match (exit 0). Probe: shared 806, gaps 2, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-vm-script-compile: ok.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js VmScript constructor also runs the compiled function. Witness: 'txiki parity failed' with mismatch 'vm.Script compiles without running and runs more than once' (got ['41',2,'41',2], expected ['undefined',2,'41',2]). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

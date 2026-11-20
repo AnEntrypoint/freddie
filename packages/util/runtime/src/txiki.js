@@ -488,6 +488,26 @@ async function readFile(path, options) {
   return fileContent(await tjs.readFile(path), options)
 }
 
+class VmScript {
+  #compiled
+
+  constructor(code) {
+    this.#compiled = txikiCore.compileScript(code)
+  }
+
+  runInThisContext() {
+    return txikiCore.runCompiledScript(this.#compiled)
+  }
+
+  runInContext() {
+    throw gapError('vm.Script.runInContext')
+  }
+
+  runInNewContext() {
+    throw gapError('vm.Script.runInNewContext')
+  }
+}
+
 const syncReadFile = txikiCore.syncReadFile
 
 function readFileSync(path, options) {
@@ -3533,7 +3553,7 @@ export const txikiRuntime = {
     workerData: withGaps('worker_threads.workerData', {}),
   }),
   asyncHooks: withGaps('async_hooks', { AsyncLocalStorage: gapClass('async_hooks.AsyncLocalStorage') }),
-  vm: withGaps('vm', { Script: gapClass('vm.Script'), ...gapFunctions('vm', ['createContext', 'runInContext']) }),
+  vm: withGaps('vm', { Script: VmScript, ...gapFunctions('vm', ['createContext', 'runInContext']) }),
   http: withGaps('http', { validateHeaderValue, ...gapFunctions('http', ['createServer']) }),
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
