@@ -3087,3 +3087,13 @@ Witness (freddie, both runtimes): 'child-process.spawn stdio entry at fd 3 carri
 Native witness (gm, re-run): gm-tool check check-txiki-spawn-stdio: ok.
 
 Red check (mutation, witness, restore, cmp, git status): src/txiki.js startProcess passes an empty stdio list to core.spawn. Witness: 'txiki parity failed' with mismatch 'child-process.spawn stdio entry at fd 3 carries the bytes the child writes to it' (got 'threw: cannot read property 'on' of undefined'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
+
+## Wired: fs.promises.access with a mode to core.access (gm handoff 3, 2026-11-20)
+
+Change: access(path, mode) calls txikiCore.access(path, mode) for any mode (F_OK by default), in place of tjs.stat plus the gap for a mode other than F_OK. Record: shared 802 -> 804, gaps applied unchanged at 3.
+
+Witness (freddie, both runtimes): 'fs.promises.access with R_OK resolves for a readable file' ('ok') and 'fs.promises.access with X_OK rejects a file with no execute bit as EACCES' (EACCES; a file made with mode 0644). A stub throws the gap for a mode other than F_OK, so both rows need the native mode. Node: 804/804 shared cases match (exit 0). Probe: shared 804, gaps 3, gapInactive 1, mismatches [], unexpectedGaps [] (exit 0).
+
+Native witness (gm, re-run): gm-tool check check-txiki-fs-access: ok.
+
+Red check (mutation, witness, restore, cmp, git status): src/txiki.js access calls tjs.stat in place of txikiCore.access. Witness: 'txiki parity failed' with mismatch 'fs.promises.access with X_OK rejects a file with no execute bit as EACCES' (got 'ok', expected 'EACCES'). Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.

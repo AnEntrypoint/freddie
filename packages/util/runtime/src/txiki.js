@@ -364,8 +364,7 @@ async function exists(path) {
 }
 
 async function access(path, mode = fsConstants.F_OK) {
-  if (mode !== fsConstants.F_OK) throw gapError('fs.promises.access with a mode other than F_OK')
-  await tjs.stat(path)
+  await txikiCore.access(path, mode)
 }
 
 function chmod(path, mode) {
