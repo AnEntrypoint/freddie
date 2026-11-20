@@ -1,6 +1,7 @@
 import tjsPath from 'tjs:path'
 import tjsIpaddr from 'tjs:ipaddr'
 import { inspect as tjsInspect } from 'tjs:utils'
+import txikiCore from 'tjs:internal/core'
 
 const tjs = globalThis.tjs
 const webCrypto = globalThis.crypto
@@ -9,7 +10,7 @@ const utf8Decoder = new TextDecoder('utf-8', { ignoreBOM: true })
 const RANDOM_CHUNK = 65536
 const LATIN1_CHUNK = 32768
 const FILE_TYPE_FLAGS = ['isBlockDevice', 'isCharacterDevice', 'isDirectory', 'isFIFO', 'isFile', 'isSocket', 'isSymbolicLink']
-const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
+const FS_SYNC_NAMES = ['accessSync', 'closeSync', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'writeFileSync', 'writeSync']
 const ENCODINGS = new Map([
   ['utf8', 'utf8'],
   ['utf-8', 'utf8'],
@@ -478,10 +479,20 @@ function open(path, flags, mode) {
   return tjs.open(path, flags, mode)
 }
 
-async function readFile(path, options) {
+function fileContent(bytes, options) {
   const encoding = typeof options === 'string' ? options : options?.encoding
-  const bytes = viewOf(await tjs.readFile(path))
-  return encoding === undefined || encoding === null ? bytes : bytes.toString(encoding)
+  const content = viewOf(bytes)
+  return encoding === undefined || encoding === null ? content : content.toString(encoding)
+}
+
+async function readFile(path, options) {
+  return fileContent(await tjs.readFile(path), options)
+}
+
+function readFileSync(path, options) {
+  const bytes = txikiCore.syncReadFile(path)
+  if (bytes === undefined) throw gapError('fs.readFileSync error for a file that cannot be read')
+  return fileContent(bytes, options)
 }
 
 function closedDirError() {
@@ -3383,7 +3394,7 @@ function spawn(file, args, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, createReadStream, unwatchFile, watchFile }),
+  fs: withGaps('fs', { ...gapFunctions('fs', FS_SYNC_NAMES), constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

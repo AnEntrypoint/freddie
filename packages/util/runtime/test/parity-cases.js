@@ -2909,8 +2909,13 @@ sharedCases.push(
   { name: 'child-process.spawn stdio undefined and null entries default to pipes', run: () => streamSettle(stdoutOutcome('sh', ['-c', 'printf hi'], { stdio: ['ignore', undefined, null] })), expected: {"code":0,"signal":null,"text":"hi","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
 )
 
+sharedCases.push(
+  { name: 'fs.readFileSync returns the file bytes as a Buffer', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'abc'); return Array.from(s.fs.readFileSync(dir + '/r.txt')) }), expected: [97, 98, 99] },
+  { name: 'fs.readFileSync with utf8 returns the text', run: () => withScratch(async (dir) => { await fsp.writeFile(dir + '/r.txt', 'h\u00e9llo'); return s.fs.readFileSync(dir + '/r.txt', 'utf8') }), expected: 'h\u00e9llo' },
+)
+
 export const gapCases = [
-  { name: 'fs.readFileSync', run: () => s.fs.readFileSync('/etc/hostname') },
+  { name: 'fs.readFileSync error for a file that cannot be read', run: () => s.fs.readFileSync('/nonexistent-freddie-readfilesync') },
   { name: 'process.exitCode', run: () => proc.exitCode },
   { name: 'worker_threads.Worker', run: () => new s['worker-threads'].Worker('x') },
   { name: 'vm.Script', run: () => new s.vm.Script('1') },

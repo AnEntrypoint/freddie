@@ -2905,3 +2905,15 @@ Held rows, each with the missing primitive:
 - process.exitCode: a stored code would need an exit hook, because the process status is set by the host. The tjs surface has no exit listener. Missing: an exit hook in gm-core that reads a stored code at process exit. Reading or setting the property alone would not match Node's exit status.
 - worker_threads.Worker: missing a thread or isolate primitive; the tjs surface has none.
 - vm.Script: missing a second-realm primitive (the createContext and runInNewContext half). A runInThisContext through indirect eval could be written, but it would throw a SyntaxError at run time, where Node throws it at construction, so the class stays a gap.
+
+## Stretch E row 1 (2026-11-20): fs.readFileSync on the success path
+
+Row: fs.readFileSync and the sync family were gaps, because txiki's tjs file calls are async only.
+
+Host reading (outside freddie, read only): /workspace/gm/native/third_party/txiki/txiki/src/vm.c registers syncReadFile on the internal core object (vm.c:294-298, a whole-file read through tjs__load_file, returning a Uint8Array). The probe runs/analysis/stretchE-core-file.mjs showed that a freddie file can import 'tjs:internal/core' under gm-core and reach syncReadFile (5 bytes for /etc/hostname). A failed read returns undefined, because tjs__load_file's errno is dropped (vm.c:203-224).
+
+Change: src/txiki.js imports txikiCore from 'tjs:internal/core'; readFileSync(path, options) returns the bytes through the same fileContent helper that readFile uses (dedup: readFile and readFileSync share the encoding step); a failed read throws the gap 'fs.readFileSync error for a file that cannot be read'; 'readFileSync' leaves FS_SYNC_NAMES. The other 17 sync names stay gaps.
+
+Witnesses: test/parity-cases.js two shared cases ('fs.readFileSync returns the file bytes as a Buffer', expected [97, 98, 99]; 'fs.readFileSync with utf8 returns the text', expected the text with é) and one gap case for a missing file ('fs.readFileSync error for a file that cannot be read'). The old gap case 'fs.readFileSync' on /etc/hostname is removed, since the success path is now shared.
+
+Red check (Phase B): mutation: 'const bytes = txikiCore.syncReadFile(path)' replaced by 'const bytes = undefined'. Witness: the two shared readFileSync cases fail (gap thrown). Restore: copy back; cmp; git status shows the two files and this ledger.
