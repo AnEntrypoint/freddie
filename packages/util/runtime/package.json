@@ -58,7 +58,8 @@
     "src/timers-promises.js",
     "src/net.js",
     "src/dns-promises.js",
-    "src/process.js"
+    "src/process.js",
+    "src/aliases.json"
   ],
   "license": "MIT"
 }
