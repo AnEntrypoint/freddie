@@ -1,5 +1,22 @@
 # Pending validation: reduction to what the system needs
 
+## Open: the family-6 DNS cases wait on gm's patched txiki build (2026-11-21)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. The fix is on main at 9f0f8307 (pushed in ec12497f); this entry records what it has not yet been shown to do.
+
+Open items, none closable in this checkout:
+
+1. The two family-6 parity cases, "dns.promises.lookup of localhost for family 6 lists only loopback entries of family 6" and "dns.promises.lookup of localhost for family 6 given as a number returns one entry of family 6", are inactive under txiki on every gm build that exists now (sharedInactive 2), because none resolves ::1 for localhost. They have passed only on Node (859/859). Closing witness: the txiki parity probe (runs/analysis/mcp-probe.mjs with parity-txiki-body.js, or the window's txiki-parity step) against the build gm's next window installs with its G10 patch, reporting shared 859, mismatches [], unexpectedGaps [], gaps 2 and sharedInactive 0. If either case still reports inactive, the patch is not in that build.
+2. The two red checks for the fix are not run and are not to be run before that build exists, since neither can fail on an unpatched resolver. Expected results once it exists: dropping family from the tjs.lookup call in src/txiki.js makes the family 4 case list ::1 and fail; refusing family 6 again makes both family-6 cases fail. Each is applied to src/txiki.js, run, and restored with a byte comparison, as the other red checks are. They then join the window's red steps.
+
+State when written: gm checkout HEAD and builds as listed in the next lines; freddie tree clean, HEAD and origin/main equal.
+- cbab313 docs: G10 held back because freddie parity failed in window phase-b7; the cause, the revert 
+- 053328 2026-11-21 22:52 build/rel-72/native/components/host/gm-cor
+- 697152 2026-11-21 01:31 build/x64-linux-release/native/components/
+- 619936 2026-11-21 00:38 build/release/native/components/host/gm-co
+- 0
+- fatal: Needed a single revision
+
 ## The DNS lookup passes the family to tjs.lookup (2026-11-21, relayed from gm)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. Plain node for the oracle and the fixture; the txiki probe runs under gm's build.
