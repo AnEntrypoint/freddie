@@ -32,8 +32,7 @@ const nodeImports = new Set([...readFileSync(join(SRC, 'node.js'), 'utf8').match
 for (const [seam, key] of seams) if (!nodeImports.has(key)) fail('src/node.js does not import ' + key + ' for seam ' + seam)
 for (const key of nodeImports) if (table[key]?.seam === undefined) fail('src/node.js imports ' + key + ' with no alias row')
 
-let shippedImports = 0
-const files = execFileSync('git', ['ls-files', '*.js', '*.mjs', '*.cjs'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((file) => file !== '' && !file.startsWith('packages/util/runtime/') && !file.includes('/vendor/') && !file.startsWith('runs/'))
+const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.js', '*.mjs', '*.cjs'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((file) => file !== '' && !file.startsWith('packages/util/runtime/') && !file.includes('/vendor/') && !file.startsWith('runs/'))
 for (const file of files) {
   const shipped = SHIPPED.test(file)
   for (const match of readFileSync(join(ROOT, file), 'utf8').matchAll(SPECIFIER)) {
@@ -47,11 +46,11 @@ for (const file of files) {
     if (key === undefined) continue
     if (table[key] === undefined) fail(file + ' imports ' + specifier + ', which has no alias row')
     else if (shipped && table[key].scope !== 'shipped') fail(file + ' is shipped code and imports tooling-only ' + specifier)
-    if (shipped) shippedImports += 1
+    else if (shipped) fail(file + ' imports ' + specifier + '; import @freddie/freddie-runtime/' + table[key].seam + ' instead')
   }
 }
 if (failures.length > 0) {
   console.error('aliases: ' + failures.length + ' failure(s)\n' + failures.join('\n'))
   process.exit(1)
 }
-console.log('aliases: ' + Object.keys(table).length + ' rows, ' + seams.size + ' seams, ' + shippedImports + ' shipped imports in ' + files.length + ' files, no import needs a new name')
+console.log('aliases: ' + Object.keys(table).length + ' rows, ' + seams.size + ' seams, ' + files.length + ' files scanned, no node: import in shipped code, no import needs a new name')
