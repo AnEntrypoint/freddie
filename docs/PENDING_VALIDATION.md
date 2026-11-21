@@ -1,5 +1,19 @@
 # Pending validation: reduction to what the system needs
 
+## The DNS lookup passes the family to tjs.lookup (2026-11-21, relayed from gm)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. Plain node for the oracle and the fixture; the txiki probe runs under gm's build.
+
+| commit | change |
+|---|---|
+| 9f0f8307 | src/txiki.js: dns.lookup calls tjs.lookup(hostname, { all: true, family }) and no longer throws the named gap for family 6; test/parity-cases.js: three new shared cases (localhost for family 6 lists only ::1 entries of family 6; localhost with no family lists only loopback entries of family 4 or 6; localhost for family 6 given as a number returns ::1 and 6), the gap case "dns.lookup with family 6" removed, shared cases may carry an async applies that counts them as inactive when false; test/parity-expected.js (shared 859, gapsApplied 2); test/parity-fixture.json regenerated; docs/fx-split.md dns/promises row |
+
+Why. The adapter asked tjs.lookup for all answers with no family and filtered nothing, so it relied on the IPv4-only answer. A resolver that returns IPv4 and IPv6 for localhost (gm's G10 patch) makes the family 4 case list ::1 too. Passing the family lets the host filter, which is what Node's getaddrinfo does, and family 6 now works.
+
+Witnesses. Node oracle: 859/859 shared cases match. Fixture check: 859 shared and 3 gap cases match, writer idempotent. Txiki probe on gm's current build (build/rel-72, which has no G10 patch because gm reverted it at a98321d): shared 859, mismatches [], unexpectedGaps [], gapsApplied 2, sharedInactive 2.
+
+What the txiki witness does not show, said plainly. The two family-6 cases that need a resolver which returns ::1 for localhost are marked applies: hostResolvesIPv6Loopback, which asks globalThis.tjs.lookup directly and not the adapter. On a build without the patch they are inactive (sharedInactive 2), so on gm's current build only the family 4 and no-family cases run against tjs. With the patch they become active and must pass. I could not stub tjs.lookup to witness the forwarding in isolation: globalThis.tjs is frozen in gm's runtime and txiki.js captures it at load. Red checks for the change (family dropped from the call; family 6 refused again) are therefore not runnable until gm's patched build exists; both are written as expectations and will be run in the window that follows gm's re-apply: dropping family must fail the family 4 case (it lists ::1 on a patched build), refusing family 6 must fail the two family-6 cases. Ranked row 13 above: G10 (IPv6 lookup) is closed on the freddie side by this commit; it closes in full when the patched gm build passes the probe with sharedInactive 0.
+
 ## Ranked remaining work for the spec (2026-11-21)
 
 Source: /workspace/hyperagent/specs/fx-freddie-txiki.md, re-read for this list (the file is the dispatcher's copy; it is not in this checkout). Standing rules: /workspace/hyperagent/docs/peer-rules.md. freddie owns stages 4, 5 and 7 and the freddie half of stage 0. Nothing new is started until fx publishes fx:host (host-interface.md still marks it planned).
