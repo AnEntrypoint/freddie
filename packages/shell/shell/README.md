@@ -25,7 +25,7 @@ The split is a standard capability seam ([capability-seams Agent Note](../../../
 
 Implementations subclass `ShellExecutor` and implement the abstract methods. Disposal must kill every running process and await its exit.
 
-`SHELL_SETTINGS_NAMESPACE` (`bash`) is exported here rather than by a provider because it names the capability, not an implementation. A host composes exactly one provider of `ctx.shell` — the win32 layer swaps the POSIX rows for the pwsh ones, and mounting both fails loud on a duplicate service registration — so every provider can register this one namespace with its own schema and composition entry without two of them ever colliding, and a `settings.yaml` carried between platforms keeps resolving on both.
+`SHELL_SETTINGS_NAMESPACE` (`bash`) is exported here rather than by a provider because it names the capability, not an implementation. A host composes exactly one provider of `ctx.shell`, so every provider can register this one namespace with its own schema and composition entry without two of them ever colliding, and a `settings.yaml` carried between platforms keeps resolving on both.
 
 ## Vocabulary
 
@@ -35,7 +35,7 @@ The per-session sandbox-mode override vocabulary (the `'sandbox/mode'` event, th
 
 `stdin` and ordinary `env` are set by in-process plugins (the hooks bridges, native plugins) to feed a hook command its JSON payload and `CLAUDE_PROJECT_DIR`/`CLAUDE_PLUGIN_ROOT` values. `freddieEnv` is a separate trusted overlay restricted by type to managed keys; the exported `FREDDIE_ENV_PREFIX` is the single source for that namespace, its `FreddieEnvironmentKey` template type, executor scrubbing, registry validation, derived built-in names, and model guidance. Model bash uses the current snapshot collected by `ctx.shellEnv`. Implementations remove inherited managed keys, then merge `freddieEnv` after ordinary `env`, so an omitted current fact cannot fall back to stale ambient state and an `env` entry cannot displace a managed value. The model-facing tool exposes none of these as parameters. All three remain optional on the resolved spec; absent means no input/overlay. See [the bash-stdin-env Agent Note](../../../.agents/notes/implemented/architecture/2026-06-30-bash-stdin-env-trusted-plugin-api.md) and [the session environment Agent Note](../../../.agents/notes/implemented/feature/2026-07-10-agent-session-identity-and-log-location.md).
 
-The exported `parseExitStatus` (with `ParsedExitStatus`) is the shared rendering contract half of the shell tools: the inverse of the `[exit code: N]` / `[killed by signal: X]` markers `freddie-tool-bash`'s `renderResult` and `freddie-tool-pwsh`'s `renderPwshResult` append. Both tools' `presentResult` use it to split the rendered text into the terminal card's output body and its exit-status pill; it lives with the Service Definition so the two tools never drift on the marker contract.
+The exported `parseExitStatus` (with `ParsedExitStatus`) is the shared rendering contract half of the shell tools: the inverse of the `[exit code: N]` / `[killed by signal: X]` markers `freddie-tool-bash`'s `renderResult` appends. Its `presentResult` uses it to split the rendered text into the terminal card's output body and its exit-status pill; it lives with the Service Definition so the marker contract has one owner.
 
 ## Model Experience
 

@@ -55,8 +55,6 @@ flowchart LR
   cfg --> plugin_freddie_base_sandbox_policy
   plugin_freddie_base_bash_sandbox["bash-sandbox<br/>@freddie/freddie-bash-sandbox"]
   cfg --> plugin_freddie_base_bash_sandbox
-  plugin_freddie_base_pwsh_sandbox["pwsh-sandbox<br/>@freddie/freddie-pwsh-sandbox"]
-  cfg --> plugin_freddie_base_pwsh_sandbox
   plugin_freddie_base_approval["approval<br/>@freddie/freddie-user-approval"]
   cfg --> plugin_freddie_base_approval
   plugin_freddie_base_permission["permission<br/>@freddie/freddie-permission-presets"]
@@ -65,8 +63,6 @@ flowchart LR
   cfg --> plugin_freddie_base_shell_env
   plugin_freddie_base_tool_bash["tool-bash<br/>@freddie/freddie-tool-bash"]
   cfg --> plugin_freddie_base_tool_bash
-  plugin_freddie_base_tool_pwsh["tool-pwsh<br/>@freddie/freddie-tool-pwsh"]
-  cfg --> plugin_freddie_base_tool_pwsh
   plugin_freddie_base_tool_jobs["tool-jobs<br/>@freddie/freddie-tool-jobs"]
   cfg --> plugin_freddie_base_tool_jobs
   plugin_freddie_base_fs_observation_policy["fs-observation-policy<br/>@freddie/freddie-fs-observation-policy"]
@@ -186,12 +182,10 @@ flowchart LR
 | `sandbox` | `@freddie/freddie-sandbox-local` |
 | `sandbox-policy` | `@freddie/freddie-sandbox-policy` |
 | `bash-sandbox` | `@freddie/freddie-bash-sandbox` |
-| `pwsh-sandbox` | `@freddie/freddie-pwsh-sandbox` |
 | `approval` | `@freddie/freddie-user-approval` |
 | `permission` | `@freddie/freddie-permission-presets` |
 | `shell-env` | `@freddie/freddie-shell-env` |
 | `tool-bash` | `@freddie/freddie-tool-bash` |
-| `tool-pwsh` | `@freddie/freddie-tool-pwsh` |
 | `tool-jobs` | `@freddie/freddie-tool-jobs` |
 | `fs-observation-policy` | `@freddie/freddie-fs-observation-policy` |
 | `tool-fs` | `@freddie/freddie-tool-fs` |

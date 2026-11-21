@@ -77,7 +77,7 @@
       name: '@freddie/freddie-session-persistence-jsonl'
       config:
         root: !!js freddieHomePath('sessions')
-        extraRoots: !!js "(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '').split(process.platform === 'win32' ? ';' : ':').map(s => s.trim()).filter(Boolean)"
+        extraRoots: !!js "(process.env.FREDDIE_EXTRA_SESSION_ROOTS ?? '').split(':').map(s => s.trim()).filter(Boolean)"
 
     - id: attachment-local
       name: '@freddie/freddie-attachment-local'
@@ -148,8 +148,6 @@
 
     - id: terminal-bash
       name: '@freddie/freddie-terminal-bash'
-      config:
-        shellDialect: !!js "process.platform === 'win32' ? 'pwsh' : 'bash'"
 
     - id: sandbox
       name: '@freddie/freddie-sandbox-local'
@@ -162,13 +160,8 @@
 
     - id: bash-sandbox
       name: '@freddie/freddie-bash-sandbox'
-      disabled: !!js process.platform === 'win32'
       config:
         timeoutMs: 60000
-
-    - id: pwsh-sandbox
-      name: '@freddie/freddie-pwsh-sandbox'
-      disabled: !!js process.platform !== 'win32'
 
     - id: approval
       name: '@freddie/freddie-user-approval'
@@ -203,11 +196,6 @@
 
     - id: tool-bash
       name: '@freddie/freddie-tool-bash'
-      disabled: !!js process.platform === 'win32'
-
-    - id: tool-pwsh
-      name: '@freddie/freddie-tool-pwsh'
-      disabled: !!js process.platform !== 'win32'
 
     - id: tool-jobs
       name: '@freddie/freddie-tool-jobs'
@@ -406,7 +394,7 @@
       name: '@freddie/freddie-system-prompt'
       config:
         persona: ''
-        toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>']"
+        toolOrder: ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>']
 
     - id: agent-loop
       name: '@freddie/freddie-agent-loop'

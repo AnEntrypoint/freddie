@@ -1,6 +1,5 @@
 import { TerminalBackendCleanupError } from '@freddie/freddie-terminal'
 import { effectiveSandboxMode } from '@freddie/freddie-sandbox-policy'
-import { ENCODING_PREAMBLE } from '@freddie/freddie-pwsh-local'
 import { resolveConfig, validateConfig } from './config.js'
 import { LocalPtySession } from './session.js'
 import { CONTROLLED_PROMPT } from './sanitize.js'
@@ -33,28 +32,19 @@ function ensureSandboxModeFence(ctx, owner) {
   }, { global: true })
 }
 
-function childEnvironment(spec, dialect) {
-  const common = {
+function childEnvironment(spec) {
+  return {
     TERM: 'dumb',
     PAGER: 'cat',
     GIT_PAGER: 'cat',
     FREDDIE_SHELL: '1',
     FREDDIE_SESSION_ID: spec.owner.id,
     FREDDIE_PTY_SESSION_ID: spec.sessionId,
-  }
-  if (dialect === 'pwsh') {
-    return { ...common, NO_COLOR: '1' }
-  }
-  return {
-    ...common,
     PS1: CONTROLLED_PROMPT,
     PROMPT_COMMAND: `printf "\\033]133;D;%s\\007" "$?"; PS1='${CONTROLLED_PROMPT}'`,
     BASH_SILENCE_DEPRECATION_WARNING: '1',
   }
 }
-
-export const PWSH_PROMPT_SETUP =
-  "function prompt { [Console]::Write([char]27 + ']133;D;' + [int]$LASTEXITCODE + [char]7); '" + CONTROLLED_PROMPT + "' }"
 
 function spawnArgv(ctx, config, policy) {
   const argv = [config.shellPath, ...config.shellArgs]
@@ -66,28 +56,9 @@ function spawnArgv(ctx, config, policy) {
   return sandbox.confine(argv, { ...policy, mode: policy.mode }).argv
 }
 
-async function startupSession(session, dialect, signal) {
+async function startupSession(session, signal) {
   const start = async () => {
-    if (dialect === 'bash') {
-      await session.initialize(signal)
-      return
-    }
-    let viewport = ''
-    for (;;) {
-      const first = viewport.length === 0
-      const operation = session.startSend({
-        text: first ? ENCODING_PREAMBLE + PWSH_PROMPT_SETUP : '',
-        submit: first,
-        ...signal !== undefined ? { signal } : {},
-      })
-      const result = await operation.done
-      if (result.waitReason === 'session_exit') throw new Error('PTY shell exited during startup')
-      if (result.waitReason === 'timeout') throw new Error('PTY shell did not reach readiness before startup timeout')
-      viewport = result.viewport
-      const scrollback = session.read({ offset: 0, count: 20 }).text
-      if (viewport.includes(CONTROLLED_PROMPT) || scrollback.includes(CONTROLLED_PROMPT)) break
-    }
-    session.motd = viewport
+    await session.initialize(signal)
   }
   if (signal === undefined) {
     await start()
@@ -129,7 +100,7 @@ export class BashTerminalBackend {
     const terminal = await this.spawnTerminal({
       argv,
       cwd: spec.cwd ?? policy.workspaceRoot,
-      env: childEnvironment(spec, this.config.shellDialect),
+      env: childEnvironment(spec),
       rows: this.config.rows,
       cols: this.config.cols,
       graceMs: this.config.disposeGraceMs,
@@ -137,7 +108,7 @@ export class BashTerminalBackend {
     })
     const session = this.createSession(terminal, this.config)
     try {
-      await startupSession(session, this.config.shellDialect, spec.signal)
+      await startupSession(session, spec.signal)
       return session
     } catch (error) {
       try {

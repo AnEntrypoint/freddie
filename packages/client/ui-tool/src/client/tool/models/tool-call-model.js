@@ -7,7 +7,6 @@ export const VARIANT_TITLES = {
 
 const TOOL_VARIANTS = {
   bash: 'bash',
-  pwsh: 'bash',
   read: 'read',
   web_fetch: 'read',
   web_search: 'search',
@@ -30,7 +29,6 @@ const TOOL_TITLES = {
   cordis_run: 'Run Cordis Plugin',
   cordis_stop: 'Stop Cordis Plugin',
   cordis_undefine: 'Remove Cordis Plugin',
-  pwsh: 'Pwsh',
 }
 
 export function classifyTool(toolName) {

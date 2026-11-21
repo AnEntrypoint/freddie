@@ -15,7 +15,6 @@
 - src/index.js `apply`: WEB_RUNTIME_SERVICE is provided only after resolveLanTrust samples bind-dependent trust, which releases dependent rows.
 - src/index.js `announceWhenTreeSettled`: the URL line and browser handoff are readiness signals (supervisors RPC on seeing the line, the browser requests the page on open), so they wait for Loader settlement so siblings such as the /api route owner have mounted; a tree without a Loader announces at once. A tree disposed mid-boot (early SIGTERM) stays quiet because reading the torn-down port would turn a clean shutdown into a crash; a failed boot is the Loader's to report.
 - src/index.js `browserSharesThisHost`: under SSH the operator reaches the loopback URL through a forwarding address this process cannot derive, so no browser handoff. `DISPLAYED_LOOPBACK_HOST` only mirrors the webserver schema's loopback host, which is the source of truth.
-- src/index.js `BROWSER_OPENER_PROGRAM`: on win32 `open` resolves at PowerShell spawn, so the launcher is ref'd until it closes (Windows then holds the URL); a nonzero exit becomes the parent's manual-URL warning.
 
 ## Comment-sweep notes
 - apps/web is served buildless (its index.html plus apps/web/src/*.js through frontend-static distRoot/distIndex).

@@ -11,11 +11,6 @@
 
 - id: tool-bash
   name: '@freddie/freddie-tool-bash'
-  disabled: !!js process.platform === 'win32'
-
-- id: tool-pwsh
-  name: '@freddie/freddie-tool-pwsh'
-  disabled: !!js process.platform !== 'win32'
 
 - id: tool-fs
   name: '@freddie/freddie-tool-fs'

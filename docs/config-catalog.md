@@ -1283,61 +1283,6 @@ export interface PlanModeConfig {
 
 Source: [`packages/plan/plan-mode/src/index.js`](../packages/plan/plan-mode/src/index.js)
 
-<a id="freddie-pwsh-local"></a>
-
-## `@freddie/freddie-pwsh-local`
-
-Requires: `subprocess`
-
-```ts config-catalog
-/** Plugin config (all optional — `static Config` supplies the defaults). */
-export interface Config {
-  /** Default working directory for commands (default: process.cwd()). */
-  cwd?: string
-  /** Default foreground timeout in milliseconds. */
-  timeoutMs?: number
-  /** Upper bound for per-call timeout overrides. */
-  maxTimeoutMs?: number
-  /** Per-stream in-memory output cap; overflow spills to a temp file. */
-  maxOutputBytes?: number
-  /** Per-stream spill-file cap; larger streams retain only their in-memory tail. */
-  maxSpillBytes?: number
-  /** Grace period for kill escalation and inherited pipes; at most `MAX_TIMER_DELAY_MS`. */
-  graceMs?: number
-  /**
-   * Explicit pwsh executable. When omitted, well-known Windows install
-   * locations and PATH entries are probed in order (PowerShell 7 install,
-   * PATH entries such as the Microsoft Store install, then Windows
-   * PowerShell 5.1), falling back to a bare `pwsh` resolved through PATH.
-   */
-  pwshPath?: string
-}
-```
-
-Source: [`packages/shell/pwsh-local/src/index.js`](../packages/shell/pwsh-local/src/index.js)
-
-<a id="freddie-pwsh-sandbox"></a>
-
-## `@freddie/freddie-pwsh-sandbox`
-
-Requires: `subprocess` · `sandbox` · `sandboxPolicy`
-
-```ts config-catalog
-/**
- * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
- * the default mode and fallback `workspace-write` root — is NOT here: it lives
- * on `ctx.sandboxPolicy` (`@freddie/freddie-sandbox-policy`), which resolves
- * each calling session's mode and cwd for every enforcing capability. The
- * runner choice is likewise the `ctx.sandbox` provider's config, not this
- * executor's.
- */
-export type Config = LocalConfig
-```
-
-Depends on: [`LocalConfig`](#freddie-pwsh-local)
-
-Source: [`packages/shell/pwsh-sandbox/src/index.js`](../packages/shell/pwsh-sandbox/src/index.js)
-
 <a id="freddie-repeat-tool-reminder"></a>
 
 ## `@freddie/freddie-repeat-tool-reminder`
@@ -1933,11 +1878,9 @@ Requires: `terminals` · `sandboxPolicy` · `subprocess`
 export interface Config {
   /** Backend registry type (default: `shell`). */
   backendType?: string
-  /** Interactive shell dialect (default: `bash`); selects the argv/env/startup defaults. */
-  shellDialect?: ShellDialect
-  /** Interactive shell executable (default per dialect: `/bin/bash`, or the resolved pwsh). */
+  /** Interactive shell executable (default `/bin/bash`). */
   shellPath?: string
-  /** Shell arguments (default per dialect: bash `--noprofile --norc -i`, pwsh `-NoLogo -NoProfile`). */
+  /** Shell arguments (default bash `--noprofile --norc -i`). */
   shellArgs?: string[]
   /** Terminal rows. */
   rows?: number
@@ -1965,9 +1908,6 @@ export interface Config {
   /** Grace before teardown escalates to `SIGKILL`. */
   disposeGraceMs?: number
 }
-
-/** One supported interactive shell dialect. */
-export type ShellDialect = 'bash' | 'pwsh'
 ```
 
 Source: [`packages/terminal/terminal-bash/src/config.js`](../packages/terminal/terminal-bash/src/config.js)
@@ -2161,44 +2101,6 @@ export type CompletionDelivery = 'quiet' | 'wakeup'
 ```
 
 Source: [`packages/jobs/tool-jobs/src/index.js`](../packages/jobs/tool-jobs/src/index.js)
-
-<a id="freddie-tool-pwsh"></a>
-
-## `@freddie/freddie-tool-pwsh`
-
-Requires: `tools` · `shell` · `systemPrompt` · `shellEnv`
-
-```ts config-catalog
-/** Configuration for the pwsh tool. */
-export interface Config {
-  /** Expose `run_in_background` (default true); disabled calls are also rejected. */
-  enableRunInBackground?: boolean
-}
-```
-
-Source: [`packages/shell/tool-pwsh/src/index.js`](../packages/shell/tool-pwsh/src/index.js)
-
-<a id="freddie-tool-pwsh-persistent"></a>
-
-## `@freddie/freddie-tool-pwsh-persistent`
-
-Requires: `tools` · `terminals`
-
-```ts config-catalog
-/** Configuration for the persistent pwsh tool. */
-export interface Config {
-  /** PTY backend used for each owner-isolated persistent shell (default `shell`). */
-  backendType?: string
-  /** Wall-clock limit for one command (default 300000). */
-  timeoutMs?: number
-  /** Maximum returned command-output characters before clipping (default 16000). */
-  maxOutputChars?: number
-  /** Model-facing tool description; deployments may describe their environment. */
-  description?: string
-}
-```
-
-Source: [`packages/shell/tool-pwsh-persistent/src/index.js`](../packages/shell/tool-pwsh-persistent/src/index.js)
 
 <a id="freddie-tool-ralph"></a>
 
@@ -2729,7 +2631,6 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@freddie/freddie-launch-environment` ([`packages/util/launch-environment/src/index.js`](../packages/util/launch-environment/src/index.js))
 - `@freddie/freddie-native-command` ([`packages/util/native-command/src/index.js`](../packages/util/native-command/src/index.js))
 - `@freddie/freddie-output-retention` ([`packages/util/output-retention/src/index.js`](../packages/util/output-retention/src/index.js))
-- `@freddie/freddie-sandbox-windows-acl` ([`packages/sandbox/sandbox-windows-acl/src/index.js`](../packages/sandbox/sandbox-windows-acl/src/index.js))
 - `@freddie/freddie-scope` ([`packages/core/scope/src/index.js`](../packages/core/scope/src/index.js))
 - `@freddie/freddie-sdk-protocol` ([`packages/sdk/protocol/src/index.js`](../packages/sdk/protocol/src/index.js))
 - `@freddie/freddie-session-telemetry` ([`packages/session/session-telemetry/src/index.js`](../packages/session/session-telemetry/src/index.js))

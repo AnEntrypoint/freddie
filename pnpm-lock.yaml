@@ -134,12 +134,6 @@ importers:
       '@freddie/freddie-plan-mode':
         specifier: '*'
         version: link:../../packages/plan/plan-mode
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../../packages/shell/pwsh-local
-      '@freddie/freddie-pwsh-sandbox':
-        specifier: '*'
-        version: link:../../packages/shell/pwsh-sandbox
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../packages/util/runtime
@@ -200,12 +194,6 @@ importers:
       '@freddie/freddie-tool-jobs':
         specifier: '*'
         version: link:../../packages/jobs/tool-jobs
-      '@freddie/freddie-tool-pwsh':
-        specifier: '*'
-        version: link:../../packages/shell/tool-pwsh
-      '@freddie/freddie-tool-pwsh-persistent':
-        specifier: '*'
-        version: link:../../packages/shell/tool-pwsh-persistent
       '@freddie/freddie-tool-ralph':
         specifier: '*'
         version: link:../../packages/workflow/tool-ralph
@@ -297,9 +285,6 @@ importers:
       '@freddie/freddie-cmdline':
         specifier: '*'
         version: link:../../packages/boot/cmdline
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../../packages/shell/pwsh-local
       '@freddie/webjsx':
         specifier: '*'
         version: link:../../framework/webjsx
@@ -1122,9 +1107,6 @@ importers:
       '@freddie/freddie-plan-mode':
         specifier: '*'
         version: link:../../plan/plan-mode
-      '@freddie/freddie-pwsh-sandbox':
-        specifier: '*'
-        version: link:../../shell/pwsh-sandbox
       '@freddie/freddie-repeat-tool-reminder':
         specifier: '*'
         version: link:../../guard/repeat-tool-reminder
@@ -1233,9 +1215,6 @@ importers:
       '@freddie/freddie-tool-jobs':
         specifier: '*'
         version: link:../../jobs/tool-jobs
-      '@freddie/freddie-tool-pwsh':
-        specifier: '*'
-        version: link:../../shell/tool-pwsh
       '@freddie/freddie-tool-ralph':
         specifier: '*'
         version: link:../../workflow/tool-ralph
@@ -5963,9 +5942,6 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
-      '@freddie/freddie-sandbox-windows-acl':
-        specifier: '*'
-        version: link:../sandbox-windows-acl
       '@freddie/node-addon-landlock-run':
         specifier: '*'
         version: link:../../../native/landlock-run/packages/entry
@@ -6016,28 +5992,6 @@ importers:
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
-
-  packages/sandbox/sandbox-windows-acl:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
-      koffi:
-        specifier: ^3.1.0
-        version: 3.1.1
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../../shell/pwsh-local
-      '@freddie/freddie-sandbox-local':
-        specifier: '*'
-        version: link:../sandbox-local
 
   packages/schedule/schedule:
     devDependencies:
@@ -6795,64 +6749,6 @@ importers:
         specifier: '*'
         version: link:../../../native/landlock-run/packages/entry
 
-  packages/shell/pwsh-local:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-settings':
-        specifier: '*'
-        version: link:../../settings/settings
-      '@freddie/freddie-shell':
-        specifier: '*'
-        version: link:../shell
-      '@freddie/freddie-subprocess':
-        specifier: '*'
-        version: link:../../subprocess/subprocess
-      '@freddie/freddie-subprocess-local':
-        specifier: '*'
-        version: link:../../subprocess/subprocess-local
-      '@freddie/freddie-timeout':
-        specifier: '*'
-        version: link:../../util/timeout
-
-  packages/shell/pwsh-sandbox:
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../pwsh-local
-      '@freddie/freddie-sandbox':
-        specifier: '*'
-        version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-local':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-local
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
-      '@freddie/freddie-shell':
-        specifier: '*'
-        version: link:../shell
-      '@freddie/freddie-subprocess-local':
-        specifier: '*'
-        version: link:../../subprocess/subprocess-local
-
   packages/shell/shell:
     devDependencies:
       '@freddie/cordis':
@@ -6996,122 +6892,6 @@ importers:
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
-      '@freddie/freddie-sandbox':
-        specifier: '*'
-        version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
-      '@freddie/freddie-session':
-        specifier: '*'
-        version: link:../../core/session
-      '@freddie/freddie-subprocess-local':
-        specifier: '*'
-        version: link:../../subprocess/subprocess-local
-      '@freddie/freddie-system-prompt':
-        specifier: '*'
-        version: link:../../core/system-prompt
-      '@freddie/freddie-terminal':
-        specifier: '*'
-        version: link:../../terminal/terminal
-      '@freddie/freddie-terminal-bash':
-        specifier: '*'
-        version: link:../../terminal/terminal-bash
-      '@freddie/freddie-timeout':
-        specifier: '*'
-        version: link:../../util/timeout
-      '@freddie/freddie-tools':
-        specifier: '*'
-        version: link:../../core/tools
-
-  packages/shell/tool-pwsh:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-agent':
-        specifier: '*'
-        version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-jobs':
-        specifier: '*'
-        version: link:../../jobs/jobs
-      '@freddie/freddie-jobs-local':
-        specifier: '*'
-        version: link:../../jobs/jobs-local
-      '@freddie/freddie-llm':
-        specifier: '*'
-        version: link:../../llm/llm
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../pwsh-local
-      '@freddie/freddie-sandbox':
-        specifier: '*'
-        version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
-      '@freddie/freddie-shell':
-        specifier: '*'
-        version: link:../shell
-      '@freddie/freddie-shell-env':
-        specifier: '*'
-        version: link:../shell-env
-      '@freddie/freddie-subprocess-local':
-        specifier: '*'
-        version: link:../../subprocess/subprocess-local
-      '@freddie/freddie-system-prompt':
-        specifier: '*'
-        version: link:../../core/system-prompt
-      '@freddie/freddie-tool-jobs':
-        specifier: '*'
-        version: link:../../jobs/tool-jobs
-      '@freddie/freddie-tools':
-        specifier: '*'
-        version: link:../../core/tools
-      '@freddie/freddie-user-approval':
-        specifier: '*'
-        version: link:../../interaction/user-approval
-
-  packages/shell/tool-pwsh-persistent:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/cordis-plugin-include':
-        specifier: '*'
-        version: link:../../../framework/include
-      '@freddie/cordis-plugin-loader':
-        specifier: '*'
-        version: link:../../../framework/loader
-      '@freddie/freddie-agent':
-        specifier: '*'
-        version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
-      '@freddie/freddie-llm':
-        specifier: '*'
-        version: link:../../llm/llm
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../pwsh-local
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -7733,9 +7513,6 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
-      koffi:
-        specifier: ^3.1.0
-        version: 3.1.1
       node-pty:
         specifier: 1.2.0-beta.15
         version: 1.2.0-beta.15(patch_hash=b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0)
@@ -7773,9 +7550,6 @@ importers:
 
   packages/terminal/terminal-bash:
     dependencies:
-      '@freddie/freddie-pwsh-local':
-        specifier: '*'
-        version: link:../../shell/pwsh-local
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime

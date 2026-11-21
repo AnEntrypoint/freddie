@@ -2,7 +2,7 @@
   config:
     persona: >-
       You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
-    toolOrder: !!js "process.platform === 'win32' ? ['read', 'edit', 'write', 'grep', 'glob', 'pwsh', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>'] : ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>']"
+    toolOrder: ['read', 'edit', 'write', 'grep', 'glob', 'bash', 'skill', 'todo_write', 'workflow', 'ralph', '<unlisted-tools>']
 
 - id: hmr
   config:
@@ -279,9 +279,6 @@
       name: '@freddie/freddie-client-shortcuts'
 
 - id: tool-bash
-  disabled: true
-
-- id: tool-pwsh
   disabled: true
 
 - id: tool-jobs

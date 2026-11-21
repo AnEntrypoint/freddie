@@ -1,6 +1,6 @@
 # AGENTS.md — GitHub Actions
 
-`publint.yml` is the only workflow: it runs `pnpm install --frozen-lockfile` and `pnpm run publint` on `windows-latest` under native `pwsh`, on pushes to `main`, pull requests and manual dispatch.
+`publint.yml` is the only workflow: it runs `pnpm install --frozen-lockfile` and `pnpm run publint` on `ubuntu-latest`, on pushes to `main`, pull requests and manual dispatch.
 
 ## Rationale
 

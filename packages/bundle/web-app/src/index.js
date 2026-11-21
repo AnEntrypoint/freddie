@@ -48,22 +48,6 @@ const BROWSER_OPENER_PROGRAM = `
 try {
   const { default: open } = await import(${JSON.stringify(BROWSER_OPENER_MODULE)})
   const launcher = await open(process.argv[1])
-  if (process.platform === 'win32') {
-    const code = launcher.exitCode ?? await new Promise((resolve, reject) => {
-      function onError(error) {
-        launcher.off('close', onClose)
-        reject(error)
-      }
-      function onClose(code) {
-        launcher.off('error', onError)
-        resolve(code)
-      }
-      launcher.ref()
-      launcher.once('error', onError)
-      launcher.once('close', onClose)
-    })
-    if (code !== 0) throw new Error('browser operating-system launcher exited with code ' + String(code))
-  }
   process.exitCode = 0
 } catch (error) {
   console.error(error)

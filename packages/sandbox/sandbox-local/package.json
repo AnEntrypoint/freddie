@@ -37,7 +37,6 @@
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",
-    "@freddie/freddie-sandbox-windows-acl": "*",
     "@freddie/node-addon-landlock-run": "*",
     "@freddie/schemastery": "*"
   },

@@ -8,10 +8,7 @@ on:
 
 jobs:
   publint:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

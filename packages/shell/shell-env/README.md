@@ -1,6 +1,6 @@
 # @freddie/freddie-shell-env
 
-The tool-independent shell environment plugin: owns the `ctx.shellEnv` registry of trusted, per-execution `FREDDIE_*` variables that the model-facing shell tools (`freddie-tool-bash`, `freddie-tool-pwsh`) collect into every shell call's environment. Built-in shell facts (`FREDDIE_HOME`, `FREDDIE_SHELL=1`, `FREDDIE_SESSION_ID`) are owned by the registry itself; other plugins register additional enumerable facts with effect-scoped disposal, and duplicate ownership or undeclared runtime keys fail loudly.
+The tool-independent shell environment plugin: owns the `ctx.shellEnv` registry of trusted, per-execution `FREDDIE_*` variables that the model-facing shell tools (`freddie-tool-bash`) collect into every shell call's environment. Built-in shell facts (`FREDDIE_HOME`, `FREDDIE_SHELL=1`, `FREDDIE_SESSION_ID`) are owned by the registry itself; other plugins register additional enumerable facts with effect-scoped disposal, and duplicate ownership or undeclared runtime keys fail loudly.
 
 The package root exports the Cordis plugin contract (`name`, `inject`, `Config`, `apply`) plus the `ShellEnvRegistry` service class and its contributor types; consumers use `ctx.shellEnv` after loading this plugin.
 
@@ -38,7 +38,7 @@ The overlay is computed from the current `ToolExecution` and passed through the 
 
 ## Model Experience
 
-Indirectly, through the shell tools (`freddie-tool-bash`, `freddie-tool-pwsh`), which collect this registry's managed `FREDDIE_*` snapshot into every shell-tool call.
+Indirectly, through the shell tools (`freddie-tool-bash`), which collect this registry's managed `FREDDIE_*` snapshot into every shell-tool call.
 
 #### KV Cache effect
 

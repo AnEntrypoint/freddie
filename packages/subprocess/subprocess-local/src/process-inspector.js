@@ -1,6 +1,5 @@
 import { closeSync, openSync, readFileSync, readdirSync, readSync } from '@freddie/freddie-runtime/fs'
 import { execFileSync } from '@freddie/freddie-runtime/child-process'
-import { createWindowsProcessInspector } from './windows-inspector.js'
 import { process } from '@freddie/freddie-runtime/process'
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
@@ -276,6 +275,5 @@ export function createProcessInspector(
 ) {
   if (platform === 'linux') return new LinuxProcessInspector(arch, internals)
   if (platform === 'darwin') return new MacProcessInspector(internals)
-  if (platform === 'win32') return createWindowsProcessInspector()
   throw new Error(`subprocess-local: terminal inspection is unsupported on platform ${platform}`)
 }

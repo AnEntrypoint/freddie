@@ -74,7 +74,6 @@ export function runPlugin(profile, args) {
   const result = spawnSync('pnpm', args.map(argument => anchorPathSpec(argument, process.cwd())), {
     cwd: dir,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
   })
   if (result.error !== undefined) {
     const code = result.error.code

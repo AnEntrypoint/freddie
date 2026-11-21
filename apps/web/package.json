@@ -28,7 +28,6 @@
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-client-web": "*",
     "@freddie/freddie-cmdline": "*",
-    "@freddie/freddie-pwsh-local": "*",
     "@freddie/webjsx": "*"
   }
 }
