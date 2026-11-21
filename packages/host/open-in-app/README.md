@@ -1,6 +1,6 @@
 # @freddie/freddie-host-open-in-app
 
-Host half of open-in-app: three routes on `ctx.webServer` that resolve a fixed catalog of installed editors and IDEs, Git GUIs, terminals, and file managers to **verified launchers** on macOS, Windows, and Linux, and serve the catalog, each application's real icon, and a launch endpoint. Every route is pinned to loopback by an empty trust list, so the offer and the launch are only reachable from the machine running the host.
+Host half of open-in-app: three routes on `ctx.webServer` that resolve a fixed catalog of installed editors and IDEs, Git GUIs, terminals, and file managers to **verified launchers** on macOS and Linux, and serve the catalog, each application's real icon, and a launch endpoint. Every route is pinned to loopback by an empty trust list, so the offer and the launch are only reachable from the machine running the host.
 
 The catalog resolves lazily, **once per host process**, on the first request that needs it, into one map of verified launchers: the apps route serves its keys and the open route launches its values, so a click never re-runs detection. A launch whose executable is gone re-resolves that ONE entry and drops it when nothing proves it anymore — the uninstall direction self-heals immediately, while a newly installed application waits for the next process. Resolution is a proof obligation at every step: an install record counts only when it names an executable on disk, a bundle only when the directory exists, a `cli` name only when PATH/PATHEXT resolves it in-process.
 
@@ -22,8 +22,8 @@ Mount it in a composition that carries `webServer`; it registers three routes an
 
 | Field | Default | Meaning |
 |---|---|---|
-| `probeTimeoutMs` | `10000` | Deadline per catalog-resolution host command (`xcode-select`, each `reg.exe` read). |
-| `iconTimeoutMs` | `10000` | Deadline per icon-extraction host command (`plutil`/`sips` on macOS, the PowerShell extraction on Windows). |
+| `probeTimeoutMs` | `10000` | Deadline per catalog-resolution host command (`xcode-select`). |
+| `iconTimeoutMs` | `10000` | Deadline per icon-extraction host command (`plutil`/`sips` on macOS). |
 | `launchWatchMs` | `1000` | Early-failure watch window per launch: a launcher still running when the window closes counts as launched and keeps running, so this bounds how long a successful launch is held, not how long the application may live. |
 
 The three deadlines are independent, so tuning detection never changes how long a launch is watched. They are failure bounds, not latency budgets: conservative probe and icon values cost nothing while the commands are healthy.
@@ -42,13 +42,12 @@ All three answer `403 forbidden` to a request whose `Host` is not loopback, that
 
 ## The catalog and how it resolves
 
-The catalog is a fixed whitelist: editors and IDEs (Cursor, VS Code and Insiders, Windsurf, Zed, Sublime Text, Xcode, Android Studio, and the JetBrains IDEs IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, GoLand, Rider, RustRover), Git GUIs (Fork, Sourcetree, GitHub Desktop, Tower, GitKraken, SmartGit, Sublime Merge), terminals (Ghostty, Warp, iTerm2, kitty, Terminal, Windows Terminal, Git Bash, GNOME Terminal, Konsole), and per-platform file managers (Finder, File Explorer, `xdg-open`).
+The catalog is a fixed whitelist: editors and IDEs (Cursor, VS Code and Insiders, Windsurf, Zed, Sublime Text, Xcode, Android Studio, and the JetBrains IDEs IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, GoLand, Rider, RustRover), Git GUIs (Fork, Sourcetree, GitHub Desktop, Tower, GitKraken, SmartGit, Sublime Merge), terminals (Ghostty, Warp, iTerm2, kitty, Terminal, GNOME Terminal, Konsole), and per-platform file managers (Finder, `xdg-open`).
 
 - **macOS** checks the known application directories (`/Applications`, `~/Applications`) for the entry's bundle spellings and launches `open -a <resolved bundle>`; Xcode follows `xcode-select -p`, so Beta or renamed installs are found, and launches through `xed` with `open -a <bundle>` only as the fallback. No Launch Services query and no disk scan runs.
-- **Windows** reads the `App Paths` registry keys, then the Uninstall records (kept only when they prove an executable on disk), then well-known install paths and the newest versioned install directory. GitHub Desktop resolves its versioned executable together with the packaged `cli.js` and invokes `github open <path>` without a command shell. Registry reads are batched: one `reg.exe query` per root per resolution pass.
-- **Linux and Windows CLI names** resolve in-process against this host's `PATH`/`PATHEXT` — deliberately not through the `ctx.subprocess` seam, which resolves inside a provider's execution world and would search a remote sandbox instead of the operator's desktop. Zed, Ghostty, kitty, GNOME Terminal, and Konsole fall back, when their CLI is off PATH, to their XDG desktop entry's verified `TryExec`/`Exec` (VS Code, VS Code Insiders, Sublime Text, and Sublime Merge read their desktop entry for the icon only), and the `xdg-open` entry appears only when the host announces a display server.
+- **Linux CLI names** resolve in-process against this host's `PATH` — deliberately not through the `ctx.subprocess` seam, which resolves inside a provider's execution world and would search a remote sandbox instead of the operator's desktop. Zed, Ghostty, kitty, GNOME Terminal, and Konsole fall back, when their CLI is off PATH, to their XDG desktop entry's verified `TryExec`/`Exec` (VS Code, VS Code Insiders, Sublime Text, and Sublime Merge read their desktop entry for the icon only), and the `xdg-open` entry appears only when the host announces a display server.
 
-Application launches spawn detached on `scrubbedParentEnv()`, so an editor never inherits a provider key; the file managers' `shell-open` launches instead run the OS open verb (`open`, PowerShell `Invoke-Item`, `xdg-open`) through `freddie-native-command` on the inherited environment, watched by the same `launchWatchMs` window. Windows GUI processes stay visible unless the entry is a CLI adapter that opens the window itself.
+Application launches spawn detached on `scrubbedParentEnv()`, so an editor never inherits a provider key; the file managers' `shell-open` launches instead run the OS open verb (`open`, `xdg-open`) through `freddie-native-command` on the inherited environment, watched by the same `launchWatchMs` window.
 
 ## SSH launches
 
@@ -66,7 +65,7 @@ None; the package never assembles or sends a provider request.
 
 - **The catalog is fixed at build time.** A deployment cannot add its own editor or Git GUI from cordis.yml; extending the list means extending `OPEN_IN_APP_CATALOG` and the future browser surface's dictionaries together. The operating system can locate known applications but cannot establish that every installed application accepts a workspace directory or which launch protocol it requires, so the package does not enumerate an unrestricted OS application list.
 - **macOS detection is known-paths only.** A bundle renamed beyond the catalog's spellings or moved outside `/Applications` and `~/Applications` is not detected; there is no Launch Services query (a native lookup needs an addon the repository does not carry) and deliberately no disk scan.
-- **Icon fidelity is platform-bound.** Windows icons come from `ExtractAssociatedIcon` at 32px — the most the stock .NET surface yields without a native addon — which can render slightly soft on high-DPI displays; Linux icons follow the hicolor theme and pixmaps only, not the user's active icon theme; entries with no icon source (CLI-only launchers without a desktop entry) keep the generic glyph.
+- **Icon fidelity is platform-bound.** Linux icons follow the hicolor theme and pixmaps only, not the user's active icon theme; entries with no icon source (CLI-only launchers without a desktop entry) keep the generic glyph.
 - **New installs appear after a restart.** Resolution runs once per host process; only the uninstall direction self-heals.
 - **No browser surface ships.** `./shared` carries the route paths and payload shapes for one, but no freddie package reads it yet, and the document-relative route forms upstream pairs with each path are therefore absent rather than unused.
 - **WSL is not covered by the Linux file-manager entry.** The desktop gate reads `DISPLAY`/`WAYLAND_DISPLAY`, which WSL does not set, so `xdg-open` is not offered there; a WSL launcher would have to translate the path with `wslpath -w` and drive the Windows shell instead, and is deferred until a WSL host can verify it.

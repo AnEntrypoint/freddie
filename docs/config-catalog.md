@@ -776,9 +776,9 @@ Requires: `webServer`
 ```ts config-catalog
 /** Runtime schema for host application discovery and launch. */
 export interface OpenInAppConfig {
-  /** Deadline per catalog-resolution host command (`xcode-select`, each `reg.exe` read). */
+  /** Deadline per catalog-resolution host command (`xcode-select`). */
   probeTimeoutMs?: number
-  /** Deadline per icon-extraction host command (`plutil`/`sips`, the PowerShell extraction). */
+  /** Deadline per icon-extraction host command (`plutil`/`sips`). */
   iconTimeoutMs?: number
   /** Early-failure watch window per launch: a launcher still running when the window closes counts as launched and keeps running. */
   launchWatchMs?: number

@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, readFile, rm, stat, writeFile } from '@freddie/freddie-runtime/fs-promises'
+import { mkdtemp, readdir, readFile, rm, stat } from '@freddie/freddie-runtime/fs-promises'
 import { platform as osPlatform, tmpdir } from '@freddie/freddie-runtime/os'
 import { extname, join } from '@freddie/freddie-runtime/path'
 import { findDesktopEntry, runHostCommand, xdgDataDirectories } from './resolver.js'
@@ -10,17 +10,6 @@ const HICOLOR_DIRECTORIES = [
 ]
 
 const contentTypeOf = path => (extname(path).toLowerCase() === '.svg' ? 'image/svg+xml' : 'image/png')
-
-const EXTRACT_ICON_PS1 = [
-  'param([string]$Source, [string]$Target)',
-  '$ErrorActionPreference = "Stop"',
-  'Add-Type -AssemblyName System.Drawing',
-  '$icon = [System.Drawing.Icon]::ExtractAssociatedIcon($Source)',
-  'if ($null -eq $icon) { exit 1 }',
-  '$bitmap = $icon.ToBitmap()',
-  '$bitmap.Save($Target, [System.Drawing.Imaging.ImageFormat]::Png)',
-  '',
-].join('\n')
 
 async function readIfWritten(path) {
   try {
@@ -78,22 +67,6 @@ async function extractBundleIconPng(bundlePath, timeoutMs) {
   }
 }
 
-async function extractExecutableIconPng(executablePath, timeoutMs) {
-  const workDir = await mkdtemp(join(tmpdir(), 'freddie-open-in-app-'))
-  try {
-    const script = join(workDir, 'extract-icon.ps1')
-    const outPng = join(workDir, 'icon.png')
-    await writeFile(script, EXTRACT_ICON_PS1, 'utf8')
-    const ran = await runHostCommand('powershell.exe', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, executablePath, outPng,
-    ], timeoutMs)
-    if (ran === null) return null
-    return await readIfWritten(outPng)
-  } finally {
-    await rm(workDir, { recursive: true, force: true })
-  }
-}
-
 async function desktopApplicationIcon(icon, dataDirectories) {
   if (icon.includes('/')) {
     try {
@@ -140,8 +113,6 @@ export async function extractAppIcon(app, resolved, timeoutMs) {
     return desktopId === undefined ? null : extractLinuxIcon(desktopId)
   }
   if (resolved.icon === undefined) return null
-  const bytes = resolved.icon.kind === 'app-bundle'
-    ? await extractBundleIconPng(resolved.icon.path, timeoutMs)
-    : await extractExecutableIconPng(resolved.icon.path, timeoutMs)
+  const bytes = await extractBundleIconPng(resolved.icon.path, timeoutMs)
   return bytes === null ? null : { bytes, contentType: 'image/png' }
 }

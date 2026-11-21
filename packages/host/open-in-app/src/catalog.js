@@ -1,9 +1,5 @@
 export const PATH_TOKEN = '{path}'
 
-
-
-
-
 const macApp = (...fsNames) => ({ locators: [{ kind: 'app', fsNames }] })
 
 const spec = (...locators) => ({ locators })
@@ -16,30 +12,13 @@ const desktopCli = (name, ...args) => ({ kind: 'cli', name, args, requiresDeskto
 
 const file = (candidates, ...args) => ({ kind: 'file', candidates, args })
 
-const appPaths = (exe, ...args) => ({ kind: 'app-paths', exe, args })
-
-const installRecord = (displayNamePrefix, relativeLauncher, ...args) =>
-  ({ kind: 'install-record', displayNamePrefix, relativeLauncher, args })
-
-const jetBrains = (id, productName, cliName, winExe, macNames) => ({
+const jetBrains = (id, cliName, macNames) => ({
   id,
   platforms: {
     darwin: macApp(...macNames),
-    win32: spec(
-      {
-        kind: 'scan',
-        root: '${ProgramFiles}/JetBrains',
-        namePrefix: productName,
-        relativeLauncher: `bin/${winExe}`,
-        args: [],
-      },
-      installRecord(productName, `bin/${winExe}`),
-    ),
     linux: spec(cli(cliName), file([`~/.local/share/JetBrains/Toolbox/scripts/${cliName}`])),
   },
 })
-
-const GIT_FOR_WINDOWS_DISPLAY_NAME_PREFIX = 'Git version'
 
 export const OPEN_IN_APP_CATALOG = [
   {
@@ -52,26 +31,11 @@ export const OPEN_IN_APP_CATALOG = [
       }),
     },
   },
-  {
-    id: 'explorer',
-    platforms: {
-      win32: spec({
-        kind: 'fixed',
-        launch: { kind: 'shell-open' },
-        iconPath: '${SystemRoot}/explorer.exe',
-      }),
-    },
-  },
   { id: 'filemanager', platforms: { linux: spec(desktopCli('xdg-open')) } },
   {
     id: 'cursor',
     platforms: {
       darwin: macApp('Cursor.app'),
-      win32: spec(
-        appPaths('Cursor.exe'),
-        installRecord('Cursor'),
-        file(['${LOCALAPPDATA}/Programs/cursor/Cursor.exe']),
-      ),
       linux: spec(cli('cursor')),
     },
   },
@@ -79,14 +43,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'vscode',
     platforms: {
       darwin: macApp('Visual Studio Code.app'),
-      win32: spec(
-        appPaths('Code.exe'),
-        installRecord('Microsoft Visual Studio Code', 'Code.exe'),
-        file([
-          '${LOCALAPPDATA}/Programs/Microsoft VS Code/Code.exe',
-          '${ProgramFiles}/Microsoft VS Code/Code.exe',
-        ]),
-      ),
       linux: desktopSpec('code', cli('code')),
     },
   },
@@ -94,11 +50,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'vscodeinsiders',
     platforms: {
       darwin: macApp('Visual Studio Code - Insiders.app'),
-      win32: spec(
-        appPaths('Code - Insiders.exe'),
-        installRecord('Microsoft Visual Studio Code Insiders', 'Code - Insiders.exe'),
-        file(['${LOCALAPPDATA}/Programs/Microsoft VS Code Insiders/Code - Insiders.exe']),
-      ),
       linux: desktopSpec('code-insiders', cli('code-insiders')),
     },
   },
@@ -106,11 +57,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'windsurf',
     platforms: {
       darwin: macApp('Windsurf.app'),
-      win32: spec(
-        appPaths('Windsurf.exe'),
-        installRecord('Windsurf'),
-        file(['${LOCALAPPDATA}/Programs/Windsurf/Windsurf.exe']),
-      ),
       linux: spec(cli('windsurf')),
     },
   },
@@ -129,11 +75,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'sublimetext',
     platforms: {
       darwin: macApp('Sublime Text.app'),
-      win32: spec(
-        appPaths('sublime_text.exe'),
-        installRecord('Sublime Text'),
-        file(['${ProgramFiles}/Sublime Text/sublime_text.exe']),
-      ),
       linux: desktopSpec('sublime_text', cli('subl')),
     },
   },
@@ -142,30 +83,23 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'androidstudio',
     platforms: {
       darwin: macApp('Android Studio.app'),
-      win32: spec(
-        installRecord('Android Studio', 'bin/studio64.exe'),
-        file(['${ProgramFiles}/Android/Android Studio/bin/studio64.exe']),
-      ),
       linux: spec(cli('studio'), file([
         '~/.local/share/JetBrains/Toolbox/scripts/studio',
         '/opt/android-studio/bin/studio.sh',
       ])),
     },
   },
-  jetBrains('intellij', 'IntelliJ IDEA', 'idea', 'idea64.exe',
-    ['IntelliJ IDEA.app', 'IntelliJ IDEA Ultimate.app', 'IntelliJ IDEA CE.app']),
-  jetBrains('pycharm', 'PyCharm', 'pycharm', 'pycharm64.exe',
-    ['PyCharm.app', 'PyCharm Professional.app', 'PyCharm CE.app', 'PyCharm Community.app']),
-  jetBrains('webstorm', 'WebStorm', 'webstorm', 'webstorm64.exe', ['WebStorm.app']),
-  jetBrains('phpstorm', 'PhpStorm', 'phpstorm', 'phpstorm64.exe', ['PhpStorm.app']),
-  jetBrains('goland', 'GoLand', 'goland', 'goland64.exe', ['GoLand.app']),
-  jetBrains('rider', 'Rider', 'rider', 'rider64.exe', ['Rider.app', 'JetBrains Rider.app']),
-  jetBrains('rustrover', 'RustRover', 'rustrover', 'rustrover64.exe', ['RustRover.app']),
+  jetBrains('intellij', 'idea', ['IntelliJ IDEA.app', 'IntelliJ IDEA Ultimate.app', 'IntelliJ IDEA CE.app']),
+  jetBrains('pycharm', 'pycharm', ['PyCharm.app', 'PyCharm Professional.app', 'PyCharm CE.app', 'PyCharm Community.app']),
+  jetBrains('webstorm', 'webstorm', ['WebStorm.app']),
+  jetBrains('phpstorm', 'phpstorm', ['PhpStorm.app']),
+  jetBrains('goland', 'goland', ['GoLand.app']),
+  jetBrains('rider', 'rider', ['Rider.app', 'JetBrains Rider.app']),
+  jetBrains('rustrover', 'rustrover', ['RustRover.app']),
   {
     id: 'fork',
     platforms: {
       darwin: macApp('Fork.app'),
-      win32: spec(installRecord('Fork'), file(['${LOCALAPPDATA}/Fork/Fork.exe'])),
     },
   },
   { id: 'sourcetree', platforms: { darwin: macApp('Sourcetree.app') } },
@@ -173,7 +107,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'github',
     platforms: {
       darwin: macApp('GitHub Desktop.app'),
-      win32: spec({ kind: 'github-desktop', root: '${LOCALAPPDATA}/GitHubDesktop' }),
     },
   },
   { id: 'tower', platforms: { darwin: macApp('Tower.app') } },
@@ -183,11 +116,6 @@ export const OPEN_IN_APP_CATALOG = [
     id: 'sublimemerge',
     platforms: {
       darwin: macApp('Sublime Merge.app'),
-      win32: spec(
-        appPaths('sublime_merge.exe'),
-        installRecord('Sublime Merge'),
-        file(['${ProgramFiles}/Sublime Merge/sublime_merge.exe']),
-      ),
       linux: desktopSpec('sublime_merge', cli('smerge')),
     },
   },
@@ -223,16 +151,6 @@ export const OPEN_IN_APP_CATALOG = [
         launch: { kind: 'argv', command: 'open', args: ['-a', 'Terminal'] },
         iconPath: '/System/Applications/Utilities/Terminal.app',
       }),
-    },
-  },
-  { id: 'windowsterminal', platforms: { win32: spec(cli('wt', '-d')) } },
-  {
-    id: 'gitbash',
-    platforms: {
-      win32: spec(
-        installRecord(GIT_FOR_WINDOWS_DISPLAY_NAME_PREFIX, 'git-bash.exe', `--cd=${PATH_TOKEN}`),
-        file(['${ProgramFiles}/Git/git-bash.exe'], `--cd=${PATH_TOKEN}`),
-      ),
     },
   },
   {
