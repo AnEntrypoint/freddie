@@ -524,11 +524,7 @@ async function mkdir(path, options = {}) {
 }
 
 async function statFor(path, dereference) {
-  try {
-    return statsOf(await (dereference ? tjs.stat(path) : tjs.lstat(path)))
-  } catch (error) {
-    throw fsPathError(error, dereference ? 'stat' : 'lstat', path)
-  }
+  return statsOf(await inPath(dereference ? 'stat' : 'lstat', path, () => (dereference ? tjs.stat(path) : tjs.lstat(path))))
 }
 
 function cpError(code, errno, message) {
@@ -602,11 +598,7 @@ async function symlink(target, path) {
 }
 
 async function readlink(path) {
-  try {
-    return await tjs.readLink(path)
-  } catch (error) {
-    throw fsPathError(error, 'readlink', path)
-  }
+  return inPath('readlink', path, () => tjs.readLink(path))
 }
 
 function link(existing, path) {
@@ -686,12 +678,7 @@ const syncReadFile = txikiCore.syncReadFile
 
 function readFileSync(path, options) {
   if (typeof syncReadFile !== 'function') throw new Error('fs.readFileSync needs syncReadFile from tjs:internal/core, which this txiki host no longer exposes')
-  let bytes
-  try {
-    bytes = syncReadFile(path)
-  } catch (error) {
-    throw fsPathError(error, 'open', path)
-  }
+  const bytes = inPath('open', path, () => syncReadFile(path))
   return fileContent(bytes, options)
 }
 
@@ -805,9 +792,7 @@ async function writeFile(path, data, options) {
   if (options?.flush !== undefined && typeof options.flush !== 'boolean') throw codedError(TypeError, 'ERR_INVALID_ARG_TYPE', 'The "options.flush" property must be of type boolean. Received ' + describeReceived(options.flush))
   const mode = modeOf(options?.mode)
   const bytes = typeof data === 'string' ? CODECS[encodingOf(encoding)].encode(data) : data
-  const handle = await tjs.open(path, flag, mode).catch((error) => {
-    throw fsPathError(error, 'open', path)
-  })
+  const handle = await inPath('open', path, () => tjs.open(path, flag, mode))
   try {
     let offset = 0
     while (offset < bytes.length) offset += await handle.write(bytes.subarray(offset))
@@ -2432,10 +2417,14 @@ function bytesOf(chunk, encoding = 'utf8') {
 }
 
 function inPath(syscall, path, call) {
-  try {
-    return call()
-  } catch (error) {
+  const fail = (error) => {
     throw fsPathError(error, syscall, path)
+  }
+  try {
+    const result = call()
+    return result instanceof Promise ? result.catch(fail) : result
+  } catch (error) {
+    return fail(error)
   }
 }
 
