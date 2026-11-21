@@ -2851,7 +2851,7 @@ sharedCases.push(
   { name: 'stream.Readable objectMode highWaterMark -2 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Readable({ read() {}, objectMode: true, highWaterMark: -2 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -2" } },
   { name: 'stream.Writable highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => new s.stream.Writable({ write(chunk, enc, cb) { cb() }, highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
   { name: 'stream.PassThrough highWaterMark -1 throws ERR_INVALID_ARG_VALUE naming the readable side', run: () => errorOf(() => new s.stream.PassThrough({ highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.readableHighWaterMark' is invalid. Received -1" } },
-  { name: 'fs.createReadStream highWaterMark -1 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
+  { name: 'fs.createReadStream highWaterMark -1 throws ERR_INVALID_ARG_VALUE when called directly', run: () => errorOf(() => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: -1 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received -1" } },
   { name: 'fs.createReadStream highWaterMark 2.5 throws ERR_INVALID_ARG_VALUE', run: () => errorOf(() => s.fs.createReadStream('/tmp/gap-never-read', { highWaterMark: 2.5 })), expected: { code: 'ERR_INVALID_ARG_VALUE', message: "The property 'options.highWaterMark' is invalid. Received 2.5" } },
   { name: 'stream.Readable highWaterMark 0 is accepted', run: () => errorOf(() => new s.stream.Readable({ read() {}, highWaterMark: 0 })), expected: 'no throw' },
 )
@@ -3092,6 +3092,47 @@ async function outcomeOf(run) {
   } catch (error) {
     return { thrown: String(error.message) }
   }
+}
+
+const inputOf = (run) => String(run).replace(/\s+/g, ' ').trim()
+
+const encodedOutcome = (outcome) => {
+  if (outcome.thrown !== undefined) return { kind: 'threw', output: outcome.thrown }
+  if (outcome.value === undefined) return { kind: 'undefined', output: null }
+  return { kind: 'value', output: JSON.parse(JSON.stringify(canon(outcome.value))) }
+}
+
+export async function captureCases() {
+  const shared = []
+  for (const { name, run } of sharedCases) shared.push({ name, input: inputOf(run), ...encodedOutcome(await outcomeOf(run)) })
+  const gaps = gapCases.map(({ name, run }) => ({ name, input: inputOf(run), kind: 'gap', output: gapMessage(name) }))
+  return { shared, gaps }
+}
+
+export function fixtureProblems(fixture, captured) {
+  const problems = []
+  for (const [section, cases] of [['shared', sharedCases], ['gaps', gapCases]]) {
+    const entries = fixture[section] ?? []
+    const recorded = new Map(entries.map((entry) => [entry.name, entry]))
+    if (recorded.size !== entries.length) problems.push('the fixture repeats a case name in ' + section)
+    const seen = new Set()
+    for (const { name, run } of cases) {
+      if (seen.has(name)) problems.push('the case name "' + name + '" is used twice')
+      seen.add(name)
+      const entry = recorded.get(name)
+      if (entry === undefined) problems.push('case "' + name + '" is missing from the fixture (' + section + ')')
+      else if (entry.input !== inputOf(run)) problems.push('fixture input is stale for "' + name + '"')
+    }
+    for (const name of recorded.keys()) if (!seen.has(name)) problems.push('fixture entry "' + name + '" has no case (' + section + ')')
+  }
+  if (captured !== undefined) {
+    const recorded = new Map((fixture.shared ?? []).map((entry) => [entry.name, entry]))
+    for (const entry of captured.shared) {
+      const expected = recorded.get(entry.name)
+      if (expected !== undefined && (expected.kind !== entry.kind || JSON.stringify(expected.output) !== JSON.stringify(entry.output))) problems.push('output differs for "' + entry.name + '": ' + entry.kind + ' ' + JSON.stringify(entry.output) + ', fixture ' + expected.kind + ' ' + JSON.stringify(expected.output))
+    }
+  }
+  return problems
 }
 
 export async function runParity(label, withGaps) {
