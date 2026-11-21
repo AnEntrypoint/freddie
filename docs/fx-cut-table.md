@@ -16,8 +16,8 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | decision | packages now | source lines now | packages before this pass |
 |---|---|---|---|
 | cut | 87 | 45043 | 87 |
-| move | 159 | 144601 | 159 |
-| drop | 1 | 117 | 9 |
+| move | 160 | 144718 | 159 |
+| drop | 0 | 0 | 9 |
 | total | 247 | 189761 | 255 |
 
 ## Cut table
@@ -48,6 +48,7 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | move | code-runtime | 1 | 4752 | - | Cordis extension runner; fx has no Cordis | cordis-host-runner |
 | move | code-runtime | 1 | 5865 | - | Cordis extension tool; fx has no Cordis | tool-cordis |
 | move | composition-boot | 20 | 7615 | - | Cordis composition, profiles and boot are freddie-owned; fx has no Cordis (docs/fx-split.md, composition-boot) | acp-app, agent-presets, app-boot, base, cmdline, config-editor, cordis, cordis-plugin-group, cordis-plugin-hmr, cordis-plugin-include, cordis-plugin-loader, cordis-plugin-timer, cosmokit, freddie, headless, persona, plugin-manager, schemastery, sdk-app, web-app |
+| move | composition-boot | 1 | 117 | - | Cordis logger exporter: renders Cordis log messages (plugin label, level prefix, time, colors, diff) through console, and has a browser build; fx logging is the run_code console byte sink (src/core/runcode/runcode.zig) and a debug trace (src/core/shared/debug_trace.zig), neither renders Cordis messages | cordis-plugin-logger-console |
 | move | composition-boot | 1 | 12 | - | profile; fx has no Cordis | agent-team-profile |
 | move | composition-boot | 1 | 7463 | - | rewritten on fx:host in stage 4; the only seam to the host | runtime |
 | move | context-attachments | 3 | 1944 | - | freddie reference semantics | file-reference, file-reference-local, session-reference |
@@ -70,14 +71,13 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | move | split | 7 | 6366 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
 | move | state-policy | 5 | 2306 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, invariants, storage, storage-domain, storage-json |
 | move | util | 12 | 1174 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
-| drop | composition-boot | 1 | 117 | - | no profile, preset or source loads it | cordis-plugin-logger-console |
 
 ## Deleted so far (stage 7)
 
 - Demos: `packages/examples/acp-demo`, `packages/examples/agent-spine-demo`, the `examples` workspace (`freddie-examples`, `examples/acp-agent`, `examples/web-cordis`), `scripts/demo-code-mode.mjs`, `scripts/demo-cordis.mjs` and the three `demo:*` scripts (commit f8abae66).
 - Windows-only: `pwsh-local`, `pwsh-sandbox`, `tool-pwsh`, `tool-pwsh-persistent`, `sandbox-windows-acl`; the `pwsh` dialect of `terminal-bash`; the Windows ACL path of `sandbox-local`; `windows-inspector.js` and the `koffi` dependency of `subprocess-local`; the `win32` gating on the bash rows of the base, web and headless bundles and the agent presets; CI moved from `windows-latest` under `pwsh` to `ubuntu-latest` (commit abdd8a93).
 - Package shells: 26 directories under `packages/` that held only `node_modules` and no `package.json` (the plan said 16). None was tracked by git, so this is a disk cleanup with no commit.
-- Still a drop row, not deleted: `framework/logger-console` (`@freddie/cordis-plugin-logger-console`). No profile, preset or source loads it, but it is a published member of the vendor release family and appears in `scripts/rescope-vendor.js`, `THIRD_PARTY_NOTICES.md`, `docs/rescope.md` and the plugin tutorial. Deleting it removes a published package, so it waits for the owner's decision.
+- Decided by the cut rule: `framework/logger-console` is a **move**, not a drop. It is the Cordis logger's exporter (per-plugin label, level prefix, time, colors, diff, written through `console`, with a browser build). fx's own logging is the `run_code` console byte sink (`src/core/runcode/runcode.zig`) and a debug trace (`src/core/shared/debug_trace.zig`); neither renders Cordis log messages, so fx does not cover what it does. It stays as it is.
 - Windows branches left in place (platform code inside packages that stay): 271 matching lines in 39 files. They are independent features (the file-manager and application launchers, the native directory picker, process and terminal teardown), not tied to a deleted package.
 
 | package | files with a Windows branch | matching lines |
@@ -98,6 +98,10 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | packages/attachment/attachment-local | 1 | 1 |
 | total | 39 | 271 |
 
+
+## The alias table
+
+`packages/util/runtime/src/aliases.json` is the one table the owner's module-name rule asks for. Every `node:` specifier freddie imports keeps its Node name in the embedded txiki, and the bare form (`fs` for `node:fs`) is the same row. Each row maps to `fx:host` (with the host-interface namespace), to a txiki module, or, for the two modules only release tooling imports (`node:assert/strict`, `node:readline/promises`), to nothing. Named gaps from host-interface.md section 7 are on the row. `packages/util/runtime/test/aliases.js` scans every import in the repository (1,525 files) and fails if a specifier has no row, if a shipped file imports a tooling-only module, if a runtime shim has no row, or if a seam subpath would need a name other than the Node module name. Result: 27 rows, 25 seams, 35 shipped imports, no import needs a new name.
 
 ## Node APIs used by packages/util/runtime
 
