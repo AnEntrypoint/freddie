@@ -31,7 +31,7 @@ Lines removed by the three Windows commits: 1128, added 114. Source lines in the
 
 Open items, ranked:
 
-1. Stage 4, the runtime rewrite on fx:host: blocked on fx. The loader must read packages/util/runtime/src/aliases.json: a row whose target is fx:host names the host-interface namespace, a txiki row names its provider (tjs:path, tjs:utils, or a txikiRuntime member). fx to confirm the 11 txiki rows.
+1. Stage 4, the runtime rewrite on fx:host: blocked on fx. The loader must read packages/util/runtime/src/aliases.json: a row whose target is fx:host names the host-interface namespace, a txiki row names its provider (tjs:path, tjs:utils, or a txikiRuntime member). fx to confirm the 10 txiki rows.
 2. Stage 7, reachable and not started: (a) 219 packages carry a src/invariant.js; 58 are the exact template and 161 differ in whitespace, inject list or install body; GUI packages are among them and are loaded in the browser, so a shared factory needs a browser witness (playwriter) before it is safe; (b) one plugin manifest and schemas that generate settings and controllers; (c) merging seams with one implementation in the move families (storage, sandbox, session-log). Each changes many importers and needs its own witness.
 3. Stage 5 cuts in the plan's order: each needs a parity witness against fx behaviour, so they follow stage 4.
 
