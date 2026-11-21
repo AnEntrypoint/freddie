@@ -1,5 +1,11 @@
 # Pending validation: reduction to what the system needs
 
+## Phase A: parity scratch honours TMPDIR (2026-11-21)
+
+Defect found by the window run: test/parity-cases.js created its scratch directories under a hardcoded /tmp (14 mkdtemp sites), so a full root filesystem stopped the run and TMPDIR had no effect. All 14 now build the path from a single scratch constant, s.os.tmpdir(), which Node and the txiki adapter (tjs.tmpDir) both resolve from TMPDIR. Paths that are only strings and never touch the disk (the /tmp/never-read-* stream cases, the url cases) are unchanged. test/parity-cases.js +15 -14 lines (one new constant).
+
+Witness: node oracle with TMPDIR=/workspace/tmp/freddie/p1: 856/856 shared; /tmp entry count identical before and after the run (51248), and the run's directories (58 stream-, 2 cwd-) appeared under the TMPDIR. Finding left open: the stream- directories are not removed by the cases that make them; they are small, but they accumulate per run.
+
 ## Ranked open items for the runtime adapter (2026-11-21)
 
 Ranking: consumer call sites first (from the call-site ranking below, 197 consumer files), then reachability. Reachable means closable by code in this repository; blocked means it needs something gm or another project must supply. Counts after this stretch: shared 856, gapsApplied 3, gapsInactive 1.

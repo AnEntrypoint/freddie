@@ -4,6 +4,7 @@ import { recordDrift } from './parity-expected.js'
 const { Buffer } = s.buffer
 const { StringDecoder } = s['string-decoder']
 const fsp = s['fs-promises']
+const scratch = s.os.tmpdir()
 const decoderBytes = Buffer.from('68e96c6c6f20f09f98803dd800de7f80ff', 'hex')
 const decoderParts = (encoding, sizes) => {
   const decoder = new StringDecoder(encoding)
@@ -19,7 +20,7 @@ const decoderParts = (encoding, sizes) => {
 const streamSettle = (promise) => Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3000))])
 const closedEvent = (stream) => new Promise((resolve) => stream.on('close', resolve))
 const streamFile = async (name, bytes) => {
-  const dir = await fsp.mkdtemp('/tmp/stream-')
+  const dir = await fsp.mkdtemp(scratch + '/stream-')
   await fsp.writeFile(dir + '/' + name, bytes)
   return { dir, file: dir + '/' + name }
 }
@@ -195,7 +196,7 @@ const canon = (value) => {
 const byName = (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0)
 
 async function fsScenario() {
-  const dir = await fsp.mkdtemp('/tmp/parity-')
+  const dir = await fsp.mkdtemp(scratch + '/parity-')
   const out = {}
   await fsp.writeFile(dir + '/a.txt', 'hello')
   out.text = await fsp.readFile(dir + '/a.txt', 'utf8')
@@ -235,7 +236,7 @@ async function fsScenario() {
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 async function cpLinkScenario() {
-  const dir = await fsp.mkdtemp('/tmp/cp-link-')
+  const dir = await fsp.mkdtemp(scratch + '/cp-link-')
   const at = (name) => dir + '/' + name
   const shown = (text) => String(text).split(dir).join('ROOT')
   const describe = async (path) => {
@@ -509,7 +510,7 @@ async function repipeAfterUnpipe() {
 }
 
 async function cpSubdirScenario() {
-  const dir = await fsp.mkdtemp('/tmp/cp-subdir-')
+  const dir = await fsp.mkdtemp(scratch + '/cp-subdir-')
   const at = (name) => dir + '/' + name
   const shown = (text) => String(text).split(dir).join('ROOT')
   const describe = async (path) => {
@@ -550,7 +551,7 @@ async function cpSubdirScenario() {
 }
 
 async function cpSelfDirScenario() {
-  const dir = await fsp.mkdtemp('/tmp/cp-self-')
+  const dir = await fsp.mkdtemp(scratch + '/cp-self-')
   const at = (name) => dir + '/' + name
   const shown = (text) => String(text).split(dir).join('ROOT')
   const attempt = async (run) => {
@@ -569,7 +570,7 @@ async function cpSelfDirScenario() {
 async function cpFileOntoLinkScenario() {
   const roots = []
   const variant = async (setup, source, destination, options) => {
-    const dir = await fsp.mkdtemp('/tmp/cp-file-link-')
+    const dir = await fsp.mkdtemp(scratch + '/cp-file-link-')
     roots.push(dir)
     const at = (name) => dir + '/' + name
     const shown = (text) => String(text).split(dir).join('ROOT')
@@ -606,7 +607,7 @@ async function cpFileOntoLinkScenario() {
     await fsp.cp(at('src.txt'), at('dst.txt'))
     return { sibling: await fsp.readFile(at('sibling.txt'), 'utf8'), dst: await fsp.readFile(at('dst.txt'), 'utf8'), inodeChanged: (await fsp.stat(at('dst.txt'))).ino !== before }
   }
-  const hardDir = await fsp.mkdtemp('/tmp/cp-file-hard-')
+  const hardDir = await fsp.mkdtemp(scratch + '/cp-file-hard-')
   roots.push(hardDir)
   out.plainOverwriteHardLinkSibling = await hard(hardDir)
   for (const dir of roots) await fsp.rm(dir, { recursive: true, force: true })
@@ -1513,7 +1514,7 @@ sharedCases.push(
 )
 
 async function opendirScenario() {
-  const root = await fsp.mkdtemp('/tmp/opendir-')
+  const root = await fsp.mkdtemp(scratch + '/opendir-')
   await fsp.writeFile(root + '/a.txt', 'x')
   await fsp.mkdir(root + '/sub')
   const dir = await fsp.opendir(root)
@@ -1530,7 +1531,7 @@ async function opendirScenario() {
 }
 
 async function opendirIterateScenario() {
-  const root = await fsp.mkdtemp('/tmp/opendir-')
+  const root = await fsp.mkdtemp(scratch + '/opendir-')
   await fsp.writeFile(root + '/b.txt', 'x')
   await fsp.mkdir(root + '/d')
   const dir = await fsp.opendir(root)
@@ -1553,7 +1554,7 @@ sharedCases.push(
     names: [['b.txt', false], ['d', true]], afterEnd: 'ERR_DIR_CLOSED', afterBreak: 'ERR_DIR_CLOSED',
   } },
   { name: 'fs.promises.opendir rejects a missing path with ENOENT', run: () => fsp.opendir('/tmp/no-such-dir-for-parity').then(() => 'resolved', (error) => error.code), expected: 'ENOENT' },
-  { name: 'fs.promises.opendir rejects a file with ENOTDIR', run: async () => { const root = await fsp.mkdtemp('/tmp/opendir-'); await fsp.writeFile(root + '/f', 'x'); const code = await fsp.opendir(root + '/f').then(() => 'resolved', (error) => error.code); await fsp.rm(root, { recursive: true, force: true }); return code }, expected: 'ENOTDIR' },
+  { name: 'fs.promises.opendir rejects a file with ENOTDIR', run: async () => { const root = await fsp.mkdtemp(scratch + '/opendir-'); await fsp.writeFile(root + '/f', 'x'); const code = await fsp.opendir(root + '/f').then(() => 'resolved', (error) => error.code); await fsp.rm(root, { recursive: true, force: true }); return code }, expected: 'ENOTDIR' },
 )
 
 const zlibGzip = (input) => new Promise((resolve, reject) => s.zlib.gzip(input, (error, output) => (error ? reject(error) : resolve(output))))
@@ -1570,7 +1571,7 @@ sharedCases.push(
 )
 
 async function withScratch(run) {
-  const dir = await fsp.mkdtemp('/tmp/append-')
+  const dir = await fsp.mkdtemp(scratch + '/append-')
   try {
     return await run(dir)
   } finally {
@@ -1726,7 +1727,7 @@ async function replaceFile(file, content) {
 }
 
 async function withTempDir(body) {
-  const dir = await fsp.mkdtemp('/tmp/watch-')
+  const dir = await fsp.mkdtemp(scratch + '/watch-')
   try {
     return await body(dir)
   } finally {
@@ -2025,7 +2026,7 @@ sharedCases.push(
   { name: "child-process.execFile reports a missing command with ENOENT", run: () => execOutcome('no-such-command-xyz', []), expected: {"code":"ENOENT","signal":null,"killed":null,"cmd":"no-such-command-xyz","message":"spawn no-such-command-xyz ENOENT","stdout":"","stderr":""} },
   { name: "child-process.execFile calls back after the synchronous code", run: () => callbackOrder(), expected: ["sync","callback"] },
   { name: "child-process.execFile option cwd sets the working directory", run: () => execOutcome('sh', ['-c', 'pwd'], { cwd: '/' }), expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"/\n","stderr":""} },
-  { name: "child-process.execFile option cwd runs the command in a directory it names", run: async () => { const dir = await fsp.mkdtemp('/tmp/cwd-'); await fsp.writeFile(dir + '/marker.txt', 'found\n'); return execOutcome('sh', ['-c', 'cat marker.txt'], { cwd: dir }) }, expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"found\n","stderr":""} },
+  { name: "child-process.execFile option cwd runs the command in a directory it names", run: async () => { const dir = await fsp.mkdtemp(scratch + '/cwd-'); await fsp.writeFile(dir + '/marker.txt', 'found\n'); return execOutcome('sh', ['-c', 'cat marker.txt'], { cwd: dir }) }, expected: {"code":null,"signal":null,"killed":null,"cmd":null,"message":null,"stdout":"found\n","stderr":""} },
   { name: "child-process.execFile option cwd of a relative path is the current directory", run: () => execOutcome('sh', ['-c', 'pwd'], { cwd: '.' }).then((o) => o.stdout === proc.cwd() + '\n'), expected: true },
   { name: "child-process.execFile option cwd missing reports ENOENT through the callback", run: () => execOutcome('sh', ['-c', 'pwd'], { cwd: '/no-such-dir-freddie-xyz' }), expected: {"code":"ENOENT","signal":null,"killed":null,"cmd":"sh -c pwd","message":"spawn sh ENOENT","stdout":"","stderr":""} },
   { name: "child-process.execFile option cwd that is a file throws ENOTDIR synchronously", run: () => { try { s['child-process'].execFile('sh', ['-c', 'pwd'], { cwd: '/etc/hostname' }, () => {}); return 'no throw' } catch (error) { return { code: error.code, message: error.message, syscall: error.syscall } } }, expected: {"code":"ENOTDIR","message":"spawn ENOTDIR","syscall":"spawn"} },
@@ -2125,7 +2126,7 @@ sharedCases.push(
   { name: "child-process.spawn pid is a number before the spawn event", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).pid, expected: "number" },
   { name: "child-process.spawn stdout is a declared gap", run: () => typeof s['child-process'].spawn('sh', ['-c', 'exit 0']).stdout, expected: "object" },
   { name: "child-process.spawn option cwd sets the working directory", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'pwd'], { cwd: '/' })), expected: {"code":0,"signal":null,"text":"/\n","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
-  { name: "child-process.spawn option cwd runs the command in a directory it names", run: async () => { const dir = await fsp.mkdtemp('/tmp/cwd-'); await fsp.writeFile(dir + '/marker.txt', 'found\n'); return streamSettle(stdoutOutcome('sh', ['-c', 'cat marker.txt'], { cwd: dir })) }, expected: {"code":0,"signal":null,"text":"found\n","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
+  { name: "child-process.spawn option cwd runs the command in a directory it names", run: async () => { const dir = await fsp.mkdtemp(scratch + '/cwd-'); await fsp.writeFile(dir + '/marker.txt', 'found\n'); return streamSettle(stdoutOutcome('sh', ['-c', 'cat marker.txt'], { cwd: dir })) }, expected: {"code":0,"signal":null,"text":"found\n","chunkTypes":["object"],"allBuffers":true,"endBeforeClose":true,"readable":true} },
   { name: "child-process.spawn option cwd of a relative path is the current directory", run: () => streamSettle(stdoutOutcome('sh', ['-c', 'pwd'], { cwd: '.' })).then((o) => o.text === proc.cwd() + '\n'), expected: true },
   { name: "child-process.spawn option cwd missing reports an ENOENT error and no spawn event", run: () => streamSettle(spawnErrorOutcome('sh', ['-c', 'pwd'], { cwd: '/no-such-dir-freddie-xyz' })), expected: {"events":[["error","ENOENT","spawn sh ENOENT","spawn sh","sh",["-c","pwd"]]],"code":-2,"signal":null,"pid":"undefined"} },
   { name: "child-process.spawn option cwd that is a file throws ENOTDIR synchronously", run: () => { try { s['child-process'].spawn('sh', ['-c', 'pwd'], { cwd: '/etc/hostname' }); return 'no throw' } catch (error) { return { code: error.code, message: error.message, syscall: error.syscall } } }, expected: {"code":"ENOTDIR","message":"spawn ENOTDIR","syscall":"spawn"} },
