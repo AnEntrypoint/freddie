@@ -25,7 +25,7 @@ Tooling: the window record now stores ms per gated step (runs/analysis/window.mj
 
 ## Phase A: dns.promises.lookup (commit 79c4a7bf, 2026-11-21)
 
-Closes dnsPromises.lookup (1 call, web-fetch-http network.js; absent before, so every hostname fetch threw). Built on tjs.lookup: IPv4 and IPv6 literals are returned as given, hostnames resolve through tjs.lookup with all:true and map to { address, family }, EAI_NONAME becomes ENOTFOUND, every EAI_ error carries syscall getaddrinfo and the hostname. family 6 and options besides family, all and order are named gaps. txiki.js +30 -0 (with test and doc changes: 4 files, +39 -4). docs/fx-split.md row for dns/promises updated.
+Closes dnsPromises.lookup (1 call, web-fetch-http network.js; absent before, so every hostname fetch threw). Built on tjs.lookup: IPv4 and IPv6 literals are returned as given, hostnames resolve through tjs.lookup with all:true and map to { address, family }, EAI_NONAME becomes ENOTFOUND, every EAI_ error carries syscall getaddrinfo and the hostname. family 6 and options besides family, all and order are named gaps. txiki.js +25 -1 (whole commit: 4 files, +39 -4). docs/fx-split.md row for dns/promises updated.
 
 Witness: 5 new shared rows (IPv4 literal, all, IPv6 literal, localhost for family 4 lists only loopback entries of family 4, unresolvable name rejects with getaddrinfo error and host) and 1 gap row (dns.lookup with family 6). Node oracle 856/856. Txiki probe shared 856, mismatches [], gapsApplied 3, gapsInactive 1.
 
