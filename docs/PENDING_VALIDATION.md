@@ -3260,3 +3260,45 @@ Witness (freddie, both runtimes, two shared rows): entries of a directory holdin
 Red check (mutation, witness, restore, cmp, git status): the sync entry uses txikiCore.statSync instead of lstatSync, so a link reports its target's kind. Witness: 'parity failed' with mismatch 'fs.readdirSync withFileTypes reports the kind of each entry' (got the link as [l, true, false, false], expected [l, false, false, true]). PID 1068310. Restored; cmp RESTORED_IDENTICAL; git status shows this commit's files only.
 
 Not covered: Dirent.path (deprecated in Node) and the entry's type when an entry is removed between the readdir and the lstat (the lstat error propagates as the native error).
+## Call-site ranking of absent names and stubs (2026-11-21)
+
+Method: the scan lists every file under the repo that imports @freddie/freddie-runtime/* (excluding node_modules, runs, dist, build and the runtime package itself): 197 files. For each name a binding is traced from the import clause (named imports by exported name; default and namespace imports by the member accessed). refs counts the references to the binding, calls counts those followed by ( or preceded by new. Counts are the scan output at c560fd11; zlib.createGunzip and zlib.createInflate are closed in the commit after this one. Script: runs/analysis/callsites-rank.py (host-local).
+
+Totals: 110 absent names (excluding the process.process row, which is a false row from the spec) and 13 stubs. Absent names with at least one call site: 4. Absent names with no reference at all: 106. Stubs with at least one call site: 10; stubs referenced but not called: 3; stubs with no reference: 0.
+
+Ranked (calls, then refs). Every row with a reference is listed; the remaining absent names have no reference and are not implemented (YAGNI).
+
+| rank | name | status | calls | refs | consumer files |
+|---|---|---|---|---|---|
+| 1 | childProcess.spawnSync | stub | 5 | 5 | sandbox/sandbox-local/src/index.js, subprocess/subprocess-local/src/spawn.js, subprocess/subprocess-local/src/windows-inspector.js |
+| 2 | asyncHooks.AsyncLocalStorage | stub | 3 | 3 | framework/hmr/src/index.js, core/agent/src/index.js |
+| 3 | http.createServer | stub | 2 | 2 | host/webserver/src/index.js, runtime-diagnostics/inspector/src/worker.js |
+| 4 | vm.createContext | stub | 2 | 2 | extensions/cordis-host-runner/src/sandbox.js, workflow/workflow-worker-thread/src/runtime.js |
+| 5 | vm.runInContext | stub | 2 | 2 | extensions/cordis-host-runner/src/sandbox.js |
+| 6 | childProcess.execFileSync | stub | 1 | 1 | subprocess/subprocess-local/src/process-inspector.js |
+| 7 | dnsPromises.lookup | absent | 1 | 1 | web/web-fetch-http/src/network.js |
+| 8 | inspector.Session | stub | 1 | 1 | runtime-diagnostics/inspector/src/cdp.js |
+| 9 | module.stripTypeScriptTypes | stub | 1 | 1 | code-runtime/code-runtime-worker-thread/src/index.js |
+| 10 | zlib.createBrotliDecompress | absent | 1 | 1 | web/web-fetch-http/src/network.js |
+| 11 | zlib.createGunzip | absent | 1 | 1 | web/web-fetch-http/src/network.js |
+| 12 | zlib.createInflate | absent | 1 | 1 | web/web-fetch-http/src/network.js |
+| 13 | zlib.createZstdDecompress | stub | 1 | 1 | session/session-persistence-jsonl/src/zstd-private-decoder.js |
+| 14 | zlib.zstdDecompressSync | stub | 1 | 1 | session/session-persistence-jsonl/src/zstd-public-decoder.js |
+| 15 | zlib.brotliCompress | stub | 0 | 1 | host/webserver/src/static-file.js |
+| 16 | zlib.zstdCompress | stub | 0 | 1 | session/session-persistence-jsonl/src/zstd.js |
+| 17 | zlib.zstdDecompress | stub | 0 | 1 | session/session-persistence-jsonl/src/zstd.js |
+
+GM requests with call-site counts (for gm to rank; each one needs a native capability, none is adapter-only):
+
+- G1 asyncHooks.AsyncLocalStorage: calls 3 (framework/hmr, core/agent). Context propagation through promise jobs.
+- G2 zlib brotli and zstd: zstdDecompressSync calls 1, createZstdDecompress calls 1, brotliCompress refs 1 (webserver static-file), zstdCompress refs 1, zstdDecompress refs 1 (session-persistence-jsonl), and zlib.createBrotliDecompress calls 1 (web-fetch-http). A compression library is needed.
+- G3 vm.createContext calls 2 and vm.runInContext calls 2 (cordis-host-runner sandbox, workflow-worker-thread runtime). Object sandbox across realms.
+- G4 childProcess.spawnSync calls 5 and childProcess.execFileSync calls 1 (sandbox-local, subprocess-local). A blocking spawn.
+- G5 worker_threads.Worker with options: one construction with options (code-runtime-worker-thread index.js). workerData.
+- G6 http.createServer calls 2 (host/webserver, runtime-diagnostics/inspector). Sockets; not implemented without a witness that exercises it.
+- G7 dnsPromises.lookup calls 1 (web-fetch-http network.js). Name resolution.
+- G8 inspector.Session calls 1 (runtime-diagnostics/inspector cdp.js). The inspector protocol.
+- G9 module.stripTypeScriptTypes calls 1 (code-runtime-worker-thread index.js). Needs a TypeScript stripper, which is a dependency decision as well as a capability.
+
+Stub removal: no stub has zero references (every stub in the table has at least one reference, most a call), so nothing is removed.
+
