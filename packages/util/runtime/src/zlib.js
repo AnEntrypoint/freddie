@@ -4,6 +4,8 @@ const { zlib } = activeRuntime()
 
 export const brotliCompress = zlib.brotliCompress
 export const constants = zlib.constants
+export const createGunzip = zlib.createGunzip
+export const createInflate = zlib.createInflate
 export const createZstdDecompress = zlib.createZstdDecompress
 export const gunzip = zlib.gunzip
 export const gzip = zlib.gzip

@@ -3052,6 +3052,21 @@ sharedCases.push(
   { name: 'fs.readdirSync withFileTypes of a missing path throws ENOENT as Node does', run: () => errorOf(() => s.fs.readdirSync('/nonexistent-freddie-dirent', { withFileTypes: true })), expected: { code: 'ENOENT', message: "ENOENT: no such file or directory, scandir '/nonexistent-freddie-dirent'" } },
 )
 
+const textOf = (stream, feed) => new Promise((resolve) => {
+  const parts = []
+  stream.on('data', (chunk) => parts.push(new TextDecoder().decode(chunk)))
+  stream.on('end', () => resolve(parts.join('')))
+  stream.on('error', (error) => resolve('error ' + error.code))
+  feed()
+})
+const ZLIB_HELLO = new Uint8Array([120, 156, 203, 72, 205, 201, 201, 7, 0, 6, 44, 2, 21])
+sharedCases.push(
+  { name: 'zlib.createGunzip inflates gzip bytes that arrive in two pieces through a pipe', run: async () => { const gz = await new Promise((resolve, reject) => s.zlib.gzip('hello world', (error, out) => (error ? reject(error) : resolve(out)))); const source = new s.stream.PassThrough(); const decoder = s.zlib.createGunzip(); return textOf(decoder, () => { source.pipe(decoder); source.write(gz.subarray(0, 5)); source.write(gz.subarray(5)); source.end() }) }, expected: 'hello world' },
+  { name: 'zlib.createInflate inflates zlib-wrapped bytes', run: () => { const decoder = s.zlib.createInflate(); return textOf(decoder, () => decoder.end(ZLIB_HELLO)) }, expected: 'hello' },
+  { name: 'zlib.createInflate rejects bytes without a zlib header with Z_DATA_ERROR', run: () => { const decoder = s.zlib.createInflate(); return textOf(decoder, () => decoder.end(new Uint8Array([1, 2, 3]))) }, expected: 'error Z_DATA_ERROR' },
+  { name: 'zlib.createGunzip rejects bytes without a gzip header with Z_DATA_ERROR', run: () => { const decoder = s.zlib.createGunzip(); return textOf(decoder, () => decoder.end(new Uint8Array([1, 2, 3, 4]))) }, expected: 'error Z_DATA_ERROR' },
+)
+
 export const gapCases = [
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },

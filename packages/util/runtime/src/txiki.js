@@ -2288,6 +2288,31 @@ function gzip(buffer, options, callback) {
   setTimeout(() => done(null, output), 0)
 }
 
+function adler32(bytes) {
+  let a = 1
+  let b = 0
+  for (const byte of bytes) {
+    a = (a + byte) % 65521
+    b = (b + a) % 65521
+  }
+  return ((b << 16) | a) >>> 0
+}
+
+function inflateZlibBytes(bytes) {
+  if (bytes.length < 2) throw truncatedError()
+  if ((bytes[0] & 0x0f) !== 8 || ((bytes[0] << 8) | bytes[1]) % 31 !== 0) throw dataError('incorrect header check')
+  if (bytes[1] & 0x20) throw dataError('need dictionary')
+  const reader = new InflateReader(bytes, 2)
+  const sink = new InflateSink()
+  inflateBlocks(reader, sink)
+  reader.alignToByte()
+  const output = sink.output()
+  let expected = 0
+  for (let i = 0; i < 4; i++) expected = expected * 256 + reader.byte()
+  if (expected !== adler32(output)) throw dataError('incorrect data check')
+  return output
+}
+
 const DEFAULT_HIGH_WATER_MARK = 65536
 const tickQueue = []
 let tickPending = false
@@ -3204,6 +3229,51 @@ class PassThrough extends Readable {
   }
 }
 
+class DecodeStream extends PassThrough {
+  #decode
+  #chunks = []
+
+  constructor(decode) {
+    super()
+    this.#decode = decode
+  }
+
+  write(chunk, encoding, callback) {
+    this.#chunks.push(zlibInput(chunk).slice())
+    if (typeof encoding === 'function') encoding()
+    else if (typeof callback === 'function') callback()
+    return true
+  }
+
+  end(chunk, encoding, callback) {
+    if (chunk !== undefined && chunk !== null && typeof chunk !== 'function') this.write(chunk)
+    let output
+    try {
+      output = Buffer.from(this.#decode(concatBytes(this.#chunks)))
+    } catch (error) {
+      this.destroy(error)
+      return this
+    }
+    this.push(output)
+    this.push(null)
+    this.emit('finish')
+    return this
+  }
+
+  _afterEnd() {
+    super._afterEnd()
+    this.destroy()
+  }
+}
+
+function createGunzip() {
+  return new DecodeStream(gunzipBytes)
+}
+
+function createInflate() {
+  return new DecodeStream(inflateZlibBytes)
+}
+
 function pipeline(...streams) {
   const callback = streams.pop()
   let failure
@@ -3803,6 +3873,8 @@ export const txikiRuntime = {
   https: withGaps('https', {}),
   zlib: withGaps('zlib', {
     constants: withGaps('zlib.constants', {}),
+    createGunzip,
+    createInflate,
     gzip,
     gunzip,
     ...gapFunctions('zlib', ['brotliCompress', 'createZstdDecompress', 'zstdCompress', 'zstdDecompress', 'zstdDecompressSync']),
