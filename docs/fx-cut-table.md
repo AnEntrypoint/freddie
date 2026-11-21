@@ -16,9 +16,9 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | decision | packages now | source lines now | packages before this pass |
 |---|---|---|---|
 | cut | 87 | 44850 | 87 |
-| move | 160 | 144026 | 159 |
+| move | 161 | 143900 | 159 |
 | drop | 0 | 0 | 9 |
-| total | 247 | 188876 | 255 |
+| total | 248 | 188750 | 255 |
 
 ## Cut table
 
@@ -45,32 +45,33 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | cut | state-policy | 3 | 916 | fx/src/core/feedback | fx has native feedback | anonymous-user-id, command-feedback, message-feedback |
 | cut | state-policy | 2 | 815 | fx/src/core/config | fx has native settings | settings, settings-file |
 | cut | web | 3 | 1234 | fx/src/tools/web | fx has native FetchURL and WebSearch | tool-web, web, web-fetch-http |
-| move | code-runtime | 1 | 4752 | - | Cordis extension runner; fx has no Cordis | cordis-host-runner |
-| move | code-runtime | 1 | 5865 | - | Cordis extension tool; fx has no Cordis | tool-cordis |
-| move | composition-boot | 20 | 7615 | - | Cordis composition, profiles and boot are freddie-owned; fx has no Cordis (docs/fx-split.md, composition-boot) | acp-app, agent-presets, app-boot, base, cmdline, config-editor, cordis, cordis-plugin-group, cordis-plugin-hmr, cordis-plugin-include, cordis-plugin-loader, cordis-plugin-timer, cosmokit, freddie, headless, persona, plugin-manager, schemastery, sdk-app, web-app |
+| move | code-runtime | 1 | 4746 | - | Cordis extension runner; fx has no Cordis | cordis-host-runner |
+| move | code-runtime | 1 | 5859 | - | Cordis extension tool; fx has no Cordis | tool-cordis |
+| move | composition-boot | 20 | 7550 | - | Cordis composition, profiles and boot are freddie-owned; fx has no Cordis (docs/fx-split.md, composition-boot) | acp-app, agent-presets, app-boot, base, cmdline, config-editor, cordis, cordis-plugin-group, cordis-plugin-hmr, cordis-plugin-include, cordis-plugin-loader, cordis-plugin-timer, cosmokit, freddie, headless, persona, plugin-manager, schemastery, sdk-app, web-app |
 | move | composition-boot | 1 | 117 | - | Cordis logger exporter: renders Cordis log messages (plugin label, level prefix, time, colors, diff) through console, and has a browser build; fx logging is the run_code console byte sink (src/core/runcode/runcode.zig) and a debug trace (src/core/shared/debug_trace.zig), neither renders Cordis messages | cordis-plugin-logger-console |
-| move | composition-boot | 1 | 12 | - | profile; fx has no Cordis | agent-team-profile |
+| move | composition-boot | 1 | 305 | - | generic adapter over the fx:host capability table: one Cordis service per present capability through a Proxy; replaces per-capability packages | host-adapter |
+| move | composition-boot | 1 | 5 | - | profile; fx has no Cordis | agent-team-profile |
 | move | composition-boot | 1 | 7549 | - | rewritten on fx:host in stage 4; the only seam to the host | runtime |
-| move | context-attachments | 3 | 1944 | - | freddie reference semantics | file-reference, file-reference-local, session-reference |
-| move | context-attachments | 2 | 596 | - | no verified fx counterpart | time-context, tmux-context |
-| move | delegation-planning | 2 | 1855 | - | fx has no agent-team workflow; superagent and tower are not compared | experimental-agent-team, experimental-tool-agent-team |
-| move | delegation-planning | 1 | 405 | - | fx has no ralph loop | tool-ralph |
-| move | delegation-planning | 3 | 2105 | - | fx has no workflow scripts | tool-workflow, workflow, workflow-worker-thread |
-| move | files | 1 | 78 | - | freddie policy; no verified fx counterpart | fs-observation-policy |
-| move | files | 1 | 125 | - | stays with the sandbox decision (gap G2) | fs-sandbox |
+| move | context-attachments | 3 | 1923 | - | freddie reference semantics | file-reference, file-reference-local, session-reference |
+| move | context-attachments | 2 | 589 | - | no verified fx counterpart | time-context, tmux-context |
+| move | delegation-planning | 2 | 1849 | - | fx has no agent-team workflow; superagent and tower are not compared | experimental-agent-team, experimental-tool-agent-team |
+| move | delegation-planning | 1 | 399 | - | fx has no ralph loop | tool-ralph |
+| move | delegation-planning | 3 | 2099 | - | fx has no workflow scripts | tool-workflow, workflow, workflow-worker-thread |
+| move | files | 1 | 72 | - | freddie policy; no verified fx counterpart | fs-observation-policy |
+| move | files | 1 | 119 | - | stays with the sandbox decision (gap G2) | fs-sandbox |
 | move | gui | 53 | 76501 | - | GUI JavaScript stays; served and hot reloaded from the JS root | client-connection, client-css-manifest, client-file-upload, client-hmr, client-locale, client-modules, client-shortcuts, client-ui-agent-preset, client-ui-artifacts, client-ui-attachment, client-ui-brand-official, client-ui-commands, client-ui-conversation, client-ui-cordis, client-ui-deliverables, client-ui-directory-picker-browse, client-ui-directory-picker-native, client-ui-goal, client-ui-input-trigger, client-ui-jobs, client-ui-layout, client-ui-message-feedback, client-ui-model-selection, client-ui-open-in-app, client-ui-permission-presets, client-ui-plan, client-ui-primitives, client-ui-reference, client-ui-renderer, client-ui-settings, client-ui-settings-general, client-ui-settings-models, client-ui-settings-plugin-inventory, client-ui-settings-plugins, client-ui-settings-subagent, client-ui-settings-web-search, client-ui-sidebar, client-ui-skill, client-ui-slots, client-ui-subagent, client-ui-theme, client-ui-tool, client-ui-trajectory, client-ui-user-questions, client-ui-workflow-run, client-ui-workspace, client-ui-workspace-files, client-vendor-modules, client-web, cordis-client-runner, session-log-export, web-frontend, webjsx |
 | move | gui | 1 | 5248 | - | rewritten on fx:host in stage 4; the only seam to the host | client-runtime |
-| move | host-transport | 1 | 210 | - | freddie SDK JSON-RPC; libfx has its own protocol (docs/host-interface.md section 3) | sdk-protocol |
-| move | host-transport | 17 | 8645 | - | web UI backend, controllers and pickers; served through fx:host serve (docs/host-interface.md section 4, planned, gap G3) | api-plugin-manager-controller, api-settings-controller, api-workspace-controller, api-workspace-files, host-apiproxy, host-directory-picker, host-directory-picker-auto, host-directory-picker-browse, host-directory-picker-native, host-frontend-static, host-open-in-app, host-plugin-inventory, host-product-telemetry-otel, host-webserver, sdk-jsonrpc-server, typert-loader, typert-protocol |
-| move | sandbox | 6 | 756 | - | fx has no OS sandbox beyond the permission layer (gap G2); the freddie sandbox stays until fx supplies one | node-addon-landlock-run, node-addon-landlock-run-linux-arm64, node-addon-landlock-run-linux-x64, sandbox, sandbox-local, sandbox-policy |
+| move | host-transport | 1 | 204 | - | freddie SDK JSON-RPC; libfx has its own protocol (docs/host-interface.md section 3) | sdk-protocol |
+| move | host-transport | 17 | 8555 | - | web UI backend, controllers and pickers; served through fx:host serve (docs/host-interface.md section 4, planned, gap G3) | api-plugin-manager-controller, api-settings-controller, api-workspace-controller, api-workspace-files, host-apiproxy, host-directory-picker, host-directory-picker-auto, host-directory-picker-browse, host-directory-picker-native, host-frontend-static, host-open-in-app, host-plugin-inventory, host-product-telemetry-otel, host-webserver, sdk-jsonrpc-server, typert-loader, typert-protocol |
+| move | sandbox | 6 | 744 | - | fx has no OS sandbox beyond the permission layer (gap G2); the freddie sandbox stays until fx supplies one | node-addon-landlock-run, node-addon-landlock-run-linux-arm64, node-addon-landlock-run-linux-x64, sandbox, sandbox-local, sandbox-policy |
 | move | sandbox | 1 | 1025 | - | sandbox decision (gap G2) | node-addon-landlock-run-workspace |
-| move | session-log | 16 | 7444 | - | event-sourced format kept only as the projection the web UI reads (gap G4: three session formats exist) | session-artifacts, session-checkpoint-policy, session-persistence, session-persistence-jsonl, session-projection, session-projection-cache, session-query, session-query-sqlite, session-stats, session-telemetry, session-telemetry-otel, session-title, session-title-all-prompts-llm, session-title-first-prompt-llm, session-title-llm, session-turn-outline |
-| move | session-log | 1 | 1180 | - | reads the freddie session format | tool-session-query |
-| move | shell-jobs | 1 | 105 | - | stays with the sandbox decision (gap G2) | bash-sandbox |
-| move | skills | 1 | 56 | - | badge shown in the web UI | skill-badge |
-| move | split | 7 | 6363 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
-| move | state-policy | 5 | 2305 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, invariants, storage, storage-domain, storage-json |
-| move | util | 12 | 1170 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
+| move | session-log | 16 | 7360 | - | event-sourced format kept only as the projection the web UI reads (gap G4: three session formats exist) | session-artifacts, session-checkpoint-policy, session-persistence, session-persistence-jsonl, session-projection, session-projection-cache, session-query, session-query-sqlite, session-stats, session-telemetry, session-telemetry-otel, session-title, session-title-all-prompts-llm, session-title-first-prompt-llm, session-title-llm, session-turn-outline |
+| move | session-log | 1 | 1174 | - | reads the freddie session format | tool-session-query |
+| move | shell-jobs | 1 | 99 | - | stays with the sandbox decision (gap G2) | bash-sandbox |
+| move | skills | 1 | 50 | - | badge shown in the web UI | skill-badge |
+| move | split | 7 | 6345 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
+| move | state-policy | 5 | 2286 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, invariants, storage, storage-domain, storage-json |
+| move | util | 12 | 1128 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
 
 ## Deleted so far (stage 7)
 
@@ -82,7 +83,11 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 
 ## The alias table
 
-`packages/util/runtime/src/aliases.json` is the one table the owner's module-name rule asks for. Every `node:` specifier freddie imports keeps its Node name in the embedded txiki, and the bare form (`fs` for `node:fs`) is the same row. Each row maps to `fx:host` (with the host-interface namespace), to a txiki module, or, for the two modules only release tooling imports (`node:assert/strict`, `node:readline/promises`), to nothing. Named gaps from host-interface.md section 7 are on the row. `packages/util/runtime/test/aliases.js` scans every import in the repository (1,525 files) and fails if a specifier has no row, if a shipped file imports a tooling-only module, if a runtime shim has no row, or if a seam subpath would need a name other than the Node module name. Result: 27 rows, 25 seams, 35 shipped imports, no import needs a new name.
+`packages/util/runtime/src/aliases.json` is the one table the owner's module-name rule asks for. Every `node:` specifier freddie imports keeps its Node name in the embedded txiki, and the bare form (`fs` for `node:fs`) is the same row. Each row maps to `fx:host` (with the host-interface namespace), to a txiki module, or, for the two modules only release tooling imports (`node:assert/strict`, `node:readline/promises`), to nothing. Named gaps from host-interface.md section 7 are on the row. `packages/util/runtime/test/aliases.js` scans every import in the repository (1,525 files) and fails if a specifier has no row, if a shipped file imports a tooling-only module, if a runtime shim has no row, or if a seam subpath would need a name other than the Node module name. Result: 27 rows, 25 seams, 1524 files scanned, no import needs a new name. It also fails on any node: or bare built-in import in shipped code (apps, and package and framework src), naming the seam subpath to use; release and build tooling under scripts/ and native/ is exempt because it runs under Node by definition.
+
+## The host adapter
+
+`packages/host/host-adapter` (`@freddie/freddie-host-adapter`) is the generic adapter the plan asks for. `src/services.js` is the one table from host capability id to Cordis service name, host namespace, exposed members and callability; `createHostAdapter(host)` provides one service per capability the host reports present, as a Proxy that reads the host live and throws `FxUnsupported` for anything the capability does not cover. A capability the host lacks is not registered, so a plugin that injects it does not run. It is tested in plain Node against a stub host with the shape of `host-interface.d.ts` (eleven cases, five red checks); when fx publishes `fx:host` the same adapter takes the real module.
 
 ## Node APIs used by packages/util/runtime
 
@@ -121,27 +126,7 @@ Call-site counts for the names that are absent or stubbed on txiki are in [PENDI
 
 ## node: imports outside the runtime
 
-131 `node:` imports in 42 files: 46 in package source and apps (16 files, below), 47 in `scripts/` and 38 in `native/landlock-run`. By module: path 36, fs 29, child_process 16, url 15, crypto 10, util 8, module 5, os 5, fs/promises 3, timers/promises 2, assert/strict 1, readline/promises 1. A new one in package source should fail a check once stage 4 starts.
-
-| file | node: modules imported |
-|---|---|
-| apps/cli/src/bin.js | node:fs, node:url |
-| apps/cli/src/dump-config.js | node:fs, node:path |
-| apps/cli/src/expose-internals.js | node:child_process |
-| apps/cli/src/plugin.js | node:child_process, node:fs, node:path |
-| apps/cli/src/profile-boot.js | node:fs, node:path, node:url |
-| packages/client/connection/src/websocket-downlink.js | node:crypto |
-| packages/client/css-manifest/scripts/generate-manifest.mjs | node:child_process, node:fs, node:path, node:url |
-| packages/client/css-manifest/src/index.js | node:crypto, node:fs, node:path, node:url |
-| packages/client/file-upload/src/index.js | node:crypto, node:fs/promises, node:path |
-| packages/client/file-upload/src/intake.js | node:crypto, node:fs/promises |
-| packages/client/file-upload/src/staging.js | node:crypto, node:fs/promises, node:path |
-| packages/client/hmr/src/index.js | node:fs, node:module, node:path, node:url |
-| packages/client/modules/src/index.js | node:crypto, node:fs, node:module, node:path |
-| packages/client/vendor-modules/scripts/generate-vendor.mjs | node:fs, node:module, node:path, node:url |
-| packages/client/vendor-modules/src/index.js | node:module, node:path, node:url |
-| packages/subprocess/subprocess-local/scripts/ensure-spawn-helper.mjs | node:fs, node:path, node:url |
-
+Shipped code has none. Every `node:` or bare built-in import in apps and in package and framework `src` directories goes through a runtime seam subpath (`@freddie/freddie-runtime/fs` and the rest), and `packages/util/runtime/test/aliases.js` fails on a new one, naming the seam to use. What remains is release and build tooling that runs under Node by definition: 96 imports in 29 files (47 in 14 files under `scripts/`, 38 in 12 files under `native/landlock-run`, 11 in 3 files under package `scripts/` directories). By module: path 27, fs 22, child_process 14, url 10, util 8, os 5, crypto 4, module 2, timers/promises 2, assert/strict 1, readline/promises 1. The two modules outside the runtime's 25 (`assert/strict`, `readline/promises`) are marked tooling in the alias table.
 
 ## Stage 4 groundwork: the agent side under txiki
 
@@ -250,25 +235,25 @@ Before is commit 7ac74a2e; after is the working tree of this pass. Counts are so
 | family | packages before | packages after | source lines before | source lines after | removed |
 |---|---|---|---|---|---|
 | browser-experimental | 5 | 5 | 852 | 852 | 0 |
-| code-runtime | 4 | 4 | 11821 | 11821 | 0 |
+| code-runtime | 4 | 4 | 11821 | 11809 | 12 |
 | compaction | 5 | 5 | 1978 | 1978 | 0 |
-| composition-boot | 23 | 23 | 15224 | 15293 | -69 |
-| context-attachments | 11 | 11 | 5089 | 5088 | 1 |
-| delegation-planning | 20 | 20 | 12293 | 12280 | 13 |
+| composition-boot | 23 | 24 | 15224 | 15526 | -302 |
+| context-attachments | 11 | 11 | 5089 | 5060 | 29 |
+| delegation-planning | 20 | 20 | 12293 | 12262 | 31 |
 | examples | 3 | 0 | 247 | 0 | 247 |
-| files | 7 | 7 | 3229 | 3125 | 104 |
+| files | 7 | 7 | 3229 | 3113 | 116 |
 | gui | 54 | 54 | 81754 | 81749 | 5 |
-| host-transport | 19 | 19 | 10056 | 9453 | 603 |
+| host-transport | 19 | 19 | 10056 | 9357 | 699 |
 | interaction-permissions | 6 | 6 | 2128 | 2128 | 0 |
 | loop-composition | 10 | 10 | 7184 | 7184 | 0 |
 | mcp | 1 | 1 | 704 | 704 | 0 |
 | model | 5 | 5 | 6153 | 6153 | 0 |
-| sandbox | 8 | 7 | 3277 | 1781 | 1496 |
-| session-log | 17 | 17 | 8774 | 8624 | 150 |
-| shell-jobs | 17 | 13 | 5859 | 4344 | 1515 |
-| skills | 4 | 4 | 1817 | 1817 | 0 |
-| split | 7 | 7 | 6366 | 6363 | 3 |
-| state-policy | 14 | 14 | 5737 | 5735 | 2 |
-| util | 12 | 12 | 1174 | 1170 | 4 |
+| sandbox | 8 | 7 | 3277 | 1769 | 1508 |
+| session-log | 17 | 17 | 8774 | 8534 | 240 |
+| shell-jobs | 17 | 13 | 5859 | 4338 | 1521 |
+| skills | 4 | 4 | 1817 | 1811 | 6 |
+| split | 7 | 7 | 6366 | 6345 | 21 |
+| state-policy | 14 | 14 | 5737 | 5716 | 21 |
+| util | 12 | 12 | 1174 | 1128 | 46 |
 | web | 3 | 3 | 1234 | 1234 | 0 |
-| total | 255 | 247 | 192950 | 188876 | 4074 |
+| total | 255 | 248 | 192950 | 188750 | 4200 |
