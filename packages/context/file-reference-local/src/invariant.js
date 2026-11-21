@@ -1,10 +1,3 @@
+import { invariantPlugin } from '@freddie/freddie-invariants/plugin'
 
-const PACKAGE_NAME = '@freddie/freddie-file-reference-local'
-
-export const name = 'file-reference-local-invariant'
-export const inject = ['invariants']
-
-const install = () => {}
-
-export const apply = (ctx) =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+export const { name, inject, apply } = invariantPlugin('@freddie/freddie-file-reference-local', 'file-reference-local-invariant')

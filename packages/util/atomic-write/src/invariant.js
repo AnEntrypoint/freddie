@@ -1,9 +1,3 @@
-const PACKAGE_NAME = '@freddie/freddie-atomic-write'
+import { invariantPlugin } from '@freddie/freddie-invariants/plugin'
 
-export const name = 'atomic-write-invariant'
-export const inject = ['invariants']
-
-const install = () => {}
-
-export const apply = ctx =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+export const { name, inject, apply } = invariantPlugin('@freddie/freddie-atomic-write', 'atomic-write-invariant')

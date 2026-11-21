@@ -19,12 +19,16 @@
     "./invariant": {
       "default": "./src/invariant.js"
     },
+    "./plugin": {
+      "default": "./src/plugin.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js"
+    "src/invariant.js",
+    "src/plugin.js"
   ],
   "license": "MIT",
   "peerDependencies": {

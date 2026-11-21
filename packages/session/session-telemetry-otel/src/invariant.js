@@ -1,9 +1,3 @@
-const PACKAGE_NAME = '@freddie/freddie-session-telemetry-otel'
+import { invariantPlugin } from '@freddie/freddie-invariants/plugin'
 
-export const name = 'session-telemetry-otel-invariant'
-export const inject = ['invariants']
-
-const install = () => {}
-
-export const apply = (ctx) =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+export const { name, inject, apply } = invariantPlugin('@freddie/freddie-session-telemetry-otel', 'session-telemetry-otel-invariant')

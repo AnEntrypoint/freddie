@@ -1,9 +1,3 @@
-const PACKAGE_NAME = '@freddie/freddie-config-editor'
+import { invariantPlugin } from '@freddie/freddie-invariants/plugin'
 
-export const name = 'config-editor-invariant'
-export const inject = ['invariants']
-
-const install = () => {}
-
-export const apply = (ctx) =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))
+export const { name, inject, apply } = invariantPlugin('@freddie/freddie-config-editor', 'config-editor-invariant')
