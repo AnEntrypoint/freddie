@@ -1,5 +1,53 @@
 # Pending validation: reduction to what the system needs
 
+## Stages 0, 4 and 7, first pass (2026-11-21)
+
+Plan: /workspace/hyperagent/docs/fx-freddie-txiki-plan.md. The cut table, the runtime Node API map, the node: import inventory, the standalone-txiki survey, the list of what freddie needs from fx and the line ledger per family are in [fx-cut-table.md](fx-cut-table.md) (commit ca0b30b8, +290 -0). This entry records the deletions and their witnesses.
+
+Commits (local, lanmower, no trailers):
+
+| commit | change | files | added | removed |
+|---|---|---|---|---|
+| 7ac74a2e | parity scratch directories honour TMPDIR (test/parity-cases.js) | 2 | 15 | 14 |
+| f8abae66 | demos: packages/examples/acp-demo and agent-spine-demo, the examples workspace, scripts/demo-*.mjs, the demo:* scripts, lockfile importers, README and catalog references | 57 | 23 | 1525 |
+| abdd8a93 | Windows-only: pwsh-local, pwsh-sandbox, tool-pwsh, tool-pwsh-persistent, sandbox-windows-acl, the pwsh dialect of terminal-bash, the ACL path of sandbox-local, windows-inspector.js and koffi in subprocess-local, win32 gating on the bash rows, CI on ubuntu-latest | 85 | 39 | 4394 |
+| ca0b30b8 | docs/fx-cut-table.md | 1 | 290 | 0 |
+
+Package counts: 255 workspace packages before, 247 after (8 removed). Cut table totals now: cut 87, move 159, drop 1 (framework/logger-console, held for the owner). Source lines (excluding vendored client modules, node_modules, dist, build and package.json): 192950 before, 189761 after. The 26 untracked package shells (directories holding only node_modules; the plan said 16) were deleted from the disk; none was tracked, so no commit.
+
+Witness. The repository has no tests outside packages/util/runtime, so the witness is runs/analysis/baseline.mjs (host-local), run before any change (pre) and after each commit (post1 after the demos, post3 after the Windows removal), with its scratch under /workspace/tmp/freddie:
+
+| check | pre | after demos | after Windows removal |
+|---|---|---|---|
+| pnpm install --frozen-lockfile | pass | pass (lockfile importers removed by hand) | pass |
+| publint | all good | all good | all good |
+| verify-third-party-notices, rescope-vendor:check | pass | pass | pass |
+| release verify, freddie family | 235 members | 233 | 228 |
+| release verify, vendor family | 10 | 10 | 10 |
+| dump-default-config md5 web, headless, acp, sdk | ec316518, 6067aa21, 4668262c, fe0324ee | identical (cmp) | 1c617cd9, c4c2ffbb, 6b07b84b, 67382f60 (changed, diff reviewed) |
+| headless without a key | MISSING_CREDENTIAL | same | same |
+| acp initialize, sdk initialize | ok | ok | ok |
+| web boot, GET / with every asset | 200, 261 assets, 0 bad | same | same |
+| import smoke, every package entry | 249 packages, 247 ok, 2 failing | 247, 245 ok, same 2 | 242, 240 ok, same 2 (freddie-client-web, freddie-client-ui-primitives) |
+| demo-acp, demo-cordis-acp, demo-code-mode, demo-cordis-web | pass | fail by design (deleted) | fail by design |
+
+Reviewed dump diff for the Windows removal (post1 against post3, headless and web; acp and sdk differ by the same extraRoots line plus their own pwsh rows): only these lines changed: the session-root separator expression lost its win32 branch (split(':')), the terminal-bash shellDialect row, the win32 disabled conditions on bash-sandbox and tool-bash, the pwsh-sandbox and tool-pwsh rows, and toolOrder changed from a !!js ternary to the Linux list it evaluated to. The PROMPT_COMMAND template in terminal-bash is byte-identical to the original (not in the diff).
+
+Parity (runtime package, unchanged by this pass): node oracle 856/856 shared; txiki probe shared 856, mismatches [], gapsApplied 3, gapsInactive 1; window phase G: 25 steps passed, 20 red checks failed under mutation as required, longest step 42.9 s (red-worker-port-start), push 7ac74a2e.
+
+Defect found in the window tooling and fixed (host-local runs/analysis/window.mjs): its run helper resolved only on the child's close event, so an orphaned git remote-https process holding the push's pipes blocked the window for nine minutes after a successful push. It now also resolves 3 s after the child exits. The orphan was stopped by its PID.
+
+Standalone txiki survey (details in fx-cut-table.md): 184 of 221 package entries import and evaluate under gm's txiki with the freddie adapter. The 37 failures are 20 causes: 19 third-party packages (js-yaml 7, chokidar 4, zod 2, @modelcontextprotocol/sdk 2, @opentelemetry/sdk-logs 2, eventsource-parser 2, and one each for @agentclientprotocol/sdk, sharp, clsx, webjsx, diff, @earendil-works/pi-ai, node-pty, turndown), node: imports in package source (crypto 3, child_process 2, fs 1, module 1), and two txiki gaps (process.stdout in 2, zlib.constants.ZSTD_c_checksumFlag in 1). import.meta is empty in gm's host: 74 more entries failed until the mirror supplied import.meta.url (25 files use it).
+
+Open items from this pass, ranked:
+
+1. Stage 4, the runtime rewrite on fx:host. Blocked on fx: fx:host does not exist yet (host-interface.md marks it planned); the list of what freddie needs from fx is in fx-cut-table.md.
+2. framework/logger-console: no profile, preset or source loads it, but it is a published member of the vendor release family. Needs the owner's decision before deletion.
+3. Windows branches left in packages that stay: 271 matching lines in 39 files (open-in-app 75, ui-conversation 33, directory-picker-native 31, fs-local 30, session-persistence-jsonl 28, subprocess-local 28, apiproxy 13, and a tail). Reachable now; a second stage 7 pass.
+4. Packages imported from source by a runtime package but declared only in devDependencies (scope 19 importing files, timeout 22, sandbox 13, fs 10, shell 6, atomic-write 5, output-retention 4, compaction 4, and 10 more). Reachable now: fix the manifests, then re-run the closure; it changes what a package install brings in.
+5. Stage 7 rearchitecture: one plugin manifest, schemas that generate settings screens and controllers, one table for commands and tools. Reachable now, not started.
+6. Stage 5 cuts, in the plan's order (providers, agent loop, tools, permissions, sessions, subagents, MCP and ACP): each needs a parity witness against fx behaviour, so they follow stage 4.
+
 ## Phase A: parity scratch honours TMPDIR (2026-11-21)
 
 Defect found by the window run: test/parity-cases.js created its scratch directories under a hardcoded /tmp (14 mkdtemp sites), so a full root filesystem stopped the run and TMPDIR had no effect. All 14 now build the path from a single scratch constant, s.os.tmpdir(), which Node and the txiki adapter (tjs.tmpDir) both resolve from TMPDIR. Paths that are only strings and never touch the disk (the /tmp/never-read-* stream cases, the url cases) are unchanged. test/parity-cases.js +15 -14 lines (one new constant).
