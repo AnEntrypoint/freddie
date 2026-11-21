@@ -1,5 +1,23 @@
 # Pending validation: reduction to what the system needs
 
+## The Node parity baseline as a committed fixture (2026-11-21)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. Plain node, no browser, no ticket.
+
+| commit | change | added | removed |
+|---|---|---|---|
+| b2372fa3 | packages/util/runtime/test/parity-fixture.json (856 shared and 4 gap cases), test/parity-fixture.js (writer and check), captureCases and fixtureProblems in test/parity-cases.js, one case renamed, README section | 939 | 1 |
+
+What it records. For each of the 856 shared parity cases, which exercise the runtime seam over fs, fs/promises, path, crypto, stream, buffer, url, util, module, child_process, os, worker_threads, vm, http, zlib, dns/promises, process and the rest, the fixture holds the case name, its input (the source of the case's run function, whitespace collapsed) and its output as Node produces it (kind value, threw or undefined). The 4 gap cases hold the named-gap message the txiki adapter throws; that section is informational, since a native implementation may replace a gap. fx (or any host) is checked with two pure helpers exported by test/parity-cases.js: captureCases() run on that host, then fixtureProblems(fixture, captured), where an empty list means the host reproduces every output.
+
+The check (node --openssl-legacy-provider test/parity-fixture.js, a window step) fails when a case is missing from the fixture, when a fixture entry has no case, when a case name repeats, when a case's input changed, when an output differs, or when parity-cases.js creates a scratch directory under a hardcoded /tmp. TMPDIR: every scratch directory in the cases is built from s.os.tmpdir(); the fixture is byte-identical when captured under TMPDIR=/workspace/tmp/freddie/cap1, cap2 and the default, and the writer captures twice and refuses to write if any case differs between the runs.
+
+Defects the new check found in the parity file, both fixed: two different cases were named "fs.createReadStream highWaterMark -1 throws ERR_INVALID_ARG_VALUE" (the second is now "... when called directly"; the shared count stays 856), and the util.parseArgs case reads the process's own argv, so capturing with a --write flag recorded an error; the writer now clears argv before capturing, as the oracle runs it.
+
+Witnesses. Every fixture output equals the case's verified expected value (0 differences over 856), so the fixture agrees with the oracle that already passes 856 of 856. Red checks, each run in the window with restore and cmp: fixture-case-missing (the net.isIP entry deleted: "case "net.isIP" is missing from the fixture"), fixture-output-changed ("output differs for "net.isIP""), fixture-input-stale (the case's source edited: "fixture input is stale for "net.isIP""), fixture-hardcoded-tmp (a mkdtemp under /tmp planted: "hardcoded /tmp").
+
+Open: the fixture is a Node baseline only. Closing witness for fx: run captureCases() under fx with the freddie runtime installed over fx:host and require fixtureProblems to be empty; that needs the runtime rewrite on fx:host (stage 4). Cases whose output legitimately differs on fx (for example the dns lookup of localhost, which depends on the resolver) will show up there as named differences to decide case by case.
+
 ## The generic host adapter and the shipped-code import rule (2026-11-21)
 
 Spec: /workspace/hyperagent/specs/fx-freddie-txiki.md, read again (architecture item 5: one generic adapter reads the host table and registers the matching Cordis services through a Proxy; a capability a host lacks is absent from its table and the adapter does not register it). Standing rules: /workspace/hyperagent/docs/peer-rules.md. The alias table packages/util/runtime/src/aliases.json is unchanged.
