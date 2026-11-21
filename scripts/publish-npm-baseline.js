@@ -453,9 +453,6 @@ class InstalledBundleSmoke {
   }
 
   probeWeb(bin, consumerRoot, environment) {
-    if (process.platform === 'win32') {
-      throw new Error('installed freddie Web probe requires a POSIX host with python3')
-    }
     const result = this.runner.result(
       'python3',
       ['-c', POSIX_WEB_PROBE, process.execPath, bin, consumerRoot, '60'],

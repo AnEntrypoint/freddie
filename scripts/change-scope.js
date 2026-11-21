@@ -145,10 +145,7 @@ function diffPaths(root, args, context) {
 }
 
 function stripGitLineTerminator(output) {
-  const withoutLineFeed = output.endsWith('\n') ? output.slice(0, -1) : output
-  return process.platform === 'win32' && withoutLineFeed.endsWith('\r')
-    ? withoutLineFeed.slice(0, -1)
-    : withoutLineFeed
+  return output.endsWith('\n') ? output.slice(0, -1) : output
 }
 
 function collectReport(options, cwd) {
