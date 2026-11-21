@@ -16,7 +16,6 @@ import {
 import {
   compressZstdFrame, createZstdFrameDecoder, decompressZstdFrame, decompressZstdPrefix, scanZstdFrames,
 } from './zstd.js'
-import { ensureDurableDirectoryWin32, publishNewFileWin32 } from './win32.js'
 import { process } from '@freddie/freddie-runtime/process'
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
@@ -403,21 +402,13 @@ export class JsonlSessionPersistence extends SessionPersistence {
     const finalPath = logPath(this.root, meta.cwd, meta.id, this.compression)
     await this.rejectOppositeArtifact(meta.cwd, meta.id)
     const content = await this.encodeMaterialization(meta, events)
-    if (process.platform === 'win32') {
-      await this.materializeWin32(project, dir, finalPath, meta.id, content)
-    } else {
-      await this.materializePosix(project, dir, finalPath, meta.id, content)
-    }
-  }
-
-  async materializePosix(project, dir, finalPath, id, content) {
     await mkdir(this.root, { recursive: true, mode: 0o700 })
     await this.syncDirPosix(dirname(this.root))
     await mkdir(project, { recursive: true, mode: 0o700 })
     await this.syncDirPosix(this.root)
     await mkdir(dir, { recursive: true, mode: 0o700 })
     await this.syncDirPosix(project)
-    await this.rejectExistingLog(finalPath, id)
+    await this.rejectExistingLog(finalPath, meta.id)
     const tmp = await this.writeSyncedTempFile(finalPath, content)
     let linked = false
     try {
@@ -430,20 +421,6 @@ export class JsonlSessionPersistence extends SessionPersistence {
     try {
       await rm(tmp, { force: true })
     } catch {
-    }
-  }
-
-  async materializeWin32(project, dir, finalPath, id, content) {
-    await ensureDurableDirectoryWin32(this.root)
-    await ensureDurableDirectoryWin32(project)
-    await ensureDurableDirectoryWin32(dir)
-    await this.rejectExistingLog(finalPath, id)
-    const tmp = await this.writeSyncedTempFile(finalPath, content)
-    try {
-      await publishNewFileWin32(tmp, finalPath)
-    } catch (error) {
-      await rm(tmp, { force: true })
-      throw error
     }
   }
 
@@ -809,25 +786,7 @@ export class JsonlSessionPersistence extends SessionPersistence {
       await handle.close()
       return true
     } catch (error) {
-      if (isENOENT(error)) {
-        await this.assertLogParentAllowsAbsence(path)
-        return false
-      }
-      throw error
-    }
-  }
-
-  async assertLogParentAllowsAbsence(path) {
-    try {
-      const parent = dirname(path)
-      const info = await stat(parent)
-      if (info.isDirectory()) return
-      const error = new Error(`ENOTDIR: parent path exists but is not a directory: ${parent}`)
-      error.code = 'ENOTDIR'
-      error.path = parent
-      throw error
-    } catch (error) {
-      if (isENOENT(error)) return
+      if (isENOENT(error)) return false
       throw error
     }
   }

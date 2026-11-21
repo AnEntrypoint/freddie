@@ -4547,9 +4547,6 @@ importers:
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
-      koffi:
-        specifier: ^3.1.0
-        version: 3.1.1
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -5135,9 +5132,6 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
-      koffi:
-        specifier: ^3.1.0
-        version: 3.1.1
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -6345,9 +6339,6 @@ importers:
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
-      koffi:
-        specifier: ^3.1.0
-        version: 3.1.1
     devDependencies:
       '@freddie/cordis':
         specifier: '*'

@@ -1,7 +1,6 @@
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 import { constants } from '@freddie/freddie-runtime/os'
 import { PassThrough } from '@freddie/freddie-runtime/stream'
-import { process } from '@freddie/freddie-runtime/process'
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -28,11 +27,10 @@ export class LocalTerminalHandle {
   trackedDescendants = []
   rootIdentity
 
-  constructor(terminal, inspector, graceMs, platform = process.platform) {
+  constructor(terminal, inspector, graceMs) {
     this.terminal = terminal
     this.inspector = inspector
     this.graceMs = graceMs
-    this.platform = platform
     this.pid = terminal.pid
     this.rootIdentity = inspector.processTree(this.pid).find(member => member.pid === this.pid)
     this.done = this.outcome.promise
@@ -78,15 +76,6 @@ export class LocalTerminalHandle {
     }
     if (signal === 'SIGKILL' && foreground.processGroupId === this.pid) {
       throw new Error('refusing to SIGKILL the terminal shell; terminate the terminal session instead')
-    }
-    if (this.platform === 'win32') {
-      if (signal === 'SIGINT') {
-        this.terminal.write('\x03')
-        return foreground.processGroupId
-      }
-      if (signal === 'SIGTSTP' || signal === 'SIGHUP') {
-        throw new Error(`signal ${signal} is unsupported on Windows; only SIGINT, SIGTERM, and SIGKILL are available`)
-      }
     }
     this.inspector.signalGroup(foreground.processGroupId, signal)
     return foreground.processGroupId
@@ -191,10 +180,6 @@ export class LocalTerminalHandle {
   }
 
   async stopShell() {
-    if (this.platform === 'win32') {
-      await this.stopShellWindows()
-      return
-    }
     if (!this.exited) {
       try {
         this.terminal.kill('SIGTERM')
@@ -212,35 +197,6 @@ export class LocalTerminalHandle {
     if (!this.exited) throw new Error(`terminal cleanup failed; surviving pid: ${this.pid}`)
   }
 
-  async stopShellWindows() {
-    const shellGone = () =>
-      this.exited || (this.rootIdentity !== undefined && !this.inspector.isAlive(this.rootIdentity))
-    if (!shellGone() && this.rootIdentity !== undefined) {
-      this.inspector.signalProcess(this.rootIdentity, 'SIGTERM')
-      await this.waitForWindowsShellExit()
-    }
-    if (!shellGone() && this.rootIdentity === undefined) {
-      try {
-        this.terminal.kill()
-      } catch (_topLevelAlreadyExitedDuringKill) {
-      }
-      await Promise.race([this.done.then(() => undefined), delay(this.graceMs)])
-    }
-    if (!shellGone() && this.rootIdentity !== undefined) {
-      this.inspector.signalProcess(this.rootIdentity, 'SIGKILL')
-      await this.waitForWindowsShellExit()
-    }
-    if (!shellGone()) throw new Error(`terminal cleanup failed; surviving pid: ${this.pid}`)
-  }
-
-  async waitForWindowsShellExit() {
-    const until = Date.now() + this.graceMs
-    while (!this.exited && Date.now() < until) {
-      if (this.rootIdentity !== undefined && !this.inspector.isAlive(this.rootIdentity)) return
-      await delay(Math.min(25, Math.max(1, until - Date.now())))
-    }
-  }
-
   async closeOnce() {
     let survivors = await this.stopDescendants()
     if (survivors.length > 0) {
@@ -251,17 +207,7 @@ export class LocalTerminalHandle {
     if (survivors.length > 0) {
       throw new Error(`terminal cleanup failed; surviving pids: ${survivors.map(member => member.pid).join(', ')}`)
     }
-    this.settleExitIfGone()
     this.dataDisposable.dispose()
     this.exitDisposable.dispose()
-  }
-
-  settleExitIfGone() {
-    if (this.platform !== 'win32') return
-    if (this.exited) return
-    if (this.rootIdentity !== undefined && this.inspector.isAlive(this.rootIdentity)) return
-    this.exited = true
-    this.output.end()
-    this.outcome.resolve({ exitCode: null, signal: null })
   }
 }

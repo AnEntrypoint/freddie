@@ -25,8 +25,7 @@
   "files": [
     "src/index.js",
     "src/invariant.js",
-    "src/fsio.js",
-    "src/win32.js"
+    "src/fsio.js"
   ],
   "license": "MIT",
   "peerDependencies": {
@@ -36,7 +35,6 @@
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",
-    "koffi": "^3.1.0",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

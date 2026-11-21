@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from '@freddie/freddie-runtime/child-process'
+import { spawn } from '@freddie/freddie-runtime/child-process'
 import { randomBytes } from '@freddie/freddie-runtime/crypto'
 import { closeSync, mkdtempSync, openSync, unlinkSync, writeSync } from '@freddie/freddie-runtime/fs'
 import { tmpdir } from '@freddie/freddie-runtime/os'
@@ -13,15 +13,7 @@ import { Buffer } from '@freddie/freddie-runtime/buffer'
 const SPAWN_FAILED_PID = -1
 
 export function childEnv(extra) {
-  const env = scrubbedParentEnv()
-  if (process.platform !== 'win32') return { ...env, ...extra }
-  let entries = Object.entries(env)
-  for (const [key, value] of Object.entries(extra ?? {})) {
-    const normalized = key.toUpperCase()
-    entries = entries.filter(([inherited]) => inherited.toUpperCase() !== normalized)
-    entries.push([key, value])
-  }
-  return Object.fromEntries(entries)
+  return { ...scrubbedParentEnv(), ...extra }
 }
 
 
@@ -153,16 +145,7 @@ export function killGroup(pid, sig) {
   }
 }
 
-export function taskkillProcessTree(pid) {
-  if (pid <= 0) return
-  spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' })
-}
-
-function signalTree(platform, pid, sig, child, taskkill) {
-  if (platform === 'win32') {
-    taskkill(pid)
-    return
-  }
+function signalTree(pid, sig, child) {
   if (pid <= 0) return
   try {
     process.kill(-pid, sig)
@@ -180,7 +163,6 @@ export function spawnSubprocess(spec, internals = {}) {
   }
   const spillDir = internals.spillDir ?? privateSpillDir()
   const platform = internals.platform ?? process.platform
-  const taskkill = internals.taskkill ?? taskkillProcessTree
   const linuxGroupHasLiveMembers = internals.linuxProcessGroupHasLiveMembers ?? linuxProcessGroupHasLiveMembers
 
   if (spec.signal?.aborted) {
@@ -205,7 +187,7 @@ export function spawnSubprocess(spec, internals = {}) {
       outMode === 'inherit' ? 'inherit' : 'pipe',
       errMode === 'inherit' ? 'inherit' : 'pipe',
     ],
-    detached: platform !== 'win32',
+    detached: true,
   })
 
   const collectStream = (mode, stream, label) => {
@@ -227,9 +209,6 @@ export function spawnSubprocess(spec, internals = {}) {
   const treeAlive = () => {
     if (treeExitObserved) return false
     if (pid <= 0) return false
-    if (platform === 'win32') {
-      return child.exitCode === null && child.signalCode === null
-    }
     try {
       process.kill(-pid, 0)
       if (settled && platform === 'linux' && linuxGroupHasLiveMembers(pid) === false) return false
@@ -254,7 +233,7 @@ export function spawnSubprocess(spec, internals = {}) {
 
   const kill = (sig) => {
     if (!treeAlive()) return
-    signalTree(platform, pid, sig, child, taskkill)
+    signalTree(pid, sig, child)
   }
 
   const terminate = () => {

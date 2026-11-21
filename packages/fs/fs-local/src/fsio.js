@@ -4,7 +4,6 @@ import { chmod, link, lstat, mkdir, open, readFile, realpath, readdir, rename, r
 import { basename, dirname, join, resolve } from '@freddie/freddie-runtime/path'
 import { TextDecoder } from '@freddie/freddie-runtime/util'
 import { FsError, FsTargetKey, FsVersion } from '@freddie/freddie-fs'
-import { copyFileDaclWin32, replaceFileWin32 } from './win32.js'
 import { process } from '@freddie/freddie-runtime/process'
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
@@ -71,12 +70,6 @@ export async function resolveLocalTarget(cwd, path) {
   while (true) {
     try {
       const realAncestor = await realpath(ancestor)
-      if (process.platform === 'win32') {
-        const parentInfo = await stat(realAncestor)
-        if (!parentInfo.isDirectory()) {
-          throw new FsError(`cannot resolve "${displayPath}": a parent path segment is not a directory`, 'FS_NOT_FOUND')
-        }
-      }
       return { displayPath, targetKey: FsTargetKey(join(realAncestor, ...missing)) }
     } catch (error) {
       if (error instanceof FsError) throw error
@@ -334,9 +327,6 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
   const stagingDir = join(directory, stagingDirName)
   const tempName = internals.tempName?.(absolutePath) ?? `${basename(absolutePath)}.tmp`
   const tempPath = join(stagingDir, tempName)
-  const platform = internals.platform ?? process.platform
-  const copyFileDacl = internals.copyFileDacl ?? copyFileDaclWin32
-  const replaceFile = internals.replaceFile ?? replaceFileWin32
   const linkFile = internals.linkFile ?? link
   const inspectPublicationTarget = internals.inspectPublicationTarget
     ?? (path => lstat(path, { bigint: true }))
@@ -351,9 +341,6 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
 
     handle = await open(tempPath, 'wx', 0o600)
     await handle.chmod(0o600)
-    if (platform === 'win32' && mode !== undefined) {
-      await copyFileDacl(absolutePath, tempPath)
-    }
     await handle.writeFile(content, { encoding: 'utf8', ...signal ? { signal } : {} })
     await handle.sync()
     await internals.inspectTemp?.({ stagingDir, tempPath })
@@ -367,13 +354,6 @@ export async function writeFileAtomic(absolutePath, content, mode, signal, inter
         await linkFile(tempPath, absolutePath)
       } catch (error) {
         await throwGuardedCreateFailure(error, absolutePath, createIfAbsent.displayPath, inspectPublicationTarget)
-      }
-    } else if (platform === 'win32' && mode !== undefined) {
-      try {
-        await replaceFile(absolutePath, tempPath)
-      } catch (error) {
-        if (!isENOENT(error)) throw error
-        await rename(tempPath, absolutePath)
       }
     } else {
       await rename(tempPath, absolutePath)

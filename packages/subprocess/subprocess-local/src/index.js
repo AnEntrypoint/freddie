@@ -1,6 +1,6 @@
 import { constants } from '@freddie/freddie-runtime/fs'
 import { access, stat } from '@freddie/freddie-runtime/fs-promises'
-import { delimiter, extname, isAbsolute, resolve } from '@freddie/freddie-runtime/path'
+import { delimiter, isAbsolute, resolve } from '@freddie/freddie-runtime/path'
 import * as nodePty from 'node-pty'
 import { SubprocessRuntime } from '@freddie/freddie-subprocess'
 import { childEnv, spawnSubprocess } from './spawn.js'
@@ -69,7 +69,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     signal?.throwIfAborted()
     const environment = childEnv(env)
     const absolute = isAbsolute(command)
-    if (!absolute && (command.includes('/') || (process.platform === 'win32' && command.includes('\\')))) {
+    if (!absolute && command.includes('/')) {
       throw new Error(
         `subprocess-local: command ${JSON.stringify(command)} is a relative path; use an absolute path or a bare PATH name`,
       )
@@ -93,12 +93,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
   }
 
   executableCandidates(command, env) {
-    const path = environmentValue(env, 'PATH') ?? ''
-    const extensions = process.platform === 'win32' && extname(command) === ''
-      ? (environmentValue(env, 'PATHEXT') ?? '.COM;.EXE;.BAT;.CMD').split(';')
-      : ['']
-    return path.split(delimiter).flatMap(directory =>
-      extensions.map(extension => resolve(process.cwd(), directory, command + extension)))
+    return (env.PATH ?? '').split(delimiter).map(directory => resolve(process.cwd(), directory, command))
   }
 
   spawn(spec) {
@@ -134,13 +129,6 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     void handle.done.then(release, release).catch(() => {})
     return handle
   }
-}
-
-function environmentValue(env, name) {
-  const exact = env[name]
-  if (exact !== undefined || process.platform !== 'win32') return exact
-  const normalized = name.toUpperCase()
-  return Object.entries(env).find(([key]) => key.toUpperCase() === normalized)?.[1]
 }
 
 export default LocalSubprocessRuntime

@@ -1,5 +1,4 @@
 import { runNativeCommand } from '@freddie/freddie-native-command'
-import { pickWin32Directory } from './win32-dialog.js'
 import { process } from '@freddie/freddie-runtime/process'
 
 function outputPath(stdout) {
@@ -43,11 +42,6 @@ export async function pickNativeDirectory(signal, internals = {}) {
         && /(?:User canceled|-128)/i.test(errorStderr(error))) return null
       throw error
     }
-  }
-
-  if (platform === 'win32') {
-    const pickDialog = internals.pickWin32Dialog ?? pickWin32Directory
-    return await pickDialog(signal)
   }
 
   if (platform === 'linux') {

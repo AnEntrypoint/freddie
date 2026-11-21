@@ -56,7 +56,6 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`fflate`](https://github.com/101arrowz/fflate) | MIT |
 | [`js-yaml`](https://github.com/nodeca/js-yaml) | MIT |
 | [`katex`](https://github.com/KaTeX/KaTeX) | MIT |
-| [`koffi`](https://github.com/Koromix/koffi) | MIT |
 | [`libsql-plugkit-client`](https://github.com/AnEntrypoint/libsql-plugkit-client) | MIT |
 | [`mdast-util-from-markdown`](https://github.com/syntax-tree/mdast-util-from-markdown) | MIT |
 | [`mdast-util-gfm`](https://github.com/syntax-tree/mdast-util-gfm) | MIT |
