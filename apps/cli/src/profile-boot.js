@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, writeFileSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { existsSync, readdirSync, writeFileSync } from '@freddie/freddie-runtime/fs'
+import { join, relative, resolve } from '@freddie/freddie-runtime/path'
+import { fileURLToPath, pathToFileURL } from '@freddie/freddie-runtime/url'
 import {
   boot,
   composeEntries,

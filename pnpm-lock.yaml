@@ -1645,6 +1645,9 @@ importers:
 
   packages/client/connection:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -1687,6 +1690,10 @@ importers:
         version: link:../../util/values
 
   packages/client/css-manifest:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -1700,6 +1707,9 @@ importers:
 
   packages/client/file-upload:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -1722,6 +1732,9 @@ importers:
 
   packages/client/hmr:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -1791,6 +1804,9 @@ importers:
 
   packages/client/modules:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       es-module-lexer:
         specifier: ^3.0.3
         version: 3.0.3
@@ -3309,6 +3325,9 @@ importers:
       '@freddie/freddie-client-web':
         specifier: '*'
         version: link:../web
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/webjsx':
         specifier: '*'
         version: link:../../../framework/webjsx

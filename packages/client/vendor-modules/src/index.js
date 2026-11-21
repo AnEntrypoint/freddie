@@ -1,6 +1,6 @@
-import { createRequire } from 'node:module'
-import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { createRequire } from '@freddie/freddie-runtime/module'
+import { join } from '@freddie/freddie-runtime/path'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { sendFile } from '@freddie/freddie-host-webserver'
 import { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
 

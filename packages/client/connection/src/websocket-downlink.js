@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import WebSocket, { WebSocketServer } from 'ws'
 import { RpcId } from '@freddie/freddie-host-apiproxy/api'
 

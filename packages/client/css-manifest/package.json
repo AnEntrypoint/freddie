@@ -29,6 +29,9 @@
   "scripts": {
     "generate-manifest": "node scripts/generate-manifest.mjs"
   },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
+  },
   "peerDependencies": {
     "@freddie/freddie-host-webserver": "*",
     "@freddie/freddie-invariants": "*",

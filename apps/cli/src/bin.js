@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import '@freddie/freddie-runtime/install-node'
 
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { readFileSync } from '@freddie/freddie-runtime/fs'
+import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { parseDshArgs } from './args.js'
 import { reexecWithExposeInternals } from './expose-internals.js'
 

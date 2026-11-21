@@ -1,5 +1,5 @@
 export const contract = {
-  "fs": ['accessSync', 'closeSync', 'constants', 'createReadStream', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'unwatchFile', 'watchFile', 'writeFileSync', 'writeSync'],
+  "fs": ['accessSync', 'closeSync', 'constants', 'createReadStream', 'existsSync', 'lstatSync', 'mkdirSync', 'mkdtempSync', 'openSync', 'readFileSync', 'readSync', 'readdirSync', 'readlinkSync', 'realpathSync', 'rmSync', 'statSync', 'symlinkSync', 'unlinkSync', 'unwatchFile', 'watch', 'watchFile', 'writeFileSync', 'writeSync'],
   "fs-promises": ['access', 'chmod', 'constants', 'cp', 'link', 'lstat', 'mkdir', 'mkdtemp', 'open', 'opendir', 'readFile', 'readdir', 'readlink', 'realpath', 'rename', 'rm', 'stat', 'symlink', 'truncate', 'unlink', 'writeFile'],
   "path": ['basename', 'delimiter', 'dirname', 'extname', 'isAbsolute', 'join', 'normalize', 'parse', 'posix', 'relative', 'resolve', 'sep', 'toNamespacedPath', 'win32'],
   "crypto": ['createHash', 'randomBytes', 'randomUUID'],

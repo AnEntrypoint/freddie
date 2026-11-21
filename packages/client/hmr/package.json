@@ -35,6 +35,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
     "ws": "^8.21.0"
   },

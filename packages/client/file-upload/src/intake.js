@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
-import { open, rename, rm } from 'node:fs/promises'
+import { createHash } from '@freddie/freddie-runtime/crypto'
+import { open, rename, rm } from '@freddie/freddie-runtime/fs-promises'
 import { tooLarge } from './error.js'
 import { SNIFF_BYTES, sniffMediaType } from './media-type.js'
 

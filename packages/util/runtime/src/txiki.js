@@ -3795,7 +3795,7 @@ async function lookup(hostname, options) {
 }
 
 export const txikiRuntime = {
-  fs: withGaps('fs', { accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
+  fs: withGaps('fs', { accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile, ...gapFunctions('fs', ['watch']) }),
   fsPromises,
   path: tjsPath,
   crypto: withGaps('crypto', {

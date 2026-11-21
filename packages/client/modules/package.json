@@ -50,6 +50,7 @@
     "@freddie/freddie-invariants": "*"
   },
   "dependencies": {
+    "@freddie/freddie-runtime": "*",
     "es-module-lexer": "^3.0.3"
   }
 }

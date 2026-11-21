@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@freddie/freddie-client-web": "*",
+    "@freddie/freddie-runtime": "*",
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/webjsx": "*",

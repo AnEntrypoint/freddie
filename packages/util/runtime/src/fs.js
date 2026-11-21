@@ -21,6 +21,7 @@ export const statSync = fs.statSync
 export const symlinkSync = fs.symlinkSync
 export const unlinkSync = fs.unlinkSync
 export const unwatchFile = fs.unwatchFile
+export const watch = fs.watch
 export const watchFile = fs.watchFile
 export const writeFileSync = fs.writeFileSync
 export const writeSync = fs.writeSync

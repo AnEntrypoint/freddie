@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { existsSync } from '@freddie/freddie-runtime/fs'
+import { join, resolve } from '@freddie/freddie-runtime/path'
 import {
   loadOptionalPatches,
   loadOverlayPatches,

@@ -1,6 +1,6 @@
-import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { spawnSync } from '@freddie/freddie-runtime/child-process'
+import { existsSync } from '@freddie/freddie-runtime/fs'
+import { join, resolve } from '@freddie/freddie-runtime/path'
 import {
   DEFAULT_PROFILE_BUNDLES,
   initProfile,

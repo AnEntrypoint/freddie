@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn } from '@freddie/freddie-runtime/child-process'
 
 export async function reexecWithExposeInternals() {
   if (process.execArgv.includes('--expose-internals')) return
