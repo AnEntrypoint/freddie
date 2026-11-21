@@ -3302,3 +3302,21 @@ GM requests with call-site counts (for gm to rank; each one needs a native capab
 
 Stub removal: no stub has zero references (every stub in the table has at least one reference, most a call), so nothing is removed.
 
+## Phase A: zlib.createGunzip and zlib.createInflate (commit 09304d86, 2026-11-21)
+
+Closes two absent names with call sites: zlib.createGunzip (1 call, web-fetch-http network.js) and zlib.createInflate (1 call, same file). Both were absent before this commit, so network.js's response decoder threw "is not a function" on any gzip or deflate body. Stream-level decoding was built on txiki's existing gunzipBytes and inflateBlocks, with a zlib-format header check and an Adler-32 trailer check (inflateZlibBytes). Brotli (zlib.createBrotliDecompress, 1 call) is not adapter-only, because it needs a Brotli decoder, and it stays on the G list (G2).
+
+Witness: 4 new shared rows in test/parity-cases.js, all of which a stub cannot satisfy because each one needs decoded bytes:
+- zlib.createGunzip inflates gzip bytes that arrive in two pieces through a pipe (expected "hello world")
+- zlib.createInflate inflates zlib-wrapped bytes (expected "hello")
+- zlib.createInflate rejects bytes without a zlib header with Z_DATA_ERROR
+- zlib.createGunzip rejects bytes without a gzip header with Z_DATA_ERROR
+
+Results: node oracle (node --openssl-legacy-provider test/parity-node.js) 851/851 shared, 0 gaps mismatch. txiki probe (mcp-probe.mjs, parity-txiki-body.js) shared 851, mismatches [].
+
+Red check (mutation, witness, restore, cmp, git status):
+- inflate-end-drops-output: this.push(output) removed from DecodeStream.end. Witness fails: "zlib.createGunzip inflates gzip bytes that arrive in two pieces through a pipe" got "" expected "hello world", and the inflate row fails the same way.
+- createInflate-as-gzip: createInflate returns DecodeStream(gunzipBytes). Witness fails: "zlib.createInflate inflates zlib-wrapped bytes" got "error Z_DATA_ERROR" expected "hello".
+- Restore: the file was rewritten from the saved good copy. cmp of the restored txiki.js against the saved copy: identical. git status after restore: clean (the four runtime files are committed).
+
+Both mutants are also in runs/analysis/window.mjs MUTANTS (host-local), so the window's red-check step runs them.
