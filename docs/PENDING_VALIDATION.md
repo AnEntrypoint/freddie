@@ -1,5 +1,38 @@
 # Pending validation: reduction to what the system needs
 
+## Ranked open items for the runtime adapter (2026-11-21)
+
+Ranking: consumer call sites first (from the call-site ranking below, 197 consumer files), then reachability. Reachable means closable by code in this repository; blocked means it needs something gm or another project must supply. Counts after this stretch: shared 856, gapsApplied 3, gapsInactive 1.
+
+| rank | item | calls | witness that closes it | status |
+|---|---|---|---|---|
+| 1 | childProcess.spawnSync and execFileSync (G4) | 5 + 1 | parity rows: spawnSync of a command returns status, stdout and stderr equal to Node's; execFileSync returns stdout or throws with status | blocked on gm: txikiCore.spawn is asynchronous and the host offers no blocking wait, so a synchronous result cannot be built in the adapter |
+| 2 | vm.createContext and vm.runInContext (G3) | 2 + 2 | a script run in a context reads and writes that context's globals and not the caller's | blocked on gm: no second realm that takes an object as its global |
+| 3 | asyncHooks.AsyncLocalStorage (G1) | 3 | run(store, fn) with awaits and a timer in between returns the same store from getStore() | blocked on gm: no hook that carries a value across promise jobs |
+| 4 | http.createServer (G6) | 2 | a server on port 0 answers fetch with status, headers and body; an upgrade request hands (request, socket, head) to the listener and the socket echoes; close and closeAllConnections end the listener | reachable but large: tjs.listen with an HTTP/1.1 parser and a socket stream on the adapter's Readable and Writable. Both consumers (host/webserver, runtime-diagnostics/inspector) register an upgrade listener, so a version without upgrade would be silently useless; not started |
+| 5 | zlib zstd decode: zstdDecompressSync, createZstdDecompress (G2) | 1 + 1 | Node-produced zstd frames decode to the original bytes, including a multi-block frame and a corrupt-frame error | reachable but large (a pure JS decoder: FSE and Huffman tables, sequences); or one native call from gm, which is smaller. zstdCompress, zstdDecompress and brotliCompress are referenced and not called (refs 1 each) |
+| 6 | zlib.createBrotliDecompress (G2) | 1 | Node-produced br bytes decode to the original text | blocked on gm: needs a Brotli decoder with its static dictionary |
+| 7 | inspector.Session (G8) | 1 | a session connects, posts Runtime.evaluate and receives the result | blocked on gm: no inspector protocol endpoint in the host |
+| 8 | module.stripTypeScriptTypes (G9) | 1 | stripping a typed snippet equals Node's output | blocked on a decision: needs a TypeScript stripper, which is a dependency choice as well as a capability |
+| 9 | worker_threads.Worker with options (G5) | 1 construction | workerData reaches the worker and is readable there | blocked on gm: txikiCore.Worker takes only a file name |
+| 10 | tjs.lookup returns IPv4 only (G10, new) | 1 | lookup('localhost', { all: true }) lists ::1 and 127.0.0.1 in resolver order, as Node does | blocked on gm: on this host tjs.lookup('::1') fails with EAI_ADDRFAMILY and a hostname never returns an IPv6 address; the adapter returns IPv6 literals itself and names family 6 as a gap |
+
+Closed in this stretch: zlib.createGunzip and zlib.createInflate (09304d86), dns.promises.lookup (79c4a7bf, the adapter part of rank 10), and the dedup pass (3b4c8727, 2140159e, d714b171).
+
+Left out by the simplification pass, with the reason: the sha256 and sha512 digests and the blake2s and blake2b pair keep separate bodies (32-bit Number against 64-bit BigInt arithmetic; one generic routine would be obscure and slower). The partial argument gaps with no consumer (fs.statSync and lstatSync options, fs.writeFileSync flags other than w, fs.writeSync of a non-view, process.exitCode that is not an integer, vm.Script.runInContext) stay as named gaps: no call site, so no implementation (YAGNI).
+
+Tooling: the window record now stores ms per gated step (runs/analysis/window.mjs, host-local).
+
+## Phase A: dns.promises.lookup (commit 79c4a7bf, 2026-11-21)
+
+Closes dnsPromises.lookup (1 call, web-fetch-http network.js; absent before, so every hostname fetch threw). Built on tjs.lookup: IPv4 and IPv6 literals are returned as given, hostnames resolve through tjs.lookup with all:true and map to { address, family }, EAI_NONAME becomes ENOTFOUND, every EAI_ error carries syscall getaddrinfo and the hostname. family 6 and options besides family, all and order are named gaps. txiki.js +30 -0 (with test and doc changes: 4 files, +39 -4). docs/fx-split.md row for dns/promises updated.
+
+Witness: 5 new shared rows (IPv4 literal, all, IPv6 literal, localhost for family 4 lists only loopback entries of family 4, unresolvable name rejects with getaddrinfo error and host) and 1 gap row (dns.lookup with family 6). Node oracle 856/856. Txiki probe shared 856, mismatches [], gapsApplied 3, gapsInactive 1.
+
+Red check (mutation, witness, restore, cmp, git status): lookup-literal-family RED 1/1; lookup-notfound-code RED 1/1; lookup-all-shape RED 1/1; lookup-entry-shape RED 1/1. Restore: cmp identical, git status clean after the commit. The 4 mutants are in runs/analysis/mutants.mjs (host-local) and run in the window.
+
+Evidence found on the way: Node itself returns two entries for localhost with family 4 on this host (the hosts file lists it twice), so the adapter does not de-duplicate; an early witness that expected one entry failed on the Node side and was replaced.
+
 Peer: reduction run `2026-11-11-14-21-52-530d6d`. Runner: `runs/analysis/baseline.mjs <label>` (untracked), one line per check.
 
 ## What "the system functioning" means
