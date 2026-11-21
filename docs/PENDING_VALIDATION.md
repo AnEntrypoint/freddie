@@ -37,16 +37,15 @@ Parity (runtime package, unchanged by this pass): node oracle 856/856 shared; tx
 
 Defect found in the window tooling and fixed (host-local runs/analysis/window.mjs): its run helper resolved only on the child's close event, so an orphaned git remote-https process holding the push's pipes blocked the window for nine minutes after a successful push. It now also resolves 3 s after the child exits. The orphan was stopped by its PID.
 
-Standalone txiki survey (details in fx-cut-table.md): 184 of 221 package entries import and evaluate under gm's txiki with the freddie adapter. The 37 failures are 20 causes: 19 third-party packages (js-yaml 7, chokidar 4, zod 2, @modelcontextprotocol/sdk 2, @opentelemetry/sdk-logs 2, eventsource-parser 2, and one each for @agentclientprotocol/sdk, sharp, clsx, webjsx, diff, @earendil-works/pi-ai, node-pty, turndown), node: imports in package source (crypto 3, child_process 2, fs 1, module 1), and two txiki gaps (process.stdout in 2, zlib.constants.ZSTD_c_checksumFlag in 1). import.meta is empty in gm's host: 74 more entries failed until the mirror supplied import.meta.url (25 files use it).
+Standalone txiki survey (details in fx-cut-table.md): 203 of 240 package entries import and evaluate under gm's txiki with the freddie adapter. The 37 failures are 20 causes: 19 third-party packages (js-yaml 7, chokidar 4, zod 2, @modelcontextprotocol/sdk 2, @opentelemetry/sdk-logs 2, eventsource-parser 2, and one each for @agentclientprotocol/sdk, sharp, clsx, webjsx, diff, @earendil-works/pi-ai, node-pty, turndown), node: imports in package source (crypto 3, child_process 2, fs 1, module 1), and two txiki gaps (process.stdout in 2, zlib.constants.ZSTD_c_checksumFlag in 1). import.meta is empty in gm's host: without the mirror's import.meta.url, 76 of the 240 entries fail on one line and only 129 import (25 files use it). Closure check: 245 of the 247 packages are loaded by a profile, preset or bundle (runtime, peer and optional declarations followed); the two outside are framework/logger-console and the landlock workspace wrapper.
 
 Open items from this pass, ranked:
 
 1. Stage 4, the runtime rewrite on fx:host. Blocked on fx: fx:host does not exist yet (host-interface.md marks it planned); the list of what freddie needs from fx is in fx-cut-table.md.
 2. framework/logger-console: no profile, preset or source loads it, but it is a published member of the vendor release family. Needs the owner's decision before deletion.
 3. Windows branches left in packages that stay: 271 matching lines in 39 files (open-in-app 75, ui-conversation 33, directory-picker-native 31, fs-local 30, session-persistence-jsonl 28, subprocess-local 28, apiproxy 13, and a tail). Reachable now; a second stage 7 pass.
-4. Packages imported from source by a runtime package but declared only in devDependencies (scope 19 importing files, timeout 22, sandbox 13, fs 10, shell 6, atomic-write 5, output-retention 4, compaction 4, and 10 more). Reachable now: fix the manifests, then re-run the closure; it changes what a package install brings in.
-5. Stage 7 rearchitecture: one plugin manifest, schemas that generate settings screens and controllers, one table for commands and tools. Reachable now, not started.
-6. Stage 5 cuts, in the plan's order (providers, agent loop, tools, permissions, sessions, subagents, MCP and ACP): each needs a parity witness against fx behaviour, so they follow stage 4.
+4. Stage 7 rearchitecture: one plugin manifest, schemas that generate settings screens and controllers, one table for commands and tools. Reachable now, not started.
+5. Stage 5 cuts, in the plan's order (providers, agent loop, tools, permissions, sessions, subagents, MCP and ACP): each needs a parity witness against fx behaviour, so they follow stage 4.
 
 ## Phase A: parity scratch honours TMPDIR (2026-11-21)
 

@@ -162,7 +162,7 @@ Call-site counts for the names that are absent or stubbed on txiki are in [PENDI
 
 Method. gm's embedded txiki (`gm-core`, the host the parity runs use; there is no standalone `tjs` binary on this machine) was given a mirror of the workspace sources in which every `@freddie/*` and `@cordis/*` specifier is rewritten to an absolute mirror path (including `exports` patterns), the txiki runtime installed, and every runtime-closure package entry imported in turn. Third-party and `node:` specifiers were left alone, so what fails is what a loader or a rewrite has to supply.
 
-Result. 184 of 221 package entries import and evaluate. The 37 that fail are listed by first cause; a package may have further causes behind the first.
+Result. 203 of 240 package entries import and evaluate. The 37 that fail are listed by first cause; a package may have further causes behind the first.
 
 | cause | packages that fail on it |
 |---|---|
@@ -188,7 +188,7 @@ Result. 184 of 221 package entries import and evaluate. The 37 that fail are lis
 | txiki gap: zlib.constants.ZSTD_c_checksumFlag | 1: session-persistence-jsonl |
 
 
-Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `filename`, `dirname`, `resolve`), and `tjs.setImportMap` does not affect dynamic `import()`. Before the mirror supplied `import.meta.url`, 74 more packages failed on one line, `createRequire(import.meta.url)('../package.json')`. Use in freddie sources (excluding the runtime and vendored client modules): `import.meta.url` 25 files / 32 uses, `import.meta.dirname` 4 / 4, `import.meta.filename` 1 / 1, `import.meta.resolve` 3 / 3.
+Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `filename`, `dirname`, `resolve`), and `tjs.setImportMap` does not affect dynamic `import()`. Without the mirror's `import.meta.url`, 76 of the 240 entries fail on one line, `createRequire(import.meta.url)('../package.json')`, and only 129 import. Use in freddie sources (excluding the runtime and vendored client modules): `import.meta.url` 25 files / 32 uses, `import.meta.dirname` 4 / 4, `import.meta.filename` 1 / 1, `import.meta.resolve` 3 / 3.
 
 ## Third-party packages the agent side needs
 
@@ -251,7 +251,7 @@ Replaceable by a native capability: `@vscode/ripgrep` (fx `grep_files`), `sharp`
 
 ## What freddie needs from fx
 
-1. **`import.meta.url`, `import.meta.dirname`, `import.meta.filename` and `import.meta.resolve`** in the fx loader. host-interface.md section 5.3 specifies only `import.meta.hot`. Evidence above: 25 files use `url`; one line in `packages/llm/llm` alone stops 74 package entries.
+1. **`import.meta.url`, `import.meta.dirname`, `import.meta.filename` and `import.meta.resolve`** in the fx loader. host-interface.md section 5.3 specifies only `import.meta.hot`. Evidence above: 25 files use `url`; one line in `packages/llm/llm` alone stops 76 package entries.
 2. **`process.stdout`, `process.stderr` and `process.stdin`** from `fx:host`. host-interface.md lists `process_info` and `proc.exit` only. `cmdline` and `headless` fail on `process.stdout` today, and the SDK profile speaks JSON-RPC on stdio.
 3. **`http.createServer` with the `upgrade` event and a raw socket**, or a decision that freddie's web backend moves to `serve({ websocket })`. host-interface.md section 4 specifies `serve` with a websocket handler (gap G3). Both callers (`host/webserver`, `runtime-diagnostics/inspector`) register an `upgrade` listener and hand `(request, socket, head)` to a WebSocket library, so the shape decides the rewrite.
 4. **`zlib` with the zstd constants** (`ZSTD_c_checksumFlag` is read at import by `session-persistence-jsonl`; gap G10), plus brotli decode (`web-fetch-http`).
