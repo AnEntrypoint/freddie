@@ -1,8 +1,8 @@
 export const APP_IDS = [
-  'finder', 'explorer', 'filemanager', 'cursor', 'vscode', 'vscodeinsiders', 'windsurf', 'zed',
+  'finder', 'filemanager', 'cursor', 'vscode', 'vscodeinsiders', 'windsurf', 'zed',
   'sublimetext', 'xcode', 'androidstudio', 'intellij', 'pycharm', 'webstorm', 'phpstorm', 'goland',
   'rider', 'rustrover', 'fork', 'sourcetree', 'github', 'tower', 'gitkraken', 'smartgit',
-  'sublimemerge', 'ghostty', 'warp', 'iterm', 'kitty', 'terminal', 'windowsterminal', 'gitbash',
+  'sublimemerge', 'ghostty', 'warp', 'iterm', 'kitty', 'terminal',
   'gnometerminal', 'konsole',
 ]
 

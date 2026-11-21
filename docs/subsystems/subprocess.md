@@ -137,8 +137,7 @@ A spawn returns a live handle immediately. Collect-mode readers take whole-strea
  * remains readable after exit; piped streams belong to the caller.
  *
  * Termination is tree-scoped everywhere: POSIX signals the detached process
- * group (falling back to the direct child when the group is gone), Windows
- * terminates the tree via `taskkill /T`, so helper processes cannot outlive
+ * group (falling back to the direct child when the group is gone), so helper processes cannot outlive
  * the handle unnoticed.
  */
 interface SubprocessHandle {
@@ -156,7 +155,7 @@ interface SubprocessHandle {
   readonly done: Promise<SubprocessOutcome>
   /**
    * Begin the SIGTERM → `graceMs` → SIGKILL escalation on the process tree
-   * (Windows force-terminates immediately) — the seam's only termination
+   * the seam's only termination
    * verb. Idempotent, a no-op once the tree is gone (the pid may be reused),
    * and also triggered by the spec's abort signal.
    */

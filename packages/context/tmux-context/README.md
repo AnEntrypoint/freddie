@@ -1,6 +1,6 @@
 # @freddie/freddie-tmux-context
 
-Durable context naming the tmux session, window, and pane this agent process runs in, plus the window's pane-tree layout. It is sampled once per turn during model-request preparation. Mounted by default like [time-context](../time-context/README.md) (base host row for acp, sdk and headless; Web `standard`, `code` and `cordis` presets; never `minimal`) and inert unless the process genuinely runs in a tmux pane: on a win32 host, or when `$TMUX_PANE` is unset or not of the form `%<digits>`, `apply` mounts no listener and no process is ever spawned. Decision record: [the tmux-context Agent Note](../../../.agents/notes/implemented/feature/2026-07-27-tmux-location-context.md).
+Durable context naming the tmux session, window, and pane this agent process runs in, plus the window's pane-tree layout. It is sampled once per turn during model-request preparation. Mounted by default like [time-context](../time-context/README.md) (base host row for acp, sdk and headless; Web `standard`, `code` and `cordis` presets; never `minimal`) and inert unless the process genuinely runs in a tmux pane: when `$TMUX_PANE` is unset or not of the form `%<digits>`, `apply` mounts no listener and no process is ever spawned. Decision record: [the tmux-context Agent Note](../../../.agents/notes/implemented/feature/2026-07-27-tmux-location-context.md).
 
 ## Config
 

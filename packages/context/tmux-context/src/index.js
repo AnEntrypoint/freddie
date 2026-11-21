@@ -122,7 +122,7 @@ function validateRefreshInterval(refreshIntervalMs) {
 export function apply(ctx, config) {
   const refreshIntervalMs = config.refreshIntervalMs
   validateRefreshInterval(refreshIntervalMs)
-  if (process.platform === 'win32' || !PANE_ID.test(process.env.TMUX_PANE ?? '')) return
+  if (!PANE_ID.test(process.env.TMUX_PANE ?? '')) return
   let paneAbsent = false
 
   ctx.on('agent/pre-step', async (

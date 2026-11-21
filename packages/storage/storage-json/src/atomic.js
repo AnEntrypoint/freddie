@@ -22,7 +22,6 @@ export async function writeAtomic(path, data) {
 }
 
 async function fsyncDirectory(path) {
-  if (process.platform === 'win32') return
   const handle = await open(path, 'r')
   try {
     await handle.sync()

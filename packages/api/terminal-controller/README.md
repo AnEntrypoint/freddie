@@ -27,7 +27,7 @@ namespace. `static inject` declares what the Gateway must resolve before it load
 | Config | Default | Meaning |
 | --- | --- | --- |
 | `shell` | platform default | explicit `{ path, name, args }` profile overriding discovery |
-| `shellCandidates` | `zsh, bash, fish, pwsh, powershell, cmd` | executable names offered in the launch menu |
+| `shellCandidates` | `zsh, bash, fish, pwsh` | executable names offered in the launch menu |
 | `ptyType` | `shell` | backend type passed to `ctx.terminals.spawn` |
 | `maxTerminals` | `8` | concurrent retained terminals per Session |
 | `maxCols` / `maxRows` | `500` / `200` | accepted dimension bounds |
@@ -101,11 +101,10 @@ and Host failures become `phase`/`issue` state.
    signal)` fixes the PTY name at spawn, then `ctx.terminals.resize(...)` returns the
    dimensions actually applied, which become `info.cols`/`info.rows`.
 4. **Backend-owned argv.** freddie's PTY backend (`terminal-bash`) builds the child argv
-   from its own `shellPath`/`shellArgs`/dialect plus the sandbox policy. The controller's
+   from its own `shellPath`/`shellArgs` plus the sandbox policy. The controller's
    resolved `shell` is therefore the *reported profile and title*, and `request.shellPath`
    is validated against discovered shells; it does not and cannot change the spawned
-   executable. On a Host whose backend runs `powershell.EXE` while discovery reports
-   `cmd.exe` as the platform default, the created terminal reports `cmd.exe` metadata.
+   executable.
 5. **Working directory.** `agent.session.header.cwd ??
    ctx.sandboxPolicy.resolve({ session }).workspaceRoot`, replacing dsh's own workspace
    resolution.

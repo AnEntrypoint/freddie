@@ -1,4 +1,3 @@
-import { tmpdir } from '@freddie/freddie-runtime/os'
 import { Worker } from '@freddie/freddie-runtime/worker-threads'
 import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { assertNever } from '@freddie/freddie-llm'
@@ -7,20 +6,8 @@ import { renderThrown } from './realm.js'
 import { HostToWorkerType, WorkerToHostType } from './protocol.js'
 import { process } from '@freddie/freddie-runtime/process'
 
-export function workerSpawnEnv(
-  platform = process.platform,
-) {
-  const env = {}
-  if (platform === 'win32') {
-    const tmp = tmpdir()
-    env.TMP = tmp
-    env.TEMP = tmp
-  }
-  return env
-}
-
 function resolveWorkerSpawn(init) {
-  return { entry: fileURLToPath(new URL('./worker.js', import.meta.url)), options: { workerData: init, env: workerSpawnEnv(), execArgv: [] } }
+  return { entry: fileURLToPath(new URL('./worker.js', import.meta.url)), options: { workerData: init, env: {}, execArgv: [] } }
 }
 
 export class WorkerRun {

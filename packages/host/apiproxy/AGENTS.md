@@ -32,7 +32,7 @@
 
 ### Platform (`native-path-opener.js`)
 
-- macOS without a LaunchServices record defers to the content-type handler. Linux uses `$BROWSER` (xdg-settings needs a launcher this package must not ship). Windows names no browser without reading UserChoice; its `.html` association is the browser in the ordinary case.
+- macOS without a LaunchServices record defers to the content-type handler. Linux uses `$BROWSER` (xdg-settings needs a launcher this package must not ship).
 
 ### Wire contract facts moved from source comments
 

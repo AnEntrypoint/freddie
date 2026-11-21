@@ -11,5 +11,5 @@
 ## Comment-sweep notes (attachment packages)
 - `AttachmentError` (package `attachment`) re-implements the `HarnessError` shape instead of extending it: freddie-llm depends on attachment (`ImageBlock` references `ImageAttachmentRef`), so extending would create a dependency cycle. Consumers route on `code`.
 - Admission fully decodes; digest-verified reads only header-probe. Sharp may omit an all-opaque alpha plane from WebP output; any other alpha change is incompatible.
-- Durable publication fsyncs directories; the ancestor walk deliberately ignores what mkdir reports as created (a concurrent creator may not have synced yet). Windows cannot open directory handles, so that step is skipped there.
+- Durable publication fsyncs directories; the ancestor walk deliberately ignores what mkdir reports as created (a concurrent creator may not have synced yet).
 - `commitPreparedImageFile` ignores a secondary descriptor-close failure while handling a storage failure. Staging-unlink cleanup ignores only `ENOENT`; another unlink failure propagates. Only an `EEXIST` link race enters digest-verified deduplication.

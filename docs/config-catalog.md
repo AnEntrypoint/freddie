@@ -715,7 +715,7 @@ export interface Config {
   /**
    * Whether this deployment can hand paths to a native desktop opener —
    * the `hasDocument` capability the agent-preset roster reports. Absent,
-   * the platform is asked (macOS/Windows/WSL yes; Linux only with a display
+   * the platform is asked (macOS/WSL yes; Linux only with a display
    * server); set it explicitly where detection misleads, e.g. `false` in a
    * container whose DISPLAY points nowhere a user can see.
    */

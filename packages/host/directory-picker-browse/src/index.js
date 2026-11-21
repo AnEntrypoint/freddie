@@ -1,11 +1,10 @@
 import { mkdir, opendir, stat } from '@freddie/freddie-runtime/fs-promises'
 import { homedir } from '@freddie/freddie-runtime/os'
-import { basename, dirname, join, posix, resolve, win32 } from '@freddie/freddie-runtime/path'
+import { basename, dirname, join, posix, resolve } from '@freddie/freddie-runtime/path'
 import z from '@freddie/schemastery'
 import {
   DirectoryPicker, DirectoryPickerError,
 } from '@freddie/freddie-host-directory-picker'
-import { process } from '@freddie/freddie-runtime/process'
 
 function ancestryCrumbs(target) {
   const crumbs = []
@@ -18,10 +17,8 @@ function ancestryCrumbs(target) {
   }
 }
 
-export function fullyQualified(path, platform = process.platform) {
-  return platform === 'win32'
-    ? win32.isAbsolute(path) && /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/]+[\\/]+[^\\/]+)/.test(path)
-    : posix.isAbsolute(path)
+export function fullyQualified(path) {
+  return posix.isAbsolute(path)
 }
 
 export function boundedInsert(window, candidate, keep) {

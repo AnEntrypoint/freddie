@@ -41,7 +41,6 @@ async function assertOwnerOnly(filename) {
     await canonicalizeWatchPath(filename)
     return
   }
-  if (process.platform === 'win32') return
   const offending = mode & GROUP_OTHER_BITS
   if (offending === 0) return
   throw new Error(

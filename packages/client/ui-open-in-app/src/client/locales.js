@@ -27,8 +27,6 @@ const PRODUCT_NAMES = {
   'app.warp': 'Warp',
   'app.iterm': 'iTerm2',
   'app.kitty': 'kitty',
-  'app.windowsterminal': 'Windows Terminal',
-  'app.gitbash': 'Git Bash',
   'app.gnometerminal': 'GNOME Terminal',
   'app.konsole': 'Konsole',
 }
@@ -41,7 +39,6 @@ export const en = {
   'open.error': 'Could not open. Try again.',
   ...PRODUCT_NAMES,
   'app.finder': 'Finder',
-  'app.explorer': 'File Explorer',
   'app.filemanager': 'Files',
   'app.terminal': 'Terminal',
 }

@@ -37,7 +37,7 @@ function sameIdentity(left, right) {
 export async function isPathUnder(
   path,
   root,
-  caseSensitive = process.platform !== 'win32',
+  caseSensitive = true,
 ) {
   if (isLexicallyUnder(path, root, caseSensitive)) return true
 

@@ -70,7 +70,6 @@ export async function prepareImageFile(input, limits, policy) {
 }
 
 async function syncDirectory(path) {
-  if (process.platform === 'win32') return
   const handle = await open(path, constants.O_RDONLY)
   try {
     await handle.sync()

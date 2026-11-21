@@ -3,21 +3,17 @@ const SOURCE_ORDER = ['process', 'project-env', 'user-env']
 
 
 
-function lookupKey(name) {
-  return process.platform === 'win32' ? name.toUpperCase() : name
-}
-
 
 export function createLaunchEnvironmentSnapshot(layers) {
   const bySource = new Map()
   for (const layer of layers) {
     bySource.set(layer.source, {
       ...layer.path === undefined ? {} : { path: layer.path },
-      values: new Map(Object.entries(layer.values).map(([name, value]) => [lookupKey(name), value])),
+      values: new Map(Object.entries(layer.values).map(([name, value]) => [name, value])),
     })
   }
   const getFrom = (name, sources) => {
-    const key = lookupKey(name)
+    const key = name
     for (const source of SOURCE_ORDER) {
       if (!sources.includes(source)) continue
       const layer = bySource.get(source)

@@ -1,12 +1,10 @@
-import { process } from '@freddie/freddie-runtime/process'
 function profile(path) {
-  const name = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1)
-  const kind = name.toLowerCase().replace(/\.exe$/u, '')
-  return { path, name, args: kind === 'cmd' ? [] : kind === 'pwsh' || kind === 'powershell' ? ['-NoLogo'] : ['-i'] }
+  const name = path.slice(path.lastIndexOf('/') + 1)
+  return { path, name, args: name.toLowerCase() === 'pwsh' ? ['-NoLogo'] : ['-i'] }
 }
 
 export async function resolveShell(subprocess, configured, signal) {
-  const shell = configured ?? profile(process.platform === 'win32' ? 'cmd.exe' : '/bin/sh')
+  const shell = configured ?? profile('/bin/sh')
   return { ...shell, path: await subprocess.resolveExecutable(shell.path, undefined, signal) }
 }
 
@@ -22,8 +20,7 @@ export async function discoverShells(subprocess, configured, candidates, signal)
   const shells = new Map()
   for (const shell of [preferred, ...found]) {
     if (shell === undefined) continue
-    const key = shell.path.includes('\\') ? shell.path.toLowerCase() : shell.path
-    if (!shells.has(key)) shells.set(key, shell)
+    if (!shells.has(shell.path)) shells.set(shell.path, shell)
   }
   return [...shells.values()]
 }

@@ -79,11 +79,6 @@ async function openNativePathWithIntent(path, signal, intent, internals = {}) {
     return
   }
 
-  if (platform === 'win32') {
-    await openWindowsPath(path, signal, run)
-    return
-  }
-
   if (platform === 'linux') {
     if (wsl) {
       await openWslPath(path, signal, run)
@@ -98,7 +93,7 @@ async function openNativePathWithIntent(path, signal, intent, internals = {}) {
 
 export function canOpenNativePath(internals = {}) {
   const platform = internals.platform ?? process.platform
-  if (platform === 'darwin' || platform === 'win32') return true
+  if (platform === 'darwin') return true
   if (platform !== 'linux') return false
   const env = internals.env ?? process.env
   return isWsl(internals) || present(env.DISPLAY) || present(env.WAYLAND_DISPLAY)
