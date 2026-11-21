@@ -15,10 +15,10 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 
 | decision | packages now | source lines now | packages before this pass |
 |---|---|---|---|
-| cut | 87 | 45043 | 87 |
-| move | 160 | 144718 | 159 |
+| cut | 87 | 44850 | 87 |
+| move | 160 | 144026 | 159 |
 | drop | 0 | 0 | 9 |
-| total | 247 | 189761 | 255 |
+| total | 247 | 188876 | 255 |
 
 ## Cut table
 
@@ -27,21 +27,21 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | cut | browser-experimental | 5 | 852 | fx/src/tools/browser | fx has a native Browser tool | browser-use, computer-use, experimental-browser-use-browserskill, experimental-browser-use-chrome-devtools-mcp, experimental-browser-use-runtime |
 | cut | code-runtime | 2 | 1204 | fx/src/core/runcode | fx runs code natively | code-runtime, code-runtime-worker-thread |
 | cut | compaction | 5 | 1978 | fx/src/core/compactor | fx has a native compactor | command-compact, compaction, compaction-basic, compaction-image-offload, compaction-tool-result-pruner |
-| cut | context-attachments | 2 | 958 | fx/src/core/image | fx reads images natively | attachment, attachment-local |
+| cut | context-attachments | 2 | 957 | fx/src/core/image | fx reads images natively | attachment, attachment-local |
 | cut | context-attachments | 3 | 246 | fx/src/core/output | fx retains tool output natively | spill, spill-local, spill-policy |
 | cut | context-attachments | 1 | 1345 | fx/src/builtins/instruction_watch.zig | fx watches instruction files natively | agent-instructions |
 | cut | delegation-planning | 14 | 7915 | fx/src/core/subagent | fx has native subagents, goals, todo and cron | command-goal, goal, goal-round-driver, plan-mode, schedule, subagent, subagent-fork-in-process, subagent-in-process-driver, subagent-spawn-in-process, tool-goal, tool-subagent, tool-subagent-control, tool-subagent-report, tool-todo |
-| cut | files | 5 | 3026 | fx/src/tools/filesystem | fx has native file tools | fs, fs-local, tool-fs, tool-fs-search, tool-str-replace-editor |
+| cut | files | 5 | 2922 | fx/src/tools/filesystem | fx has native file tools | fs, fs-local, tool-fs, tool-fs-search, tool-str-replace-editor |
 | cut | host-transport | 1 | 598 | fx/src/acp | fx has a native ACP server | acp |
 | cut | interaction-permissions | 6 | 2128 | fx/src/core/permissions | fx has a native permission gate and approval flow | auto-review, commands, permission-presets, tool-ask-user, user-approval, user-questions |
 | cut | loop-composition | 10 | 7184 | fx/src/core/agent | fx has the native agent loop, session and tool dispatch | agent, agent-default-model, agent-loop, agent-tool-presentation, repeat-tool-reminder, scope, session, system-prompt, tool-call-timeout-policy, tools |
 | cut | mcp | 1 | 704 | fx/src/mcp | fx has a native MCP client | mcp-client |
 | cut | model | 5 | 6153 | fx/src/builtins/providers.zig | fx has native providers, including an anthropic-messages codec | llm, llm-deepseek, llm-pi-ai, llm-retry, token-meter |
-| cut | shell-jobs | 12 | 4326 | fx/src/core/shell_command | fx has native shell, jobs and terminal | bash-local, jobs, jobs-local, shell, shell-env, subprocess, subprocess-local, terminal, terminal-bash, tool-bash, tool-bash-persistent, tool-jobs |
+| cut | shell-jobs | 12 | 4239 | fx/src/core/shell_command | fx has native shell, jobs and terminal | bash-local, jobs, jobs-local, shell, shell-env, subprocess, subprocess-local, terminal, terminal-bash, tool-bash, tool-bash-persistent, tool-jobs |
 | cut | skills | 3 | 1761 | fx/src/core/skills | fx has native skills | skill, skill-filesystem, tool-skill |
 | cut | state-policy | 1 | 726 | fx/src/core/workspace | fx has a native workspace model | workspace |
 | cut | state-policy | 1 | 242 | fx/src/core/auth | fx has native auth | authorization |
-| cut | state-policy | 2 | 732 | fx/src/core/auth | fx has native credentials | credentials, credentials-local |
+| cut | state-policy | 2 | 731 | fx/src/core/auth | fx has native credentials | credentials, credentials-local |
 | cut | state-policy | 3 | 916 | fx/src/core/feedback | fx has native feedback | anonymous-user-id, command-feedback, message-feedback |
 | cut | state-policy | 2 | 815 | fx/src/core/config | fx has native settings | settings, settings-file |
 | cut | web | 3 | 1234 | fx/src/tools/web | fx has native FetchURL and WebSearch | tool-web, web, web-fetch-http |
@@ -50,27 +50,27 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | move | composition-boot | 20 | 7615 | - | Cordis composition, profiles and boot are freddie-owned; fx has no Cordis (docs/fx-split.md, composition-boot) | acp-app, agent-presets, app-boot, base, cmdline, config-editor, cordis, cordis-plugin-group, cordis-plugin-hmr, cordis-plugin-include, cordis-plugin-loader, cordis-plugin-timer, cosmokit, freddie, headless, persona, plugin-manager, schemastery, sdk-app, web-app |
 | move | composition-boot | 1 | 117 | - | Cordis logger exporter: renders Cordis log messages (plugin label, level prefix, time, colors, diff) through console, and has a browser build; fx logging is the run_code console byte sink (src/core/runcode/runcode.zig) and a debug trace (src/core/shared/debug_trace.zig), neither renders Cordis messages | cordis-plugin-logger-console |
 | move | composition-boot | 1 | 12 | - | profile; fx has no Cordis | agent-team-profile |
-| move | composition-boot | 1 | 7463 | - | rewritten on fx:host in stage 4; the only seam to the host | runtime |
+| move | composition-boot | 1 | 7549 | - | rewritten on fx:host in stage 4; the only seam to the host | runtime |
 | move | context-attachments | 3 | 1944 | - | freddie reference semantics | file-reference, file-reference-local, session-reference |
 | move | context-attachments | 2 | 596 | - | no verified fx counterpart | time-context, tmux-context |
 | move | delegation-planning | 2 | 1855 | - | fx has no agent-team workflow; superagent and tower are not compared | experimental-agent-team, experimental-tool-agent-team |
 | move | delegation-planning | 1 | 405 | - | fx has no ralph loop | tool-ralph |
-| move | delegation-planning | 3 | 2118 | - | fx has no workflow scripts | tool-workflow, workflow, workflow-worker-thread |
+| move | delegation-planning | 3 | 2105 | - | fx has no workflow scripts | tool-workflow, workflow, workflow-worker-thread |
 | move | files | 1 | 78 | - | freddie policy; no verified fx counterpart | fs-observation-policy |
 | move | files | 1 | 125 | - | stays with the sandbox decision (gap G2) | fs-sandbox |
-| move | gui | 53 | 76504 | - | GUI JavaScript stays; served and hot reloaded from the JS root | client-connection, client-css-manifest, client-file-upload, client-hmr, client-locale, client-modules, client-shortcuts, client-ui-agent-preset, client-ui-artifacts, client-ui-attachment, client-ui-brand-official, client-ui-commands, client-ui-conversation, client-ui-cordis, client-ui-deliverables, client-ui-directory-picker-browse, client-ui-directory-picker-native, client-ui-goal, client-ui-input-trigger, client-ui-jobs, client-ui-layout, client-ui-message-feedback, client-ui-model-selection, client-ui-open-in-app, client-ui-permission-presets, client-ui-plan, client-ui-primitives, client-ui-reference, client-ui-renderer, client-ui-settings, client-ui-settings-general, client-ui-settings-models, client-ui-settings-plugin-inventory, client-ui-settings-plugins, client-ui-settings-subagent, client-ui-settings-web-search, client-ui-sidebar, client-ui-skill, client-ui-slots, client-ui-subagent, client-ui-theme, client-ui-tool, client-ui-trajectory, client-ui-user-questions, client-ui-workflow-run, client-ui-workspace, client-ui-workspace-files, client-vendor-modules, client-web, cordis-client-runner, session-log-export, web-frontend, webjsx |
+| move | gui | 53 | 76501 | - | GUI JavaScript stays; served and hot reloaded from the JS root | client-connection, client-css-manifest, client-file-upload, client-hmr, client-locale, client-modules, client-shortcuts, client-ui-agent-preset, client-ui-artifacts, client-ui-attachment, client-ui-brand-official, client-ui-commands, client-ui-conversation, client-ui-cordis, client-ui-deliverables, client-ui-directory-picker-browse, client-ui-directory-picker-native, client-ui-goal, client-ui-input-trigger, client-ui-jobs, client-ui-layout, client-ui-message-feedback, client-ui-model-selection, client-ui-open-in-app, client-ui-permission-presets, client-ui-plan, client-ui-primitives, client-ui-reference, client-ui-renderer, client-ui-settings, client-ui-settings-general, client-ui-settings-models, client-ui-settings-plugin-inventory, client-ui-settings-plugins, client-ui-settings-subagent, client-ui-settings-web-search, client-ui-sidebar, client-ui-skill, client-ui-slots, client-ui-subagent, client-ui-theme, client-ui-tool, client-ui-trajectory, client-ui-user-questions, client-ui-workflow-run, client-ui-workspace, client-ui-workspace-files, client-vendor-modules, client-web, cordis-client-runner, session-log-export, web-frontend, webjsx |
 | move | gui | 1 | 5248 | - | rewritten on fx:host in stage 4; the only seam to the host | client-runtime |
 | move | host-transport | 1 | 210 | - | freddie SDK JSON-RPC; libfx has its own protocol (docs/host-interface.md section 3) | sdk-protocol |
-| move | host-transport | 17 | 9248 | - | web UI backend, controllers and pickers; served through fx:host serve (docs/host-interface.md section 4, planned, gap G3) | api-plugin-manager-controller, api-settings-controller, api-workspace-controller, api-workspace-files, host-apiproxy, host-directory-picker, host-directory-picker-auto, host-directory-picker-browse, host-directory-picker-native, host-frontend-static, host-open-in-app, host-plugin-inventory, host-product-telemetry-otel, host-webserver, sdk-jsonrpc-server, typert-loader, typert-protocol |
-| move | sandbox | 6 | 757 | - | fx has no OS sandbox beyond the permission layer (gap G2); the freddie sandbox stays until fx supplies one | node-addon-landlock-run, node-addon-landlock-run-linux-arm64, node-addon-landlock-run-linux-x64, sandbox, sandbox-local, sandbox-policy |
+| move | host-transport | 17 | 8645 | - | web UI backend, controllers and pickers; served through fx:host serve (docs/host-interface.md section 4, planned, gap G3) | api-plugin-manager-controller, api-settings-controller, api-workspace-controller, api-workspace-files, host-apiproxy, host-directory-picker, host-directory-picker-auto, host-directory-picker-browse, host-directory-picker-native, host-frontend-static, host-open-in-app, host-plugin-inventory, host-product-telemetry-otel, host-webserver, sdk-jsonrpc-server, typert-loader, typert-protocol |
+| move | sandbox | 6 | 756 | - | fx has no OS sandbox beyond the permission layer (gap G2); the freddie sandbox stays until fx supplies one | node-addon-landlock-run, node-addon-landlock-run-linux-arm64, node-addon-landlock-run-linux-x64, sandbox, sandbox-local, sandbox-policy |
 | move | sandbox | 1 | 1025 | - | sandbox decision (gap G2) | node-addon-landlock-run-workspace |
-| move | session-log | 16 | 7594 | - | event-sourced format kept only as the projection the web UI reads (gap G4: three session formats exist) | session-artifacts, session-checkpoint-policy, session-persistence, session-persistence-jsonl, session-projection, session-projection-cache, session-query, session-query-sqlite, session-stats, session-telemetry, session-telemetry-otel, session-title, session-title-all-prompts-llm, session-title-first-prompt-llm, session-title-llm, session-turn-outline |
+| move | session-log | 16 | 7444 | - | event-sourced format kept only as the projection the web UI reads (gap G4: three session formats exist) | session-artifacts, session-checkpoint-policy, session-persistence, session-persistence-jsonl, session-projection, session-projection-cache, session-query, session-query-sqlite, session-stats, session-telemetry, session-telemetry-otel, session-title, session-title-all-prompts-llm, session-title-first-prompt-llm, session-title-llm, session-turn-outline |
 | move | session-log | 1 | 1180 | - | reads the freddie session format | tool-session-query |
 | move | shell-jobs | 1 | 105 | - | stays with the sandbox decision (gap G2) | bash-sandbox |
 | move | skills | 1 | 56 | - | badge shown in the web UI | skill-badge |
-| move | split | 7 | 6366 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
-| move | state-policy | 5 | 2306 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, invariants, storage, storage-domain, storage-json |
-| move | util | 12 | 1174 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
+| move | split | 7 | 6363 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
+| move | state-policy | 5 | 2305 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, invariants, storage, storage-domain, storage-json |
+| move | util | 12 | 1170 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
 
 ## Deleted so far (stage 7)
 
@@ -78,26 +78,7 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 - Windows-only: `pwsh-local`, `pwsh-sandbox`, `tool-pwsh`, `tool-pwsh-persistent`, `sandbox-windows-acl`; the `pwsh` dialect of `terminal-bash`; the Windows ACL path of `sandbox-local`; `windows-inspector.js` and the `koffi` dependency of `subprocess-local`; the `win32` gating on the bash rows of the base, web and headless bundles and the agent presets; CI moved from `windows-latest` under `pwsh` to `ubuntu-latest` (commit abdd8a93).
 - Package shells: 26 directories under `packages/` that held only `node_modules` and no `package.json` (the plan said 16). None was tracked by git, so this is a disk cleanup with no commit.
 - Decided by the cut rule: `framework/logger-console` is a **move**, not a drop. It is the Cordis logger's exporter (per-plugin label, level prefix, time, colors, diff, written through `console`, with a browser build). fx's own logging is the `run_code` console byte sink (`src/core/runcode/runcode.zig`) and a debug trace (`src/core/shared/debug_trace.zig`); neither renders Cordis log messages, so fx does not cover what it does. It stays as it is.
-- Windows branches left in place (platform code inside packages that stay): 271 matching lines in 39 files. They are independent features (the file-manager and application launchers, the native directory picker, process and terminal teardown), not tied to a deleted package.
-
-| package | files with a Windows branch | matching lines |
-|---|---|---|
-| packages/host/open-in-app | 3 | 75 |
-| packages/client/ui-conversation | 1 | 33 |
-| packages/host/directory-picker-native | 5 | 31 |
-| packages/fs/fs-local | 2 | 30 |
-| packages/session/session-persistence-jsonl | 2 | 28 |
-| packages/subprocess/subprocess-local | 3 | 28 |
-| packages/host/apiproxy | 1 | 13 |
-| packages/client/shortcuts | 4 | 6 |
-| packages/api/terminal-controller | 2 | 5 |
-| packages/client/runtime | 1 | 4 |
-| packages/client/ui-open-in-app | 2 | 3 |
-| packages/host/directory-picker-browse | 1 | 3 |
-| (other) scripts | 2 | 2 |
-| packages/attachment/attachment-local | 1 | 1 |
-| total | 39 | 271 |
-
+- Windows host code, second pass (commits 37fc9fd3, 8c96e7e3, bf49a3ae): `open-in-app` is macOS and Linux only; `fs-local`, `session-persistence-jsonl`, `directory-picker-native` and `subprocess-local` lost their Windows files and branches, which removes `koffi` from the dependency set; the `win32` branches in `apiproxy`, the browse and auto directory pickers, the terminal controller's shell list, `attachment-local`, `credentials-local`, `storage-json`, `tmux-context`, `fs-sandbox`, `launch-environment` and `workflow-worker-thread` are gone. What remains is deliberate: the browser-side keyboard profile `web:windows` (a Windows browser can use a macOS or Linux host), WSL (`powershell.exe` to open a path), a Windows client's path separators in `attachment-local`, and two release scripts.s
 
 ## The alias table
 
@@ -192,11 +173,11 @@ Result. 203 of 240 package entries import and evaluate. The 37 that fail are lis
 | txiki gap: zlib.constants.ZSTD_c_checksumFlag | 1: session-persistence-jsonl |
 
 
-Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `filename`, `dirname`, `resolve`), and `tjs.setImportMap` does not affect dynamic `import()`. Without the mirror's `import.meta.url`, 76 of the 240 entries fail on one line, `createRequire(import.meta.url)('../package.json')`, and only 129 import. Use in freddie sources (excluding the runtime and vendored client modules): `import.meta.url` 25 files / 32 uses, `import.meta.dirname` 4 / 4, `import.meta.filename` 1 / 1, `import.meta.resolve` 3 / 3.
+Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `filename`, `dirname`, `resolve`), and `tjs.setImportMap` does not affect dynamic `import()`. Without the mirror's `import.meta.url`, 76 of the 240 entries fail on one line, `createRequire(import.meta.url)('../package.json')`, and only 129 import. Use in freddie sources (excluding the runtime and vendored client modules): `import.meta.url` 24 files / 31 uses, `import.meta.dirname` 4 / 4, `import.meta.filename` 1 / 1, `import.meta.resolve` 3 / 3.
 
 ## Third-party packages the agent side needs
 
-49 packages are runtime `dependencies` of the loaded set (versions as declared). The fx loader (host-interface.md section 5.2, `<root>/node_modules` resolution) has to serve the agent-side ones as ES modules, or they must be bundled or replaced by a native capability.
+48 packages are runtime `dependencies` of the loaded set (versions as declared). The fx loader (host-interface.md section 5.2, `<root>/node_modules` resolution) has to serve the agent-side ones as ES modules, or they must be bundled or replaced by a native capability.
 
 | package | version range | used by | agent-side or GUI |
 |---|---|---|---|
@@ -206,7 +187,6 @@ Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `fil
 | js-yaml | ^5.4.1 | 5: agent-presets, app-boot, config-editor, cordis-plugin-include, skill-filesystem | agent |
 | chokidar | ^5.0.0 | 4: cordis-plugin-hmr, credentials-local, settings-file, skill-filesystem | agent |
 | diff | ^9.0.0 | 3: client-ui-trajectory, client-vendor-modules, tool-fs | both |
-| koffi | ^3.1.0 | 3: fs-local, host-directory-picker-native, session-persistence-jsonl | agent |
 | yaml | ^2.9.0 | 3: config-editor, credentials-local, settings-file | agent |
 | @opentelemetry/api-logs | ^0.220.0 | 2: host-product-telemetry-otel, session-telemetry-otel | agent |
 | @opentelemetry/exporter-logs-otlp-http | ^0.220.0 | 2: host-product-telemetry-otel, session-telemetry-otel | agent |
@@ -272,23 +252,23 @@ Before is commit 7ac74a2e; after is the working tree of this pass. Counts are so
 | browser-experimental | 5 | 5 | 852 | 852 | 0 |
 | code-runtime | 4 | 4 | 11821 | 11821 | 0 |
 | compaction | 5 | 5 | 1978 | 1978 | 0 |
-| composition-boot | 23 | 23 | 15224 | 15207 | 17 |
-| context-attachments | 11 | 11 | 5089 | 5089 | 0 |
-| delegation-planning | 20 | 20 | 12293 | 12293 | 0 |
+| composition-boot | 23 | 23 | 15224 | 15293 | -69 |
+| context-attachments | 11 | 11 | 5089 | 5088 | 1 |
+| delegation-planning | 20 | 20 | 12293 | 12280 | 13 |
 | examples | 3 | 0 | 247 | 0 | 247 |
-| files | 7 | 7 | 3229 | 3229 | 0 |
-| gui | 54 | 54 | 81754 | 81752 | 2 |
-| host-transport | 19 | 19 | 10056 | 10056 | 0 |
+| files | 7 | 7 | 3229 | 3125 | 104 |
+| gui | 54 | 54 | 81754 | 81749 | 5 |
+| host-transport | 19 | 19 | 10056 | 9453 | 603 |
 | interaction-permissions | 6 | 6 | 2128 | 2128 | 0 |
 | loop-composition | 10 | 10 | 7184 | 7184 | 0 |
 | mcp | 1 | 1 | 704 | 704 | 0 |
 | model | 5 | 5 | 6153 | 6153 | 0 |
-| sandbox | 8 | 7 | 3277 | 1782 | 1495 |
-| session-log | 17 | 17 | 8774 | 8774 | 0 |
-| shell-jobs | 17 | 13 | 5859 | 4431 | 1428 |
+| sandbox | 8 | 7 | 3277 | 1781 | 1496 |
+| session-log | 17 | 17 | 8774 | 8624 | 150 |
+| shell-jobs | 17 | 13 | 5859 | 4344 | 1515 |
 | skills | 4 | 4 | 1817 | 1817 | 0 |
-| split | 7 | 7 | 6366 | 6366 | 0 |
-| state-policy | 14 | 14 | 5737 | 5737 | 0 |
-| util | 12 | 12 | 1174 | 1174 | 0 |
+| split | 7 | 7 | 6366 | 6363 | 3 |
+| state-policy | 14 | 14 | 5737 | 5735 | 2 |
+| util | 12 | 12 | 1174 | 1170 | 4 |
 | web | 3 | 3 | 1234 | 1234 | 0 |
-| total | 255 | 247 | 192950 | 189761 | 3189 |
+| total | 255 | 247 | 192950 | 188876 | 4074 |
