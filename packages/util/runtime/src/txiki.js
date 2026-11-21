@@ -367,11 +367,7 @@ async function access(path, mode = fsConstants.F_OK) {
 }
 
 function accessSync(path, mode = fsConstants.F_OK) {
-  try {
-    txikiCore.accessSync(path, mode)
-  } catch (error) {
-    throw fsPathError(error, 'access', path)
-  }
+  inPath('access', path, () => txikiCore.accessSync(path, mode))
 }
 
 function existsSync(path) {
@@ -384,11 +380,7 @@ function existsSync(path) {
 }
 
 function openSync(path, flags = 'r', mode = 0o666) {
-  try {
-    return txikiCore.openSync(path, flags, mode)
-  } catch (error) {
-    throw fsPathError(error, 'open', path)
-  }
+  return inPath('open', path, () => txikiCore.openSync(path, flags, mode))
 }
 
 function closeSync(fd) {
@@ -405,30 +397,17 @@ function writeSync(fd, buffer, offset = 0, length = buffer.byteLength - offset, 
 }
 
 function readdirSync(path, options) {
-  let names
-  try {
-    names = txikiCore.readdirSync(path)
-  } catch (error) {
-    throw fsPathError(error, 'scandir', path)
-  }
+  const names = inPath('scandir', path, () => txikiCore.readdirSync(path))
   if (options?.withFileTypes !== true) return names
   return names.map((name) => ({ name, parentPath: path, ...fileTypeMethods(txikiCore.lstatSync(tjsPath.join(path, name))) }))
 }
 
 function readlinkSync(path) {
-  try {
-    return txikiCore.readlinkSync(path)
-  } catch (error) {
-    throw fsPathError(error, 'readlink', path)
-  }
+  return inPath('readlink', path, () => txikiCore.readlinkSync(path))
 }
 
 function realpathSync(path) {
-  try {
-    return txikiCore.realpathSync(path)
-  } catch (error) {
-    throw fsPathError(error, 'realpath', path)
-  }
+  return inPath('realpath', path, () => txikiCore.realpathSync(path))
 }
 
 function symlinkSync(target, path) {
@@ -467,11 +446,7 @@ function loadModule(file) {
 function mkdirSync(path, options) {
   const mode = typeof options === 'number' ? options : options?.mode ?? 0o777
   if (options?.recursive) return mkdirRecursive(path, mode)
-  try {
-    txikiCore.mkdirSync(path, mode)
-  } catch (error) {
-    throw fsPathError(error, 'mkdir', path)
-  }
+  inPath('mkdir', path, () => txikiCore.mkdirSync(path, mode))
 }
 
 function mkdirRecursive(path, mode) {
@@ -488,11 +463,7 @@ function mkdirRecursive(path, mode) {
 }
 
 function unlinkSync(path) {
-  try {
-    txikiCore.unlinkSync(path)
-  } catch (error) {
-    throw fsPathError(error, 'unlink', path)
-  }
+  inPath('unlink', path, () => txikiCore.unlinkSync(path))
 }
 
 function rmSync(path, options) {
@@ -506,41 +477,22 @@ function rmSync(path, options) {
     if (force && error.code === 'ENOENT') return
     throw error
   }
-  if (stats.isSymbolicLink()) {
-    try {
-      txikiCore.unlinkSync(path)
-    } catch (error) {
-      throw fsPathError(error, 'unlink', path)
-    }
-    return
-  }
+  if (stats.isSymbolicLink()) return unlinkSync(path)
   if (stats.isDirectory()) {
     if (!recursive) throw gapError('fs.rmSync of a directory')
     for (const name of readdirSync(path)) rmSync(tjsPath.join(path, name), { recursive, force })
   }
-  try {
-    txikiCore.rmSync(path)
-  } catch (error) {
-    throw fsPathError(error, 'rm', path)
-  }
+  inPath('rm', path, () => txikiCore.rmSync(path))
 }
 
 function statSync(path, options) {
   if (options !== undefined) throw gapError('fs.statSync with options')
-  try {
-    return statsOf(txikiCore.statSync(path))
-  } catch (error) {
-    throw fsPathError(error, 'stat', path)
-  }
+  return inPath('stat', path, () => statsOf(txikiCore.statSync(path)))
 }
 
 function lstatSync(path, options) {
   if (options !== undefined) throw gapError('fs.lstatSync with options')
-  try {
-    return statsOf(txikiCore.lstatSync(path))
-  } catch (error) {
-    throw fsPathError(error, 'lstat', path)
-  }
+  return inPath('lstat', path, () => statsOf(txikiCore.lstatSync(path)))
 }
 
 function mkdtempSync(prefix) {
@@ -2477,6 +2429,14 @@ function positionOf(property, value, fallback) {
 
 function bytesOf(chunk, encoding = 'utf8') {
   return typeof chunk === 'string' ? Buffer.from(chunk, encoding) : chunk
+}
+
+function inPath(syscall, path, call) {
+  try {
+    return call()
+  } catch (error) {
+    throw fsPathError(error, syscall, path)
+  }
 }
 
 function fsPathError(error, syscall, path) {
