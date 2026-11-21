@@ -5162,6 +5162,18 @@ importers:
         specifier: '*'
         version: link:../../runtime-diagnostics/invariants
 
+  packages/host/host-adapter:
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-invariants':
+        specifier: '*'
+        version: link:../../runtime-diagnostics/invariants
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
+
   packages/host/open-in-app:
     dependencies:
       '@freddie/freddie-client-connection':
