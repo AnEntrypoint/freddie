@@ -3067,7 +3067,17 @@ sharedCases.push(
   { name: 'zlib.createGunzip rejects bytes without a gzip header with Z_DATA_ERROR', run: () => { const decoder = s.zlib.createGunzip(); return textOf(decoder, () => decoder.end(new Uint8Array([1, 2, 3, 4]))) }, expected: 'error Z_DATA_ERROR' },
 )
 
+const look = (...args) => s['dns-promises'].default.lookup(...args)
+sharedCases.push(
+  { name: 'dns.promises.lookup of an IPv4 literal returns its address and family', run: () => look('127.0.0.1'), expected: { address: '127.0.0.1', family: 4 } },
+  { name: 'dns.promises.lookup with all returns an array of address and family', run: () => look('127.0.0.1', { all: true }), expected: [{ address: '127.0.0.1', family: 4 }] },
+  { name: 'dns.promises.lookup of an IPv6 literal returns it with family 6', run: () => look('::1'), expected: { address: '::1', family: 6 } },
+  { name: 'dns.promises.lookup of localhost for family 4 lists only loopback entries of family 4', run: async () => { const entries = await look('localhost', { family: 4, all: true }); return entries.length > 0 && entries.every((entry) => entry.address === '127.0.0.1' && entry.family === 4) }, expected: true },
+  { name: 'dns.promises.lookup of an unresolvable name rejects with a getaddrinfo error carrying the host', run: async () => { const error = await look('no-such-host.invalid').catch((caught) => caught); return [['ENOTFOUND', 'EAI_AGAIN'].includes(error.code), error.syscall, error.hostname] }, expected: [true, 'getaddrinfo', 'no-such-host.invalid'] },
+)
+
 export const gapCases = [
+  { name: 'dns.lookup with family 6', run: () => look('localhost', { family: 6 }) },
   { name: 'vm.runInNewContext object result', run: () => s.vm.runInNewContext('({})') },
   { name: 'child-process.spawn stdio with a pipe at fd 0 to 2 beside an entry from fd 3', run: () => s['child-process'].spawn('true', [], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] }) },
   { name: 'os.release', run: () => s.os.release(), applies: () => s.os.release.name === 'unavailable' },

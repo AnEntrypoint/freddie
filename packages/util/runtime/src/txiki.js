@@ -3770,6 +3770,30 @@ function spawn(file, args, options) {
   return new ChildProcess(shelled.file, shelled.argv, { ...opts, timeout: timeoutOf(opts), killSignal: killSignalOf(opts), uid: idOption(opts, 'uid'), gid: idOption(opts, 'gid'), stdio: stdioOf(opts), signal: signalOf(opts), detached: Boolean(opts.detached) })
 }
 
+function lookupError(error, hostname) {
+  if (typeof error?.code !== 'string' || !error.code.startsWith('EAI_')) return error
+  const code = error.code === 'EAI_NONAME' ? 'ENOTFOUND' : error.code
+  return Object.assign(new Error('getaddrinfo ' + code + ' ' + hostname), { code, syscall: 'getaddrinfo', hostname })
+}
+
+async function lookup(hostname, options) {
+  const settings = typeof options === 'number' ? { family: options } : options ?? {}
+  assertNoOptions('dns.lookup', settings, ['family', 'all', 'order'])
+  const family = settings.family ?? 0
+  if (family !== 0 && family !== 4) throw gapError('dns.lookup with family ' + family)
+  const literal = isIP(hostname)
+  let entries
+  if (literal !== 0 && (family === 0 || family === literal)) {
+    entries = [{ address: hostname, family: literal }]
+  } else {
+    const found = await tjs.lookup(hostname, { all: true }).catch((error) => {
+      throw lookupError(error, hostname)
+    })
+    entries = found.map(({ ip, family }) => ({ address: ip, family }))
+  }
+  return settings.all ? entries : entries[0]
+}
+
 export const txikiRuntime = {
   fs: withGaps('fs', { accessSync, closeSync, existsSync, lstatSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, openSync, readdirSync, readlinkSync, readSync, realpathSync, statSync, symlinkSync, writeFileSync, writeSync, constants: fsConstants, createReadStream, readFileSync, unwatchFile, watchFile }),
   fsPromises,
@@ -3830,6 +3854,6 @@ export const txikiRuntime = {
   perfHooks: withGaps('perf_hooks', { performance: globalThis.performance }),
   timersPromises: withGaps('timers/promises', { scheduler, setTimeout: delay }),
   net: withGaps('net', { isIP }),
-  dnsPromises: withGaps('dns/promises', {}),
+  dnsPromises: withGaps('dns/promises', { lookup }),
   process: processObject,
 }
