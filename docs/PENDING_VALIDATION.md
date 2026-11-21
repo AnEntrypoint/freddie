@@ -3320,3 +3320,25 @@ Red check (mutation, witness, restore, cmp, git status):
 - Restore: the file was rewritten from the saved good copy. cmp of the restored txiki.js against the saved copy: identical. git status after restore: clean (the four runtime files are committed).
 
 Both mutants are also in runs/analysis/window.mjs MUTANTS (host-local), so the window's red-check step runs them.
+
+## YAGNI and dedup pass over the adapter and tooling (2026-11-21)
+
+Standard: nothing changes in behaviour. After every change: node oracle 851/851 shared, 0/0 gaps; txiki probe shared 851, mismatches []; gapsApplied 2 and gapsInactive 1 unchanged (the pinned 847 in the request is the stale figure: the record is 851 since 09304d86). Each red check below was run with runs/analysis/red.mjs: mutate once, run the txiki probe, require the named witness in the failure, restore, compare byte for byte.
+
+Deletions. None. The scan found nothing to delete:
+- Top-level declarations in txiki.js that nothing references: none (the two the scan flagged, gapFunctions and fileTypeMethods, are used as spreads).
+- Function bodies duplicated verbatim: none.
+- Shim exports (116 across src/*.js) with no consumer reference: fs-promises.readlink, vm.runInNewContext and zlib.gunzip. Each is exercised by parity rows (12, 16 and 25 mentions), so each is witness-bound and stays; removing them would remove rows and move the pinned count.
+- Runtime members with no shim export: path.format, which is txiki's own native path member, not adapter code; and the process members, which the process shim exports whole.
+- Stubs: 13, and none has zero references (call-site ranking above), so no stub is removed.
+
+Merges:
+1. 3b4c8727 inPath(syscall, path, call) replaces ten hand-written try/catch fsPathError wrappers in accessSync, openSync, readdirSync, readlinkSync, realpathSync, mkdirSync, unlinkSync, rmSync (symlink and rm branches), statSync and lstatSync. txiki.js +19 -59. The rmSync symlink branch now calls unlinkSync. Red: realpathSync-identity, statSync-follows-nothing, unlinkSync-access (anchors rewritten to the inPath form), readdirSync-stat-follows, rmSync-no-children, mkdirRecursive-path: all RED. Restore cmp identical, git status clean.
+2. 2140159e inPath also accepts a call that returns a promise (result.catch), which merges statFor, async readlink (kept async so a synchronous throw still rejects), the readFileSync read and the writeFile open. txiki.js +10 -21. Red: readFileSync-enoent-map (anchor rewritten) RED 1/1, readFileSync-guard RED 2/2. Restore cmp identical.
+3. d714b171 child-process.spawn and execFile check option names through the existing assertNoOptions instead of two hand-written chains of !== tests; the message and the key order are the same. txiki.js +2 -5. Red: exec-shell RED 2/2. Restore cmp identical.
+
+Totals for src/txiki.js: 3890 lines before, 3835 after (+31 -85).
+
+Not merged, with the reason: sha256Digest and sha512Digest (and the blake2 pair) share a loop shape but differ in 32-bit Number against 64-bit BigInt arithmetic; one generic routine would be obscure and slower, so they stay. The parity rows are already one table per area; the remaining repeated lines are rows of data.
+
+Tooling (host-local under runs/, gitignored, so not in any commit): the MUTANTS table moved out of window.mjs (338 to 247 lines) into mutants.mjs (92 lines), which window.mjs and red.mjs both import; red.mjs no longer evaluates window.mjs source text (31 to 26 lines). Red: worker-port-start RED 1/1 and md4-registration RED 2/2 through the new import path; the window's own red steps run all 17.
