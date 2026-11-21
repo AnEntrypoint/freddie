@@ -1,5 +1,40 @@
 # Pending validation: reduction to what the system needs
 
+## Alias table, logger-console and Windows host code (2026-11-21)
+
+Spec: /workspace/hyperagent/specs/fx-freddie-txiki.md (owner's rule: every node: specifier and bare built-in name keeps its Node name in the embedded txiki; one alias table; each alias maps to fx:host or to a txiki module). Standing rules: /workspace/hyperagent/docs/peer-rules.md.
+
+| commit | change | added | removed |
+|---|---|---|---|
+| 98ea4216 | packages/util/runtime/src/aliases.json (27 rows), test/aliases.js, README section, files entry | 92 | 1 |
+| 17554fad | docs/fx-cut-table.md: logger-console decision and the alias table section | 8 | 4 |
+| 37fc9fd3 | open-in-app: macOS and Linux only (catalog, resolver, icons, docs) | 38 | 341 |
+| 8c96e7e3 | fs-local, session-persistence-jsonl, directory-picker-native, subprocess-local lose their Windows code; koffi leaves the dependency set (lockfile, THIRD_PARTY_NOTICES.md) | 31 | 698 |
+| bf49a3ae | remaining win32 host branches, Windows shell entries, UI app ids and prose | 45 | 89 |
+| 40f7b389 | docs/fx-cut-table.md refreshed | 32 | 52 |
+
+1. Alias table (98ea4216). Every Node module name that freddie imports is a row keyed by its node: name (the bare form is the same row); the row gives the runtime seam subpath, the target (fx:host with a host-interface namespace, or txiki with its provider) and the named gaps of host-interface.md. Two modules imported only by release tooling (node:assert/strict, node:readline/promises) map to nothing and are marked tooling. Witness: test/aliases.js scans every import in the repository (1525 files): 27 rows, 25 seams, 35 shipped imports, no import needs a new name (a specifier without a row, a shipped file importing a tooling-only module, a shim without a row, or a seam whose Node name would differ all fail). No bare built-in name is imported anywhere. Red checks, each run in the window with restore and cmp: alias-row-removed (node:fs/promises row deleted: exit 1, "imports node:fs/promises, which has no alias row"), alias-seam-renamed (child-process seam renamed: "shim src/child-process.js has no alias row"), alias-fs-marked-tooling ("is shipped code and imports tooling-only node:fs"). The first attempt at these mutations did not match the file's text and reported success, so the window checks that the mutation anchor occurs exactly once.
+
+2. framework/logger-console, decided by the cut rule: move, as it is. It is the Cordis logger's exporter (per-plugin label, level prefix, timestamp, colors, diffs, written through console) and has a browser build. fx's own logging is the run_code console byte sink (src/core/runcode/runcode.zig) and a debug trace (src/core/shared/debug_trace.zig); neither renders Cordis log messages, so fx does not cover what it does. Cut table now: cut 87, move 160, drop 0 (247 packages).
+
+3. Windows host code, second pass. Witnesses (all in runs/analysis, run again in the window against the commit before the change):
+- open-in-app (37fc9fd3): the darwin and linux specs of all 31 catalog apps and the launchers the resolver finds on this host are identical before and after (equivalence oia). Red check: oia-linux-spec (cli('cursor') renamed) makes oia false and the others stay true.
+- fs-local (8c96e7e3): new file mode, mode-preserving overwrite, nested create, createIfAbsent refusal, leftovers, and three target resolutions are identical (equivalence fsl). Red check: fsl-new-file-mode (the staged chmod changed).
+- session-persistence-jsonl (8c96e7e3): materialize produces the same directory tree, modes and log bytes, refuses a second materialize with the same message, and exists answers the same for missing and nested-missing paths (equivalence jl). assertLogParentAllowsAbsence was removed: on POSIX a regular-file parent gives ENOTDIR, which exists rethrows before it is reached, so it only ever acted on Windows. materializePosix was inlined into materialize. Red check: jl-project-dir-mode.
+- subprocess-local (8c96e7e3): exit code, stdout, stderr and env propagation, an aborted process tree dying with SIGTERM and its group gone, six executable resolutions and the childEnv keys are identical (equivalence subproc). Red check: subproc-relative-path.
+- directory-picker-native: pure removal of the win32 dialog files and the win32 branch; covered by import smoke only.
+- bf49a3ae (apiproxy, browse and auto pickers, terminal controller shells, attachment-local, credentials-local, storage-json, tmux-context, fs-sandbox, launch-environment, workflow-worker-thread, sandbox message, UI app ids): each is a guard removal or a default argument changed to its POSIX value. Not covered by a behaviour witness; covered by syntax checks, import smoke and the boot checks. Stated here so it is not read as proven.
+- Baseline checks (runs/analysis/baseline.mjs, 16 checks, also a window step): install, publint, notices, rescope check, release verify (228 members, vendor 10), CLI, the four profile dumps (md5 1c617cd9, c4c2ffbb, 6b07b84b, 67382f60, identical before and after this pass), headless without a key, ACP and SDK initialize, web boot (261 assets, 0 bad), import smoke (242 packages, 240 ok, the same two failing). THIRD_PARTY_NOTICES.md lost only its koffi line.
+Lines removed by the three Windows commits: 1128, added 114. Source lines in the cut-table ledger: 192950 before the whole stage 7 pass, 188876 now. What remains by design: the browser-side keyboard profile web:windows, WSL opening through powershell.exe, a Windows client's path separators in attachment-local, and two release scripts.
+
+4. Tooling and process: the window gained alias-table and three red steps, an equivalence step with four red steps, and a baseline-checks step. The corrected Windows count: the earlier 271 lines in 39 files counted names such as windowStart (33 in ui-conversation alone) and was wrong.
+
+Open items, ranked:
+
+1. Stage 4, the runtime rewrite on fx:host: blocked on fx. The loader must read packages/util/runtime/src/aliases.json: a row whose target is fx:host names the host-interface namespace, a txiki row names its provider (tjs:path, tjs:utils, or a txikiRuntime member). fx to confirm the 11 txiki rows.
+2. Stage 7, reachable and not started: (a) 219 packages carry a src/invariant.js; 58 are the exact template and 161 differ in whitespace, inject list or install body; GUI packages are among them and are loaded in the browser, so a shared factory needs a browser witness (playwriter) before it is safe; (b) one plugin manifest and schemas that generate settings and controllers; (c) merging seams with one implementation in the move families (storage, sandbox, session-log). Each changes many importers and needs its own witness.
+3. Stage 5 cuts in the plan's order: each needs a parity witness against fx behaviour, so they follow stage 4.
+
 ## Stages 0, 4 and 7, first pass (2026-11-21)
 
 Plan: /workspace/hyperagent/docs/fx-freddie-txiki-plan.md. The cut table, the runtime Node API map, the node: import inventory, the standalone-txiki survey, the list of what freddie needs from fx and the line ledger per family are in [fx-cut-table.md](fx-cut-table.md) (commit ca0b30b8, +290 -0). This entry records the deletions and their witnesses.
@@ -42,8 +77,8 @@ Standalone txiki survey (details in fx-cut-table.md): 203 of 240 package entries
 Open items from this pass, ranked:
 
 1. Stage 4, the runtime rewrite on fx:host. Blocked on fx: fx:host does not exist yet (host-interface.md marks it planned); the list of what freddie needs from fx is in fx-cut-table.md.
-2. framework/logger-console: no profile, preset or source loads it, but it is a published member of the vendor release family. Needs the owner's decision before deletion.
-3. Windows branches left in packages that stay: 271 matching lines in 39 files (open-in-app 75, ui-conversation 33, directory-picker-native 31, fs-local 30, session-persistence-jsonl 28, subprocess-local 28, apiproxy 13, and a tail). Reachable now; a second stage 7 pass.
+2. Decided in the next pass: framework/logger-console is a move by the cut rule (see "Alias table, logger-console and Windows host code" below).
+3. Done in the next pass: the Windows host branches in the packages that stay (see below; the 271-line figure that stood here was inflated by a case-insensitive match on names like windowStart).
 4. Stage 7 rearchitecture: one plugin manifest, schemas that generate settings screens and controllers, one table for commands and tools. Reachable now, not started.
 5. Stage 5 cuts, in the plan's order (providers, agent loop, tools, permissions, sessions, subagents, MCP and ACP): each needs a parity witness against fx behaviour, so they follow stage 4.
 
