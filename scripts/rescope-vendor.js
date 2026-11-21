@@ -83,13 +83,6 @@ const EXACT_EDITS = [
     expect: 1,
   },
   {
-    id: 'agent-spine-demo-mounted-tree',
-    file: 'packages/examples/agent-spine-demo/README.md',
-    find: '@cordisjs/plugin-timer            timer service',
-    replace: '@freddie/cordis-plugin-timer  timer service',
-    expect: 1,
-  },
-  {
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
     find: '`framework/` packages keep upstream names and publish alongside the harness (`publishConfig.access: public`). `cordis` is a peerDependency (+ dev) of every harness package.',

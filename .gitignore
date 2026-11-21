@@ -14,12 +14,8 @@ dev-server*.log
 *.out.log
 .pnpm-store/
 .cache/
-examples/*/*.jsonl
 .storages/
 .sessions/
-examples/*/.sessions/
-examples/cordis-tutorial/
-examples/scratch-plugin/
 packages/*/*/.scratch-*/
 coverage/
 .humanize/

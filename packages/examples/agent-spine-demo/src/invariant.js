@@ -1,9 +1,0 @@
-const PACKAGE_NAME = '@freddie/freddie-agent-spine-demo'
-
-export const name = 'agent-spine-demo-invariant'
-export const inject = ['invariants']
-
-const install = () => {}
-
-export const apply = (ctx) =>
-  Promise.resolve(ctx.invariants.register(PACKAGE_NAME, install))

@@ -39,7 +39,7 @@ ACP requires each prompt response to carry a `stopReason`, but the bridge does n
 
 ## Running
 
-`pnpm --dir /path/to/freddie run demo:acp` boots the repository's automation server composition. ACP clients need only the core methods above.
+`pnpm freddie --profile acp` boots the repository's automation server composition. ACP clients need only the core methods above.
 
 ## Model Experience
 

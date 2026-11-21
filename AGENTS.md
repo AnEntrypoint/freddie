@@ -12,7 +12,7 @@ Freddie is a plugin-based agent harness on the Cordis framework layer (`framewor
 
 ## Commands
 
-`pnpm install` (node `^22.19 || >=24`); `pnpm run publint` (publish shape); `pnpm freddie --profile headless "task"`, `pnpm run demo:cordis` and `demo:acp` need `DEEPSEEK_API_KEY`. Buildless: packages ship `src/**/*.js` with no `build`, `clean` or `typecheck` step ([development.md](docs/development.md)).
+`pnpm install` (node `^22.19 || >=24`); `pnpm run publint` (publish shape); `pnpm freddie --profile headless "task"` needs `DEEPSEEK_API_KEY`. Buildless: packages ship `src/**/*.js` with no `build`, `clean` or `typecheck` step ([development.md](docs/development.md)).
 
 ### Host sandbox failures
 
@@ -72,7 +72,7 @@ Source carries no comments; non-obvious contracts live in package READMEs and AG
 
 ## Editing these instructions
 
-`CLAUDE.md` symlinks the root, `packages/` and `examples/` AGENTS.md files: edit the real file. Keep each rule self-contained, linking high-level docs; condense when clarity survives. Raise a ceiling in [`scripts/doc-budgets.manifest.json`](scripts/doc-budgets.manifest.json) only when content genuinely needs the space. No script enforces ceilings: recount words after editing.
+`CLAUDE.md` symlinks the root and `packages/` AGENTS.md files: edit the real file. Keep each rule self-contained, linking high-level docs; condense when clarity survives. Raise a ceiling in [`scripts/doc-budgets.manifest.json`](scripts/doc-budgets.manifest.json) only when content genuinely needs the space. No script enforces ceilings: recount words after editing.
 
 ## Framework layer
 

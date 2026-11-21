@@ -4,7 +4,6 @@ packages:
   - native/landlock-run
   - native/landlock-run/packages/*
   - apps/*
-  - examples
 
 linkWorkspacePackages: true
 

@@ -1,8 +1,0 @@
-- id: webserver
-  config:
-    host: 127.0.0.1
-    port: 3081
-
-- insert:
-    - id: tool-cordis
-      name: '@freddie/freddie-tool-cordis'

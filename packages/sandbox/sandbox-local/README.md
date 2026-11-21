@@ -21,7 +21,7 @@ The Windows rung keeps one deterministic write SID and standing ACE per workspac
   name: '@freddie/freddie-sandbox-local'
 ```
 
-Consumers: [`@freddie/freddie-bash-sandbox`](../../shell/bash-sandbox/); see [the acp-agent example](../../../examples/acp-agent/) for the runnable default composition.
+Consumers: [`@freddie/freddie-bash-sandbox`](../../shell/bash-sandbox/).
 
 ## Model Experience
 

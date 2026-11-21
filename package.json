@@ -13,8 +13,7 @@
     "packages/*/*",
     "native/landlock-run",
     "native/landlock-run/packages/entry",
-    "apps/*",
-    "examples"
+    "apps/*"
   ],
   "scripts": {
     "postinstall": "node scripts/patch-if-npm.mjs",
@@ -31,10 +30,7 @@
     "release:pack": "node scripts/release/pack.js",
     "release:verify-packed-install": "node scripts/release/verify-packed-install.js",
     "release:publish": "node scripts/release/publish.js",
-    "freddie": "node apps/cli/src/bin.js",
-    "demo:code-mode": "node scripts/demo-code-mode.mjs",
-    "demo:cordis": "node scripts/demo-cordis.mjs",
-    "demo:acp": "node packages/examples/acp-demo/src/bin.js --config examples/acp-agent/cordis.yml"
+    "freddie": "node apps/cli/src/bin.js"
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*"

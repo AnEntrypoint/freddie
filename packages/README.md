@@ -50,7 +50,6 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`boot/`](boot/README.md) | Shared app-bin boot glue | Product — stable API |
 | [`host/`](host/README.md) | Web-GUI host half: API gateway + HTTP route server | Product — stable API |
 | [`client/`](client/README.md) | Web-GUI browser half: shell, wire, object services, slots, `ui-*` plugins | Product — stable API |
-| [`examples/`](examples/README.md) | Demo bundles (agent-spine and the ACP bin) | Support — example infra |
 | [`util/`](util/README.md) | Zero-dependency utilities shared across groups | Support — small, stable, harness-dep-free |
 | [`mcp/`](mcp/README.md) | Model Context Protocol client bridge: external MCP tools as native model tools | Product — stable API |
 | [`browser-use/`](browser-use/README.md) | Exclusive named browser-use provider registration (runtime and Chrome DevTools MCP provider in [experimental/](experimental/README.md)) | Product — stable API |
@@ -63,6 +62,6 @@ New packages join existing groups; new groups update their README and this table
 
 The dependency graph is hand-maintained in [docs/module-graph.md](../docs/module-graph.md).
 
-**Extension plugins depend on Service Definitions, never concrete providers.** `freddie-agent-loop` is swappable; UI, hook, and tool plugins use `freddie-agent`. Composition bundles, including `freddie-agent-spine-demo`, may depend on spine plugins. Capabilities separate Service Definition / Service Provider / Consumer roles when they evolve independently; see [capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md).
+**Extension plugins depend on Service Definitions, never concrete providers.** `freddie-agent-loop` is swappable; UI, hook, and tool plugins use `freddie-agent`. Composition bundles may depend on spine plugins. Capabilities separate Service Definition / Service Provider / Consumer roles when they evolve independently; see [capability seams](../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md).
 
 Package READMEs cover purpose, APIs, extension points, and [Model Experience](../docs/cookbook/adding-a-package.md#4-write-the-package-readme) (`None` where the package touches no model request). They also carry `## Known Limitations and Deferred Work`.

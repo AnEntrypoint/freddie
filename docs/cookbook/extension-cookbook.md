@@ -88,7 +88,7 @@ export function apply(ctx: Context) {
 
 ## Runnable wirings
 
-Runnable leaves load their plugin trees from `examples/*/cordis.yml`; the root `demo:*` scripts and those leaf directories are the authoritative inventory. The product `freddie` launcher owns Web and one-shot headless execution, and ACP leaves use [`@freddie/freddie-acp-demo`](../../packages/examples/acp-demo).
+Runnable compositions load their plugin trees from the bundle patches under `packages/bundle/*/cordis.patch.yml` and the agent presets under `apps/cli/config/agent-presets/`. The product `freddie` launcher owns Web, ACP and one-shot headless execution.
 
 ## The feature → mechanism map
 

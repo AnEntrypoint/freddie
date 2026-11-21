@@ -14,7 +14,6 @@ const DEV_ONLY_AREAS = [
   'packages/test-support/',
   'packages/test-support/client-runtime/',
   'website/',
-  'examples/',
   'native/',
 ]
 
@@ -56,13 +55,10 @@ function readManifest(rel) {
   return JSON.parse(readFileSync(resolve(root, rel), 'utf8'))
 }
 
-const DEMO_LEAF_MANIFESTS_REACHED_ONLY_THROUGH_EXAMPLES_PACKAGE = ['examples/*/package.json']
-
 export function manifestPatterns(rootMembers) {
   return [
     'package.json',
     ...rootMembers.map(member => `${member}/package.json`),
-    ...DEMO_LEAF_MANIFESTS_REACHED_ONLY_THROUGH_EXAMPLES_PACKAGE,
   ]
 }
 

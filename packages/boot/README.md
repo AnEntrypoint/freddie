@@ -1,6 +1,6 @@
 # boot/ — shared app-bin boot glue
 
-The channel-neutral boot library shared by `apps/cli` and the [`examples/`](../examples/README.md) demo bins.
+The channel-neutral boot library shared by `apps/cli`.
 
 | Package | Role | ctx key |
 |---|---|---|

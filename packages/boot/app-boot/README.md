@@ -1,6 +1,6 @@
 # `@freddie/freddie-app-boot`
 
-Shared boot glue for the app bins ([`freddie`](../../../apps/cli/README.md) and [`freddie-acp-demo`](../../examples/acp-demo/README.md)): each bin is a thin self-executing composition over these helpers, parameterized by its diagnostic prefix, so loader-failure behavior has one owner instead of drifting between published artifacts.
+Shared boot glue for the app bin ([`freddie`](../../../apps/cli/README.md)): the bin is a thin self-executing composition over these helpers, parameterized by its diagnostic prefix, so loader-failure behavior has one owner instead of drifting between published artifacts.
 
 | Export | Role |
 |---|---|
