@@ -341,7 +341,7 @@ Where txiki has no equivalent, the name is still exported, so the contract holds
 | async_hooks | AsyncLocalStorage | txiki has no async context |
 | vm | Script, createContext, runInContext | not mapped |
 | http (createServer), https, inspector | createServer and all other members | tjs.serve has another shape; validateHeaderValue is implemented in pure JS |
-| dns/promises | every member except lookup | lookup is built on tjs.lookup: IPv6 literals are returned as given, hostnames resolve to the IPv4 addresses tjs.lookup returns, EAI_NONAME becomes ENOTFOUND, and family 6 or any option besides family, all and order is a gap |
+| dns/promises | every member except lookup | lookup is built on tjs.lookup: IPv6 literals are returned as given, hostnames resolve through tjs.lookup with the requested family, so a host whose resolver returns IPv6 answers lists them, EAI_NONAME becomes ENOTFOUND, and any option besides family, all and order is a gap |
 | zlib | gzip | txiki CompressionStream and DecompressionStream throw "not a function" for every valid format in this build; gzip stays a gap, see the zlib section. gunzip is an owned pure-JS inflate (2026-11-19) |
 | string_decoder | none | done 2026-11-19: every encoding Node accepts is decoded with Node's carry rules (see the string_decoder section) |
 

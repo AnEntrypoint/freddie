@@ -3780,13 +3780,12 @@ async function lookup(hostname, options) {
   const settings = typeof options === 'number' ? { family: options } : options ?? {}
   assertNoOptions('dns.lookup', settings, ['family', 'all', 'order'])
   const family = settings.family ?? 0
-  if (family !== 0 && family !== 4) throw gapError('dns.lookup with family ' + family)
   const literal = isIP(hostname)
   let entries
   if (literal !== 0 && (family === 0 || family === literal)) {
     entries = [{ address: hostname, family: literal }]
   } else {
-    const found = await tjs.lookup(hostname, { all: true }).catch((error) => {
+    const found = await tjs.lookup(hostname, { all: true, family }).catch((error) => {
       throw lookupError(error, hostname)
     })
     entries = found.map(({ ip, family }) => ({ address: ip, family }))
