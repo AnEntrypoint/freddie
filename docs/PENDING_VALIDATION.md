@@ -1,5 +1,30 @@
 # Pending validation: reduction to what the system needs
 
+## Stage 7 deletions with their proofs, the invariant factory, and the witnesses for what stays open (2026-11-21)
+
+Spec: /workspace/hyperagent/specs/fx-freddie-txiki.md, read again; the logger-console decision stands as recorded (move).
+
+| commit | change | added | removed |
+|---|---|---|---|
+| 57c06747 | release scripts lose their win32 branches (change-scope, publish-npm-baseline); koffi leaves allowBuilds and the lockfile (32 orphaned blocks) | 2 | 150 |
+| b9c877e6 | 70 identical invariant stubs in agent-side move packages become one invariantPlugin call; the factory is packages/runtime-diagnostics/invariants/src/plugin.js, exported as ./plugin | 152 | 579 |
+
+Stage 7 deletions, each with its grep. The window step stage7-greps runs them on the final tree (git grep --untracked, so a leftover cannot hide) and fails on any other count:
+- Empty package shells: none. A directory under packages/*/*, framework or apps with content and no package.json, or an empty package area, is a failure. The step found five empty areas on its first run (packages/deliverables, e2b, hooks, lsp, webhook: the shells' parents, nothing tracked), which were removed from the disk; no commit, since git tracks no directories. Red check: red-stage7-empty-shell plants packages/zz-probe/zz-shell/node_modules, the step reports failure, and the probe is removed.
+- The windows-latest publint workflow: 0 matches of windows-latest, runs-on: windows or shell: pwsh under .github (the workflow runs on ubuntu-latest since abdd8a93). Red check: red-stage7-windows-workflow plants a workflow with runs-on: windows-latest and the step fails.
+- Demos: 0 matches of acp-demo, agent-spine-demo, packages/examples, examples/acp-agent, examples/web-cordis, demo:acp, demo:cordis or demo:code-mode outside docs, .agents and the lockfile; the examples directories do not exist.
+- Windows-only packages: 0 matches of pwsh-local, pwsh-sandbox, tool-pwsh, tool-pwsh-persistent, sandbox-windows-acl, windows-inspector or win32-dialog outside docs and the lockfile.
+- Windows branches in code: exactly 3 matches of win32, powershell, .exe, taskkill or windows-acl in js, mjs, cjs, yml, yaml or json outside the runtime and vendored client modules; all three are WSL's powershell.exe call in apiproxy (a Linux host opening a path on the Windows desktop). The third-party win32 packages in pnpm-lock.yaml (sharp and others) and the pnpm-workspace.yaml release-age exclusions for node-addon-require-builtin are third-party and stay.
+- koffi: 0 matches outside docs, .agents and THIRD_PARTY_NOTICES.md; pnpm install --frozen-lockfile passes on the pruned lockfile. A first attempt at pruning it deleted a neighbouring lock entry (math-intrinsics) and the frozen install said so; the second used a stricter block rule.
+
+Invariant factory (b9c877e6). 219 packages carry src/invariant.js. Witness (equivalence inv, in the window): every one of the 219 modules is imported, applied against a recording context, and compared with a fixture taken before the change: exports, name, inject, the package name it registers and the install function's source. Byte-identical for all 219. Replaced: 70, the trivial no-op stubs in agent-side move packages that declare freddie-invariants as a peer. Not replaced, by the cut rule or by evidence: 58 in packages that stage 5 deletes (not worth touching); 40 with a real install body; 49 in GUI packages (below); 1 agent-side package, open-in-app, which does not declare freddie-invariants as a peer. Red checks: inv-default-inject (the default inject list changed) and inv-install-body (the install body changed) each make the witness fail.
+
+What stays open, with the witness that would close it:
+1. The 49 GUI invariant stubs (client packages, ui-cordis, cordis-client-runner, session-log-export, webjsx): load in the browser. Closing witness: through playwriter, start the web profile, open the page, and assert no module-load console error and that the served plugin graph still lists every client module; red check: break one stub's import and expect a 404 or console error for that module. Not run: browser work needs playwriter and a display session. Blocked on a browser run, not on fx.
+2. One plugin manifest and schemas that generate settings screens and controllers: a design change across 247 packages. Closing witness: a generator that writes package.json exports and files entries, the invariant stub and the bundle rows from the manifest is idempotent (regenerating changes nothing), publint passes, the four profile dumps keep their md5s, and import smoke keeps 240 of 242. Red check: edit the manifest and the generated files must differ. Not started: the host that reads the manifest (fx's loader) decides its shape.
+3. Merging single-implementation seams in the move families. Candidates measured: storage (91 lines), storage-domain (366, imported by four spec files) and storage-json (282, loaded as its own plugin from the web bundle) are three layers, so merging the contract into the implementation would make the domain layer depend on the JSON backend; sandbox (113, imported by 11 files), sandbox-policy and sandbox-local likewise. Any merge changes plugin rows in the bundle patches. Closing witness per merge: the four profile dumps keep their md5s apart from the removed plugin row, import smoke is unchanged, and an export-name comparison shows the merged module exports every name of both originals. Left open: nothing here shrinks the count in a way the stage 5 cuts do not already decide.
+4. Stage 4 (the runtime rewrite on fx:host) and stage 5 (the cuts): blocked on fx.
+
 ## Alias table, logger-console and Windows host code (2026-11-21)
 
 Spec: /workspace/hyperagent/specs/fx-freddie-txiki.md (owner's rule: every node: specifier and bare built-in name keeps its Node name in the embedded txiki; one alias table; each alias maps to fx:host or to a txiki module). Standing rules: /workspace/hyperagent/docs/peer-rules.md.
@@ -32,7 +57,7 @@ Lines removed by the three Windows commits: 1128, added 114. Source lines in the
 Open items, ranked:
 
 1. Stage 4, the runtime rewrite on fx:host: blocked on fx. The loader must read packages/util/runtime/src/aliases.json: a row whose target is fx:host names the host-interface namespace, a txiki row names its provider (tjs:path, tjs:utils, or a txikiRuntime member). fx to confirm the 10 txiki rows.
-2. Stage 7, reachable and not started: (a) 219 packages carry a src/invariant.js; 58 are the exact template and 161 differ in whitespace, inject list or install body; GUI packages are among them and are loaded in the browser, so a shared factory needs a browser witness (playwriter) before it is safe; (b) one plugin manifest and schemas that generate settings and controllers; (c) merging seams with one implementation in the move families (storage, sandbox, session-log). Each changes many importers and needs its own witness.
+2. Stage 7, partly done in the entry above this one (the invariant factory, the release scripts, koffi): what is left is (a) 219 packages carry a src/invariant.js; 58 are the exact template and 161 differ in whitespace, inject list or install body; GUI packages are among them and are loaded in the browser, so a shared factory needs a browser witness (playwriter) before it is safe; (b) one plugin manifest and schemas that generate settings and controllers; (c) merging seams with one implementation in the move families (storage, sandbox, session-log). Each changes many importers and needs its own witness.
 3. Stage 5 cuts in the plan's order: each needs a parity witness against fx behaviour, so they follow stage 4.
 
 ## Stages 0, 4 and 7, first pass (2026-11-21)
