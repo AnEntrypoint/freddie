@@ -1,6 +1,77 @@
 # Pending validation: reduction to what the system needs
 
-## Open: the family-6 DNS cases wait on gm's patched txiki build (2026-11-21)
+## Closed: the family-6 DNS cases under gm's patched build (2026-11-22)
+
+gm's build with its G10 patch exists (gm cd598b2, binary build/rel-72/native/components/host/gm-core, built 2026-11-22 04:35). Witness, the txiki parity probe on that build: shared 859, mismatches [], unexpectedGaps [], gaps 2, sharedInactive 0, so both family-6 cases ran and passed. Red checks, each applied to packages/util/runtime/src/txiki.js, probed on the same build and restored (git diff --quiet): lookup-family-dropped (tjs.lookup without family) fails "family 6 lists only loopback entries of family 6" and "family 4 lists only loopback entries of family 4"; lookup-family-6-gap (family 6 refused again) fails both family-6 cases. The window now probes build/rel-72, requires sharedInactive 0, and runs both reds. G10 is closed on both sides.
+
+Seen once and not reproduced: the first probe on that build reported one mismatch, "child-process.spawn AbortSignal already aborted emits error then close with the kill signal" (close 0 null instead of the kill signal); the next three probes passed it. Recorded as a timing flake for gm to look at, not a freddie change.
+
+## YAGNI and dedup pass (2026-11-22)
+
+Standing rule from the owner, applied from here on: remove what nothing reads, merge what repeats, keep no code that no check or live path needs. Before is ec12497f (origin/main at the start); after is this tree.
+
+| commit | change | added | removed |
+|---|---|---|---|
+| 7a1839e6 | host-adapter: drop the unloaded invariant stub, the ./src/* export, the unused peers and the probe constant | 1 | 18 |
+| 2d84140d | 18 files nothing imports: 15 empty or export-{} type stubs, the orphaned onboarding modal (js, css, css.js) with its css-manifest row, files entries and notes | 1 | 89 |
+| dda0ad7f | vendor-modules: the superseded cordis 4.0.1, cordis-plugin-loader 1.0.2, cosmokit 1.8.2 copies that neither the import map nor any vendored file references | 0 | 3596 |
+| a44a4abe | cosmokit keeps the 12 names something imports (array.js gone, Time and Binary cut to the members read); webjsx loses two unread constants | 6 | 178 |
+| d1b0e9e0 | typert: host and remote-client share identical schemas through one typert.schemas.js per package (7 packages), and repeated schema definitions collapse to one | 452 | 1004 |
+| 96102af7 | the optional invariant subsystem: the registry package, the 218 src/invariant.js companions, their ./invariant exports, peer and dev dependencies, lockfile entries, the tool-cordis catalog rows, seven dead INVARIANT rethrow branches in credentials, llm and settings, a release step naming a missing script, and the docs that described it | 219 | 6466 |
+| b67bc799 | cut table recounted | | |
+| 878658ec | what only the removed companions read: scope scoped-events.generated.js, llm-retry history.js, tool-cordis fiber-state.js, hmr leftoverHandles, and the unimported webjsx factory.js | 2 | 79 |
+
+Decision with reason, reversible: the invariant subsystem goes. An earlier note (2026-08-03) kept it for tests, examples and generated SDKs; today no test, example, profile, bundle or preset mounts the registry or any companion (git grep: no ./invariant specifier outside the companions, dumps of the four profiles name none), 168 of the 219 companions installed nothing, and the 51 with checks ran only when a user mounted them by hand. The owner's rule decides it.
+
+Witnesses.
+- typert: every TYPERT and TYPERT_REMOTE export of the 32 manifests, dumped through z.toJSONSchema (input and output), is byte-identical before and after (runs/analysis/typert-pre.json, now the equivalence witness "typert"); red: one shared schema field changed from string to number makes the dump differ.
+- Browser (playwriter in gm): the web profile served on port 3393 from ec12497f and from d1b0e9e0, the page loaded to network idle: the same DOM (title, root, text, every button label, element count 494), no console error or warning, no failed request; the only difference in loaded modules is the 7 new typert.schemas.js files.
+- Baseline on the final tree: install, publint, third-party notices, rescope-vendor check, release verify (freddie 228 members, vendor 10), cli help, the four profile dumps with unchanged md5s, headless without a key, ACP and SDK initialize, web boot 200 with 260 assets (261 before: the onboarding css), import smoke 242 packages, 240 ok, the same two failing (243 and 241 before: the registry package).
+- Analysis: dead-files finds no unimported file left except worker entries and apps/web/src/main.js, which load by URL; dead-exports finds no unread definition left.
+
+Line ledger per family (source lines as the cut table defines them; vendored copies and docs are outside it: 3596 vendored lines and about 500 doc lines go too):
+
+| family (decision) | packages before | packages after | source lines before | source lines after | removed |
+|---|---|---|---|---|---|
+| browser-experimental (cut) | 5 | 5 | 852 | 825 | 27 |
+| code-runtime (cut) | 2 | 2 | 1204 | 1184 | 20 |
+| code-runtime (move) | 2 | 2 | 10605 | 10321 | 284 |
+| compaction (cut) | 5 | 5 | 1978 | 1631 | 347 |
+| composition-boot (move) | 24 | 24 | 16471 | 16226 | 245 |
+| context-attachments (cut) | 6 | 6 | 2548 | 2499 | 49 |
+| context-attachments (move) | 5 | 5 | 2512 | 2312 | 200 |
+| delegation-planning (cut) | 14 | 14 | 7915 | 7373 | 542 |
+| delegation-planning (move) | 6 | 6 | 4347 | 4053 | 294 |
+| files (cut) | 5 | 5 | 2922 | 2853 | 69 |
+| files (move) | 2 | 2 | 191 | 185 | 6 |
+| gui (move) | 54 | 54 | 81749 | 81148 | 601 |
+| host-transport (cut) | 1 | 1 | 598 | 588 | 10 |
+| host-transport (move) | 18 | 18 | 8759 | 8671 | 88 |
+| interaction-permissions (cut) | 6 | 6 | 2128 | 1936 | 192 |
+| loop-composition (cut) | 10 | 10 | 7184 | 6685 | 499 |
+| mcp (cut) | 1 | 1 | 704 | 695 | 9 |
+| model (cut) | 5 | 5 | 6153 | 5877 | 276 |
+| sandbox (move) | 4 | 4 | 1506 | 1474 | 32 |
+| session-log (move) | 17 | 17 | 8534 | 8455 | 79 |
+| shell-jobs (cut) | 12 | 12 | 4239 | 4099 | 140 |
+| shell-jobs (move) | 1 | 1 | 99 | 96 | 3 |
+| skills (cut) | 3 | 3 | 1761 | 1734 | 27 |
+| skills (move) | 1 | 1 | 50 | 47 | 3 |
+| split (move) | 7 | 7 | 6345 | 6322 | 23 |
+| state-policy (cut) | 9 | 9 | 3430 | 3169 | 261 |
+| state-policy (move) | 4 | 4 | 2159 | 2106 | 53 |
+| util (move) | 12 | 12 | 1128 | 1107 | 21 |
+| web (cut) | 3 | 3 | 1234 | 1207 | 27 |
+| total | 244 | 244 | 189305 | 184878 | 4427 |
+
+Open from this pass, ranked by lines and reachability:
+1. 274 names are exported and read only inside their own file; dropping the export keyword removes no line and is left for the files as they are next touched.
+2. The vendored cordis 4.0.2, cordis-plugin-loader 1.0.3 and cosmokit 1.8.3 (2938 lines) duplicate framework/ sources the browser could load live, as webjsx already does through LIVE_WORKSPACE_PACKAGES; the framework sources import the runtime seam, so the browser needs that seam first. Closing witness: the browser witness above with those packages served live.
+3. Client-side repeats the clone scan found: cordis-client-runner api-catalog against tool-cordis api-catalog, three card-form.js copies in the settings packages, slot-catalog.js repeating itself, conversation and trajectory tool nodes. Each closes with the browser witness.
+4. Fifteen emit loops copy the same listener fan-out with per-listener warning; one helper in the cordis fork would replace them. Closing witness: import smoke, the profile dumps and a listener-failure case per service.
+5. The typert host manifests still repeat each descriptor list between face host and remote; merging needs one manifest shape for both faces, which the typert loader decides.
+
+## Closed 2026-11-22 (see the entry above): the family-6 DNS cases waited on gm's patched txiki build (2026-11-21)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. The fix is on main at 9f0f8307 (pushed in ec12497f); this entry records what it has not yet been shown to do.
 
