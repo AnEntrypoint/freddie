@@ -1,14 +1,4 @@
-import { z } from 'zod'
-
-const _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_parameter_1$schema = z.string()
-const _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_result$schema = z.array(z.object({
-  'mention': z.string(),
-  'sessionId': z.intersection(z.string(), z.unknown()),
-  'label': z.string(),
-  'cwd': z.string().optional(),
-  'createdAt': z.number(),
-}))
+import { _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_parameter_0$schema, _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_parameter_1$schema, _deepseek_ai_dsh_session_reference_sessionReferenceResolver_candidates_result$schema } from './typert.schemas.js'
 
 export const TYPERT = {
   package: '@freddie/freddie-session-reference',

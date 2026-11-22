@@ -1,110 +1,5 @@
-import { z } from 'zod'
+import { _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema, _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema, _deepseek_ai_dsh_goal_goals_complete_result$schema, _deepseek_ai_dsh_goal_goals_create_parameter_1$schema, _deepseek_ai_dsh_goal_goals_create_result$schema, _deepseek_ai_dsh_goal_goals_edit_parameter_2$schema } from './typert.schemas.js'
 import { process } from '@freddie/freddie-runtime/process'
-
-const _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_clear_result$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_complete_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_complete_parameter_1$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_complete_result$schema = z.object({
-  'roundsStarted': z.number().readonly(),
-  'createdAt': z.number().readonly(),
-  'updatedAt': z.number().readonly(),
-  'activation': z.union([z.literal("armed"), z.literal("disarmed")]).readonly(),
-  'objective': z.string().readonly(),
-  'phase': z.union([z.literal("active"), z.literal("paused"), z.literal("blocked"), z.literal("complete")]).readonly(),
-  'blockedReason': z.object({
-  'code': z.string().readonly(),
-  'message': z.string().readonly(),
-}).readonly().optional(),
-  'maxGoalRounds': z.number().readonly(),
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_create_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_create_parameter_1$schema = z.object({
-  'objective': z.string().readonly(),
-  'maxGoalRounds': z.number().readonly().optional(),
-})
-const _deepseek_ai_dsh_goal_goals_create_result$schema = z.object({
-  'ref': z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-}).readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_edit_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_edit_parameter_1$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_edit_parameter_2$schema = z.object({
-  'objective': z.string().readonly().optional(),
-  'maxGoalRounds': z.number().readonly().optional(),
-})
-const _deepseek_ai_dsh_goal_goals_edit_result$schema = z.object({
-  'roundsStarted': z.number().readonly(),
-  'createdAt': z.number().readonly(),
-  'updatedAt': z.number().readonly(),
-  'activation': z.union([z.literal("armed"), z.literal("disarmed")]).readonly(),
-  'objective': z.string().readonly(),
-  'phase': z.union([z.literal("active"), z.literal("paused"), z.literal("blocked"), z.literal("complete")]).readonly(),
-  'blockedReason': z.object({
-  'code': z.string().readonly(),
-  'message': z.string().readonly(),
-}).readonly().optional(),
-  'maxGoalRounds': z.number().readonly(),
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_pause_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_pause_parameter_1$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_pause_result$schema = z.object({
-  'roundsStarted': z.number().readonly(),
-  'createdAt': z.number().readonly(),
-  'updatedAt': z.number().readonly(),
-  'activation': z.union([z.literal("armed"), z.literal("disarmed")]).readonly(),
-  'objective': z.string().readonly(),
-  'phase': z.union([z.literal("active"), z.literal("paused"), z.literal("blocked"), z.literal("complete")]).readonly(),
-  'blockedReason': z.object({
-  'code': z.string().readonly(),
-  'message': z.string().readonly(),
-}).readonly().optional(),
-  'maxGoalRounds': z.number().readonly(),
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_resume_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_goal_goals_resume_parameter_1$schema = z.object({
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
-const _deepseek_ai_dsh_goal_goals_resume_result$schema = z.object({
-  'roundsStarted': z.number().readonly(),
-  'createdAt': z.number().readonly(),
-  'updatedAt': z.number().readonly(),
-  'activation': z.union([z.literal("armed"), z.literal("disarmed")]).readonly(),
-  'objective': z.string().readonly(),
-  'phase': z.union([z.literal("active"), z.literal("paused"), z.literal("blocked"), z.literal("complete")]).readonly(),
-  'blockedReason': z.object({
-  'code': z.string().readonly(),
-  'message': z.string().readonly(),
-}).readonly().optional(),
-  'maxGoalRounds': z.number().readonly(),
-  'id': z.intersection(z.string(), z.unknown()).readonly(),
-  'revision': z.number().readonly(),
-})
 
 export const TYPERT = {
   package: '@freddie/freddie-goal',
@@ -148,7 +43,7 @@ export const TYPERT = {
       result: {
         mode: 'strict',
         typeSymbol: '@freddie/freddie-goal/client#GoalRef',
-        schema: _deepseek_ai_dsh_goal_goals_clear_result$schema,
+        schema: _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema,
       },
       sourceLocation: {"file":"packages/goal/goal/src/index.ts","line":377,"column":3},
     },
@@ -171,7 +66,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-session/types#SessionId',
-            schema: _deepseek_ai_dsh_goal_goals_complete_parameter_0$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema,
           },
         },
         {
@@ -181,7 +76,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-goal/client#GoalRef',
-            schema: _deepseek_ai_dsh_goal_goals_complete_parameter_1$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema,
           },
         },
       ],
@@ -212,7 +107,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-session/types#SessionId',
-            schema: _deepseek_ai_dsh_goal_goals_create_parameter_0$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema,
           },
         },
         {
@@ -252,7 +147,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-session/types#SessionId',
-            schema: _deepseek_ai_dsh_goal_goals_edit_parameter_0$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema,
           },
         },
         {
@@ -262,7 +157,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-goal/client#GoalRef',
-            schema: _deepseek_ai_dsh_goal_goals_edit_parameter_1$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema,
           },
         },
         {
@@ -279,7 +174,7 @@ export const TYPERT = {
       result: {
         mode: 'strict',
         typeSymbol: '@freddie/freddie-goal/client#GoalView',
-        schema: _deepseek_ai_dsh_goal_goals_edit_result$schema,
+        schema: _deepseek_ai_dsh_goal_goals_complete_result$schema,
       },
       sourceLocation: {"file":"packages/goal/goal/src/index.ts","line":277,"column":3},
     },
@@ -302,7 +197,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-session/types#SessionId',
-            schema: _deepseek_ai_dsh_goal_goals_pause_parameter_0$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema,
           },
         },
         {
@@ -312,14 +207,14 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-goal/client#GoalRef',
-            schema: _deepseek_ai_dsh_goal_goals_pause_parameter_1$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema,
           },
         },
       ],
       result: {
         mode: 'strict',
         typeSymbol: '@freddie/freddie-goal/client#GoalView',
-        schema: _deepseek_ai_dsh_goal_goals_pause_result$schema,
+        schema: _deepseek_ai_dsh_goal_goals_complete_result$schema,
       },
       sourceLocation: {"file":"packages/goal/goal/src/index.ts","line":299,"column":3},
     },
@@ -342,7 +237,7 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-session/types#SessionId',
-            schema: _deepseek_ai_dsh_goal_goals_resume_parameter_0$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_0$schema,
           },
         },
         {
@@ -352,14 +247,14 @@ export const TYPERT = {
           codec: {
             mode: 'strict',
             typeSymbol: '@freddie/freddie-goal/client#GoalRef',
-            schema: _deepseek_ai_dsh_goal_goals_resume_parameter_1$schema,
+            schema: _deepseek_ai_dsh_goal_goals_clear_parameter_1$schema,
           },
         },
       ],
       result: {
         mode: 'strict',
         typeSymbol: '@freddie/freddie-goal/client#GoalView',
-        schema: _deepseek_ai_dsh_goal_goals_resume_result$schema,
+        schema: _deepseek_ai_dsh_goal_goals_complete_result$schema,
       },
       sourceLocation: {"file":"packages/goal/goal/src/index.ts","line":311,"column":3},
     },

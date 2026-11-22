@@ -1,11 +1,4 @@
-import { z } from 'zod'
-
-const _deepseek_ai_dsh_file_reference_fileReferences_list_parameter_0$schema = z.intersection(z.string(), z.unknown())
-const _deepseek_ai_dsh_file_reference_fileReferences_list_parameter_1$schema = z.string()
-const _deepseek_ai_dsh_file_reference_fileReferences_list_result$schema = z.array(z.object({
-  'path': z.string(),
-  'kind': z.union([z.literal("file"), z.literal("directory")]),
-}))
+import { _deepseek_ai_dsh_file_reference_fileReferences_list_parameter_0$schema, _deepseek_ai_dsh_file_reference_fileReferences_list_parameter_1$schema, _deepseek_ai_dsh_file_reference_fileReferences_list_result$schema } from './typert.schemas.js'
 
 export const TYPERT = {
   package: '@freddie/freddie-file-reference',

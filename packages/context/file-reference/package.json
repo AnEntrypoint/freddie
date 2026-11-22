@@ -40,7 +40,8 @@
     "src/invariant.js",
     "src/types.js",
     "src/typert.host.js",
-    "src/typert.remote-client.js"
+    "src/typert.remote-client.js",
+    "src/typert.schemas.js"
   ],
   "license": "MIT",
   "peerDependencies": {
