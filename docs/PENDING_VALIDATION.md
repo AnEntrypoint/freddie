@@ -1,5 +1,36 @@
 # Pending validation: reduction to what the system needs
 
+## Ranked remaining work, third pass (2026-11-22)
+
+Specs read for this list: specs/fx-freddie-txiki.md (stages 4, 5, 7), specs/edgejs-swap.md (stage 2, freddie), specs/fx-run-code-only.md (fx's one-tool surface). Standing rules: /workspace/hyperagent/docs/peer-rules.md. Waits on: fx = the published fx:host or fx's one-tool surface; go = the dispatcher's edgejs go decision; owner = a decision only the owner makes; browser = a ticketed playwriter run; none = mine now.
+
+| rank | open item | stage | what closes it | waits on |
+|---|---|---|---|---|
+| 1 | Typert model blocks, slot-catalog repeats (this pass, below) | 7 | the window queued on the final tree passes | none (done, in the window) |
+| 2 | CardForm merge rerun: the browser witness on b882880c (before the merge) decides whether the Web search card is absent there too; if so the witness expectation was wrong and the merge returns with it corrected | 7 | the card witness on b882880c and then on the merge, both with the Web search card present or both without | browser (needs a quiet shared checkout to build the old tree; queue after this window) |
+| 3 | Seam deletion in packages/util/runtime: src/txiki.js and its installer, two tests and the txiki alias rows (about 3,900 lines), the 13 edge differences as named parity expectations | 2 of edgejs-swap, 4 of fx-freddie-txiki | docs/edgejs-seam-deletion.md witness: parity 859 of 859 through the seam under edge, dumps and import smoke unchanged | go |
+| 4 | Runtime rewrite on fx:host and the adapter against the real module | 4 | the 11 adapter cases and the parity cases on fx:host | fx (and the go: the engine under fx changes with it) |
+| 5 | Milestones 1 and 2 (headless and web inside fx with node removed from PATH) | 4 | recorded runs | fx, go, browser |
+| 6 | Stage 5 cuts and replacing the per-capability packages with the host-adapter services; with fx's one-tool surface the tools.* services become verbs under run_code, so the adapter's tool rows change shape once fx publishes the verb catalog | 5 | parity per cut, deleted packages unreferenced | fx |
+| 7 | Vendored cordis 4.0.2, cordis-plugin-loader 1.0.3 and cosmokit 1.8.3 (2,938 lines) served live from framework/ | 7 | browser witness with them served live | browser, and the runtime seam in the browser |
+| 8 | api-catalog in cordis-client-runner against tool-cordis (generated documentation data, 217 repeated characters of 44,529: not worth a shared module); card chrome and CSS in the three settings cards | 7 | rank 2 first | browser, owner for the card layout |
+| 9 | 274 names exported and read only inside their own file; 15 sites of the per-listener catch pattern are done, the typert descriptor lists in the other six manifest pairs differ only by their wire (host and remote) and stay | 7 | export keyword dropped as each file is next touched (no lines) | none, no lines |
+| 10 | One plugin manifest generating exports, files and bundle rows; merging single-implementation seams (storage and sandbox layers) | 7 | idempotent generator or per-merge equivalence | owner (layering), fx (the loader decides the manifest shape) |
+| 11 | Tooling node: imports (96 in 29 files) | 4 | owner's answer: keep the exemption or depend on the runtime | owner |
+
+## This pass, started now (rank 1)
+
+| commit | change | added | removed |
+|---|---|---|---|
+| 001fae10 | typert: the generated TYPERT.model blocks in 16 host manifests (documentation of service, event and object types: 3,300 lines), the loader's validation of them (requireDocumentation, requireMembers, requireTypes, MEMBER_KINDS) and the registry's model field are deleted; nothing in freddie reads a package's model (git grep: only the registry stored it and the loader checked its shape), the manifests of five packages already carried an empty one | 25 | 3,366 |
+| 4faa5ee3 | cordis-client-runner slot catalog: the eleven blocks it repeated (the standard prop lists, the id, order, label, key and select register options, six owner-prop declarations) are named constants; the exported CLIENT_SLOT_API is unchanged | 169 | 746 |
+
+Witnesses and red checks.
+- typert: packages/typert/loader/test/manifest.js (window step typert-loader): a manifest with no model validates; a manifest naming another package, a client face, non-array schemas or no invocations is refused with its message; all 16 host manifests validate with no model key. Reds (window steps red-typert-loader-face, -package, -invocations): each of the three checks removed fails the test with the matching case. The dump of every TYPERT and TYPERT_REMOTE export with the model key left out is byte-identical before and after (equivalence step typert, same red as before: one schema field changed). Baseline on the tree: the four profile dumps keep their md5s, headless without a key, ACP and SDK initialize, web boot 260 assets, import smoke 242 and 240.
+- slot catalog: equivalence step slotCatalog compares the JSON of CLIENT_SLOT_API with the fixture taken before (runs/analysis/slot-pre.json); red slot-catalog-shared-text changes one shared option's type and the step fails.
+
+Not done, with the reason: the other two catalogs repeat only 217 and 6,228 characters (tool-cordis), which a named constant would not pay for; the browser rerun for rank 2 needs the shared checkout quiet, and the one window below covers the code of this pass.
+
 ## Seam deletion on edgejs prepared as a document, nothing changed (2026-11-22)
 
 docs/edgejs-seam-deletion.md lists, for each of the 14 regions of src/txiki.js (3,859 lines), whether edge provides it (all do, from the 846 of 859 parity result), which of the 13 failing cases it holds (md4 6, createReadStream highWaterMark 5, cp wording 1, Readable.wrap 1), and whether a shipped path reaches one (none: each shipped call site was read). A second probe, runs/analysis/edge-gaps.mjs under edge, shows AsyncLocalStorage, vm.createContext, spawnSync, a fourth stdio pipe, http upgrade, zstd and brotli decode, Worker workerData, dns family 6 and fs.watch all work, and inspector.Session and stripTypeScriptTypes do not. The file also lists what stage 2 deletes (src/txiki.js, its installer, its two tests, the txiki alias rows: about 3,900 lines), what stays (25 seam files, the alias table, the parity cases and fixture, the node: import check) and the witness and red checks for it. The seam and every witness are unchanged; applying it waits on the go decision.
