@@ -15,8 +15,6 @@ export class FxHostContractError extends Error {
   code = 'ERR_FX_HOST_CONTRACT'
 }
 
-const PROMISE_PROBE = 'then'
-
 export function hostView(host, id, row) {
   const namespace = () => {
     const found = host[row.namespace]
@@ -27,7 +25,7 @@ export function hostView(host, id, row) {
   const permitted = (key) => allowed === null || allowed.has(key)
   return new Proxy(row.callable ? function hostNamespace() {} : {}, {
     get(_, key) {
-      if (typeof key === 'symbol' || key === PROMISE_PROBE) return undefined
+      if (typeof key === 'symbol' || key === 'then') return undefined
       if (key === '$list' && row.namespace === 'tools') return () => namespace().$list().filter((entry) => allowed.has(entry.name))
       if (!permitted(key)) throw new FxUnsupported(id + '.' + key)
       const target = namespace()
