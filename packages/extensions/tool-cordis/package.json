@@ -22,7 +22,6 @@
   "files": [
     "src/index.js",
     "src/api-catalog.js",
-    "src/fiber-state.js",
     "src/inspect.js",
     "src/present.js",
     "src/prompt.js",

@@ -5,7 +5,3 @@ export function handleLedgerOf(fiber) {
   return fiber[LEDGER]
 }
 
-export function leftoverHandles(fiber) {
-  const ledger = fiber[LEDGER]
-  return { watchers: ledger?.watchers.size ?? 0, timers: ledger?.timers.size ?? 0 }
-}

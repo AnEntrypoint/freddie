@@ -21,8 +21,7 @@
   },
   "files": [
     "src/index.js",
-    "src/store.js",
-    "src/scoped-events.generated.js"
+    "src/store.js"
   ],
   "license": "MIT",
   "peerDependencies": {
