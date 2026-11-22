@@ -6,7 +6,6 @@ export { redactSecrets } from './redact.js'
 
 const NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/
 
-
 export function settingsNamespace(value) {
   if (!NAMESPACE_PATTERN.test(value)) {
     throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
@@ -342,19 +341,7 @@ export class SettingsProvider extends Service {
   }
 
   emitDocumentUpdated(ns, revision) {
-    const args = ['settings/document-updated', ns, revision]
-    for (const listener of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = listener(ns, revision)
-        if (returned != null && typeof returned.then === 'function') {
-          void Promise.resolve(returned).then(undefined, (error) => {
-            this.warnListenerFailure(ns, error)
-          })
-        }
-      } catch (error) {
-        this.warnListenerFailure(ns, error)
-      }
-    }
+    this.ctx.events.emitContained((error) => this.warnListenerFailure(ns, error), 'settings/document-updated', ns, revision)
   }
 
   commit(registration, next, source) {
@@ -374,19 +361,7 @@ export class SettingsProvider extends Service {
       this.pendingTails.add(segment)
       void segment.then(() => this.pendingTails.delete(segment))
     }
-    const args = ['settings/updated', registration.ns, next, prev, source]
-    for (const listener of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = listener(registration.ns, next, prev, source)
-        if (returned != null && typeof returned.then === 'function') {
-          void Promise.resolve(returned).then(undefined, (error) => {
-            this.warnListenerFailure(registration.ns, error)
-          })
-        }
-      } catch (error) {
-        this.warnListenerFailure(registration.ns, error)
-      }
-    }
+    this.ctx.events.emitContained((error) => this.warnListenerFailure(registration.ns, error), 'settings/updated', registration.ns, next, prev, source)
   }
 
   warnWatcherFailure(ns, error) {

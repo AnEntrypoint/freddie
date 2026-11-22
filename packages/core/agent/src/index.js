@@ -149,17 +149,7 @@ export class AgentRegistry extends Service {
   }
 
   emitDisposed(entry) {
-    const args = [entry.carrier, 'agent/disposed', { agent: entry.agent }]
-    for (const callback of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = callback(...args)
-        void Promise.resolve(returned).catch((error) => {
-          this.ctx.logger.warn(`agent "${entry.id}": agent/disposed listener rejected: ${String(error)}`)
-        })
-      } catch (error) {
-        this.ctx.logger.warn(`agent "${entry.id}": agent/disposed listener threw: ${String(error)}`)
-      }
-    }
+    this.ctx.events.emitContained((error, how) => this.ctx.logger.warn(`agent "${entry.id}": agent/disposed listener ${how}: ${String(error)}`), entry.carrier, 'agent/disposed', { agent: entry.agent })
   }
 
   announce(agent) {

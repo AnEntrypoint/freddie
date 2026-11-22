@@ -328,16 +328,7 @@ export class SkillRegistry extends Service {
   }
 
   notifyChange() {
-    for (const callback of this.ctx.events.dispatch('emit', ['skills/change'])) {
-      try {
-        const returned = callback()
-        void Promise.resolve(returned).catch((error) => {
-          this.ctx.logger.warn(`skills/change listener rejected: ${errorMessage(error)}`)
-        })
-      } catch (error) {
-        this.ctx.logger.warn(`skills/change listener threw: ${errorMessage(error)}`)
-      }
-    }
+    this.ctx.events.emitContained((error, how) => this.ctx.logger.warn(`skills/change listener ${how}: ${errorMessage(error)}`), 'skills/change')
   }
 }
 

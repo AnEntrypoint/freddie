@@ -37,7 +37,6 @@ export { jsonSchemaToTs, renderToolsSdk } from './ts-types.js'
 export { jsonSchemaToPy, renderToolsSdkPy } from './py-types.js'
 export { defineContentToolFixture } from './testing.js'
 
-
 function projectionError(toolName, projector, error) {
   return new ToolOutputError(toolName, [`output.${projector} failed: ${errorMessage(error)}`])
 }
@@ -755,17 +754,7 @@ export class ToolRuntime extends Service {
     const reportFailure = (error) => {
       this.ctx.logger.warn(`tool "${toolName}" (${callId}): tools/result observer failed: ${errorMessage(error)}`)
     }
-    const callbacks = this.ctx.events.dispatch('emit', [
-      scopeTarget(this, exec.agent), 'tools/result', exec, result,
-    ])
-    for (const callback of callbacks) {
-      try {
-        const returned = callback(exec, result)
-        void Promise.resolve(returned).catch(reportFailure)
-      } catch (error) {
-        reportFailure(error)
-      }
-    }
+    this.ctx.events.emitContained(reportFailure, scopeTarget(this, exec.agent), 'tools/result', exec, result)
   }
 
   async serviceAsk(exec, ask) {

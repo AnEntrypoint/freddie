@@ -2,8 +2,6 @@ import { Service } from '@freddie/cordis'
 import { parseCredentialKey } from '@freddie/freddie-credentials'
 import { HarnessError } from '@freddie/freddie-llm'
 
-
-
 export class AuthorizationError extends HarnessError {
   constructor(message, code, options) {
     super(message, code, options)
@@ -17,7 +15,6 @@ export class AuthorizationDeclinedError extends AuthorizationError {
     this.name = 'AuthorizationDeclinedError'
   }
 }
-
 
 function settlesWhenWithdrawn(signal) {
   return new Promise((resolve) => {
@@ -130,19 +127,7 @@ export class AuthorizationService extends Service {
   }
 
   settle(key, settlement) {
-    const args = ['authorization/settled', key, settlement]
-    for (const listener of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = listener(key, settlement)
-        if (returned != null && typeof returned.then === 'function') {
-          void Promise.resolve(returned).then(undefined, (error) => {
-            this.warnSettledListenerFailure(key, error)
-          })
-        }
-      } catch (error) {
-        this.warnSettledListenerFailure(key, error)
-      }
-    }
+    this.ctx.events.emitContained((error) => this.warnSettledListenerFailure(key, error), 'authorization/settled', key, settlement)
   }
 
   warnSettledListenerFailure(key, error) {

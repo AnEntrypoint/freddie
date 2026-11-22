@@ -95,19 +95,7 @@ export class CredentialProvider extends Service {
   }
 
   fanOut(event, subject) {
-    const args = [event, subject]
-    for (const listener of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = listener(subject)
-        if (returned != null && typeof returned.then === 'function') {
-          void Promise.resolve(returned).then(undefined, (error) => {
-            this.warnListenerFailure(event, subject, error)
-          })
-        }
-      } catch (error) {
-        this.warnListenerFailure(event, subject, error)
-      }
-    }
+    this.ctx.events.emitContained((error) => this.warnListenerFailure(event, subject, error), event, subject)
   }
 
   warnListenerFailure(event, subject, error) {

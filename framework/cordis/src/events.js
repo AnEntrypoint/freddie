@@ -57,6 +57,16 @@ export class EventsService {
     this.dispatch('emit', args).map(cb => cb(...args))
   }
 
+  emitContained(report, ...args) {
+    for (const cb of this.dispatch('emit', args)) {
+      try {
+        Promise.resolve(cb(...args)).catch(error => report(error, 'rejected'))
+      } catch (error) {
+        report(error, 'threw')
+      }
+    }
+  }
+
   async serial(...args) {
     for (const cb of this.dispatch('serial', args)) {
       const result = await cb(...args)

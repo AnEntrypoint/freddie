@@ -15,8 +15,6 @@ export {
   agentStopReason,
 } from './graph.js'
 
-
-
 export class WorkflowError extends HarnessError {
   constructor(message, code, options) {
     super(message, code, options)
@@ -63,16 +61,7 @@ export class WorkflowEngine extends Service {
       default:
         break
     }
-    for (const callback of this.ctx.events.dispatch('emit', [name, ...args])) {
-      try {
-        const returned = callback(...args)
-        void Promise.resolve(returned).catch((error) => {
-          this.ctx.logger.warn(`workflow: ${name} listener rejected: ${renderListenerError(error)}`)
-        })
-      } catch (error) {
-        this.ctx.logger.warn(`workflow: ${name} listener threw: ${renderListenerError(error)}`)
-      }
-    }
+    this.ctx.events.emitContained((error, how) => this.ctx.logger.warn(`workflow: ${name} listener ${how}: ${renderListenerError(error)}`), name, ...args)
   }
 }
 

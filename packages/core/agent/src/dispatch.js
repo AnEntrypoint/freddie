@@ -8,18 +8,7 @@ export function agentEvents(ctx, agent, carrier = agentCarrier(agent)) {
   const fused = (payload) => ({ ...payload, agent })
   return {
     emit(name, payload) {
-      const args = [carrier, name, fused(payload)]
-      const callbacks = ctx.events.dispatch('emit', args)
-      for (const callback of callbacks) {
-        try {
-          const returned = callback(...args)
-          void Promise.resolve(returned).catch((error) => {
-            ctx.logger.warn(`agent event "${name}" listener rejected: ${String(error)}`)
-          })
-        } catch (error) {
-          ctx.logger.warn(`agent event "${name}" listener threw: ${String(error)}`)
-        }
-      }
+      ctx.events.emitContained((error, how) => ctx.logger.warn(`agent event "${name}" listener ${how}: ${String(error)}`), carrier, name, fused(payload))
     },
     async serial(name, payload) {
       const serial = ctx.serial

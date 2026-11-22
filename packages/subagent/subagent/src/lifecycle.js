@@ -3,24 +3,12 @@ import { foldConsumedWork } from '@freddie/freddie-agent'
 import { finalAssistantOutput } from './assistant-output.js'
 import { SubagentRunId } from './types.js'
 
-
-
-
 export function createLifecycleEmitter(ctx, carrier) {
   return (name, info, parent) => {
     const dispatchArgs = parent === undefined
       ? [name, info]
       : [carrier(parent), name, info]
-    for (const callback of ctx.events.dispatch('emit', dispatchArgs)) {
-      try {
-        const returned = callback(info)
-        void Promise.resolve(returned).catch((error) => {
-          ctx.logger.warn(`subagent: ${name} listener rejected: ${renderThrown(error)}`)
-        })
-      } catch (error) {
-        ctx.logger.warn(`subagent: ${name} listener threw: ${renderThrown(error)}`)
-      }
-    }
+    ctx.events.emitContained((error, how) => ctx.logger.warn(`subagent: ${name} listener ${how}: ${renderThrown(error)}`), ...dispatchArgs)
   }
 }
 

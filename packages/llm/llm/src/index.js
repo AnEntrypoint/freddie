@@ -101,18 +101,7 @@ export class LlmRuntime extends Service {
   }
 
   emitAdaptersUpdated() {
-    for (const listener of this.ctx.events.dispatch('emit', ['llm/adapters-updated'])) {
-      try {
-        const returned = listener()
-        if (returned != null && typeof returned.then === 'function') {
-          void Promise.resolve(returned).then(undefined, (error) => {
-            this.warnAdaptersListenerFailure(error)
-          })
-        }
-      } catch (error) {
-        this.warnAdaptersListenerFailure(error)
-      }
-    }
+    this.ctx.events.emitContained((error) => this.warnAdaptersListenerFailure(error), 'llm/adapters-updated')
   }
 
   warnAdaptersListenerFailure(error) {

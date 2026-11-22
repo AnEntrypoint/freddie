@@ -287,17 +287,7 @@ export class AgentLoop extends Service {
   ) {
     if (!this.ownership.isActive()) return
     this.ctx.logger.warn(`agent "${configId}": config-driven ${action} of "${sessionId}" failed: ${errorChain(error)}`)
-    const args = ['agent-loop/config-start-failed', { sessionId, error }]
-    for (const callback of this.ctx.events.dispatch('emit', args)) {
-      try {
-        const returned = callback(...args)
-        void Promise.resolve(returned).catch((listenerError) => {
-          this.ctx.logger.warn(`agent "${configId}": config-start-failed listener rejected: ${errorChain(listenerError)}`)
-        })
-      } catch (listenerError) {
-        this.ctx.logger.warn(`agent "${configId}": config-start-failed listener threw: ${errorChain(listenerError)}`)
-      }
-    }
+    this.ctx.events.emitContained((error, how) => this.ctx.logger.warn(`agent "${configId}": config-start-failed listener ${how}: ${errorChain(error)}`), 'agent-loop/config-start-failed', { sessionId, error })
   }
 
   async restoreOrCreateConfigured(
