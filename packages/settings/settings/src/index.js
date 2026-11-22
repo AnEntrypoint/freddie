@@ -1,4 +1,5 @@
 import { Context, Service } from '@freddie/cordis'
+import { deepEqualJson } from '@freddie/freddie-values'
 import { redactSecrets } from './redact.js'
 import { process } from '@freddie/freddie-runtime/process'
 
@@ -11,20 +12,6 @@ export function settingsNamespace(value) {
     throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`)
   }
   return value
-}
-
-export function deepEqualJson(a, b) {
-  if (a === b) return true
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
-    return a.every((entry, index) => deepEqualJson(entry, b[index]))
-  }
-  const left = a
-  const right = b
-  const keys = Object.keys(left)
-  if (keys.length !== Object.keys(right).length) return false
-  return keys.every(key => key in right && deepEqualJson(left[key], right[key]))
 }
 
 export class SettingsConflictError extends Error {
@@ -404,3 +391,5 @@ export function installSettingsSection(ctx, ns, schema, entry, hooks) {
 }
 
 export default SettingsProvider
+
+export { deepEqualJson }
