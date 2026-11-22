@@ -1,5 +1,22 @@
 # Pending validation: reduction to what the system needs
 
+## CardForm merge re-applied after its browser witness passed; prototype checks shared (2026-11-22)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. The edgejs go decision is the dispatcher's; the seam is untouched.
+
+Why the Web search card was absent (rank 2 of the ranked list, now closed). The Plugins page lists a card only for a settings namespace that the host serves (ConfigurablePluginsTabController: entries whose key is in the describe view). The Web search card's namespace is web-search-deepseek; the package that served it was removed in e26b233a (29 packages no app, bundle or example loads), no package in the tree registers it, and ui-settings-web-search/AGENTS.md says so ("a deployment without it renders no card"). So the card was absent before the merge and after it: the first witness asked for something this tree cannot show. The merge was not at fault, and the revert is itself reverted (f0180c9f).
+
+Browser witness, ticket freddie-browser with GATE_QUICK=1 (result /workspace/tmp/freddie/browser/result.txt, BROWSER_DONE 0), on a fresh port each run, through playwriter: Settings, Plugins, Plugin configuration; the Subagent card is shown and opened; the depth input accepts -1 and shows "Enter a whole number of 0 or more" with aria-invalid true; 2 clears it and the card shows Unsaved; no console error or warning, no failed request, and exactly one card-form.js loaded, from ui-settings-plugins. The witness first failed five times on the witness's own steps (exact-text matches that hit hidden nodes, a collapsed card after each edit, a falsy 0 counted as a failed step), each fixed in the witness, none in the code. The Node test card-form.js and its two red checks return as window steps.
+
+| commit | change | added | removed |
+|---|---|---|---|
+| f0180c9f | the subagent and web-search cards use the Plugins section CardForm through its /client entry (re-application of 7b50c7c1) | 70 | 356 |
+| 62a0f174 | freddie-values exports isPlainRecord and hasPlainArrayPrototype; core tools json-schema and the cordis host runner guard lose three copied prototype checks each (hasIntrinsicConstructor, hasPlainArrayPrototype and the plain-record predicate) | 73 | 74 |
+
+Witnesses and reds for 62a0f174. packages/util/values/test/plain-records.js (window step plain-records) checks 18 cases: literals, null-prototype objects, arrays, class instances, a forged-constructor prototype, a lookalike constructor, a non-native function named Object, an array with a null prototype, array subclasses. Reds plain-record-native-constructor and plain-record-array each fail it. packages/core/tools/test/json-schema.js (step tools-json-schema) gives the same verdicts as before on 7 schemas (it passes on the tree before the change and after), red tools-schema-plain-record fails it. The cordis host runner guard has no test of its own; it shares the same functions, and its profile boot is covered by the baseline.
+
+Left, with the reason: the remaining ranked items wait on others (edgejs go, fx, owner, browser); the 274 export-only names change no line count; worker-json.js keeps its own copy of the prototype checks on purpose (it runs inside the sandbox worker and may import only intrinsics).
+
 ## Ranked remaining work, third pass (2026-11-22)
 
 Specs read for this list: specs/fx-freddie-txiki.md (stages 4, 5, 7), specs/edgejs-swap.md (stage 2, freddie), specs/fx-run-code-only.md (fx's one-tool surface). Standing rules: /workspace/hyperagent/docs/peer-rules.md. Waits on: fx = the published fx:host or fx's one-tool surface; go = the dispatcher's edgejs go decision; owner = a decision only the owner makes; browser = a ticketed playwriter run; none = mine now.
