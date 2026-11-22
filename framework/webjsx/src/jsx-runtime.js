@@ -11,4 +11,3 @@ export function jsxs(type, props, key) {
 export function jsxDEV(type, props, key) {
     return jsx(type, props, key);
 }
-export const JSXFragment = Fragment;

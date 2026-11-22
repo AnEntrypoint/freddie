@@ -17,5 +17,5 @@ directory via `pnpm-workspace.yaml`. There is nothing to install separately when
 working in this repository.
 
 ```js
-import cosmokit from '@freddie/cosmokit'
+import { defineProperty, deepEqual, Time } from '@freddie/cosmokit'
 ```

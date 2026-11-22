@@ -1,15 +1,3 @@
-export function capitalize(source) {
-  return source.charAt(0).toUpperCase() + source.slice(1)
-}
-
-export function uncapitalize(source) {
-  return source.charAt(0).toLowerCase() + source.slice(1)
-}
-
-export function camelCase(source) {
-  return source.replace(/[_-][a-z]/g, str => str.slice(1).toUpperCase())
-}
-
 const State = {
   DELIM: 0,
   UPPER: 1,
@@ -50,27 +38,6 @@ function tokenize(source, delimiters, delimiter) {
   return String.fromCharCode(...output)
 }
 
-export function paramCase(source) {
+export function hyphenate(source) {
   return tokenize(source, [45, 95], 45)
-}
-
-export function snakeCase(source) {
-  return tokenize(source, [45, 95], 95)
-}
-
-export const camelize = camelCase
-export const hyphenate = paramCase
-
-export function formatProperty(key) {
-  if (typeof key !== 'string') return `[${key.toString()}]`
-  return /^[a-z_$][\w$]*$/i.test(key) ? `.${key}` : `[${JSON.stringify(key)}]`
-}
-
-export function trimSlash(source) {
-  return source.replace(/\/$/, '')
-}
-
-export function sanitize(source) {
-  if (!source.startsWith('/')) source = '/' + source
-  return trimSlash(source)
 }

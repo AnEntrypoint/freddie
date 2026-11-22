@@ -1,7 +1,7 @@
 import { isNullable } from './misc.js'
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
-export function is(type, value) {
+function is(type, value) {
   if (arguments.length === 1) return (value) => is(type, value)
   return type in globalThis && value instanceof globalThis[type]
     || Object.prototype.toString.call(value).slice(8, -1) === type
@@ -23,28 +23,9 @@ function fromSource(source) {
   }
 }
 
-function toBase64(source) {
-  source = fromSource(source)
-  if (typeof Buffer !== 'undefined') {
-    return Buffer.from(source).toString('base64')
-  }
-  let binary = ''
-  const bytes = new Uint8Array(source)
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
-  }
-  return btoa(binary)
-}
-
 function fromBase64(source) {
   if (typeof Buffer !== 'undefined') return fromSource(Buffer.from(source, 'base64'))
   return Uint8Array.from(atob(source), c => c.charCodeAt(0))
-}
-
-function toHex(source) {
-  source = fromSource(source)
-  if (typeof Buffer !== 'undefined') return Buffer.from(source).toString('hex')
-  return Array.from(new Uint8Array(source), byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
 function fromHex(source) {
@@ -58,19 +39,11 @@ function fromHex(source) {
 }
 
 export const Binary = {
-  is: isArrayBufferLike,
   isSource: isArrayBufferSource,
   fromSource,
-  toBase64,
   fromBase64,
-  toHex,
   fromHex,
 }
-
-export const base64ToArrayBuffer = Binary.fromBase64
-export const arrayBufferToBase64 = Binary.toBase64
-export const hexToArrayBuffer = Binary.fromHex
-export const arrayBufferToHex = Binary.toHex
 
 export function clone(source, refs = new Map()) {
   if (!source || typeof source !== 'object') return source
