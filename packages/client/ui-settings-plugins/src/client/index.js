@@ -8,6 +8,8 @@ import { SHELL_NS, BashCardController } from './bash-card-controller.js'
 import { ConfigurablePluginsTabController } from './tab-store.js'
 import { en } from './locales.js'
 
+export { CardForm, endpointField, integerField, numberField } from './card-form.js'
+
 const NS = 'settings.plugins'
 
 export const inject = ['slots', 'locale', 'settingsScope']

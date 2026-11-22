@@ -14,7 +14,7 @@ Nothing is written until **Save**. A draft that is not an absolute `http(s)` URL
 
 ## Extension point
 
-The browser half binds the namespace through `ctx.settingsScope` and registers the card into `settings.plugin.item` under the same string. It also injects `connection` (the credentials workface) and `remote`, and re-reads whether the key is configured on the pushed `credentials/reference-updated` and `settings/document-updated` events and on `connection/reset`. The card owns its own chrome, its own staged-form model, and its own copy, because the client bundle-purity gate forbids importing the Plugins section's card chrome as a value.
+The browser half binds the namespace through `ctx.settingsScope` and registers the card into `settings.plugin.item` under the same string. It also injects `connection` (the credentials workface) and `remote`, and re-reads whether the key is configured on the pushed `credentials/reference-updated` and `settings/document-updated` events and on `connection/reset`. The card owns its own chrome and copy; its staged form is the Plugins section's `CardForm`, imported from `@freddie/freddie-client-ui-settings-plugins/client`.
 
 ## Writes
 

@@ -1,4 +1,4 @@
-import { StagedForm, budgetField, endpointField } from './card-form.js'
+import { CardForm, endpointField, integerField } from '@freddie/freddie-client-ui-settings-plugins/client'
 
 export const WEB_SEARCH_NS = 'web-search-deepseek'
 export const KEY_FIELD = 'apiKey'
@@ -16,9 +16,9 @@ export class WebSearchCardController {
     this.epoch = 0
     this.described = false
     this.credential = deniedUntilDescribed(DEFAULT_KEY_REF)
-    this.form = new StagedForm(
+    this.form = new CardForm(
       scope,
-      [endpointField('baseURL'), budgetField('maxUses', MIN_USES)],
+      [endpointField('baseURL'), integerField('maxUses', MIN_USES)],
       [{ field: KEY_FIELD, write: text => this.writeKey(text) }],
     )
     this.store = this.form.bind(() => this.projection())
