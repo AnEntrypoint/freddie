@@ -1,5 +1,22 @@
 # Pending validation: reduction to what the system needs
 
+## edgejs stage 0, freddie part: the parity cases under edgejs with the runtime seam bypassed (2026-11-22)
+
+Plan: /workspace/hyperagent/specs/edgejs-swap.md, stage 0 (freddie). The seam stays in place; nothing is removed at this stage.
+
+The binary. gm's docs/edgejs-spike.md names no built binary yet (its build rows are pending), so the binary came from the install script at https://edgejs.org/install (19,612 bytes, sha256 16b0d5f6b13296982dfba0b83bb718497e08689eae32738a23569dda4d1a5b80), read in full first. It edits a shell profile under HOME and can offer to install Wasmer, so it ran with HOME and EDGEJS_HOME under /workspace/tmp/freddie/edgejs and no TTY. Its download step died at the installer's own timeout because the release host served about 20 kB/s, so the file it had chosen (wasmerio/edgejs-nightlies release 0.2.5-v8-nightly, asset edge-linux-amd64.zip, 51,942,193 bytes) was finished with a resumed curl and unpacked the way the script does (bin/edge into EDGEJS_HOME/bin). Its sha256 593d56525c405623aace3cd97dbda59c42efac2f96142b4813000973389ab86b equals the digest GitHub publishes for the asset. edge --version prints v24.13.2-pre; process.versions.edge is 0.2.5-g57af363 (the edgejs commit gm's pin names), v8 15.9.111.0-node.0, openssl 3.5.5, uv 1.51.0.
+
+The harness. packages/util/runtime/test/parity-bypass.js builds the subpath table straight from src/aliases.json, importing each row's node: specifier itself instead of the runtime seam, copies parity-cases.js beside it so the cases read that table, gives every case a 20 s timeout, and writes a result file with the passed count, failures by module and any module that failed to import. Witness: under Node 24.22.0 it passes 859 of 859, so the bypass changes nothing on Node. Red: pointing the fs row at node:os drops it to 736 passed, 123 fs failures.
+
+Result under edge (plain script, no ticket, 12 s): 846 of 859 shared cases pass. Every node: module of the alias table imports; none is missing. 13 fail, in three modules:
+- crypto, 6: createHash('md4') throws "Hash operation failed" (also with --openssl-legacy-provider, which Node needs for md4). No shipped freddie code asks for md4.
+- fs, 6: fs.createReadStream with highWaterMark 2^31-1, 2^32, 2^33, 2^35 and 2^40 fails with ERR_MEMORY_ALLOCATION_FAILED as a plain Error, where Node reads the file or ends empty and raises a RangeError only at 2^40 (5 cases); fs.promises.cp reports the same errors as Node but names the link target instead of the link in three messages, and its EEXIST message lacks the "-> destination" part (1 case). The one shipped highWaterMark (apiproxy session export) is an ordinary size; the one shipped cp (agent-presets authoring) would only see the message wording.
+- stream, 1: Readable.wrap does not forward the old stream's function properties. Nothing shipped calls Readable.wrap.
+
+So 98.5 percent of the parity corpus passes on edgejs as it stands, and none of the 13 differences is on a path freddie ships. For stage 2 this sizes the deletion: every module the seam shims is provided by edgejs, and the shims can go row by row with these 13 cases either accepted as edgejs differences or kept as small adapters.
+
+Window steps: parity-bypass-node (859 of 859) and, while the binary is in scratch, parity-bypass-edge (846 of 859, the 13 named failures).
+
 ## YAGNI and dedup, second pass (2026-11-22)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md, reread today (gate, pace: tickets run detached with a result file, a red check reruns only when its code or witness changed, text with backticks goes in a script file).
