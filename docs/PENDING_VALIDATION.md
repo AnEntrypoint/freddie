@@ -1,5 +1,11 @@
 # Pending validation: reduction to what the system needs
 
+## The CardForm change failed its browser witness and is reverted (2026-11-22)
+
+Ticket freddie-browser ran (result /workspace/tmp/freddie/browser/result.txt, BROWSER_DONE 1). Settings then Plugins opened, the console showed no error or warning, no request failed, and exactly one card-form.js loaded (from ui-settings-plugins). It failed on the Web search card: the page text had the Subagent and Plugins cards but not "Web search". The same witness had no run on the tree before 7b50c7c1, so whether the card was ever visible in this profile under this check is not established; the owner's rule for a failed witness is a revert, so commit 7b50c7c1 is reverted (commit 54fb115c) and the two card-form.js copies, their notes and the cookbook text are back as they were. The Node test card-form.js and its two red checks left with it, and the window steps card-form, red-card-form-minimum and red-card-form-secret-write are removed.
+
+Open: rerun the browser witness on the tree before 7b50c7c1 (b882880c). If the Web search card is absent there too, the witness's expectation was wrong (the card needs the web-search host half, which this profile may not enable) and the CardForm merge can return with a corrected witness; if it is present there, the merge broke it and the cause is in the web-search controller's secret-field path.
+
 ## Window gate follows the shared rule (2026-11-22)
 
 runs/analysis/window.mjs (host-local, gitignored) used to pause between steps on swap-in above 1000 kB/s and while any other project's compile held the machine (bevy's heavy-jobs check), which made 54-step plain-script windows take over an hour three times. The gate now pauses only on swap-out above 1000 kB/s or MemAvailable under 2.5 GB (readings record availableKb). Witness: a stage7 window on a machine with swap-in 4920 kB/s and 5.2 GB available passed its three steps at once (exit 0, 223 ms, 193 ms, 186 ms); the previous gate would have paused on that reading. The finalize mode now accepts a prior window as covering the commits since it only when everything changed since is a docs/*.md file, so a doc or ledger commit never costs another window.
