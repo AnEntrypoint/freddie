@@ -27,7 +27,7 @@ function isIntrinsicObjectPrototype(value) {
   return Object.getPrototypeOf(value) === null && hasIntrinsicConstructor(value, 'Object')
 }
 
-function hasPlainArrayPrototype(value) {
+export function hasPlainArrayPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
   const objectPrototype = Object.getPrototypeOf(prototype)
@@ -40,6 +40,10 @@ function hasPlainObjectPrototype(value) {
   const prototype = Object.getPrototypeOf(value)
   return prototype === null
     || typeof prototype === 'object' && isIntrinsicObjectPrototype(prototype)
+}
+
+export function isPlainRecord(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && hasPlainObjectPrototype(value)
 }
 
 function enumerableStringKeys(value) {

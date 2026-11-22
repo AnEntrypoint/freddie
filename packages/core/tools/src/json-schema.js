@@ -1,5 +1,6 @@
 import { assertNever, HarnessError } from '@freddie/freddie-llm'
 import { isJsonValue } from '@freddie/freddie-session'
+import { hasPlainArrayPrototype, isPlainRecord } from '@freddie/freddie-values'
 
 export class JsonSchemaError extends HarnessError {
   constructor(violations) {
@@ -22,43 +23,6 @@ const CONSTRAINT_KEYWORDS = new Set([
 const ANNOTATION_KEYWORDS = new Set(['description', 'title', 'default', 'examples'])
 const SCHEMA_TYPES = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
 
-function hasIntrinsicConstructor(prototype, name) {
-  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
-  const constructor = descriptor?.value
-  if (typeof constructor !== 'function') return false
-  try {
-    return constructor.name === name
-      && constructor.prototype === prototype
-      && Function.prototype.toString.call(constructor) === `function ${name}() { [native code] }`
-  } catch {
-    return false
-  }
-}
-
-function isIntrinsicObjectPrototype(value) {
-  return Object.getPrototypeOf(value) === null && hasIntrinsicConstructor(value, 'Object')
-}
-
-export function isPlainJsonRecord(value) {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  try {
-    const prototype = Object.getPrototypeOf(value)
-    return prototype === null
-      || typeof prototype === 'object' && isIntrinsicObjectPrototype(prototype)
-  } catch {
-    return false
-  }
-}
-
-function hasPlainArrayPrototype(value) {
-  const prototype = Object.getPrototypeOf(value)
-  if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
-  const objectPrototype = Object.getPrototypeOf(prototype)
-  return typeof objectPrototype === 'object'
-    && objectPrototype !== null
-    && isIntrinsicObjectPrototype(objectPrototype)
-}
-
 function hasOnlyEnumerableStringKeys(value) {
   try {
     return Reflect.ownKeys(value)
@@ -69,7 +33,7 @@ function hasOnlyEnumerableStringKeys(value) {
 }
 
 export function isJsonSchemaRecord(value) {
-  return isPlainJsonRecord(value) && hasOnlyEnumerableStringKeys(value)
+  return isPlainRecord(value) && hasOnlyEnumerableStringKeys(value)
 }
 
 export function isPlainJsonArray(value) {
@@ -401,7 +365,7 @@ function checkValue(schema, value, path) {
 
       switch (nodeType) {
         case 'object': {
-          if (!isPlainJsonRecord(frame.value)) {
+          if (!isPlainRecord(frame.value)) {
             finish([`"${diagnosticPath(frame.path)}" must be an object`])
             break
           }

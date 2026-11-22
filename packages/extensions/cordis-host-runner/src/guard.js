@@ -1,43 +1,12 @@
 import { Context } from '@freddie/cordis'
 import { scopeOf } from '@freddie/freddie-scope'
 import { assertSupportedJsonSchema, defineTool } from '@freddie/freddie-tools'
+import { hasPlainArrayPrototype, isPlainRecord } from '@freddie/freddie-values'
 
 const DYNAMIC_TOOL = Symbol('cordis-host-runner.dynamic-tool')
 const SCHEMA_TYPES = new Set(['string', 'number', 'integer', 'boolean', 'null', 'object', 'array', 'json'])
 const VALID_TYPES = '\'string\' | \'number\' | \'integer\' | \'boolean\' | \'null\' | \'object\' | \'array\' | \'json\''
 const ANNOTATION_KEYS = ['description', 'title', 'default', 'examples']
-
-function isPlainRecord(value) {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  const prototype = Object.getPrototypeOf(value)
-  return prototype === null
-    || typeof prototype === 'object'
-      && Object.getPrototypeOf(prototype) === null
-      && hasIntrinsicConstructor(prototype, 'Object')
-}
-
-function hasIntrinsicConstructor(prototype, name) {
-  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'constructor')
-  const constructor = descriptor?.value
-  if (typeof constructor !== 'function') return false
-  try {
-    return constructor.name === name
-      && constructor.prototype === prototype
-      && Function.prototype.toString.call(constructor) === `function ${name}() { [native code] }`
-  } catch {
-    return false
-  }
-}
-
-function hasPlainArrayPrototype(value) {
-  const prototype = Object.getPrototypeOf(value)
-  if (!Array.isArray(prototype) || !hasIntrinsicConstructor(prototype, 'Array')) return false
-  const objectPrototype = Object.getPrototypeOf(prototype)
-  return typeof objectPrototype === 'object'
-    && objectPrototype !== null
-    && Object.getPrototypeOf(objectPrototype) === null
-    && hasIntrinsicConstructor(objectPrototype, 'Object')
-}
 
 function isDensePlainArray(value) {
   if (!Array.isArray(value) || !hasPlainArrayPrototype(value) || Reflect.ownKeys(value).length !== value.length + 1) {

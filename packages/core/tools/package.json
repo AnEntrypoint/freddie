@@ -40,7 +40,8 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/schemastery": "*"
+    "@freddie/schemastery": "*",
+    "@freddie/freddie-values": "*"
   },
   "devDependencies": {
     "@freddie/freddie-agent": "*",

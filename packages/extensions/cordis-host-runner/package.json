@@ -35,7 +35,8 @@
   "dependencies": {
     "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "@freddie/freddie-values": "*"
   },
   "peerDependencies": {
     "@freddie/cordis": "*",

@@ -3757,6 +3757,9 @@ importers:
 
   packages/core/tools:
     dependencies:
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -4041,6 +4044,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
+      '@freddie/freddie-values':
+        specifier: '*'
+        version: link:../../util/values
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
