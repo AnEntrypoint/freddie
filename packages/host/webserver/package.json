@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -27,15 +24,13 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/cordis": "*"
   }
 }

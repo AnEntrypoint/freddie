@@ -15,7 +15,6 @@ Supplements the repo-wide [conventions](../AGENTS.md#conventions).
 - **Publish state only at its commit point:** emit notifications and update derived state after success; derive caches, prompts, UI echoes, replay and query views from one authoritative source.
 - **Apply bounds to the complete result** (byte, token, item, time), including wrappers and metadata. Exercise tiny, exact, oversized-single-chunk and multibyte-byte limits.
 - **Registry contributions prove disposal live:** dispose the fiber, observe removal.
-- **Every package owns `./invariant`.** Register the manifest name; check an event/data relation, or give empty installers package-specific `No runtime invariant:` reasons. Generated companions, unexplained empties and ignored reporters are defects; no script gates them; review each against these rules ([contract](../.agents/notes/implemented/architecture/2026-07-19-package-invariant-runtime-contracts.md)).
 
 [Naming rules](../docs/cookbook/adding-a-package.md#name-the-role-that-exists):
 

@@ -19,16 +19,12 @@
     "./startup": {
       "default": "./src/startup.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/startup.js",
     "cordis.patch.yml"
   ],
@@ -46,7 +42,6 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-user-approval": "*"
@@ -54,7 +49,6 @@
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-user-approval": "*"

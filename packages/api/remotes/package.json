@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -67,7 +64,6 @@
     "@freddie/freddie-file-reference": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-job-controller": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-message-feedback": "*",
@@ -94,7 +90,6 @@
     "@freddie/freddie-file-reference": "*",
     "@freddie/freddie-goal": "*",
     "@freddie/freddie-host-plugin-inventory": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-job-controller": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-message-feedback": "*",

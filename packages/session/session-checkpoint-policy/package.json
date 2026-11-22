@@ -16,20 +16,15 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
-    "src/index.js",
-    "src/invariant.js"
+    "src/index.js"
   ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
@@ -40,7 +35,6 @@
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-agent-loop": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",

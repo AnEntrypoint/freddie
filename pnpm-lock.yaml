@@ -460,9 +460,6 @@ importers:
       '@freddie/freddie-attachment':
         specifier: '*'
         version: link:../../attachment/attachment
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -491,9 +488,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-registry':
         specifier: '*'
         version: link:../../typert/registry
@@ -519,9 +513,6 @@ importers:
       '@freddie/freddie-api-gateway':
         specifier: '*'
         version: link:../gateway
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../../jobs/jobs
@@ -547,9 +538,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -612,9 +600,6 @@ importers:
       '@freddie/freddie-host-plugin-inventory':
         specifier: '*'
         version: link:../../host/plugin-inventory
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-job-controller':
         specifier: '*'
         version: link:../job-controller
@@ -695,9 +680,6 @@ importers:
       '@freddie/freddie-credentials':
         specifier: '*'
         version: link:../../credentials/credentials
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -754,9 +736,6 @@ importers:
       '@freddie/freddie-host-directory-picker':
         specifier: '*'
         version: link:../../host/directory-picker
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -782,9 +761,6 @@ importers:
       '@freddie/freddie-fs':
         specifier: '*'
         version: link:../../fs/fs
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -801,9 +777,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/attachment/attachment-local:
     dependencies:
@@ -826,9 +799,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/boot/app-boot:
     dependencies:
@@ -860,9 +830,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
@@ -885,9 +852,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -925,9 +889,6 @@ importers:
       '@freddie/freddie-atomic-write':
         specifier: '*'
         version: link:../../util/atomic-write
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/boot/plugin-manager:
     devDependencies:
@@ -940,9 +901,6 @@ importers:
       '@freddie/freddie-config-editor':
         specifier: '*'
         version: link:../config-editor
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/browser-use/browser-use:
     devDependencies:
@@ -968,9 +926,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -993,9 +948,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/bundle/base:
     dependencies:
@@ -1273,9 +1225,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/bundle/headless:
     dependencies:
@@ -1307,9 +1256,6 @@ importers:
       '@freddie/freddie-agent-default-model':
         specifier: '*'
         version: link:../../core/agent-default-model
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -1338,9 +1284,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -1633,9 +1576,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-shell-env':
         specifier: '*'
         version: link:../../shell/shell-env
@@ -1673,9 +1613,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -1701,9 +1638,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/file-upload:
     dependencies:
@@ -1726,9 +1660,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/hmr:
     dependencies:
@@ -1754,9 +1685,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
     optionalDependencies:
       '@freddie/freddie-client-web':
         specifier: '*'
@@ -1795,9 +1723,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -1820,9 +1745,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/runtime:
     devDependencies:
@@ -1850,9 +1772,6 @@ importers:
       '@freddie/freddie-host-apiproxy':
         specifier: '*'
         version: link:../../host/apiproxy
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -1899,9 +1818,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-agent-preset:
     dependencies:
@@ -1936,9 +1852,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-artifacts:
     dependencies:
@@ -1964,9 +1877,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-attachment:
     dependencies:
@@ -1995,9 +1905,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-brand-official:
     dependencies:
@@ -2020,9 +1927,6 @@ importers:
       '@freddie/freddie-client-ui-sidebar':
         specifier: '*'
         version: link:../ui-sidebar
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-commands:
     dependencies:
@@ -2063,9 +1967,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-conversation:
     dependencies:
@@ -2130,9 +2031,6 @@ importers:
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../goal/goal
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm-retry':
         specifier: '*'
         version: link:../../llm/llm-retry
@@ -2188,9 +2086,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
@@ -2222,9 +2117,6 @@ importers:
       '@freddie/freddie-client-ui-workspace':
         specifier: '*'
         version: link:../ui-workspace
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-directory-picker-native:
     dependencies:
@@ -2247,9 +2139,6 @@ importers:
       '@freddie/freddie-client-ui-workspace':
         specifier: '*'
         version: link:../ui-workspace
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-goal:
     dependencies:
@@ -2284,9 +2173,6 @@ importers:
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../../goal/goal
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -2321,9 +2207,6 @@ importers:
       '@freddie/freddie-file-reference':
         specifier: '*'
         version: link:../../context/file-reference
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-jobs:
     dependencies:
@@ -2349,9 +2232,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-layout:
     dependencies:
@@ -2380,9 +2260,6 @@ importers:
       '@freddie/freddie-client-ui-theme':
         specifier: '*'
         version: link:../ui-theme
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-message-feedback:
     dependencies:
@@ -2414,9 +2291,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-message-feedback':
         specifier: '*'
         version: link:../../feedback/message-feedback
@@ -2463,9 +2337,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-open-in-app:
     dependencies:
@@ -2488,9 +2359,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-permission-presets:
     dependencies:
@@ -2528,9 +2396,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-permission-presets':
         specifier: '*'
         version: link:../../interaction/permission-presets
@@ -2562,9 +2427,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-plan-mode':
         specifier: '*'
         version: link:../../plan/plan-mode
@@ -2629,9 +2491,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-reference:
     devDependencies:
@@ -2656,9 +2515,6 @@ importers:
       '@freddie/freddie-file-reference':
         specifier: '*'
         version: link:../../context/file-reference
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session-reference':
         specifier: '*'
         version: link:../../context/session-reference
@@ -2684,9 +2540,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-settings:
     dependencies:
@@ -2709,9 +2562,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -2755,9 +2605,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -2792,9 +2639,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-settings-plugin-inventory:
     dependencies:
@@ -2823,9 +2667,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-settings-plugins:
     dependencies:
@@ -2854,9 +2695,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-settings-subagent:
     dependencies:
@@ -2888,9 +2726,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -2922,9 +2757,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-sidebar:
     dependencies:
@@ -2953,9 +2785,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-skill:
     dependencies:
@@ -2990,18 +2819,12 @@ importers:
       '@freddie/freddie-client-ui-tool':
         specifier: '*'
         version: link:../ui-tool
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-slots:
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-subagent:
     dependencies:
@@ -3030,9 +2853,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-subagent':
         specifier: '*'
         version: link:../../subagent/subagent
@@ -3076,9 +2896,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -3116,9 +2933,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-trajectory:
     dependencies:
@@ -3156,9 +2970,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../../compaction/compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
@@ -3199,9 +3010,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
@@ -3236,9 +3044,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -3282,9 +3087,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/ui-workspace-files:
     dependencies:
@@ -3310,9 +3112,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/vendor-modules:
     dependencies:
@@ -3395,9 +3194,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../../host/webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/client/web:
     devDependencies:
@@ -3419,9 +3215,6 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/webjsx':
         specifier: '*'
         version: link:../../../framework/webjsx
@@ -3431,9 +3224,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/code-runtime/code-runtime-worker-thread:
     dependencies:
@@ -3450,9 +3240,6 @@ importers:
       '@freddie/freddie-code-runtime':
         specifier: '*'
         version: link:../code-runtime
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -3484,9 +3271,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3505,9 +3289,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3548,9 +3329,6 @@ importers:
       '@freddie/freddie-compaction-tool-result-pruner':
         specifier: '*'
         version: link:../compaction-tool-result-pruner
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3588,9 +3366,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3616,9 +3391,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3665,9 +3437,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3699,9 +3468,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -3724,9 +3490,6 @@ importers:
       '@freddie/freddie-file-reference':
         specifier: '*'
         version: link:../file-reference
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
@@ -3755,9 +3518,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../../compaction/compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3789,9 +3549,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3820,9 +3577,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3845,9 +3599,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3879,9 +3630,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3904,9 +3652,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -3947,9 +3692,6 @@ importers:
       '@freddie/freddie-code-runtime':
         specifier: '*'
         version: link:../../code-runtime/code-runtime
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-scope':
         specifier: '*'
         version: link:../scope
@@ -3968,9 +3710,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/core/session:
     dependencies:
@@ -3984,9 +3723,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4012,9 +3748,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4037,9 +3770,6 @@ importers:
       '@freddie/freddie-code-runtime':
         specifier: '*'
         version: link:../../code-runtime/code-runtime
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4064,9 +3794,6 @@ importers:
       '@freddie/freddie-credentials':
         specifier: '*'
         version: link:../credentials
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4079,9 +3806,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/credentials/credentials-local:
     dependencies:
@@ -4110,9 +3834,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
@@ -4138,9 +3859,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4181,9 +3899,6 @@ importers:
       '@freddie/freddie-browser-use':
         specifier: '*'
         version: link:../../browser-use/browser-use
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
@@ -4212,9 +3927,6 @@ importers:
       '@freddie/freddie-browser-use':
         specifier: '*'
         version: link:../../browser-use/browser-use
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-system-prompt':
         specifier: '*'
         version: link:../../core/system-prompt
@@ -4241,9 +3953,6 @@ importers:
       '@freddie/freddie-browser-use':
         specifier: '*'
         version: link:../../browser-use/browser-use
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-mcp-client':
         specifier: '*'
         version: link:../../mcp/mcp-client
@@ -4275,9 +3984,6 @@ importers:
       '@freddie/freddie-experimental-agent-team':
         specifier: '*'
         version: link:../agent-team
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-scope':
         specifier: '*'
         version: link:../../core/scope
@@ -4329,9 +4035,6 @@ importers:
       '@freddie/freddie-client-ui-theme':
         specifier: '*'
         version: link:../../client/ui-theme
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/extensions/cordis-host-runner:
     dependencies:
@@ -4357,9 +4060,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4394,9 +4094,6 @@ importers:
       '@freddie/freddie-cordis-host-runner':
         specifier: '*'
         version: link:../cordis-host-runner
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4448,9 +4145,6 @@ importers:
       '@freddie/freddie-cordis-client-runner':
         specifier: '*'
         version: link:../cordis-client-runner
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/webjsx':
         specifier: '*'
         version: link:../../../framework/webjsx
@@ -4475,9 +4169,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4512,9 +4203,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4548,9 +4236,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4573,9 +4258,6 @@ importers:
       '@freddie/freddie-fs':
         specifier: '*'
         version: link:../fs
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4588,9 +4270,6 @@ importers:
       '@freddie/freddie-fs':
         specifier: '*'
         version: link:../fs
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4610,9 +4289,6 @@ importers:
       '@freddie/freddie-fs-local':
         specifier: '*'
         version: link:../fs-local
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -4653,9 +4329,6 @@ importers:
       '@freddie/freddie-fs-observation-policy':
         specifier: '*'
         version: link:../fs-observation-policy
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4699,9 +4372,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4757,9 +4427,6 @@ importers:
       '@freddie/freddie-fs-sandbox':
         specifier: '*'
         version: link:../fs-sandbox
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4796,9 +4463,6 @@ importers:
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../goal
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4827,9 +4491,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4864,9 +4525,6 @@ importers:
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../goal
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4898,9 +4556,6 @@ importers:
       '@freddie/freddie-goal':
         specifier: '*'
         version: link:../goal
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4929,9 +4584,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -4947,9 +4599,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5059,9 +4708,6 @@ importers:
       '@freddie/freddie-cordis-host-runner':
         specifier: '*'
         version: link:../../extensions/cordis-host-runner
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
@@ -5080,9 +4726,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/directory-picker-auto:
     dependencies:
@@ -5117,9 +4760,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/directory-picker-browse:
     dependencies:
@@ -5136,9 +4776,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/directory-picker-native:
     dependencies:
@@ -5155,9 +4792,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/frontend-static:
     dependencies:
@@ -5177,9 +4811,6 @@ importers:
       '@freddie/freddie-host-webserver':
         specifier: '*'
         version: link:../webserver
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/host-adapter:
     devDependencies:
@@ -5230,9 +4861,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -5261,9 +4889,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/host/webserver:
     dependencies:
@@ -5277,9 +4902,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/identity/anonymous-user-id:
     dependencies:
@@ -5296,9 +4918,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/interaction/auto-review:
     dependencies:
@@ -5343,9 +4962,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5371,9 +4987,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -5404,9 +5017,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5438,9 +5048,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5462,9 +5069,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5480,9 +5084,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -5508,9 +5109,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../jobs
@@ -5536,9 +5134,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../jobs
@@ -5579,9 +5174,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-timeout':
         specifier: '*'
         version: link:../../util/timeout
@@ -5622,9 +5214,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
@@ -5662,9 +5251,6 @@ importers:
       '@freddie/freddie-credentials':
         specifier: '*'
         version: link:../../credentials/credentials
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-launch-environment':
         specifier: '*'
         version: link:../../util/launch-environment
@@ -5705,9 +5291,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../llm
@@ -5742,9 +5325,6 @@ importers:
       '@freddie/freddie-compaction':
         specifier: '*'
         version: link:../../compaction/compaction
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../llm
@@ -5779,9 +5359,6 @@ importers:
       '@freddie/freddie-attachment-local':
         specifier: '*'
         version: link:../../attachment/attachment-local
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5815,9 +5392,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5870,9 +5444,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5904,9 +5475,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-scope':
         specifier: '*'
         version: link:../../core/scope
@@ -5926,19 +5494,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../invariants
-
-  packages/runtime-diagnostics/invariants:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
 
   packages/sandbox/sandbox:
     dependencies:
@@ -5949,9 +5504,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -5974,9 +5526,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6002,9 +5551,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../sandbox
@@ -6032,9 +5578,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6063,9 +5606,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6094,9 +5634,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6151,9 +5688,6 @@ importers:
       '@freddie/freddie-commands':
         specifier: '*'
         version: link:../../interaction/commands
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6169,9 +5703,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6203,9 +5734,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6228,9 +5756,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6280,9 +5805,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6316,9 +5838,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6346,9 +5865,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-scope':
         specifier: '*'
         version: link:../../core/scope
@@ -6371,9 +5887,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6386,9 +5899,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6402,9 +5912,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6432,9 +5939,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6453,9 +5957,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6496,9 +5997,6 @@ importers:
       '@freddie/freddie-command-feedback':
         specifier: '*'
         version: link:../../feedback/command-feedback
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6524,9 +6022,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6555,9 +6050,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6589,9 +6081,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6620,9 +6109,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6647,9 +6133,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6672,9 +6155,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/settings/settings-file:
     dependencies:
@@ -6700,9 +6180,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../settings
@@ -6719,9 +6196,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-settings':
         specifier: '*'
         version: link:../../settings/settings
@@ -6746,9 +6220,6 @@ importers:
       '@freddie/freddie-bash-local':
         specifier: '*'
         version: link:../bash-local
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -6773,9 +6244,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -6801,9 +6269,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6838,9 +6303,6 @@ importers:
       '@freddie/freddie-bash-local':
         specifier: '*'
         version: link:../bash-local
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../../jobs/jobs
@@ -6905,9 +6367,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6948,9 +6407,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -6967,9 +6423,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-skill':
         specifier: '*'
         version: link:../skill
@@ -6998,9 +6451,6 @@ importers:
       '@freddie/freddie-home-paths':
         specifier: '*'
         version: link:../../util/home-paths
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-skill':
         specifier: '*'
         version: link:../skill
@@ -7020,9 +6470,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7050,9 +6497,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7075,9 +6519,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7106,9 +6547,6 @@ importers:
       '@freddie/freddie-code-runtime-worker-thread':
         specifier: '*'
         version: link:../../code-runtime/code-runtime-worker-thread
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7130,9 +6568,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/storage/storage-domain:
     dependencies:
@@ -7143,9 +6578,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../storage
@@ -7162,9 +6594,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../storage
@@ -7187,9 +6616,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../../jobs/jobs
@@ -7251,9 +6677,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7297,9 +6720,6 @@ importers:
       '@freddie/freddie-fs-sandbox':
         specifier: '*'
         version: link:../../fs/fs-sandbox
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7349,9 +6769,6 @@ importers:
       '@freddie/freddie-bash-local':
         specifier: '*'
         version: link:../../shell/bash-local
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7392,9 +6809,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../../jobs/jobs
@@ -7440,9 +6854,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7483,9 +6894,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7523,9 +6931,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/subprocess/subprocess-local:
     dependencies:
@@ -7539,9 +6944,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../subprocess
@@ -7560,9 +6962,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -7582,9 +6981,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
@@ -7628,9 +7024,6 @@ importers:
       '@freddie/freddie-host-apiproxy':
         specifier: '*'
         version: link:../../host/apiproxy
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7665,9 +7058,6 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-typert-registry':
         specifier: '*'
         version: link:../registry
@@ -7677,9 +7067,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/typert/registry:
     dependencies:
@@ -7690,9 +7077,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/atomic-write:
     dependencies:
@@ -7703,18 +7087,12 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/brand:
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/crypto: {}
 
@@ -7729,9 +7107,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/http-proxy:
     dependencies:
@@ -7751,9 +7126,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/native-command:
     dependencies:
@@ -7764,18 +7136,12 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/output-retention:
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/runtime: {}
 
@@ -7786,9 +7152,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
 
   packages/util/values: {}
 
@@ -7810,9 +7173,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7853,9 +7213,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7872,9 +7229,6 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-timeout':
         specifier: '*'
         version: link:../../util/timeout
@@ -7900,9 +7254,6 @@ importers:
       '@freddie/freddie-agent-loop':
         specifier: '*'
         version: link:../../core/agent-loop
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -7946,9 +7297,6 @@ importers:
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-jobs':
         specifier: '*'
         version: link:../../jobs/jobs
@@ -7985,9 +7333,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -8016,9 +7361,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
@@ -8053,9 +7395,6 @@ importers:
       '@freddie/freddie-brand':
         specifier: '*'
         version: link:../../util/brand
-      '@freddie/freddie-invariants':
-        specifier: '*'
-        version: link:../../runtime-diagnostics/invariants
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session

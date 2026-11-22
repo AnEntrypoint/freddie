@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client.js"
     },
@@ -31,7 +28,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-projection": "*",
@@ -42,7 +38,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-projection": "*",

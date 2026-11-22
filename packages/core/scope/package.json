@@ -16,25 +16,19 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/store.js",
     "src/scoped-events.generated.js"
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   }
 }

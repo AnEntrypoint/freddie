@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -42,7 +39,6 @@
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-settings": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
@@ -52,7 +48,6 @@
     "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/freddie-client-ui-settings": "*",
     "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "dependencies": {
@@ -60,7 +55,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/client/index.js",
     "src/client/locales.js",
     "src/client/plugin-manager-port.js",

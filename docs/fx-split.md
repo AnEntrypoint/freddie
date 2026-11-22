@@ -206,7 +206,6 @@ Node-only uses that stay outside the adapter, each by design:
 | packages/fs/tool-fs/src/read-render.js | Buffer x1 |
 | packages/fs/tool-str-replace-editor/src/index.js | modules: path |
 | packages/goal/goal-round-driver/src/index.js | modules: util |
-| packages/goal/goal-round-driver/src/invariant.js | modules: util |
 | packages/goal/goal/src/index.js | modules: crypto |
 | packages/host/apiproxy/src/api-proxy.js | modules: crypto, fs-promises, os, path; Buffer x3 |
 | packages/host/apiproxy/src/fetch/handler.js | modules: crypto |
@@ -318,7 +317,6 @@ Node-only uses that stay outside the adapter, each by design:
 | packages/workspace/workspace/src/index.js | modules: crypto, fs-promises, path |
 | packages/workspace/workspace/src/paths.js | modules: fs-promises |
 
-
 ## txiki implementation of the runtime contract (Phase A)
 
 packages/util/runtime/src/txiki.js is the second implementation of the contract. txikiRuntime has the same keys as nodeRuntime, and src/install-txiki.js installs it. It imports only tjs:path, tjs:ipaddr and tjs:utils, and it uses the tjs global and web globals (TextEncoder, TextDecoder, URL, atob, btoa, crypto, performance, MessageChannel, setTimeout). It imports no Node built-in.
@@ -355,7 +353,6 @@ Loader limit for fx: gm's run_code loader (native/components/quickjs/engine.cpp,
 
 The contract test lives in packages/util/runtime/test. contract-names.js lists 114 names across 25 subpaths, generated from the subpath files. contract-node.js installs the Node runtime and contract-txiki.js installs the txiki runtime; each checks every listed name. They run as node test/contract-node.js and tjs test/contract-txiki.js. The txiki entry needs no import map, because the subpaths use relative imports. This host has no standalone tjs CLI; the txiki check ran inside gm's pinned txiki (run_code), which loads the same files.
 
-
 ## Open runtime items, ranked (2026-11-19)
 
 Items that need no owner decision and no credential, ranked by how close each is to a verified result. Each row names what it needs before it counts as done.
@@ -384,7 +381,6 @@ Found by the parity run: gm's txiki loader does not resolve symlinks to one real
 - crypto.randomBytes with a callback fills the bytes synchronously and calls back from a setTimeout(0) turn. Node calls back from its thread pool, so the ordering of the callback is the same but the timing is not.
 - util.isDeepStrictEqual and util.parseEnv are pure-JS reimplementations of Node's semantics and grammar. They are checked by the 102 shared cases in test/parity-cases.js, not against Node's full test suite. Edge cases outside those cases (WeakMap, Proxy, getters with side effects, unusual dotenv quoting) are unverified.
 
-
 ## zlib gzip and gunzip under txiki (2026-11-19): gaps, decided
 
 Decision (zlib.gunzip superseded 2026-11-19, see the gunzip section below; zlib.gzip superseded 2026-11-19, see the stored-block section): zlib.gzip and zlib.gunzip are gaps under txiki. They are not present names. Each throws the documented gap message when called: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)", and the same with zlib.gunzip.
@@ -401,7 +397,6 @@ What settles it: a txiki build with a working zlib backend. Then restore the imp
 
 Not taken: a pure-JS deflate and inflate. That is an owner decision (an owned codec of several hundred lines, or a new dependency).
 
-
 ## os.networkInterfaces and util.parseArgs under txiki (2026-11-19)
 
 os.networkInterfaces. tjs.system.networkInterfaces returns one flat array of { name, mac, address, netmask, internal }, with scopeId on IPv6 entries. It has no family or cidr and is not keyed by name. The txiki implementation regroups it into Node's shape: one array per interface name, in first-seen order, with address, netmask, family, mac, internal and cidr. family is IPv6 when the address contains a colon and IPv4 otherwise. cidr is the address plus the prefix length counted from the netmask; an IPv6 netmask is expanded from its :: form first. scopeid is set on IPv6 entries only, as Node does. The parity cases check the loopback entries, the key sets, mac, scopeid and grouping. They assume a Linux loopback named lo, which is what this suite runs on.
@@ -411,7 +406,6 @@ util.parseArgs. Implemented in pure JS in src/txiki.js for the common forms: sho
 Gap: util.parseArgs without args. Node reads process.argv when args is omitted. txiki has no JS-level argv equal to Node's, so args is required, and omitting it throws the documented gap message (asserted in the gap cases).
 
 Not covered: config validation of option definitions (the documented contract is trusted, not re-checked), and any parseArgs option beyond those listed above.
-
 
 ## Remaining txiki gap names, ranked by pure-JS feasibility (2026-11-19)
 
@@ -444,11 +438,9 @@ Excluded, with the reason:
 
 Counts before the stream change (2026-11-19): 21 fs names (18 sync, createReadStream, watchFile, unwatchFile), 1 crypto, 4 stream, 2 module, 4 child-process, 2 os, 1 worker-threads, 1 async-hooks, 3 vm, 2 http, 7 zlib, 1 inspector: 49.
 
-
 ## os.release under txiki (2026-11-19)
 
 txiki's file reads are async and os.release is synchronous, so the release is read once when the txiki module loads (a top-level await of tjs.readFile on /proc/sys/kernel/osrelease, trailing newline removed) and os.release returns the cached string. A missing file (ENOENT, the error txiki gives on a non-Linux host) makes os.release the documented gap; any other read error is rethrown at load. The parity cases compare os.release with the file read through the runtime's fs-promises, and check its shape. The gap entry for os.release runs only when the gap is active (its applies predicate); on this Linux host it is inactive and is counted as such. The non-Linux branch has not been run on a non-Linux host.
-
 
 ## fs.watchFile and fs.unwatchFile under txiki (2026-11-19)
 
@@ -463,7 +455,6 @@ Decisions:
 - The txiki gap list drops fs.watchFile and fs.unwatchFile: 47 becomes 45.
 
 The timing-based shared cases set a 20 ms interval, wait a bounded number of intervals before each change, and fail with a count message after 2000 ms if no event arrives. Each case removes its watcher in a finally block, so a failing case cannot keep the process alive.
-
 
 ## Remaining txiki gap names, ranked (2026-11-19, after crypto.createHash)
 
@@ -517,7 +508,6 @@ The 45 names still declared as gaps, ranked by how close each is to a verified p
 
 Counts: 14 lines that are pure JS or need a decision, fx or dependency (1 to 14); 31 lines that need a native change (15 to 45).
 
-
 ## zlib gunzip under txiki (2026-11-19): pure-JS inflate
 
 zlib.gunzip is a present name. src/txiki.js implements RFC 1951 inflate and RFC 1952 gzip framing in pure JS, with a CRC-32 check. Node is the oracle for every shared case in test/parity-cases.js:
@@ -534,7 +524,6 @@ Decisions:
 - Not checked against Node: the messages for other malformed streams (invalid block type, invalid distance, invalid code). They exist, but no fixture produces them, so they are unverified.
 - zlib.gzip is a stored-block encoder since 2026-11-19 (see its section); compressed bytes still differ. Its bytes differ from Node's deflate, and the byte-parity decision stays with the owner.
 
-
 ## zlib.gzip byte parity: decided open (2026-11-19)
 
 Decision (part superseded 2026-11-19): zlib.gzip is no longer a gap; its output is stored-block gzip. Compressed byte parity stays open, asserted in the gap check. Byte parity with Node's deflate is recorded as open, not closed.
@@ -542,7 +531,6 @@ Decision (part superseded 2026-11-19): zlib.gzip is no longer a gap; its output 
 Reason: Node's default output comes from zlib's deflate (lazy matching, hash chains, dynamic Huffman tree construction, block splitting). Reproducing its bytes exactly is a separate, large algorithm port, and no shipped caller needs it: the agent code paths that gzip only need a valid gzip stream. A round trip through Node's gunzip and the txiki gunzip verifies correctness without byte parity, so a partial implementation would add a surface that matches only some levels. Keeping the name a gap keeps the contract honest.
 
 What would reopen it: a caller that depends on Node's exact compressed bytes (for example a stored checksum over gzipped output), or a decision to port zlib's deflate. Until then compressed byte parity stays open. The retired gap message was: "@freddie/freddie-runtime: txiki.js has no zlib.gzip, see docs/fx-split.md (txiki gaps)".
-
 
 ## child-process.execFile under txiki (2026-11-19)
 
@@ -561,7 +549,6 @@ Decisions, each reversible, with its reason:
 Verified (Node oracle, all through the parity suite): stdout and stderr capture; nonzero exit; encoding buffer; SIGTERM; SIGKILL with partial stdout; empty command; missing command; callback ordering; callback omitted; the cwd gap. Not verified: stdin, large output, timing under load, and Windows. The gap check asserts the cwd gap message.
 
 zlib.gzip byte parity remains open, as recorded in the zlib.gzip section above.
-
 
 ## child-process.spawn under txiki (2026-11-19)
 
@@ -664,7 +651,6 @@ Design choices, each with its reason:
 - close waits for the stdout stream to end when a consumer exists. When none exists at exit, the stream is resumed and drained, so close fires and the data is discarded, as Node does.
 
 Not verified: destroy, pause and resume of the stdout stream while attached, the stdout close event, backpressure timing with a slow reader, and stdout after a spawn failure (ENOENT ends the stream at once; not compared with Node yet).
-
 
 ## Declared gaps outside the stream group, ranked (2026-11-19, after os.platform and process.platform)
 

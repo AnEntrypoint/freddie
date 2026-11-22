@@ -14,9 +14,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -35,7 +32,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-browser-use": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"
@@ -43,7 +39,6 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-browser-use": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"

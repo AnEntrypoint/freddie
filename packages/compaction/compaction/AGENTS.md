@@ -2,8 +2,6 @@
 
 ## Rationale
 
-- `src/invariant.js` `install` `seed`: constructor-seed repair boundaries can precede the `session/end-seed` marker that proves an inherited orphan compaction stale. The inherited prefix is replayed with turn-boundary validation skipped while the open bracket's start seq is in `staleOrphanStartSeqs`, so a bracket about to be cleared cannot veto its own repair.
-
 ## Compaction contracts
 - The durable `compaction/start` marker is the compaction lock until one `compaction/end`; a failed close deliberately leaves the unmatched start detectable. Ranges are surface positions, not seq order, and both edges must be tool-pairing balanced (`toolPairingBalancedBefore/After`).
 - The replacement user message must use `compactCheckpointSource` with the transaction's `CompactionId`. `checkpoint.js` stays free of cordis imports so client/wire code can name the source.

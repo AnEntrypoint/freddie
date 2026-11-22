@@ -2,7 +2,9 @@
   "name": "@freddie/freddie-session-artifacts",
   "description": "Durable, revisioned conversation artifacts and memory records",
   "version": "0.1.1-rc.2",
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lanmower/freddie.git",
@@ -11,14 +13,21 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": { "default": "./src/index.js" },
-    "./invariant": { "default": "./src/invariant.js" },
-    "./remote": { "default": "./src/typert.remote-client.js" },
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./remote": {
+      "default": "./src/typert.remote-client.js"
+    },
     "./src/*": "./src/*",
-    "./typert": { "default": "./src/typert.host.js" },
+    "./typert": {
+      "default": "./src/typert.host.js"
+    },
     "./package.json": "./package.json"
   },
-  "files": ["src/**/*.js"],
+  "files": [
+    "src/**/*.js"
+  ],
   "license": "MIT",
   "dependencies": {
     "@freddie/freddie-runtime": "*",
@@ -27,7 +36,6 @@
   },
   "peerDependencies": {
     "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
@@ -37,7 +45,6 @@
   },
   "devDependencies": {
     "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",

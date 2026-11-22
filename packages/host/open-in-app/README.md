@@ -87,4 +87,3 @@ None; the package never assembles or sends a provider request.
 
 </details>
 
-**Runtime invariant:** The `./invariant` companion (`host-open-in-app-invariant`) reserves package ownership and installs no check. The package serves one host resolution pass over three stateless routes; the route registrations prove disposal through their cordis effects, and no independent observations can diverge.

@@ -201,7 +201,6 @@ export class FileSettingsProvider extends SettingsProvider {
     try {
       await this.reconcileFromDisk()
     } catch (error) {
-      if ((error)?.code === 'INVARIANT') throw error
       this.ctx.logger.warn('settings-file: reload failed at %s; keeping the last good document', this.spec.filename)
       this.ctx.logger.warn(error)
     }

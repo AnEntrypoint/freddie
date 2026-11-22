@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -27,7 +24,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/types.js",
     "src/dispatch.js",
     "src/inbox.js",
@@ -37,7 +33,6 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
@@ -46,7 +41,6 @@
     "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",

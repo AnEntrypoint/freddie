@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -36,7 +33,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/types.js",
     "src/brand.js",
     "src/typert.host.js",
@@ -48,7 +44,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-attachment": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
@@ -62,7 +57,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-attachment": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",

@@ -95,7 +95,6 @@ export class CredentialProvider extends Service {
   }
 
   fanOut(event, subject) {
-    let invariantFailure
     const args = [event, subject]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
       try {
@@ -106,14 +105,9 @@ export class CredentialProvider extends Service {
           })
         }
       } catch (error) {
-        if (error?.code === 'INVARIANT') {
-          invariantFailure ??= error
-          continue
-        }
         this.warnListenerFailure(event, subject, error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure
   }
 
   warnListenerFailure(event, subject, error) {

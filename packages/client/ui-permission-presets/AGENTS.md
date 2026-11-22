@@ -12,4 +12,3 @@
 
 - `src/client/settings-store.js` takes the permission descriptor from the shared describe mirror because the dynamic preset enum lives in the namespace schema, which per-namespace scopes do not carry; writes target only `defaultPreset`, carry the descriptor revision and fold their answer back into the mirror. A `select` during a save is ignored (the row control is disabled while saving, so only programmatic double-submits are dropped).
 
-- `src/invariant.js` installs nothing. No runtime invariant: the browser half owns no host events or cross-plugin mutable state; command and slot contribution lifecycles are proven by the HMR-safety spec.

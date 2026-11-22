@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -33,7 +30,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/types.js",
     "src/typert.host.js",
     "src/typert.remote-client.js",
@@ -46,14 +42,12 @@
   "peerDependencies": {
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   }

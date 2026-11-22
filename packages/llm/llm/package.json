@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -38,7 +35,6 @@
   "peerDependencies": {
     "@freddie/freddie-attachment": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-timeout": "*",
     "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"
@@ -50,7 +46,6 @@
   "devDependencies": {
     "@freddie/freddie-attachment": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-timeout": "*",
     "@freddie/freddie-values": "*",
     "@freddie/cordis": "*"

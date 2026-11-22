@@ -16,8 +16,6 @@ The listener signature is not restated here. Each allowlisted event's cordis `Ev
 
 ## Build boundary
 
-The workspace is buildless plain JavaScript: there is no `tsconfig.json`, no `tsdown`, and no compiled `lib/` output anywhere in the repository. This package ships its source directly through `package.json` `exports` — `.` at `src/index.js`, `./invariant` at `src/invariant.js`, and `./client` at `src/client/index.js` — the same subpath shape any other package with a browser-loaded assembly uses; `api-remotes` needs no separate build-face split to make that work.
-
 `src/remote-events.js` holds `API_REMOTE_FORWARDED_EVENTS`, the single allowlist both the Host forwarding loop and the Client `ctx.remote.$on` key face read; there is no second, generated copy to keep in sync because both sides `import` the one file at runtime.
 
 ## Model Experience

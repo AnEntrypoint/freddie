@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -43,7 +40,6 @@
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-conversation": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-message-feedback": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
@@ -56,7 +52,6 @@
     "@freddie/freddie-client-ui-conversation": "*",
     "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-message-feedback": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
@@ -66,7 +61,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/client/index.js",
     "src/client/controller.js",
     "src/client/locales.js",

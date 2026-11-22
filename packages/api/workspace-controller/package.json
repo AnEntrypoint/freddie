@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./remote": {
       "default": "./src/typert.remote-client.js"
     },
@@ -38,14 +35,12 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-host-directory-picker": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-workspace": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-host-directory-picker": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-workspace": "*"
   }

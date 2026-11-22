@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client.js"
     },
@@ -33,7 +30,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-agent-presets": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",
@@ -77,7 +73,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-agent-presets": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",

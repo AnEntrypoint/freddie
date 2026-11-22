@@ -8,4 +8,3 @@
 - `src/client/fields.js`: controls never write; `numeric` only hints the keypad; the credential control starts blank and a blank draft keeps the stored key.
 - `src/client/PluginCard.js`: the header is its own button (name stacked over description differs from the shared side-by-side disclosure row); open state is card-local; staged edits survive collapsing, so the header marks unsaved edits; the card renders nothing when its namespace is unavailable.
 - `PluginCard.js`, `PluginsSettingsSection.js`: custom elements replacing React components; state is instance fields, re-render is `applyDiff(this, vdom)`.
-- `src/index.js`: the empty apply exists only so the plugin has a Loader row; the browser half is found via `package.json` `freddie.client`; no namespace is registered here. `src/invariant.js`: no runtime invariant; layering and write refusals are Host contracts.

@@ -10,7 +10,6 @@ There is no configuration. `Config` is the empty schemastery object, so unrecogn
 
 ```js
 import * as compactionImageOffload from '@freddie/freddie-compaction-image-offload'
-import * as compactionImageOffloadInvariant from '@freddie/freddie-compaction-image-offload/invariant'
 
 export function apply(ctx) {
   ctx.plugin(compactionImageOffload)
@@ -26,7 +25,6 @@ An image-capable adapter opts in by ending its failure with `{ code: 'IMAGE_OFFL
 - **`selectOldestImageTargets(session, sourceEventSeqs, count)`** — walks the input message events in the failed request's order and takes image occurrences in depth-first order, including images nested inside `tool-result` blocks. Assistant nodes carry model output and are skipped.
 - **`offloadOldestImages(session, sourceEventSeqs, count)`** — computes the projection once, appends the decision, then lands one replacement per contributing node: a `user/message` or `tool/result` carrying `{ surfaceOp: { op: 'replace', start: seq, end: seq }, sourceEventSeqs: [seq] }`. The complete original event stays in the append-only log for persistence, replay, and inspection.
 - **`imageOffloadProjection`** — validates the decision and reconstructs the replacement messages, so a detached replay reproduces exactly what the live session produced.
-- **`./invariant`** — registers the package-owned checks with `ctx.invariants`: nonempty targets, canonical `seq` and `imageIndexes`, no duplicate sequences, `user/message` or `tool/result` sources, and strictly increasing indexes.
 
 Oldest occurrences go first, so the most recent images survive. A request that names more images than remain offloads what exists and still reports progress; a request that names none returns no retry, so recovery cannot loop.
 

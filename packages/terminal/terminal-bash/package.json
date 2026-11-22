@@ -16,15 +16,11 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/config.js",
     "src/sanitize.js",
     "src/session.js"
@@ -32,7 +28,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",
@@ -46,7 +41,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",

@@ -16,15 +16,11 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/api-catalog.js",
     "src/fiber-state.js",
     "src/inspect.js",
@@ -36,7 +32,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-cordis-host-runner": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
@@ -48,7 +43,6 @@
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-cordis-host-runner": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",

@@ -19,15 +19,11 @@
     "./search": {
       "default": "./src/search.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/search.js"
   ],
   "license": "MIT",
@@ -38,7 +34,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-file-reference": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"
@@ -46,7 +41,6 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-file-reference": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"

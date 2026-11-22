@@ -63,7 +63,7 @@ Declined prompts settle as `cancelled`, not `failed`, because the human saying n
 
 ## Events
 
-`authorization/settled (key, settlement)` fires for **every** terminal outcome, failures included, after the key is released — so a surface watching a key it did not start (a second browser tab) learns the attempt is over. Listener failures are contained and logged without changing the attempt's own outcome, except `INVARIANT`-coded failures, which rethrow after every listener ran; that rethrow reaches the emitter only from synchronous listeners, so invariant checks on this event must not be async functions.
+`authorization/settled (key, settlement)` fires for **every** terminal outcome, failures included, after the key is released — so a surface watching a key it did not start (a second browser tab) learns the attempt is over. Listener failures are contained and logged without changing the attempt's own outcome.
 
 ## Errors
 

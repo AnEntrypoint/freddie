@@ -7,7 +7,6 @@
 - `src/client/SidebarRoot.js` `embedHostedSlotAsWebjsxChild`: `renderSlot` is typed for React's ReactNode (framework hook contract), but for a webjsx-tagged registrant it resolves to a hosted custom element via the slot renderer's WebjsxBridge, so the value is safe as opaque webjsx child content; the helper only casts the type.
 - `src/client/SidebarRoot.js` `SCROLLBAR_LINGER_MS`: the bar is a pointer affordance; hiding it on the leave event itself makes it blink out while the pointer only crosses the column edge (toward the conversation, or around a portalled menu).
 - `src/client/SidebarRoot.js` `COLLAPSE_SETTLE_MS` equals the 150ms `.fading` duration in `SidebarRoot.css`; at settle the wide-only content unmounts and the four upper controls enter the 56px rail from the same horizontal offset (one icon each, same top-down order) on one fade that ends with the slide. The middle region is the `sidebar.workspaces` registrant's, the foot holds `sidebar.settings` plus `sidebar.footer.action`; the shell hands them the wide flag and an expand-request callback.
-- `src/invariant.js`: no runtime invariant. The plugin derives its rows in-component from the standard `useSessions` delivery, emits no cordis events and owns no cross-plugin mutable state.
 
 ## CSS rationale
 

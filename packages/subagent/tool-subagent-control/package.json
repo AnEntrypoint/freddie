@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./list-agents": {
       "default": "./src/list-agents.js"
     },
@@ -27,12 +24,10 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/list-agents.js"
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subagent": "*",
@@ -42,7 +37,6 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-agent-loop": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",

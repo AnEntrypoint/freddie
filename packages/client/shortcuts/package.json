@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -41,15 +38,13 @@
   },
   "peerDependencies": {
     "@freddie/cordis": "*",
-    "@freddie/freddie-client-locale": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-client-locale": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-ui-primitives": "*",
-    "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-client-ui-slots": "*"
   },
   "files": [
     "src/**/*.js"

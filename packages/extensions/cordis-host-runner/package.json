@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -44,7 +41,6 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
@@ -56,7 +52,6 @@
     "@freddie/cordis-plugin-timer": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",

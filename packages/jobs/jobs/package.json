@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./brand": {
       "default": "./src/brand.js"
     },
@@ -32,14 +29,12 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"
   }

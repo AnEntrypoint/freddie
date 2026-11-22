@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -40,7 +37,6 @@
   },
   "devDependencies": {
     "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-conversation": "*",
     "@freddie/freddie-client-ui-primitives": "*",
@@ -49,7 +45,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/AttachmentRail.js",
     "src/AttachmentRail.css.js",
     "src/DropOverlay.js",
@@ -66,7 +61,6 @@
   ],
   "peerDependencies": {
     "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-conversation": "*",
     "@freddie/freddie-attachment": "*"

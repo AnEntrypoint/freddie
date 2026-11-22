@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -30,7 +27,6 @@
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/types.js",
     "src/client.js",
     "src/normalize.js"
@@ -38,7 +34,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-projection": "*",
@@ -50,7 +45,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence-jsonl": "*",

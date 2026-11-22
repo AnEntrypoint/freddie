@@ -8,7 +8,7 @@ Buildless plain ESM `.js`, served as authored. No TypeScript, React, Vite, tsdow
 
 ## Package shape and manifest
 
-Name `@freddie/freddie-client-<dir>`. `exports`: `.` (node half `src/index.js`, an empty `apply` that puts the plugin in the Loader roster), `./invariant`, `./client` (browser half, under `src/`), `./src/*`, `./package.json`; `files` covers every runtime file either half imports (`pnpm run publint`). The package `src/` is served at `/plugins/<id>/~<rev>/…`.
+Name `@freddie/freddie-client-<dir>`. `exports`: `.` (node half `src/index.js`, an empty `apply` that puts the plugin in the Loader roster), `./client` (browser half, under `src/`), `./src/*`, `./package.json`; `files` covers every runtime file either half imports (`pnpm run publint`). The package `src/` is served at `/plugins/<id>/~<rev>/…`.
 
 `freddie.client` (parsed by `resolveMeta`, `modules/src/index.js`; `ui-slots`, `ui-primitives`, `web`, `css-manifest`, `vendor-modules` have none: static, not graph rows):
 
@@ -16,8 +16,6 @@ Name `@freddie/freddie-client-<dir>`. `exports`: `.` (node half `src/index.js`, 
 - `inject`: package-name edges, informational only (display, HMR diffing); activation order is Cordis fiber `inject` waiting on services.
 - `external`: requests beyond the baseline ([below](#shared-modules-and-the-module-graph)).
 - `immediately: true`: stage-one prefetch with modulepreload; infrastructure rows only (connection, hmr, locale, modules, runtime, ui-renderer, ui-theme).
-
-A new package needs the shape above, a `{ id, name }` row in `packages/bundle/web-app/cordis.patch.yml`, a `dependencies` entry in `packages/bundle/web-app/package.json`, a README with Model Experience, and `src/invariant.js`.
 
 ## Shared modules and the module graph
 
@@ -70,10 +68,6 @@ A Chat business feature registers one definition (`kind`, `match(event)` giving 
 ## Locale
 
 English only; other languages are banned everywhere. `src/client/locales.js` exports `en`, registered with `ctx.effect(() => ctx.locale.register(NS, { en }), '<pkg>: dictionaries')` and read through the `t` seat (`locale: NS` at `register`).
-
-## Invariant companion
-
-`src/invariant.js` exports `name`, `inject = ['invariants']` and an `apply` registering the package name with an installer checking an owned event or data relation; with none, the empty installer carries a package-specific `No runtime invariant:` reason ([rules](../AGENTS.md)), kept in the package's `AGENTS.md` `## Rationale` while its source has no comments.
 
 ## Dev loop, HMR, boot failures
 

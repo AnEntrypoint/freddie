@@ -13,7 +13,6 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - Image `blob:` URL in an `<img>` (`WorkspaceFilesView.js`, `#loadImage`): a browser renders `image/svg+xml` in an image context without running its scripts or loading external resources, so an SVG needs no special case; `#revokeImage` releases every URL on change.
 - Status rows are `treeitem`s (`WorkspaceFilesView.js`, `#statusNode`): a `tree` may hold only treeitems, and this keeps "Loading", "empty", "truncated" and a failed level with its retry reachable by arrow keys.
 - The package name follows the client rule `@freddie/freddie-client-<directory>` (see [../AGENTS.md](../AGENTS.md)), not a `freddie-ui-` prefix.
-- `src/invariant.js` installs nothing. No runtime invariant: the host entry `src/index.js` registers nothing, and the browser half contributes one read-only `conversation.view` slot entry over the `workspaceFiles` Remote, whose path confinement the host enforces; the view's epoch and preview sequence are private component state and it emits no cordis event.
 
 ## Contract notes
 

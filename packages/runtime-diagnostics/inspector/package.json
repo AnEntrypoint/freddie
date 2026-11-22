@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -32,20 +29,17 @@
     "src/cordis-tree.js",
     "src/worker.js",
     "src/ws.js",
-    "src/cdp.js",
-    "src/invariant.js"
+    "src/cdp.js"
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/cordis": "*"
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {
-    "@freddie/cordis": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/cordis": "*"
   }
 }

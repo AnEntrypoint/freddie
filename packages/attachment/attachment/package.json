@@ -13,21 +13,25 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": { "default": "./src/index.js" },
-    "./invariant": { "default": "./src/invariant.js" },
+    ".": {
+      "default": "./src/index.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "files": ["src/index.js", "src/invariant.js", "src/brand.js", "src/error.js", "src/admission.js"],
+  "files": [
+    "src/index.js",
+    "src/brand.js",
+    "src/error.js",
+    "src/admission.js"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "dependencies": {

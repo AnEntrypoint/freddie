@@ -342,7 +342,6 @@ export class SettingsProvider extends Service {
   }
 
   emitDocumentUpdated(ns, revision) {
-    let invariantFailure
     const args = ['settings/document-updated', ns, revision]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
       try {
@@ -353,14 +352,9 @@ export class SettingsProvider extends Service {
           })
         }
       } catch (error) {
-        if (error?.code === 'INVARIANT') {
-          invariantFailure ??= error
-          continue
-        }
         this.warnListenerFailure(ns, error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure
   }
 
   commit(registration, next, source) {
@@ -380,7 +374,6 @@ export class SettingsProvider extends Service {
       this.pendingTails.add(segment)
       void segment.then(() => this.pendingTails.delete(segment))
     }
-    let invariantFailure
     const args = ['settings/updated', registration.ns, next, prev, source]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
       try {
@@ -391,14 +384,9 @@ export class SettingsProvider extends Service {
           })
         }
       } catch (error) {
-        if (error?.code === 'INVARIANT') {
-          invariantFailure ??= error
-          continue
-        }
         this.warnListenerFailure(registration.ns, error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure
   }
 
   warnWatcherFailure(ns, error) {

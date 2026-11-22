@@ -16,16 +16,12 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "cordis.patch.yml"
   ],
   "license": "MIT",
@@ -127,11 +123,9 @@
     "@freddie/freddie-llm-pi-ai": "*"
   },
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   }
 }

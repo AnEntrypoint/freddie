@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -45,7 +42,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*",
     "@freddie/freddie-compaction": "*",
     "@freddie/freddie-tools": "*",
@@ -59,7 +55,6 @@
     "@freddie/freddie-client-ui-conversation": "*",
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"
   },

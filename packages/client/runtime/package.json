@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -45,7 +42,6 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-api-remotes": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-typert-registry": "*",
     "@freddie/freddie-agent": "*",
@@ -63,7 +59,6 @@
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-api-remotes": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-timeout": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-typert-registry": "*",

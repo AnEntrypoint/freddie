@@ -10,4 +10,3 @@
 - `src/index.js` removal (`disposeOwned`) announces `notifyChanged` because no per-job record carries a removal.
 - A throwing teardown cancel force-fails only the record and reports a possible orphan; a cancel that returns without settling is indistinguishable from a slow stop and may stall.
 - Controller/listener/observer tables are layered per registering scope (global layer plus the owner's scope chain) because the registry is one process-wide instance; a flat table would deliver one preset's notices to every preset.
-- `src/invariant.js`: no aggregate invariant on purpose, since admission uses private config that `start()` enforces synchronously before any starter runs.

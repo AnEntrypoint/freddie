@@ -101,7 +101,6 @@ export class LlmRuntime extends Service {
   }
 
   emitAdaptersUpdated() {
-    let invariantFailure
     for (const listener of this.ctx.events.dispatch('emit', ['llm/adapters-updated'])) {
       try {
         const returned = listener()
@@ -111,14 +110,9 @@ export class LlmRuntime extends Service {
           })
         }
       } catch (error) {
-        if (error?.code === 'INVARIANT') {
-          invariantFailure ??= error
-          continue
-        }
         this.warnAdaptersListenerFailure(error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure
   }
 
   warnAdaptersListenerFailure(error) {

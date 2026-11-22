@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./projection": {
       "default": "./src/projection.js"
     },
@@ -31,7 +28,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"
@@ -44,7 +40,6 @@
     "@freddie/cordis-plugin-include": "*",
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"

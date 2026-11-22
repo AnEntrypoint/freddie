@@ -52,8 +52,6 @@ The marker pair names lock acquisition and release, not an exclusive event conta
 
 ## Blocking
 
-Compaction is serialized by one log-recorded lock shared by all entry points. Tail inspection independently finds the latest unmatched `compaction/start` and the newest `session/end-seed`. An unmatched start after that boundary is live and reports `busy`; an older unmatched start is stale evidence from a prior process lifecycle and does not block. The same end-seed transition clears the invariant companion's replay trace. A live bracket cannot cross a `turn/start` or `turn/end`; during adoption, repair boundaries in the inherited prefix remain replayable when the later end-seed proves their open bracket stale.
-
 The lock is the durable bracket, not a `WeakSet`, wrapper mutex, or client-side anchor. `compaction/start` is appended synchronously before summarization yields. Every later failure makes exactly one `compaction/end { error }` attempt; if that close append itself fails, the unmatched start remains the intentional busy signal and no flush is attempted. A successfully closed manual attempt is flushed even when it reports `changed` or `summary`, preserving the recorded attempt before turn admission is released.
 
 ## Events

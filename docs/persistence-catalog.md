@@ -568,9 +568,8 @@ Source: [`packages/schedule/schedule/src/domain.js:219`](../packages/schedule/sc
  * re-marked, so reopening an untouched session does not grow its log per
  * pickup and the event need not be at the current `firstLiveSeq`.
  *
- * `Session`'s constructor is the only legitimate writer. The invariant
- * companion deliberately constrains nothing here, so a plugin appending one
- * would silently classify every live bracket before it as seed history.
+ * `Session`'s constructor is the only legitimate writer: a plugin appending
+ * one would silently classify every live bracket before it as seed history.
  *
  * An owner of a standalone open/close bracket (`compaction/start` …
  * `compaction/end`) reads it because seed history and live work are otherwise

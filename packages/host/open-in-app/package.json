@@ -19,9 +19,6 @@
     "./shared": {
       "default": "./src/shared.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -30,8 +27,7 @@
     "src/catalog.js",
     "src/resolver.js",
     "src/icons.js",
-    "src/shared.js",
-    "src/invariant.js"
+    "src/shared.js"
   ],
   "license": "MIT",
   "dependencies": {

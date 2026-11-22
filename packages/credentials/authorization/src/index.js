@@ -130,7 +130,6 @@ export class AuthorizationService extends Service {
   }
 
   settle(key, settlement) {
-    let invariantFailure
     const args = ['authorization/settled', key, settlement]
     for (const listener of this.ctx.events.dispatch('emit', args)) {
       try {
@@ -141,14 +140,9 @@ export class AuthorizationService extends Service {
           })
         }
       } catch (error) {
-        if (error?.code === 'INVARIANT') {
-          invariantFailure ??= error
-          continue
-        }
         this.warnSettledListenerFailure(key, error)
       }
     }
-    if (invariantFailure !== undefined) throw invariantFailure
   }
 
   warnSettledListenerFailure(key, error) {

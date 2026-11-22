@@ -37,8 +37,6 @@ The child inherits only the MCP client's [scrubbed ambient environment](../../su
 
 ## Understand the implementation
 
-The provider builds the launch or attachment arguments and hands them to the [shared runtime](../browser-use-runtime/README.md), which owns awaited Agent initialization, per-Session serialization, and cleanup; the [MCP client](../../mcp/mcp-client/README.md) owns transport, discovery, and result projection. No runtime invariant companion is published beyond the explained empty one, because the provider maintains no independent connection observation.
-
 Browser state survives turns while its live Session remains attached. Disposal waits for server shutdown before releasing resources. Resume after reload starts fresh browser runtime state; stored conversation history does not restore cookies or pages.
 
 ## Model Experience

@@ -16,15 +16,11 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/config.js",
     "src/digest.js",
     "src/files.js",
@@ -35,7 +31,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-fs": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-home-paths": "*",
     "@freddie/freddie-session": "*",
@@ -52,7 +47,6 @@
     "@freddie/freddie-agent-loop": "*",
     "@freddie/freddie-fs": "*",
     "@freddie/freddie-fs-local": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-llm-deepseek": "*",
     "@freddie/freddie-home-paths": "*",

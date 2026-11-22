@@ -9,7 +9,6 @@
 - `src/client/index.js` `remote` inject: carries the forwarded settings invalidation that `ctx.settingsScope.bind(spec)` subscribes to on this context.
 - `src/boot-theme.js`: the bootstrap is an inline script right after the opening body tag (before the shell mount and module script); each index render embeds the durable built-in preference and the browser resolves only `system`, writing the same DOM fields ui-layout's ThemePresenter owns after the client plugin tree activates.
 - `src/client/AppearanceRow.js` cube order: Light, Dark, System (figma 501:30015-30017).
-- `src/invariant.js`: no runtime invariant. The settings scope validates and publishes the durable theme section and the registry emits `theme/change` synchronously with its mutations.
 
 ## CSS rationale
 

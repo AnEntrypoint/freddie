@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -48,7 +45,6 @@
     "@freddie/freddie-client-ui-commands": "*",
     "@freddie/freddie-client-ui-settings": "*",
     "@freddie/freddie-client-ui-input-trigger": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-permission-presets": "*"
   },
   "devDependencies": {
@@ -62,7 +58,6 @@
     "@freddie/freddie-client-ui-settings": "*",
     "@freddie/freddie-client-ui-input-trigger": "*",
     "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-permission-presets": "*"
   },
   "dependencies": {

@@ -18,7 +18,7 @@ Editing the document is a comment-preserving YAML patch, so a person's annotatio
 | --- | --- | --- | --- |
 | `profile` | `string` | required | The profile whose `cordis.patch.yml` this service writes. |
 
-The service injects `loader` (`static inject = ['loader']`). `@freddie/cordis-plugin-hmr` is an optional peer: when its `hmr` service is present every write runs inside `hmr.runExclusive`, otherwise it runs directly. The package also exports `./invariant`, a companion that registers with the `invariants` service and asserts nothing.
+The service injects `loader` (`static inject = ['loader']`). `@freddie/cordis-plugin-hmr` is an optional peer: when its `hmr` service is present every write runs inside `hmr.runExclusive`, otherwise it runs directly. The package also exports a companion that registers with the `invariants` service and asserts nothing.
 
 ## Service API
 

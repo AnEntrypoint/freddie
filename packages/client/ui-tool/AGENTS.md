@@ -25,8 +25,6 @@
 
 - `toolviews/search-row.js`/`web-row.js`: one component registers under both tool names (`grep`/`glob`, `web_search`/`web_fetch`), discriminated by the result view.
 
-- `invariant.js`: no runtime invariant; Tool composition is browser-only, slot ownership is checked by ui-slots.
-
 ## CSS rationale
 
 - `ToolRow.css`: the trailing summary fragment (the todo row's parallel-active `+n`) is `flex: none` and `nowrap` outside `.summary`'s ellipsis, because `flex: none` stops the box shrinking but not the text wrapping, which would break the one-line row in the narrow case the slot exists for. The Inspect pill sits in real flow under the expanded body's bottom-left (it reserves its line, so revealing never shifts layout), is revealed by hovering anywhere on the tool call or by keyboard focus, uses the base background (`bg-overlay` reads too heavy) and a solid hover fill (a translucent token would let content bleed through). Expanded IN/OUT and terminal cards scroll INSIDE their own surface so the scrollbar sits within the rounded card; the terminal output cap is 224px (260px card cap minus the ~36px banner), and the running-state label is visually hidden text because the `StateDot` and sweep are aria-hidden and color-only. The block-shaped bodies (run_code `CodeBlock`, terminal, diff, read, search and web cards) are drawn by the shared primitives, so this file owns only their indentation and replaces each primitive's standalone vertical margin with the row rhythm.

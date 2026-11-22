@@ -16,21 +16,16 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
-    "src/index.js",
-    "src/invariant.js"
+    "src/index.js"
   ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-goal": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/cordis": "*"
   },
@@ -39,7 +34,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-goal": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/cordis": "*"

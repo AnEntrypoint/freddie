@@ -12,4 +12,3 @@
 
 - `plugin-manager-port.js`: every `pluginManager` call resolves to an outcome and never throws. `ok` carries the value; `forbidden` is the connection's 403 loopback pin (Host allows plugin switching from its own machine only); `refused` is the Host's typed answer with `code` and, for a locked entry, `lock`; `failed` is anything else (carrier failure, withdrawn namespace, codec mismatch).
 - Contributes a lazy tab to `settings.plugins.tab`; the element is registered as `freddie-plugin-inventory-settings-tab` via `webjsxSlot` at the register call site in `index.js`. Module specifiers are compacted without guessing whether a Loader id was generated.
-- `invariant.js`: no runtime invariant; state is read from the Host on every load.

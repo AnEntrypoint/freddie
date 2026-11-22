@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -43,7 +40,6 @@
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-settings": "*",
     "@freddie/freddie-client-ui-settings-plugins": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-settings": "*"
   },
   "devDependencies": {
@@ -54,12 +50,10 @@
     "@freddie/freddie-client-ui-settings": "*",
     "@freddie/freddie-client-ui-settings-plugins": "*",
     "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-settings": "*"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/client/index.js",
     "src/client/SubagentCard.js",
     "src/client/SubagentCard.css",

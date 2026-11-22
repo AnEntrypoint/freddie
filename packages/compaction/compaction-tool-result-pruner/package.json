@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -28,7 +25,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-token-meter": "*",
@@ -41,7 +37,6 @@
     "@freddie/cordis-plugin-include": "*",
     "@freddie/cordis-plugin-loader": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-token-meter": "*",

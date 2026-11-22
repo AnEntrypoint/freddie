@@ -15,10 +15,7 @@
 
 - `src/client/trajectory-{assistant,message-definitions,tool}-definition.js`: Target-owned Definitions intentionally keep independent event state machines (see the client-conversation-node-assembly architecture note under `.agents/notes/implemented/architecture`).
 
-
 - `src/client/TrajectoryTable.js`/`TrajectoryView.js`: state that lived in React hooks/refs is private custom-element fields re-rendered via `applyDiff`; cross-view inspect handoff runs once per distinct `inspectCallId`.
-
-- `src/invariant.js`: no runtime invariant; the plugin emits no cordis events and owns no cross-plugin mutable state.
 
 ## CSS rationale
 

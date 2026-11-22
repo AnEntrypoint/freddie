@@ -14,8 +14,6 @@ This package exposes remote code evaluation. `Runtime.evaluate` on this target i
 
 ## When to choose it
 
-Choose it when a human is debugging a running Host and needs the Host's own realm in DevTools: reading live values, stepping through Host code, or watching what the Host fetches. Avoid it as an automation or telemetry seam — [`freddie-invariants`](../invariants/README.md) is the package for asserting Host relationships programmatically, and [`tool-cordis`](../../extensions/tool-cordis/README.md) is the model-facing report surface.
-
 ## Mount it
 
 Mount it in any composition; it needs no web server and provides `ctx.inspector`.
@@ -93,4 +91,3 @@ None; the package never assembles or sends a provider request.
 
 </details>
 
-**Runtime invariant:** [`./invariant`](src/invariant.js) registers the package with an empty installer. Every fact a companion could check is already enforced where it is decided: the bind is asserted before the Worker spawns and verified again from the bound socket, so a non-loopback endpoint cannot exist to be observed; the fetch journal is Worker memory with no durable or mirrored copy, so it offers no cross-record relationship; and the Cordis projection is recomputed from live fibers, so it holds no mutable state of its own.

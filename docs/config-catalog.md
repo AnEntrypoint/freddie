@@ -888,24 +888,6 @@ export interface Config {
 
 Source: [`packages/runtime-diagnostics/inspector/src/index.js`](../packages/runtime-diagnostics/inspector/src/index.js)
 
-<a id="freddie-invariants"></a>
-
-## `@freddie/freddie-invariants`
-
-```ts config-catalog
-/** Runtime invariant selection configured on the service plugin. */
-export interface Config {
-  /** Global switch; defaults to `true`. */
-  readonly enabled?: boolean
-  /** Case-sensitive JavaScript regex sources that admit package names; empty admits all. */
-  readonly package_allowlist?: string[]
-  /** Case-sensitive JavaScript regex sources that exclude package names after allowlist matching. */
-  readonly package_blocklist?: string[]
-}
-```
-
-Source: [`packages/runtime-diagnostics/invariants/src/index.js`](../packages/runtime-diagnostics/invariants/src/index.js)
-
 <a id="freddie-jobs-local"></a>
 
 ## `@freddie/freddie-jobs-local`

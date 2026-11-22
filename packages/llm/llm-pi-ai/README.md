@@ -22,8 +22,6 @@ is the translation between that library and the harness seam — it owns no HTTP
 | `inject` | `['llm']` |
 | `Config` | schemastery schema: `{ providers: dict<profile> }` |
 
-The companion invariant registers through the `./invariant` entry (`@freddie/freddie-llm-pi-ai/invariant`).
-
 ## Configuration
 
 ```yaml

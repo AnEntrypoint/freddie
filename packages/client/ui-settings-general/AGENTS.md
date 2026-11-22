@@ -16,4 +16,3 @@
 - `SettingsRoot`: pure composition face; open state, active section id, and onboarding progress are element-local. The onboarding coordinator mounts exactly one ordered registrant while the sessions-derived empty-Hero fact is active; visible dialog chrome belongs to the step. Nav glyph is chosen by section id, unknown ids fall back to the settings gear. Escape-key and initial-focus bookkeeping are tied to open/close transitions in connectedCallback/disconnectedCallback.
 - Slot list entries always carry `options.id` (SlotCore rejects an entry without one), so the `?? ''` fallbacks in `index.js` are unreachable.
 - `settings-document-store.js`: local-document availability derives from the shared mirror's `hasDocument`; concurrent open gestures collapse behind the in-flight action.
-- `invariant.js`: no runtime invariant; the settings seam validates the durable onboarding section and slot conflicts fail loud in the slot core.

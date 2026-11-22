@@ -9,4 +9,3 @@
 - `src/client/locales.js`: key copy never names a value and never promises one was stored, only that one is configured.
 - `WebSearchCard.css.js` is hand-maintained in step with `WebSearchCard.css`: the build runs no CSS Modules pass over client sources, so component classes resolve through this table to the shipped hashed names.
 - `src/index.js`: empty apply exists only for a Loader row; the namespace is registered by the search provider.
-- `src/invariant.js`: no runtime invariant; the credential write and settings write are owned by the credentials domain and settings service.

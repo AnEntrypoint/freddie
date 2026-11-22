@@ -16,15 +16,11 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/diff.js",
     "src/edit.js",
     "src/error.js",
@@ -45,7 +41,6 @@
   "peerDependencies": {
     "@freddie/freddie-attachment": "*",
     "@freddie/freddie-fs": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",
@@ -62,7 +57,6 @@
     "@freddie/freddie-fs": "*",
     "@freddie/freddie-fs-local": "*",
     "@freddie/freddie-fs-observation-policy": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-llm-deepseek": "*",
     "@freddie/freddie-sandbox": "*",

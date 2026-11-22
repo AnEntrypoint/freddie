@@ -16,26 +16,20 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "license": "MIT",
   "devDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/observable.js",
     "src/renderer.js",
     "src/store.js"
   ],
   "peerDependencies": {
-    "@freddie/freddie-invariants": "*",
     "@freddie/cordis": "*"
   }
 }

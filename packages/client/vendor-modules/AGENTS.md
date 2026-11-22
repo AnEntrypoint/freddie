@@ -21,4 +21,3 @@
 - `webserver/index-inject` contributes title/process HTML, import-map entries and stylesheet links; the webserver assembles them with other plugins' contributions.
 - `renderProcessShim` supplies only `env`, `execArgv` and `versions.node` for Cordis/Loader's browser initialization. Only public `FREDDIE_CLIENT_*` environment values reach the page; `<` is escaped before script insertion.
 - Vendored Latin-script KaTeX `scriptData`/fallback classes, CSS/LESS keywords and MDX emoji shortcodes remain: rewriting changes math rendering or highlighting.
-- No runtime invariant: this plugin contributes routes and boot metadata without owning an event stream or mutable business data; verify serving and browser boot live.

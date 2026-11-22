@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -33,8 +30,7 @@
     "@freddie/freddie-client-ui-directory-picker-native": "*",
     "@freddie/freddie-host-directory-picker-browse": "*",
     "@freddie/freddie-host-directory-picker-native": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
@@ -45,8 +41,7 @@
     "@freddie/freddie-host-directory-picker": "*",
     "@freddie/freddie-host-directory-picker-browse": "*",
     "@freddie/freddie-host-directory-picker-native": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*"

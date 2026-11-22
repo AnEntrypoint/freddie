@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -63,7 +60,6 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-api-gateway": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-jobs": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-typert-registry": "*"
@@ -72,7 +68,6 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-api-gateway": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-jobs": "*",
     "@freddie/freddie-jobs-local": "*",
     "@freddie/freddie-session": "*",

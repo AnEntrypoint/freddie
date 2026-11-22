@@ -121,4 +121,3 @@ None at upload time. At admission time the image becomes an ordinary image conte
 
 </details>
 
-**Runtime invariant:** a companion is published (`./invariant`) and registers **no** runtime check. The package's one cross-plugin relation — a staged receipt resolving only inside the session that uploaded it — holds by construction: receipt tables are keyed by session id and looked up through that key, so there is no observation that could diverge. Route register/dispose symmetry is already audited by the webserver package's own invariant.

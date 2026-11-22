@@ -19,9 +19,6 @@
     "./client": {
       "default": "./src/client/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -36,8 +33,7 @@
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/cordis-plugin-loader": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "files": [
     "src/*.js",
@@ -46,8 +42,7 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/cordis-plugin-loader": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",

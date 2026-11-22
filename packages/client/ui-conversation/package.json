@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -62,7 +59,6 @@
     "@freddie/freddie-client-ui-input-trigger": "*",
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm-retry": "*",
     "@freddie/freddie-session-stats": "*",
     "@freddie/freddie-token-meter": "*",
@@ -91,7 +87,6 @@
     "@freddie/freddie-commands": "*",
     "@freddie/freddie-compaction": "*",
     "@freddie/freddie-goal": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm-retry": "*",
     "@freddie/freddie-permission-presets": "*",
     "@freddie/freddie-plan-mode": "*",

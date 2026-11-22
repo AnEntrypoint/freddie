@@ -14,8 +14,6 @@ Every operation that reads or decides from the Schedule fold first awaits `ctx.s
 
 The package owns the strict version-1 `schedule/change` create, delete, and dispatch union. Every create record contains a stable Session-local `ScheduleId`, the trimmed prompt, and a four-digit-year RFC 3339 UTC `scheduledAt`. An `after` record also stores `afterSeconds`; an `at` record stores no copy of its submitted offset, local calendar fields, or interpreting zone; an `every` record stores `everySeconds` and treats `scheduledAt` as the earliest creation-anchor-aligned occurrence not yet dispatched. Delete and one-shot dispatch carry only the id. Every dispatch adds `acceptedAt`, from which replay advances directly to the first anchor-aligned target after that decision time.
 
-Replay rejects unknown versions, extra fields, reused ids, mismatched one-shot or Every dispatch shapes, and delete or dispatch transitions against inactive records. Normal Sessions fold the complete log. A fork folds only `session.events.slice(session.header.seedLength ?? 0)`, so it does not inherit its parent's reminders. The package's `./invariant` companion applies the same policy to existing logs and candidate events.
-
 ## Absolute-time input
 
 The `at` selector is either a strict `YYYY-MM-DDTHH:mm:ss[.S|.SS|.SSS](Z|±HH:MM)` string or `{ date: "YYYY-MM-DD", time: "HH:mm:ss[.S|.SS|.SSS]", time_zone: string }`. The string identifies an instant through `Z` or its numeric offset. The local form always requires explicit `UTC` or a valid IANA Area/Location zone. Missing `time_zone`, offset-free strings, extra keys, normalized calendar dates, invalid offsets, and non-future targets are rejected.

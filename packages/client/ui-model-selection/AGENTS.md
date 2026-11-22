@@ -9,7 +9,6 @@
 
 ## Contracts
 
-- Node half is an empty `apply` (see ui-goal); `invariant.js` is a no-op install (a single command contribution registration).
 - Two entries (the `/model` popupSelect and the composer `conversation.input.model` seat) share ONE per-session `ModelDirectory` resolved through `ModelDirectoryResolver` (`ctx.modelDirectories`), so a switch in either entry is what the other shows next. Latest operation wins; an older response never overwrites a newer one; dispose stops late settlements writing the store. Unknown sessions fail loud.
 - `refresh` failure keeps the last good groups and current selection. On Host restart the projection is cleared before repull so an unconsumed process-local selection is not shown.
 - Popup rows: failure rows are listed but never selectable; row ids are opaque keys resolved by lookup against the loaded groups, never parsed.

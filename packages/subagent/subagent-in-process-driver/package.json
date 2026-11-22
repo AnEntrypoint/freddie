@@ -16,21 +16,16 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/structured.js"
   ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subagent": "*",
@@ -45,7 +40,6 @@
     "@freddie/freddie-agent-loop": "*",
     "@freddie/freddie-agent-presets": "*",
     "@freddie/freddie-fs-sandbox": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-session": "*",

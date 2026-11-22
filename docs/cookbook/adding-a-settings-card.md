@@ -81,7 +81,6 @@ The browser half is served to the page by the [client module system](../../packa
 {
   "exports": {
     ".": { "default": "./src/index.js" },
-    "./invariant": { "default": "./src/invariant.js" },
     "./client": { "default": "./src/client/index.js" },
     "./package.json": "./package.json"
   },

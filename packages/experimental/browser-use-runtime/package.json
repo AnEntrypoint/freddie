@@ -17,9 +17,6 @@
     "./mcp": {
       "default": "./src/mcp.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -33,7 +30,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-browser-use": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-mcp-client": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-system-prompt": "*",
@@ -43,7 +39,6 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-browser-use": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-mcp-client": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-system-prompt": "*",

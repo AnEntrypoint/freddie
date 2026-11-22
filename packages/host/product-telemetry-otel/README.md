@@ -63,7 +63,6 @@ None; event submission does not change model requests.
 - **The SDK batches by record count, not encoded bytes** — callers must keep records within the collector's own request limit and choose batch sizes the receiver accepts.
 - **Caller-selected strings are not redacted** — this package submits what it is handed and owns no disclosure policy.
 - **No shared `otel` service** — upstream builds this adapter on one; freddie has none, so this package composes the SDK pipeline itself, exactly as [`freddie-session-telemetry-otel`](../../session/session-telemetry-otel/README.md) does. A second OTel consumer in one process therefore builds a second pipeline rather than sharing one, and no global OTel provider is installed.
-- **The invariant companion installs no check** — record admission happens inside the SDK processor, which exposes no queue depth, dropped count, or export outcome to compare against what a caller submitted, and delivery is best effort, so an absent acknowledgement is the expected state rather than corruption.
 
 ## Dev Note
 

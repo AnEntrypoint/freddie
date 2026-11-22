@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -34,7 +31,6 @@
   "files": [
     "src/config.js",
     "src/index.js",
-    "src/invariant.js",
     "src/projection.js",
     "src/serialization.js",
     "src/types.js",
@@ -52,7 +48,6 @@
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-output-retention": "*",
     "@freddie/freddie-session": "*",
@@ -63,7 +58,6 @@
   "devDependencies": {
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-compaction": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-output-retention": "*",
     "@freddie/freddie-session": "*",

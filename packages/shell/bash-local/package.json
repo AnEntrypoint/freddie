@@ -16,20 +16,15 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
-    "src/index.js",
-    "src/invariant.js"
+    "src/index.js"
   ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-shell": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-timeout": "*",
     "@freddie/cordis": "*",
@@ -41,7 +36,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-shell": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-subprocess-local": "*",
     "@freddie/freddie-timeout": "*",

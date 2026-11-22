@@ -22,9 +22,6 @@
     "./shared": {
       "default": "./src/shared.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
@@ -43,19 +40,16 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-home-paths": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-client-connection": "*",
     "@freddie/freddie-home-paths": "*",
-    "@freddie/freddie-host-webserver": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-host-webserver": "*"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/shared.js",
     "src/error.js",
     "src/staging.js",

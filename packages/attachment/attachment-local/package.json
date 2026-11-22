@@ -13,16 +13,19 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": { "default": "./src/index.js" },
-    "./invariant": { "default": "./src/invariant.js" },
+    ".": {
+      "default": "./src/index.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
-  "files": ["src/index.js", "src/invariant.js", "src/*.js"],
+  "files": [
+    "src/index.js",
+    "src/*.js"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-attachment": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-home-paths": "*",
     "@freddie/cordis": "*"
   },
@@ -33,7 +36,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-attachment": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-home-paths": "*",
     "@freddie/cordis": "*"
   }

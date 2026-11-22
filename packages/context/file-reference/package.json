@@ -19,9 +19,6 @@
     "./grammar": {
       "default": "./src/grammar.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./types": {
       "default": "./src/types.js"
     },
@@ -37,7 +34,6 @@
   "files": [
     "src/index.js",
     "src/grammar.js",
-    "src/invariant.js",
     "src/types.js",
     "src/typert.host.js",
     "src/typert.remote-client.js",
@@ -46,13 +42,11 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
     "@freddie/freddie-agent": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   },

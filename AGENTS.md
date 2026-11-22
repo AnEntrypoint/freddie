@@ -37,7 +37,6 @@ Freddie is a plugin-based agent harness on the Cordis framework layer (`framewor
 - ESM everywhere (`"type": "module"`). Cross-package imports use package names; local relative imports use `.js`. No TypeScript, transpilation or `tsx`: `packages/*/*/src` runs under plain `node`.
 - Bare `cordis.yml` plugins (raw/Web) must appear in their resolver manifest's `dependencies`; no script checks this, so boot the real config after adding one.
 - **Registrations are effects**: contributions go through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
-- **Runtime invariants assert owned relationships**: check authoritative event streams or mutable data, not service presence, metadata, effects or fixed examples. Without a plausible relationship, an explained empty companion is correct ([package rules](packages/AGENTS.md)).
 - **Typed events are merge-extensible maps** (e.g. `SessionEventMap`): a new event also joins its package's runtime type set; its mode and payload contract live in the package README. Public service methods document parameters and returns in the package README.
 - A `SessionEventMap` member is required-on-read by default; builds without its type refuse the log unless the event carries `ignorable: true`. Only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
 - **Switch on discriminant tags.** Closed unions end in `assertNever`; merge-extensible unions fall through a documented default.
@@ -85,4 +84,3 @@ Source carries no comments; non-obvious contracts live in package READMEs and AG
 - `.env` files may not set bootstrap-only names (process, runtime, VCS, network); both files are checked before either is applied.
 - `cmdline` detects commander errors structurally, never with `instanceof`. `--help` and errors never run the action, so an action must reject before it publishes.
 - Config-editor writes the profile patch layer under the profile file lock (shared with `freddie plugin`), holds HMR reloads for the transaction, and restores the previous document if apply rejects. Write `disabled: false` explicitly so profiles can re-enable a bundle's disabled row.
-- Each package's `invariant.js` declares no runtime invariant: contracts are IO/lifecycle effects proven by running against a real profile.

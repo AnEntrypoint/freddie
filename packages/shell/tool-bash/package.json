@@ -16,16 +16,12 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "src/index.js",
     "src/background.js",
-    "src/invariant.js",
     "src/render.js"
   ],
   "license": "MIT",
@@ -33,7 +29,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-shell": "*",
     "@freddie/freddie-shell-env": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-sandbox-policy": "*",
@@ -53,7 +48,6 @@
     "@freddie/freddie-shell": "*",
     "@freddie/freddie-shell-env": "*",
     "@freddie/freddie-bash-local": "*",
-    "@freddie/freddie-invariants": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-subprocess-local": "*",
     "@freddie/freddie-sandbox": "*",

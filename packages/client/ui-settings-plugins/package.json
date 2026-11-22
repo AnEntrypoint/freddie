@@ -16,9 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./invariant": {
-      "default": "./src/invariant.js"
-    },
     "./client": {
       "default": "./src/client/index.js"
     },
@@ -40,8 +37,7 @@
     "@freddie/cordis": "*",
     "@freddie/freddie-client-locale": "*",
     "@freddie/freddie-client-runtime": "*",
-    "@freddie/freddie-client-ui-settings": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-client-ui-settings": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*",
@@ -49,12 +45,10 @@
     "@freddie/freddie-client-runtime": "*",
     "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/freddie-client-ui-settings": "*",
-    "@freddie/freddie-client-ui-slots": "*",
-    "@freddie/freddie-invariants": "*"
+    "@freddie/freddie-client-ui-slots": "*"
   },
   "files": [
     "src/index.js",
-    "src/invariant.js",
     "src/client/index.js",
     "src/client/AgentLoopCard.js",
     "src/client/BashCard.js",

@@ -531,7 +531,6 @@ export class LocalCredentialProvider extends CredentialProvider {
     try {
       await this.reconcileFromDisk()
     } catch (error) {
-      if (error?.code === 'INVARIANT') throw error
       this.ctx.logger.warn('credentials-local: reload failed at %s; keeping the last good document', this.spec.filename)
       this.ctx.logger.warn(error)
     }

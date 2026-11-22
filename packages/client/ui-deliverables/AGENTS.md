@@ -16,4 +16,3 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - Mention resolution: an inline-code token resolves by exact path or by being exactly the basename of exactly one produced path; a basename two paths share stays inert so a mention link never opens the wrong file.
 - `index.js`: all policy (derivation, matching, chip cap `SHOWN_LIMIT`, copy) lives in this package, so removing it from cordis.yml removes both surfaces and the chat view renders an empty chain and inert prose.
 - `src/index.js`: pure node half that registers the response-format guidance the browser half relies on; the browser half ships via `exports["./client"]`.
-- `invariant.js`: no runtime invariant; registrations are effect-owned and the package owns no mutable state.

@@ -34,7 +34,6 @@ Facts that a name cannot carry; each bullet names the file and symbol it belongs
 - `skeleton/ContextMeter.js`: the occupancy sentence is split on a marker so each locale keeps its own word order while the headline keeps its tone.
 - `skeleton/EmptyHero.js`: hero chrome has no glow, composer or workspace row; the workspace row rides the InputBar accessory hole.
 - `skeleton/TodoPanel.js`: the `TodoItem` status union is re-declared locally because client packages do not depend on `freddie-llm`.
-- `invariant.js`: no runtime invariant; the `conversation.view` tab ring and `conversation.chat.node` renderer seat ride the slot system whose ledger invariants live in the runtime slots package.
 - `submission-settings.js`: the default keeps Enter-as-Queue for running conversations.
 - Custom elements converted from React hold former refs/state as private fields, re-render with `applyDiff(this, vdom)`, and pair bind/unbind methods with `connectedCallback`/`disconnectedCallback`; the one-shot `create*` helpers keep the old function-component call shape.
 

@@ -10,8 +10,6 @@ Reads and writes are synchronous because both boot-time telemetry construction a
 
 ## Composition
 
-This package is a shared library, not a Cordis plugin. Consumers import `getOrCreateAnonymousUserId()` directly. Its invariant companion is intentionally empty because the package owns no event stream or public mutable relation that can be checked without creating the identity as a side effect. `FREDDIE_TELEMETRY_DISABLED` stops telemetry export only; it does not suppress direct feedback acknowledgement or the DeepSeek provider header.
-
 ## Model Experience
 
 None, as the identifier reaches DeepSeek only as model-hidden HTTP transport metadata and never enters the request body, prompt, or model-visible content.

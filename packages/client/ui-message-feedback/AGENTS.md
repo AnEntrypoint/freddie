@@ -15,7 +15,6 @@
 
 ## Contracts
 
-- Node half is an empty `apply` (see ui-goal); `invariant.js` is a no-op install: one slot registration and one per-session controller map released by the same effect disposer.
 - One `MessageFeedbackController` per session backs every message control; the Host owns per-item compare-and-set and a `version-conflict` reply carries the authoritative item, so a lost race reconciles without a full refetch. The list read is lazy (first hover/focus), single-flighted and retryable after failure.
 - Reconnect must use `resync` (queued behind in-flight mutations); the unserialized `refresh` is only for seeding a cold controller, otherwise a late list response could overwrite a newer mutation's committed version.
 - Omitting `note` in `rate` keeps the stored note; the note is resolved inside the serialized mutation. Toggling a rating reads the committed item, retracts when it already matches. Delete of an unknown message makes no call.
