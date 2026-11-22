@@ -36,8 +36,7 @@
     "src/types.js",
     "src/uri.js",
     "src/typert.host.js",
-    "src/typert.remote-client.js",
-    "src/typert.schemas.js"
+    "src/typert.remote-client.js"
   ],
   "license": "MIT",
   "dependencies": {
