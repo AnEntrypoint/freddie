@@ -47,7 +47,9 @@ The card registers into `settings.plugin.item` under its namespace and owns ever
 
 ```ts ignore-check
 import type { ClientContext } from '@freddie/freddie-client-runtime/client'
-import { CardForm, integerField } from '@freddie/freddie-client-ui-settings-plugins/client'
+// Type-only: the keyed slot's declaration. Cross-plugin collaboration goes
+// through cordis services; a value import fails the client bundle-purity gate.
+import type {} from '@freddie/freddie-client-ui-settings-plugins/client'
 
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 

@@ -56,6 +56,7 @@
     "src/client/WebSearchCard.js",
     "src/client/WebSearchCard.css",
     "src/client/WebSearchCard.css.js",
+    "src/client/card-form.js",
     "src/client/locales.js",
     "src/client/web-search-card-controller.js"
   ],
