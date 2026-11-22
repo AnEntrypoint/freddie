@@ -73,7 +73,6 @@
     "src/client/locales.js",
     "src/client/stores.js",
     "src/client/tree.js",
-    "src/client/contract/slots.js",
     "src/client/rows/Rows.js",
     "src/client/rows/Rows.css.js"
   ]

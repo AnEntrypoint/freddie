@@ -32,7 +32,6 @@
       "immediately": true,
       "external": [
         "@freddie/freddie-crypto",
-        "@freddie/freddie-host-apiproxy/api/events.schema",
         "@freddie/freddie-host-apiproxy/api/rpc.schema",
         "@freddie/freddie-host-apiproxy/client",
         "@freddie/freddie-llm/brand",

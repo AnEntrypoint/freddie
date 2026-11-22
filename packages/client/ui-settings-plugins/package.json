@@ -72,7 +72,6 @@
     "src/client/bash-card-controller.js",
     "src/client/card-form.js",
     "src/client/locales.js",
-    "src/client/slot-contract.js",
     "src/client/tab-store.js"
   ],
   "dependencies": {

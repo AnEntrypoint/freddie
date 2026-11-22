@@ -27,8 +27,7 @@
     "src/invariant.js",
     "src/config.js",
     "src/region.js",
-    "src/summarizer.js",
-    "src/types.js"
+    "src/summarizer.js"
   ],
   "license": "MIT",
   "peerDependencies": {

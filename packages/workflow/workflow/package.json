@@ -29,7 +29,6 @@
     "src/index.js",
     "src/invariant.js",
     "src/graph.js",
-    "src/runtime-types.js",
     "src/types.js"
   ],
   "license": "MIT",

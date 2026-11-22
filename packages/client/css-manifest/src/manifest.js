@@ -73,7 +73,6 @@ export const cssManifest = [
   { id: "client-ui-settings-general-src-client-SettingsRoot", path: "packages/client/ui-settings-general/src/client/SettingsRoot.css" },
   { id: "client-ui-settings-general-src-client-chrome", path: "packages/client/ui-settings-general/src/client/chrome.css" },
   { id: "client-ui-settings-models-src-client-ModelsSection", path: "packages/client/ui-settings-models/src/client/ModelsSection.css" },
-  { id: "client-ui-settings-models-src-client-OnboardingModal", path: "packages/client/ui-settings-models/src/client/OnboardingModal.css" },
   { id: "client-ui-settings-plugin-inventory-src-client-PluginInventorySettingsTab", path: "packages/client/ui-settings-plugin-inventory/src/client/PluginInventorySettingsTab.css" },
   { id: "client-ui-settings-plugins-src-client-PluginCard", path: "packages/client/ui-settings-plugins/src/client/PluginCard.css" },
   { id: "client-ui-settings-plugins-src-client-PluginsSettingsSection", path: "packages/client/ui-settings-plugins/src/client/PluginsSettingsSection.css" },

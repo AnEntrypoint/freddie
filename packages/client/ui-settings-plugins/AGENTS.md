@@ -7,6 +7,5 @@
 - `src/client/agent-loop-card-controller.js`, `bash-card-controller.js`: the `agent-loop` and `bash` namespaces are spelled locally because a client package must not depend on a Host package.
 - `src/client/fields.js`: controls never write; `numeric` only hints the keypad; the credential control starts blank and a blank draft keeps the stored key.
 - `src/client/PluginCard.js`: the header is its own button (name stacked over description differs from the shared side-by-side disclosure row); open state is card-local; staged edits survive collapsing, so the header marks unsaved edits; the card renders nothing when its namespace is unavailable.
-- `src/client/slot-contract.js`: `settings.plugin.item` is keyed by settings namespace so out-of-repo plugins can contribute a card; the type lives here because this package declares the slot at runtime and registering plugins already depend on it. Subagent and web-search cards live in their owning packages.
 - `PluginCard.js`, `PluginsSettingsSection.js`: custom elements replacing React components; state is instance fields, re-render is `applyDiff(this, vdom)`.
 - `src/index.js`: the empty apply exists only so the plugin has a Loader row; the browser half is found via `package.json` `freddie.client`; no namespace is registered here. `src/invariant.js`: no runtime invariant; layering and write refusals are Host contracts.
