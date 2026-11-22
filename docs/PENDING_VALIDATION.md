@@ -1,5 +1,9 @@
 # Pending validation: reduction to what the system needs
 
+## Window gate follows the shared rule (2026-11-22)
+
+runs/analysis/window.mjs (host-local, gitignored) used to pause between steps on swap-in above 1000 kB/s and while any other project's compile held the machine (bevy's heavy-jobs check), which made 54-step plain-script windows take over an hour three times. The gate now pauses only on swap-out above 1000 kB/s or MemAvailable under 2.5 GB (readings record availableKb). Witness: a stage7 window on a machine with swap-in 4920 kB/s and 5.2 GB available passed its three steps at once (exit 0, 223 ms, 193 ms, 186 ms); the previous gate would have paused on that reading. The finalize mode now accepts a prior window as covering the commits since it only when everything changed since is a docs/*.md file, so a doc or ledger commit never costs another window.
+
 ## edgejs stage 0, freddie part: the parity cases under edgejs with the runtime seam bypassed (2026-11-22)
 
 Plan: /workspace/hyperagent/specs/edgejs-swap.md, stage 0 (freddie). The seam stays in place; nothing is removed at this stage.
