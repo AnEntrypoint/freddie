@@ -13,8 +13,6 @@ export const Config = z.object({
   packages: z.array(z.string().min(1)).default([]),
 })
 
-const MEMBER_KINDS = new Set(['property', 'method', 'getter', 'setter', 'call', 'construct', 'index'])
-
 function typertExportOf(pkgName, exportsField) {
   if (typeof exportsField !== 'object' || exportsField === null) return undefined
   const target = exportsField[TYPERT_HOST_EXPORT]
@@ -53,35 +51,6 @@ export function validateTypertManifest(pkgName, exported) {
       throw new Error(`typert-loader: ${pkgName} TYPERT schema "${schema.name}" is not a zod v4 schema instance`)
     }
   }
-  const model = requireObject(pkgName, manifest.model, 'TYPERT.model')
-  const services = requireArray(pkgName, model.services, 'TYPERT.model.services')
-  const events = requireArray(pkgName, model.events, 'TYPERT.model.events')
-  const objects = requireArray(pkgName, model.objects, 'TYPERT.model.objects')
-  for (const value of services) {
-    const service = requireObject(pkgName, value, 'service')
-    requireDocumentation(pkgName, service, 'service')
-    requireString(pkgName, service, 'key', 'service')
-    requireString(pkgName, service, 'exportName', 'service')
-    requireMembers(pkgName, service.members, `service "${service.key}"`)
-    requireTypes(pkgName, service.types, `service "${service.key}"`)
-  }
-  for (const value of events) {
-    const event = requireObject(pkgName, value, 'event')
-    requireDocumentation(pkgName, event, 'event')
-    requireString(pkgName, event, 'name', 'event')
-    requireString(pkgName, event, 'signature', `event "${event.name}"`)
-    if (event.mode !== undefined && typeof event.mode !== 'string') {
-      throw new Error(`typert-loader: ${pkgName} event "${event.name}" mode must be a string`)
-    }
-  }
-  for (const value of objects) {
-    const object = requireObject(pkgName, value, 'object')
-    requireDocumentation(pkgName, object, 'object')
-    requireString(pkgName, object, 'name', 'object')
-    requireString(pkgName, object, 'exportName', 'object')
-    requireMembers(pkgName, object.members, `object "${object.name}"`)
-    requireTypes(pkgName, object.types, `object "${object.name}"`)
-  }
   for (const value of requireArray(pkgName, manifest.invocations, 'TYPERT.invocations')) {
     requireInvocation(pkgName, value)
   }
@@ -103,34 +72,6 @@ function requireArray(pkgName, value, subject) {
 function requireString(pkgName, value, key, subject) {
   if (typeof value[key] !== 'string' || value[key].length === 0) {
     throw new Error(`typert-loader: ${pkgName} ${subject} has a missing or empty ${key}`)
-  }
-}
-
-function requireDocumentation(pkgName, value, subject) {
-  requireArray(pkgName, value.tags, `${subject}.tags`)
-  for (const key of ['description', 'summary', 'jsDoc']) {
-    if (value[key] !== undefined && typeof value[key] !== 'string') {
-      throw new Error(`typert-loader: ${pkgName} ${subject}.${key} must be a string`)
-    }
-  }
-}
-
-function requireMembers(pkgName, value, subject) {
-  for (const item of requireArray(pkgName, value, `${subject}.members`)) {
-    const member = requireObject(pkgName, item, `${subject} member`)
-    requireString(pkgName, member, 'name', `${subject} member`)
-    requireString(pkgName, member, 'signature', `${subject} member`)
-    if (typeof member.kind !== 'string' || !MEMBER_KINDS.has(member.kind)) {
-      throw new Error(`typert-loader: ${pkgName} ${subject} member "${member.name}" has invalid kind`)
-    }
-  }
-}
-
-function requireTypes(pkgName, value, subject) {
-  for (const item of requireArray(pkgName, value, `${subject}.types`)) {
-    const type = requireObject(pkgName, item, `${subject} type`)
-    requireString(pkgName, type, 'name', `${subject} type`)
-    requireString(pkgName, type, 'declaration', `${subject} type`)
   }
 }
 

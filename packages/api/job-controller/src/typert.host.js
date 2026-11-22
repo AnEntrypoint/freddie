@@ -49,39 +49,6 @@ export const TYPERT = {
   face: 'host',
   schemas: [],
   invocations: [kill],
-  model: {
-    services: [
-      {
-        description: 'Host job Remote owner: mirrors the background-job roster one session can see and stops a job on a human\'s behalf.',
-        summary: 'Host job Remote owner over ctx.jobs.',
-        tags: [],
-        jsDoc: '/** Host job Remote owner: mirrors the background-job roster one session can see and stops a job on a human\'s behalf. */',
-        key: 'jobController',
-        exportName: 'JobController',
-        members: [
-          {
-            kind: 'method',
-            name: 'kill',
-            signature: "@Remote('kill') kill(agent: Agent, request: JobKillRequest): JobKillValue",
-            summary: 'Kill one job on a human\'s behalf.',
-            jsDoc: '/** Kill one background job on a human\'s behalf, recording "cancelled by the user" as its reason. */',
-          },
-        ],
-        types: [
-          {
-            name: 'JobKillRequest',
-            declaration: 'export interface JobKillRequest { readonly jobId: string }',
-          },
-          {
-            name: 'JobKillValue',
-            declaration: 'export interface JobKillValue { readonly outcome: "requested" | "already-finished" }',
-          },
-        ],
-      },
-    ],
-    events: [],
-    objects: [],
-  },
 }
 
 export default TYPERT

@@ -427,7 +427,6 @@ export class TypertRegistry extends Service {
       package: contribution.package,
       face,
       key,
-      model: contribution.model,
     }
   }
 

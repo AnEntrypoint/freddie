@@ -5,7 +5,6 @@ export const TYPERT = {
   face: 'host',
   schemas: [],
   invocations: TYPERT_REMOTE.descriptors,
-  model: { services: [], events: [], objects: [] },
 }
 
 export default TYPERT

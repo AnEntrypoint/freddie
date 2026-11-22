@@ -7,9 +7,4 @@ export const TYPERT = {
   ],
   invocations: TYPERT_REMOTE.descriptors,
 
-  model: {
-    "services": [],
-    "events": [],
-    "objects": []
-  },
 }
