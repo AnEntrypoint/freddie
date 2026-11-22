@@ -2440,9 +2440,9 @@ const spawnEventsRecord = (file, args, options) => new Promise((resolve) => {
 })
 
 sharedCases.push(
-  { name: "child-process.execFile AbortSignal already aborted reports AbortError", run: () => execRecord('/bin/sh', ['-c', 'echo ok'], { signal: abortedSignal() }), expected: {"error":{"name":"AbortError","code":"ABORT_ERR","killed":null,"signal":null,"message":"The operation was aborted"},"stdoutLength":0,"stdout":"","stderr":""} },
+  { name: "child-process.execFile AbortSignal already aborted reports AbortError", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortedSignal() }), expected: {"error":{"name":"AbortError","code":"ABORT_ERR","killed":null,"signal":null,"message":"The operation was aborted"},"stdoutLength":0,"stdout":"","stderr":""} },
   { name: "child-process.execFile AbortSignal aborted mid-run reports AbortError", run: () => execRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortSoonSignal(100) }), expected: {"error":{"name":"AbortError","code":"ABORT_ERR","killed":null,"signal":null,"message":"The operation was aborted"},"stdoutLength":0,"stdout":"","stderr":""} },
-  { name: "child-process.spawn AbortSignal already aborted emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'echo ok'], { signal: abortedSignal() }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
+  { name: "child-process.spawn AbortSignal already aborted emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortedSignal() }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
   { name: "child-process.spawn AbortSignal aborted mid-run emits error then close with the kill signal", run: () => spawnEventsRecord('/bin/sh', ['-c', 'exec sleep 5'], { signal: abortSoonSignal(100) }), expected: {"events":[["error","AbortError","ABORT_ERR"],["close",null,"SIGTERM"]],"stdout":""} },
 )
 
