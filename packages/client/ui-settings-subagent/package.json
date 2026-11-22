@@ -58,7 +58,6 @@
     "src/client/SubagentCard.js",
     "src/client/SubagentCard.css",
     "src/client/SubagentCard.css.js",
-    "src/client/card-form.js",
     "src/client/locales.js",
     "src/client/subagent-card-controller.js"
   ],

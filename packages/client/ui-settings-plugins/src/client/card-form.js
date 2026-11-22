@@ -24,6 +24,39 @@ export function textField(field) {
   }
 }
 
+export function endpointField(field) {
+  return {
+    field,
+    format: value => typeof value === 'string' ? value : '',
+    parse: (text) => {
+      const trimmed = text.trim()
+      if (trimmed === '') return { kind: 'clear' }
+      let parsed
+      try {
+        parsed = new URL(trimmed)
+      } catch {
+        return undefined
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return undefined
+      return { kind: 'set', value: parsed.href }
+    },
+  }
+}
+
+export function integerField(field, minimum) {
+  return {
+    field,
+    format: value => typeof value === 'number' ? String(value) : '',
+    parse: (text) => {
+      const trimmed = text.trim()
+      if (trimmed === '') return { kind: 'clear' }
+      const parsed = Number(trimmed)
+      if (!Number.isSafeInteger(parsed) || parsed < minimum || Object.is(parsed, -0)) return undefined
+      return { kind: 'set', value: parsed }
+    },
+  }
+}
+
 export class CardForm {
   specs
   secretSpecs
@@ -149,7 +182,7 @@ export class CardForm {
 
   spec(field) {
     const spec = this.specs.get(field)
-    if (spec === undefined) throw new Error(`plugin card has no field ${field}`)
+    if (spec === undefined) throw new Error(`card has no field ${field}`)
     return spec
   }
 

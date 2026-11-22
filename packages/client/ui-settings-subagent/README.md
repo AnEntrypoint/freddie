@@ -12,7 +12,7 @@ Nothing is written until **Save**. A draft that is not a whole number at or abov
 
 ## Extension point
 
-The Host half registers `subagent` through `ctx.settings.register` when a settings service is composed, with the composed entry as the section's base layer; the browser half registers the card into `settings.plugin.item` under the same string. The card owns its own chrome, its own staged-form model, and its own copy, because the client bundle-purity gate forbids importing the Plugins section's card chrome as a value.
+The Host half registers `subagent` through `ctx.settings.register` when a settings service is composed, with the composed entry as the section's base layer; the browser half registers the card into `settings.plugin.item` under the same string. The card owns its own chrome and copy; its staged form is the Plugins section's `CardForm`, imported from `@freddie/freddie-client-ui-settings-plugins/client`.
 
 ## Writes
 
