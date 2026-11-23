@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const SRC = join(ROOT, 'packages/util/runtime/src')
 const table = JSON.parse(readFileSync(join(SRC, 'aliases.json'), 'utf8'))
-const NOT_SEAMS = new Set(['runtime', 'node', 'txiki', 'index', 'install-node', 'install-txiki'])
-const SEAM_ENTRIES = new Set(['install-node', 'install-txiki'])
+const NOT_SEAMS = new Set(['runtime', 'node', 'txiki', 'index', 'install-node', 'install-txiki', 'install-browser'])
+const SEAM_ENTRIES = new Set(['install-node', 'install-txiki', 'install-browser'])
 const SHIPPED = /^(apps\/[^/]+|packages\/[^/]+\/[^/]+|framework\/[^/]+)\/src\//
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)(['"])([^'"]+)\1/g
 const failures = []
