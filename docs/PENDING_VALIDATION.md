@@ -1,5 +1,20 @@
 # Pending validation: reduction to what the system needs
 
+## Rank 7 in Phase A: cordis, cosmokit and the loader served live from framework/ (2026-11-23)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md.
+
+Rank 7 of the ranked list. The server already ran the framework packages through workspace links; the browser ran a second, comment-stripped copy under vendor/, and the two had diverged: framework events.js has emitContained and the vendored copy does not, and the vendored cosmokit carried an array.js the framework no longer has. Nothing in packages/ imports from @freddie/cosmokit outside the framework, so the dropped names have no client caller.
+
+| commit | change | witness | red check |
+|---|---|---|---|
+| b44220fa | src/live-packages.js is the one live list for src/index.js and scripts/generate-vendor.mjs (both copies removed); cordis, cosmokit and the loader join it; cosmokit and the loader become dependencies of vendor-modules. The framework cosmokit imports @freddie/freddie-runtime, so the generator vendors freddie-runtime@0.1.1-rc.2 (four shims, 28 lines) | generate-vendor exits 0 (88 packages, 442 files) | covered by the test in 501105cc |
+| 501105cc | the three vendored copies are deleted (2,939 lines); test/live-packages.js asserts each name is in the live list, resolves from framework/ and has no vendored copy; AGENTS.md states the new rule | node packages/client/vendor-modules/test/live-packages.js prints its success line and exits 0 | drop @freddie/cosmokit from src/live-packages.js: the test exits 1; recreate vendor/@freddie/cordis@4.0.2: the test exits 1; both restored, each restore checked identical |
+
+Phase B witness, queued on the final tree (HEAD, after this entry): runs/analysis/browser-check.mjs with GATE_QUICK=1. It requires the web profile to boot and the Subagent card to show, fill and clear as before, and for the page to load /vendor/@freddie/cordis@4.0.2/src/index.js, /vendor/@freddie/cosmokit@1.8.3/src/index.js and /vendor/@freddie/cordis-plugin-loader@1.0.3/src/index.js, each served byte-identical to framework/cordis/src/index.js, framework/cosmokit/src/index.js and framework/loader/src/index.js. Result file /workspace/tmp/freddie/browser/live-result.txt, last line BROWSER_DONE.
+
+Open after this entry: the baseline's release verify counts the vendor family ("vendor 10" before this change); the freddie-runtime vendor member and the three deletions move that count, and it is re-read in the next window. Browsers that cached the three deleted immutable URLs keep their old bytes until their cache is cleared.
+
 ## CardForm merge re-applied after its browser witness passed; prototype checks shared (2026-11-22)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. The edgejs go decision is the dispatcher's; the seam is untouched.
