@@ -9,6 +9,7 @@ import { ConfigurablePluginsTabController } from './tab-store.js'
 import { en } from './locales.js'
 
 export { CardForm, endpointField, integerField, numberField } from './card-form.js'
+export { settingsCardCss } from './settings-card.css.js'
 
 const NS = 'settings.plugins'
 

@@ -54,8 +54,6 @@
     "src/index.js",
     "src/client/index.js",
     "src/client/WebSearchCard.js",
-    "src/client/WebSearchCard.css",
-    "src/client/WebSearchCard.css.js",
     "src/client/locales.js",
     "src/client/web-search-card-controller.js"
   ],

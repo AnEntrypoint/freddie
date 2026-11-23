@@ -1,6 +1,6 @@
 import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
-import css from './SubagentCard.css.js'
+import { settingsCardCss as css } from '@freddie/freddie-client-ui-settings-plugins/client'
 
 function classes(...names) {
   return names.filter(name => typeof name === 'string' && name.length > 0).join(' ')

@@ -55,6 +55,8 @@
     "src/client/PluginCard.js",
     "src/client/PluginCard.css",
     "src/client/PluginCard.css.js",
+    "src/client/settings-card.css",
+    "src/client/settings-card.css.js",
     "src/client/fields.js",
     "src/client/fields.css",
     "src/client/fields.css.js",
