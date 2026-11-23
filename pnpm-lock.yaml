@@ -3221,6 +3221,9 @@ importers:
       '@freddie/freddie-client-ui-slots':
         specifier: '*'
         version: link:../ui-slots
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/webjsx':
         specifier: '*'
         version: link:../../../framework/webjsx

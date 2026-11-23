@@ -34,6 +34,7 @@
     "src/install-node.js",
     "src/txiki.js",
     "src/install-txiki.js",
+    "src/install-browser.js",
     "src/fs.js",
     "src/fs-promises.js",
     "src/path.js",

@@ -1,3 +1,4 @@
+import '@freddie/freddie-runtime/install-browser'
 import { Context, Logger } from '@freddie/cordis'
 import Loader from '@freddie/cordis-plugin-loader'
 import { BootPage } from './boot-page.js'
