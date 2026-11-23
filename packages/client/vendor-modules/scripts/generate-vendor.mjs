@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { LIVE_WORKSPACE_PACKAGES } from '../src/live-packages.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const packageRoot = join(here, '..')
@@ -148,13 +149,6 @@ const SPECIFIER_ALIASES = new Map([['webjsx', '@freddie/webjsx']])
 const IMPORT_MAP_PROVIDED_ELSEWHERE = new Set([
   '@freddie/freddie-client-modules',
   '@freddie/freddie-client-modules/client',
-])
-
-const LIVE_WORKSPACE_PACKAGES = new Set([
-  '@freddie/freddie-client-web',
-  '@freddie/freddie-client-ui-slots',
-  '@freddie/freddie-client-ui-primitives',
-  '@freddie/webjsx',
 ])
 
 const ASIAN_SCRIPT_CHARACTER = /[\u0E00-\u0E7F\u1100-\u11FF\u2E80-\u9FFF\uA960-\uA97F\uAC00-\uD7FF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF]|[\uD840-\uD8BF][\uDC00-\uDFFF]/

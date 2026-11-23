@@ -260,6 +260,10 @@ export const vendorPackages = [
     "version": "1.8.3"
   },
   {
+    "name": "@freddie/freddie-runtime",
+    "version": "0.1.1-rc.2"
+  },
+  {
     "name": "html-void-elements",
     "version": "3.0.0"
   },
@@ -443,6 +447,7 @@ export const importMapExact = {
   "oniguruma-to-es": "/vendor/oniguruma-to-es@4.3.6/dist/esm/index.js",
   "character-entities": "/vendor/character-entities@2.0.2/index.js",
   "@freddie/cosmokit": "/vendor/@freddie/cosmokit@1.8.3/src/index.js",
+  "@freddie/freddie-runtime/process": "/vendor/@freddie/freddie-runtime@0.1.1-rc.2/src/process.js",
   "html-void-elements": "/vendor/html-void-elements@3.0.0/index.js",
   "property-information": "/vendor/property-information@7.2.0/index.js",
   "oniguruma-parser/parser": "/vendor/oniguruma-parser@0.12.2/dist/parser/parse.js",
@@ -453,8 +458,10 @@ export const importMapExact = {
   "mdast-util-find-and-replace": "/vendor/mdast-util-find-and-replace@3.0.2/index.js",
   "markdown-table": "/vendor/markdown-table@3.0.4/index.js",
   "mdast-util-to-markdown": "/vendor/mdast-util-to-markdown@2.1.2/index.js",
+  "@freddie/freddie-runtime/module": "/vendor/@freddie/freddie-runtime@0.1.1-rc.2/src/module.js",
   "zwitch": "/vendor/zwitch@2.0.4/index.js",
   "regex-utilities": "/vendor/regex-utilities@2.3.0/src/index.js",
+  "@freddie/freddie-runtime/buffer": "/vendor/@freddie/freddie-runtime@0.1.1-rc.2/src/buffer.js",
   "stringify-entities": "/vendor/stringify-entities@4.0.4/index.js",
   "comma-separated-tokens": "/vendor/comma-separated-tokens@2.0.3/index.js",
   "space-separated-tokens": "/vendor/space-separated-tokens@2.0.2/index.js",

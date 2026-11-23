@@ -3,6 +3,7 @@ import { join } from '@freddie/freddie-runtime/path'
 import { fileURLToPath } from '@freddie/freddie-runtime/url'
 import { sendFile } from '@freddie/freddie-host-webserver'
 import { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
+import { LIVE_WORKSPACE_PACKAGES } from './live-packages.js'
 
 export { cssLinks, importMapExact, importMapPrefix, vendorPackages } from './manifest.js'
 
@@ -15,13 +16,6 @@ const vendorRoot = join(packageRoot, 'vendor')
 const localRequire = createRequire(import.meta.url)
 
 const PREFIX = '/vendor/'
-
-const LIVE_WORKSPACE_PACKAGES = new Set([
-  '@freddie/freddie-client-web',
-  '@freddie/freddie-client-ui-slots',
-  '@freddie/freddie-client-ui-primitives',
-  '@freddie/webjsx',
-])
 
 function resolveLiveWorkspaceFile(relPath) {
   const match = /^(@freddie\/[^/@]+)@[^/]+\/(.+)$/.exec(relPath)

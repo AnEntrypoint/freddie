@@ -3115,6 +3115,12 @@ importers:
 
   packages/client/vendor-modules:
     dependencies:
+      '@freddie/cordis-plugin-loader':
+        specifier: '*'
+        version: link:../../../framework/loader
+      '@freddie/cosmokit':
+        specifier: link:../../../framework/cosmokit
+        version: link:../../../framework/cosmokit
       '@freddie/freddie-client-ui-primitives':
         specifier: '*'
         version: link:../ui-primitives

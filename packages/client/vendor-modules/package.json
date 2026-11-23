@@ -41,6 +41,8 @@
     "@freddie/freddie-client-ui-slots": "*",
     "@freddie/freddie-client-ui-primitives": "*",
     "@freddie/webjsx": "*",
+    "@freddie/cosmokit": "*",
+    "@freddie/cordis-plugin-loader": "*",
     "clsx": "^2.1.1",
     "anser": "^2.3.5",
     "diff": "^9.0.0",
