@@ -1,5 +1,19 @@
 # Pending validation: reduction to what the system needs
 
+## Card chrome shared by the subagent and web-search cards (2026-11-23, rank 8)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md.
+
+The two card stylesheets were identical once the class prefix was normalized (diff empty, 227 lines each), and so were their class maps. The plugins package already owns CardForm, which both cards import, so the shared sheet and map live there: settings-card.css and settingsCardCss, with the prefix freddie-settingsCard__. The duplicates and their package.json entries are deleted; css-manifest is regenerated (109 entries). This is a dedupe with no layout change. The owner's layout decision is not touched, and that is why the witness below compares computed styles rather than looking at the page.
+
+| commit | change | stat |
+|---|---|---|
+| 37a43baf | the shared sheet and map, the two cards import settingsCardCss, the duplicates deleted, css-manifest regenerated, the web-search AGENTS.md line corrected, test/settings-card.js | 14 files changed, 81 insertions(+), 326 deletions(-) |
+
+Witness, browser (runs/analysis/browser-check.mjs with a computed-style snapshot of every element with a card class, 43 rows of 634 properties each, taken at two points, invalid and valid): freddie-card-before on ce525bdf and freddie-card-after on 37a43baf, both BROWSER_DONE 0 with no console error and no failed request. The 43 rows match property for property: zero differences (runs/analysis, card-compare). The web-search card is not in the browser (its namespace is not served, as recorded earlier), so its rendering is covered by the shared sheet and map, which are identical to the subagent card's before the change.
+
+Red checks, test/settings-card.js (node): rename every .freddie-settingsCard__save selector: exit 1; change one map value (save): exit 1. Each restore is checked identical to the staged copy, and the test exits 0 after restore. The first red mutant renamed one of the three save selectors and passed (another selector still matched), which is why the mutant now renames all three.
+
 ## Ranked list, fourth pass: each item decided or held (2026-11-23)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. The dispatcher's decisions are read from specs/edgejs-swap.md (section Done, the Decision entries dated 2026-11-23).
@@ -11,7 +25,7 @@ Standing rules: /workspace/hyperagent/docs/peer-rules.md. The dispatcher's decis
 | 5 | held: waits on fx | milestones 1 and 2 are recorded runs inside fx; they need fx's host. Not started. |
 | 6 | held: waits on fx | the tool rows of the adapter change shape with fx's one-tool surface (run_code verbs); fx has not published the verb catalog. Not started. |
 | 7 | finished | cordis, cosmokit and the loader are served live from framework/ (commits b44220fa to 577c073e, witness BROWSER_DONE 0 on 2755036b). |
-| 8 | api-catalog: decided, not done; card chrome: see the entry below this table | api-catalog: the repeated text is 217 characters of 44,529 in generated documentation data, not worth a shared module (earlier decision, unchanged). Card chrome: see its own entry. |
+| 8 | api-catalog: decided, not done; card chrome: finished, see its entry above | api-catalog: the repeated text is 217 characters of 44,529 in generated documentation data, not worth a shared module (earlier decision, unchanged). Card chrome: see its own entry. |
 | 9 | decided: left as it is | 274 export-only names change no line count; the export keyword drops as each file is next touched, as recorded. |
 | 10 | held: owner and fx | the plugin manifest and the merges of single-implementation seams need the owner's layering decision and fx's manifest shape. Not started. |
 | 11 | held: owner | keep the tooling exemption for node: imports, or make the tooling depend on the runtime: the owner's choice, not in any spec. Not started. |
