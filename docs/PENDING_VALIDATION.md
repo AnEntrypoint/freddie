@@ -16,6 +16,8 @@ Phase B witness, queued on the final tree (HEAD, after this entry): runs/analysi
 
 The release count is re-read and unchanged: node scripts/release/verify.js --family vendor lists the same 10 members (the framework packages, not the vendor-modules package) and exits 0, so the "vendor 10" baseline line stands. Browsers that cached the three deleted immutable URLs keep their old bytes until their cache is cleared; no release has carried those URLs.
 
+Phase B on 2755036b (2026-11-23): the browser witness (runs/analysis/browser-check.mjs, GATE_QUICK=1, result /workspace/tmp/freddie/browser/live-result.txt, BROWSER_DONE 0, BROWSER_CHECK ok true) passes the Subagent card check as before, with no console error and no failed request, and the three vendor URLs loaded and served byte-identical to framework/. The alias check then failed on install-browser, a shim with no alias row. install-browser is an installer entry, like install-node and install-txiki, so the test's NOT_SEAMS and SEAM_ENTRIES name it in the commit that follows; aliases.json is unchanged (27 rows, 25 seams). Both node packages/util/runtime/test/aliases.js and node packages/client/vendor-modules/test/live-packages.js exit 0 on the tree that is pushed.
+
 ## CardForm merge re-applied after its browser witness passed; prototype checks shared (2026-11-22)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. The edgejs go decision is the dispatcher's; the seam is untouched.
