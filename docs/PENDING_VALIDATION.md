@@ -1,5 +1,23 @@
 # Pending validation: reduction to what the system needs
 
+## Ranked list, fourth pass: each item decided or held (2026-11-23)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. The dispatcher's decisions are read from specs/edgejs-swap.md (section Done, the Decision entries dated 2026-11-23).
+
+| rank | status | reason |
+|---|---|---|
+| 3 | decided: the seam stays | the spec's Decision 2026-11-23 (server side) keeps txiki as the default everywhere, leaves --engine edge opt-in for fx, and does not start the gm swap (stage 2) or the shared vendor step (stage 1). Seam deletion removes the txiki engine, the txiki installer and the txiki alias rows, which the default engine still runs on, so it cannot go while txiki is the default. Revisit when the spec's own triggers hold: node:sqlite, a permission binding, or a smaller build. No question for the dispatcher: the spec answers it. |
+| 4 | held: waits on fx | the fx:host runtime rewrite and the adapter against the real module need fx's published host; not started. |
+| 5 | held: waits on fx | milestones 1 and 2 are recorded runs inside fx; they need fx's host. Not started. |
+| 6 | held: waits on fx | the tool rows of the adapter change shape with fx's one-tool surface (run_code verbs); fx has not published the verb catalog. Not started. |
+| 7 | finished | cordis, cosmokit and the loader are served live from framework/ (commits b44220fa to 577c073e, witness BROWSER_DONE 0 on 2755036b). |
+| 8 | api-catalog: decided, not done; card chrome: see the entry below this table | api-catalog: the repeated text is 217 characters of 44,529 in generated documentation data, not worth a shared module (earlier decision, unchanged). Card chrome: see its own entry. |
+| 9 | decided: left as it is | 274 export-only names change no line count; the export keyword drops as each file is next touched, as recorded. |
+| 10 | held: owner and fx | the plugin manifest and the merges of single-implementation seams need the owner's layering decision and fx's manifest shape. Not started. |
+| 11 | held: owner | keep the tooling exemption for node: imports, or make the tooling depend on the runtime: the owner's choice, not in any spec. Not started. |
+
+Questions for the dispatcher: none. Every item that waits on the dispatcher is decided by the spec (rank 3). Items 4 to 6 wait on fx and 8 (layout), 10 and 11 wait on the owner; none of them is a dispatcher question.
+
 ## Rank 7 in Phase A: cordis, cosmokit and the loader served live from framework/ (2026-11-23)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md.
