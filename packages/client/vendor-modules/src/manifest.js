@@ -8,6 +8,10 @@ export const vendorPackages = [
     "version": "0.0.73"
   },
   {
+    "name": "@freddie/freddie-api-catalog",
+    "version": "0.1.1-rc.2"
+  },
+  {
     "name": "clsx",
     "version": "2.1.1"
   },
@@ -357,6 +361,7 @@ export const importMapExact = {
   "zod": "/vendor/zod@4.4.3/index.js",
   "@freddie/webjsx": "/vendor/@freddie/webjsx@0.0.73/src/index.js",
   "webjsx": "/vendor/@freddie/webjsx@0.0.73/src/index.js",
+  "@freddie/freddie-api-catalog": "/vendor/@freddie/freddie-api-catalog@0.1.1-rc.2/src/index.js",
   "@freddie/webjsx/jsx-runtime": "/vendor/@freddie/webjsx@0.0.73/src/jsx-runtime.js",
   "clsx": "/vendor/clsx@2.1.1/dist/clsx.mjs",
   "anser": "/vendor/anser@2.3.5/lib/index.js",

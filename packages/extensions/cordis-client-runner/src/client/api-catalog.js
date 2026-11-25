@@ -1,3 +1,5 @@
+import { apiQueries } from '@freddie/freddie-api-catalog'
+
 export const SERVICE_API = [
   {
     key: 'layout',
@@ -770,91 +772,7 @@ export const TYPE_API = [
   },
 ]
 
-export const INHERITED_CTX_API = [
-  { name: 'ctx.on / ctx.once', summary: 'Register an event listener (disposable).' },
-  { name: 'ctx.emit / ctx.parallel / ctx.serial / ctx.bail / ctx.waterfall', summary: 'Dispatch an event (sync / awaited / first-bail / short-circuit chain).' },
-  { name: 'ctx.plugin / ctx.inject', summary: 'Load a plugin / declare required services.' },
-  { name: 'ctx.effect', summary: 'Register a disposable side effect tied to the fiber.' },
-  { name: 'ctx.get / ctx.set / ctx.provide / ctx.accessor / ctx.mixin', summary: 'Low-level service-store access and binding.' },
-  { name: 'ctx.extend / ctx.isolate / ctx.intercept', summary: 'Derive a child context (scoped services / isolation / interception).' },
-  { name: 'ctx.root / ctx.scope / ctx.fiber / ctx.registry / ctx.reflect / ctx.events / ctx.logger', summary: 'Ambient handles onto the running context graph.' },
-  { name: 'ctx.timer (+ interval / timeout / throttle / debounce)', summary: 'Disposable timer helpers. The `timer` key is provided at runtime; the four supported helpers are mixed onto ctx directly (declared via Pick).' },
-  { name: 'ctx.loader', summary: 'The config Loader that booted the app (present under the loader).' },
-  { name: 'ctx.hmr', summary: 'The hot-module-reload watcher (present under the hmr plugin).' },
-]
+const queries = apiQueries({ services: SERVICE_API, events: EVENT_API, types: TYPE_API })
 
-function referencedTypeClosure(seeds) {
-  const included = new Set()
-  let frontier = [...seeds]
-  while (frontier.length > 0) {
-    const next = []
-    for (const entry of TYPE_API) {
-      if (included.has(entry.name)) continue
-      const pattern = new RegExp(`\b${entry.name}\b`)
-      if (!frontier.some(text => pattern.test(text))) continue
-      included.add(entry.name)
-      next.push(entry.declaration)
-    }
-    frontier = next
-  }
-  return TYPE_API.filter(entry => included.has(entry.name))
-}
-
-function contextProperty(key) {
-  return /^[A-Za-z_$][\w$]*$/.test(key) ? `ctx.${key}` : `ctx[${JSON.stringify(key)}]`
-}
-
-export function queryServiceApi(key, services = SERVICE_API) {
-  if (key === undefined) {
-    return {
-      mode: 'catalog',
-      services: services.map(service => ({
-        key: service.key,
-        description: service.summary,
-        methods: service.methods.map(method => ({ signature: method.signature })),
-      })),
-    }
-  }
-  const service = services.find(candidate => candidate.key === key)
-  if (service === undefined) throw new Error(`no catalogued Service named "${key}"`)
-  return {
-    mode: 'service',
-    service: {
-      key: service.key,
-      description: service.description,
-      access: {
-        optional: { expression: `ctx.get(${JSON.stringify(service.key)})`, requiresUndefinedCheck: true },
-        hardDependency: { inject: [service.key], expression: contextProperty(service.key) },
-      },
-      methods: service.methods,
-    },
-    referencedTypes: referencedTypeClosure(service.methods.map(method => method.signature)),
-  }
-}
-
-export function queryEventApi(name, events = EVENT_API) {
-  if (name === undefined) {
-    return {
-      mode: 'catalog',
-      events: events.map(event => ({
-        name: event.name,
-        description: event.summary,
-        mode: event.mode,
-        signature: event.signature,
-      })),
-    }
-  }
-  const event = events.find(candidate => candidate.name === name)
-  if (event === undefined) throw new Error(`no catalogued Event named "${name}"`)
-  return {
-    mode: 'event',
-    event: {
-      name: event.name,
-      description: event.description,
-      mode: event.mode,
-      signature: event.signature,
-      parameters: event.parameters,
-    },
-    referencedTypes: referencedTypeClosure([event.signature]),
-  }
-}
+export const queryServiceApi = queries.queryServiceApi
+export const queryEventApi = queries.queryEventApi

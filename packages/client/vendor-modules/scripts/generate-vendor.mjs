@@ -25,6 +25,7 @@ const goalRequire = createRequire(join(repoRoot, 'packages', 'goal', 'goal', 'no
 const ENTRY_SPECIFIERS = [
   'zod',
   '@freddie/webjsx',
+  '@freddie/freddie-api-catalog',
   '@freddie/webjsx/jsx-runtime',
   'clsx',
   'anser',

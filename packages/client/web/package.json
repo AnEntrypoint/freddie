@@ -22,6 +22,7 @@
   "license": "MIT",
   "devDependencies": {
     "@freddie/cordis-plugin-loader": "*",
+    "@freddie/freddie-api-catalog": "*",
     "@freddie/freddie-runtime": "*",
     "@freddie/freddie-client-modules": "*",
     "@freddie/freddie-client-ui-renderer": "*",

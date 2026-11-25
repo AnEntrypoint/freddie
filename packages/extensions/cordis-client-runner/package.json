@@ -52,6 +52,9 @@
     "@freddie/freddie-client-ui-theme": "*",
     "@freddie/cordis": "*"
   },
+  "dependencies": {
+    "@freddie/freddie-api-catalog": "*"
+  },
   "files": [
     "src/*.js",
     "src/client/*.js"

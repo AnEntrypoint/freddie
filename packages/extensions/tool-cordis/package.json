@@ -50,6 +50,7 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
+    "@freddie/freddie-api-catalog": "*",
     "@freddie/freddie-runtime": "*"
   }
 }

@@ -3209,6 +3209,9 @@ importers:
       '@freddie/cordis-plugin-loader':
         specifier: '*'
         version: link:../../../framework/loader
+      '@freddie/freddie-api-catalog':
+        specifier: '*'
+        version: link:../../util/api-catalog
       '@freddie/freddie-client-modules':
         specifier: '*'
         version: link:../modules
@@ -4025,6 +4028,10 @@ importers:
         version: link:../../core/tools
 
   packages/extensions/cordis-client-runner:
+    dependencies:
+      '@freddie/freddie-api-catalog':
+        specifier: '*'
+        version: link:../../util/api-catalog
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -4093,6 +4100,9 @@ importers:
 
   packages/extensions/tool-cordis:
     dependencies:
+      '@freddie/freddie-api-catalog':
+        specifier: '*'
+        version: link:../../util/api-catalog
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
@@ -7095,6 +7105,8 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
+
+  packages/util/api-catalog: {}
 
   packages/util/atomic-write:
     dependencies:
