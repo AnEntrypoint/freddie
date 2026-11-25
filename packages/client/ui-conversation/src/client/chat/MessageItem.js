@@ -59,7 +59,7 @@ const DEFAULT_RETRY_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieModelRetryItem extends HTMLElement {
+class FreddieModelRetryItem extends HTMLElement {
   #props = DEFAULT_RETRY_PROPS
   #deadline = 0
   #deadlineKey = null

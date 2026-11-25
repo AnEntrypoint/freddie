@@ -14,11 +14,11 @@ export function effectivePermissionPreset(events) {
 
 export const CUSTOM_PRESET = 'custom'
 
-export const PERMISSION_SETTINGS_NAMESPACE = settingsNamespace('permission')
+const PERMISSION_SETTINGS_NAMESPACE = settingsNamespace('permission')
 
 const EMPTY_KNOBS = { preset: null, sandbox: null, approval: null }
 
-export function applyKnobEvent(state, event) {
+function applyKnobEvent(state, event) {
   switch (event.type) {
     case 'permission/preset':
       return { ...state, preset: event.data.preset }
@@ -37,7 +37,7 @@ function foldKnobs(events) {
   return state
 }
 
-export class PermissionPresetService extends Service {
+class PermissionPresetService extends Service {
   static Config = z.object({
     presets: z.dict(z.object({
       sandbox: z.union(SANDBOX_MODES).required(),

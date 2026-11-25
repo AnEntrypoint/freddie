@@ -49,7 +49,7 @@ function classifyPiAiError(message) {
   return 'PI_AI_ERROR'
 }
 
-export function mapStopReason(message, contextWindow) {
+function mapStopReason(message, contextWindow) {
   const piAiOverflow = isContextOverflow(message, contextWindow)
   const harnessOverflow = message.stopReason === 'error'
     && message.errorMessage !== undefined

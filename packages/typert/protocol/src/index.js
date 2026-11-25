@@ -2,7 +2,7 @@ import { Service } from '@freddie/cordis'
 
 const TYPERT_REMOTE_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 
-export function isTypertRemoteSegment(value) {
+function isTypertRemoteSegment(value) {
   return value !== '.' && value !== '..' && TYPERT_REMOTE_SEGMENT_PATTERN.test(value)
 }
 
@@ -18,7 +18,7 @@ export class TypertLookupFailure extends Error {
 
 const markers = new WeakMap()
 
-export function bindTypertRemote(service, serviceKey, options = {}) {
+function bindTypertRemote(service, serviceKey, options = {}) {
   validateName('service key', serviceKey)
   const namespace = options.namespace ?? serviceKey
   validateName('namespace', namespace)
@@ -45,13 +45,6 @@ export function Remote(methodOrExportName, context) {
   addMarkerInitializer(context, { kind: 'direct' })
 }
 
-export function RemoteScope(key, exportName) {
-  validateName('Scope key', key)
-  if (exportName !== undefined) validateName('Remote export name', exportName)
-  return function (_method, context) {
-    addMarkerInitializer(context, { kind: 'context', context: key }, exportName)
-  }
-}
 
 export function remoteMethods(service) {
   const prototype = Object.getPrototypeOf(service)

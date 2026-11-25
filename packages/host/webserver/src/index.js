@@ -14,7 +14,7 @@ function inheritedListenFd(port) {
 export { renderIndexInjections } from './injections.js'
 export { etagOf, sendBody, sendFile } from './static-file.js'
 
-export function stripHmrPrefix(pathname) {
+function stripHmrPrefix(pathname) {
   if (!pathname.startsWith('/__hmr/')) return pathname
   const rest = pathname.slice('/__hmr/'.length)
   const slash = rest.indexOf('/')
@@ -22,7 +22,7 @@ export function stripHmrPrefix(pathname) {
   return rest.slice(slash) || '/'
 }
 
-export class WebServer extends Service {
+class WebServer extends Service {
   static Config = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
     port: z.natural().max(65535).required(),

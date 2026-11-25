@@ -51,7 +51,7 @@ function ordered(jobs) {
   })
 }
 
-export class FreddieJobListAction extends HTMLElement {
+class FreddieJobListAction extends HTMLElement {
   #props = null
   #open = false
   #now = Date.now()

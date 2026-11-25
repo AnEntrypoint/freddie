@@ -7,7 +7,7 @@ export const MAX_FILE_UPLOAD_BYTES = 128 * 1024 * 1024
 export const MAX_STORED_FILE_COUNT = 10_000
 export const MAX_STORED_FILE_BYTES = 25 * 1024 * 1024 * 1024
 
-export class DeepSeekFilesError extends LlmError {
+class DeepSeekFilesError extends LlmError {
   constructor(message, status, detail) {
     super(message, status === 401 || status === 403
       ? 'AUTH'

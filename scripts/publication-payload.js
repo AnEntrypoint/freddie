@@ -3,7 +3,7 @@ function payloadPath(file) {
   return normalized.startsWith('package/') ? normalized.slice('package/'.length) : normalized
 }
 
-export function isForbiddenPublicationFile(file) {
+function isForbiddenPublicationFile(file) {
   const normalized = payloadPath(file)
   return normalized === 'src'
     || normalized.startsWith('src/')

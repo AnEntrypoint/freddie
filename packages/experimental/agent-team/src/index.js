@@ -26,7 +26,7 @@ function positiveLimit(name, value) {
   return value
 }
 
-export class TeamService extends Service {
+class TeamService extends Service {
   static inject = ['agents', 'sessions', 'sessionPersistence', 'subagents']
 
   static Config = z.object({

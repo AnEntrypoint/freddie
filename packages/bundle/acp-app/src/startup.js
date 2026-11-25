@@ -6,7 +6,7 @@ export const name = 'acp-startup'
 
 export const inject = ['cmdlineArgs']
 
-export const ACP_STARTUP_SERVICE = 'acpStartup'
+const ACP_STARTUP_SERVICE = 'acpStartup'
 
 function acpCommand() {
   return new Command()

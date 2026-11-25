@@ -10,7 +10,7 @@ import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { CredentialProvider, credentialRef, parseCredentialKey } from '@freddie/freddie-credentials'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const CREDENTIALS_FILENAME = '.credentials.yaml'
+const CREDENTIALS_FILENAME = '.credentials.yaml'
 
 export function resolveSpec(config) {
   return {
@@ -59,9 +59,9 @@ function describeYamlError(error) {
   return `${error.code}${where}`
 }
 
-export const DOCUMENT_VERSION = 1
+const DOCUMENT_VERSION = 1
 
-export function parseCredentialsDocument(text, filename) {
+function parseCredentialsDocument(text, filename) {
   const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) {
     throw new Error(`credentials-local: invalid document at ${filename}: ${
@@ -95,7 +95,7 @@ export function parseCredentialsDocument(text, filename) {
   return { refs: parseRefs(fields['refs'], filename), records: parseRecords(fields['records'], filename) }
 }
 
-export function renderFlatLayoutMigration(text) {
+function renderFlatLayoutMigration(text) {
   const document = parseDocument(text, LINE_POSITION_PARSE_OPTIONS)
   if (document.errors.length > 0) return undefined
   const flat = document.contents
@@ -287,7 +287,7 @@ function sameJsonValue(left, right) {
     && sameJsonValue(left[key], right[key]))
 }
 
-export class LocalCredentialProvider extends CredentialProvider {
+class LocalCredentialProvider extends CredentialProvider {
   static Config = z.object({
     path: z.string(),
     freddieHome: z.string(),

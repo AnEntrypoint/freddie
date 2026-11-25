@@ -15,7 +15,7 @@ export const Config = z.object({
   routes: z.dict(z.string()).default({}),
 })
 
-export class DomainFacility {
+class DomainFacility {
   domains = new Map()
   reserved = new Set()
 

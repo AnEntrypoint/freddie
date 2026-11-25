@@ -28,7 +28,7 @@ function stateStatus(state, t) {
   }
 }
 
-export class FreddieToolRow extends HTMLElement {
+class FreddieToolRow extends HTMLElement {
   #props = null
   #expanded = false
   #everOpened = false

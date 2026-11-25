@@ -29,7 +29,7 @@ function sharingDisclosure(telemetry) {
   return sharingSentence(telemetry.sharing)
 }
 
-export function recordFeedback(session, text) {
+function recordFeedback(session, text) {
   const normalized = text.trim()
   if (normalized.length === 0) throw new TypeError('feedback text must not be empty')
   session.append('feedback/record', { text: normalized })

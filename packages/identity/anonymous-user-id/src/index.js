@@ -4,7 +4,7 @@ import { dirname, join } from '@freddie/freddie-runtime/path'
 import { resolveFreddieHome } from '@freddie/freddie-home-paths'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const ANONYMOUS_USER_ID_FILE_NAME = '.anonymous-user-id'
+const ANONYMOUS_USER_ID_FILE_NAME = '.anonymous-user-id'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

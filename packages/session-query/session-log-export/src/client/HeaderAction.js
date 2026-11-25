@@ -3,7 +3,7 @@ import { IconDownloadOutline16, renderModal, defineElement } from '@freddie/fred
 import { dialogProps } from './Dialog.js'
 import css from './HeaderAction.css.js'
 
-export class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
+class FreddieSessionLogDownloadHeaderAction extends HTMLElement {
   #props = null
   #modal = null
 

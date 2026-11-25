@@ -26,7 +26,7 @@ function stateStatus(state, t) {
   }
 }
 
-export class FreddieBashRow extends HTMLElement {
+class FreddieBashRow extends HTMLElement {
   #props = null
   #expanded = false
   #terminalEl = null
@@ -148,7 +148,7 @@ export class FreddieBashRow extends HTMLElement {
 
 defineElement('freddie-bash-row', FreddieBashRow)
 
-export function BashRow(props) {
+function BashRow(props) {
   const el = document.createElement('freddie-bash-row')
   el.setProps(props)
   return el

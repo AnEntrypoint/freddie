@@ -91,7 +91,7 @@ function LevelColumn({ entries, selectedPath, busy, onPick, showHidden, filterPr
   )
 }
 
-export class FreddieDirectoryBrowser extends HTMLElement {
+class FreddieDirectoryBrowser extends HTMLElement {
   #props = null
   #wasOpen = false
 

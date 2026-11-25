@@ -9,7 +9,7 @@ import { draftBlocker } from './section-store.js'
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetSection.css.js'
 
-export class FreddieAgentPresetSection extends HTMLElement {
+class FreddieAgentPresetSection extends HTMLElement {
   #props = null
   #copyModal = null
   #viewModal = null

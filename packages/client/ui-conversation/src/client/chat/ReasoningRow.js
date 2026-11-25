@@ -18,7 +18,7 @@ function latestLine(text) {
 
 const DEFAULT_PROPS = { text: '', running: false, t: (key) => key }
 
-export class FreddieReasoningRow extends HTMLElement {
+class FreddieReasoningRow extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
   #scheduleSummaryScroll = createThrottledVisualUpdate(() => { this.#scrollSummary() })

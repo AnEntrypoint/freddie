@@ -196,7 +196,7 @@ function fallbackState(context) {
   return state
 }
 
-export const toolDefinition = {
+const toolDefinition = {
   kind: 'tool-call',
   target: 'chat',
   match: (event) => {

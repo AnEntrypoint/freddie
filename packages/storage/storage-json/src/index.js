@@ -11,7 +11,7 @@ export const Config = z.object({
   root: z.string().required(),
 })
 
-export class JsonStorageBackend {
+class JsonStorageBackend {
   open = new Map()
   opening = new Map()
   closed = false

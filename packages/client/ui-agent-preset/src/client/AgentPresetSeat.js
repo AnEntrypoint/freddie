@@ -14,7 +14,7 @@ function introStaggerMs(count) {
   return Math.min(INTRO_CHAR_STAGGER_MS, INTRO_TEXT_REVEAL_MS / (count - 1))
 }
 
-export class FreddieAgentPresetSeat extends HTMLElement {
+class FreddieAgentPresetSeat extends HTMLElement {
   #props = null
   #open = false
   #loaded = false

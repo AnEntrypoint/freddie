@@ -2,7 +2,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import './DirectoryBrowser.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieBrowseDirectoryFlow extends HTMLElement {
+class FreddieBrowseDirectoryFlow extends HTMLElement {
   #props = null
   #inner = null
 

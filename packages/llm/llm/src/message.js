@@ -1,7 +1,7 @@
 import { MessageId } from './brand.js'
 import { deepFreeze } from './call-config.js'
 
-export const CONTEXT_SUMMARY_MAX_CHARS = 120
+const CONTEXT_SUMMARY_MAX_CHARS = 120
 
 export function boundContextSummary(summary) {
   return summary.length <= CONTEXT_SUMMARY_MAX_CHARS

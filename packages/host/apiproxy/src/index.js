@@ -15,7 +15,7 @@ export { toFetchHandler } from './fetch/handler.js'
 export { AbstractApiClient, InProcessApiClient } from './fetch/client.js'
 export { createApiProxy } from './api-proxy.js'
 
-export class ApiProxyService extends Service {
+class ApiProxyService extends Service {
   static inject = [
     'agentDefaultModel', 'agents', 'attachments', 'directoryPicker', 'llm', 'sessions', 'subagents', 'sessionQuery',
     'terminals', 'tools', 'userQuestions', 'workspaceRegistry',

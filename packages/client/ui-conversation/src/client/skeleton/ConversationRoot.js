@@ -2,7 +2,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './ConversationRoot.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieConversationRoot extends HTMLElement {
+class FreddieConversationRoot extends HTMLElement {
   #props = null
   #seatObserver = null
   #seatEl = null

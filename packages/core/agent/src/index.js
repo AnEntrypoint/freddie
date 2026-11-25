@@ -16,7 +16,7 @@ const NO_FACTORY_MESSAGE = 'no agent factory registered (load an agent-loop plug
 const NO_INITIATOR_MESSAGE = 'no initiating agent is active'
 const DISPOSED_INITIATOR_MESSAGE = 'agent initiator scope is disposed'
 
-export class AgentRegistry extends Service {
+class AgentRegistry extends Service {
   store = new Map()
   factory
   initiators = new AsyncLocalStorage()

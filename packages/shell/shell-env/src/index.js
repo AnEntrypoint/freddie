@@ -20,7 +20,7 @@ const RESERVED_BASH_ENV_KEYS = new Set([
 ])
 const BASH_ENV_KEY_SUFFIX = /^[A-Z][A-Z0-9_]*$/
 
-export class ShellEnvRegistry extends Service {
+class ShellEnvRegistry extends Service {
   contributors = new Map()
   keyOwners = new Map()
   freddieHome

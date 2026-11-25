@@ -17,9 +17,9 @@ export { UploadError } from './error.js'
 export { FILE_UPLOAD_PATH, FILE_UPLOAD_ROUTE } from './shared.js'
 export { UploadStaging } from './staging.js'
 
-export const DEFAULT_MAX_UPLOAD_BYTES = 64 * 1024 * 1024
+const DEFAULT_MAX_UPLOAD_BYTES = 64 * 1024 * 1024
 
-export const STAGING_SUBPATH = join('uploads', 'v1')
+const STAGING_SUBPATH = join('uploads', 'v1')
 
 export const name = 'client-file-upload'
 
@@ -54,7 +54,7 @@ class PromptFileBindingGuard {
   }
 }
 
-export class FileUploads extends Service {
+class FileUploads extends Service {
   static inject = inject
 
   static Config = Config

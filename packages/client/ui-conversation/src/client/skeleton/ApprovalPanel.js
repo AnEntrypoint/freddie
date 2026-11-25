@@ -4,7 +4,7 @@ import { PendingApproval } from '../contract/slots.js'
 import { rootToolCall } from '../chat/tool-node-reader.js'
 import css from './ApprovalPanel.css.js'
 
-export function commandOf(call) {
+function commandOf(call) {
   if (call === undefined) return undefined
   try {
     const args = JSON.parse(call.argsRaw)
@@ -14,7 +14,7 @@ export function commandOf(call) {
   }
 }
 
-export class FreddieApprovalFlow extends HTMLElement {
+class FreddieApprovalFlow extends HTMLElement {
   #pending = null
   #command
   #t = null

@@ -1,7 +1,7 @@
 const TEXT_REF_RE = /(^|\s)([/@])([\w-]+)/g
 const FOLDER_REF_RE = /(^|\s)(@(?:"[^"\n]*\/|[^\s"]+\/))/g
 
-export function scanTextRefs(draft, lexicon) {
+function scanTextRefs(draft, lexicon) {
   if (draft === '') return []
   const out = []
   if (lexicon.size > 0) {

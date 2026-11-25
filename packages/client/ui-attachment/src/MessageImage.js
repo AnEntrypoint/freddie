@@ -21,7 +21,7 @@ function singleFit(attachment) {
   }
 }
 
-export class FreddieMessageImage extends HTMLElement {
+class FreddieMessageImage extends HTMLElement {
   #props = null
   #src = null
   #error = false
@@ -113,7 +113,7 @@ export class FreddieMessageImage extends HTMLElement {
 
 defineElement('freddie-message-image', FreddieMessageImage)
 
-export function renderMessageImage(el, props) {
+function renderMessageImage(el, props) {
   const target = el ?? document.createElement('freddie-message-image')
   target.setProps(props)
   return target

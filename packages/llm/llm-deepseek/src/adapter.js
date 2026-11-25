@@ -52,7 +52,7 @@ function collectImageRefs(content, refs) {
   }
 }
 
-export function resolveRequestImagePolicy(model) {
+function resolveRequestImagePolicy(model) {
   let maxPixels
   if (model.imagePixelBudget !== undefined) maxPixels = model.imagePixelBudget
   else if (model.imageDetail === 'low') maxPixels = DEFAULT_LOW_DETAIL_IMAGE_PIXEL_BUDGET
@@ -158,7 +158,7 @@ function requestId(headers) {
   return value === null || value.length === 0 ? undefined : ProviderRequestId(value)
 }
 
-export function httpErrorCode(status, error) {
+function httpErrorCode(status, error) {
   if (status === 401 || status === 403) return 'AUTH'
   if (status === 413) return 'INVALID_REQUEST'
   const detail = [error?.code, error?.type, error?.message].filter(Boolean).join(' ')

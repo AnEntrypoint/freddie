@@ -21,7 +21,7 @@ const profilePattern = /^web:(macos|windows|linux)$/u
 
 const codePattern = /^(Key[A-Z]|Digit[0-9]|F([1-9]|1[0-9]|2[0-4]))$/u
 
-export const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 1
 
 function isRecord(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -124,7 +124,7 @@ export function effectiveShortcuts(definitions, document, profile) {
   })
 }
 
-export function parseBinding(value) {
+function parseBinding(value) {
   if (value === null) return null
   if (!isRecord(value)
     || Object.keys(value).some(key => key !== 'code' && key !== 'modifiers')
@@ -140,7 +140,7 @@ export function parseBinding(value) {
   return binding
 }
 
-export function parseShortcutDocument(raw) {
+function parseShortcutDocument(raw) {
   if (raw === null) return { schemaVersion: SCHEMA_VERSION, profiles: {} }
   try {
     const value = JSON.parse(raw)
@@ -164,7 +164,7 @@ export function parseShortcutDocument(raw) {
   }
 }
 
-export function editShortcutDocument(document, edit, profile) {
+function editShortcutDocument(document, edit, profile) {
   let overrides = { ...document.profiles[profile] }
   switch (edit.type) {
     case 'set':
@@ -186,7 +186,7 @@ export function editShortcutDocument(document, edit, profile) {
 
 let revisionCounter = 0
 
-export function newRevision() {
+function newRevision() {
   revisionCounter += 1
   const suffix = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()

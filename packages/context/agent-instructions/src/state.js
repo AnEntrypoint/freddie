@@ -126,7 +126,7 @@ function versionStatesFor(session, cache) {
   return states
 }
 
-export function retainedInstructionVersionUpdates(
+function retainedInstructionVersionUpdates(
   updates,
   renderedChanges,
 ) {

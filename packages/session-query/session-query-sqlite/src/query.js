@@ -9,9 +9,9 @@ export const FTS_HIGHLIGHT_END = '﷑'
 
 export const SQLITE_MAX_PAGE_LIMIT = Number.MAX_SAFE_INTEGER - 1
 
-export const SQLITE_PORTABLE_VARIABLE_LIMIT = 32_766
+const SQLITE_PORTABLE_VARIABLE_LIMIT = 32_766
 
-export const SQLITE_FTS5_OUTER_PREDICATE_LIMIT = 14
+const SQLITE_FTS5_OUTER_PREDICATE_LIMIT = 14
 
 export function assertPortableBindingCount(count) {
   if (count > SQLITE_PORTABLE_VARIABLE_LIMIT) {

@@ -10,7 +10,7 @@ import css from './QueueDock.css.js'
 
 let listIdSeq = 0
 
-export class FreddieQueueDock extends HTMLElement {
+class FreddieQueueDock extends HTMLElement {
   #props = null
   #editing = null
   #busy = null

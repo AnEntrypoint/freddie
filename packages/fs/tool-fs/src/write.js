@@ -3,12 +3,12 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.js'
 import { remediateFsError } from './error.js'
 import { sessionResolveOptions } from './session-cwd.js'
 
-export function parseWriteArgs(args) {
+function parseWriteArgs(args) {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   return { filePath: args.file_path, content: args.content }
 }
 
-export function formatWriteOutput(displayPath, outcome) {
+function formatWriteOutput(displayPath, outcome) {
   const verb = outcome.operation === 'create' ? 'Created' : 'Updated'
   return `<path>${displayPath}</path>
 <type>file</type>

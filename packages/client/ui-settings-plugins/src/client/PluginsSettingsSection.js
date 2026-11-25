@@ -8,7 +8,7 @@ function asChild(node) {
 
 let idCounter = 0
 
-export class FreddiePluginsSettingsSection extends HTMLElement {
+class FreddiePluginsSettingsSection extends HTMLElement {
   #props = null
   #tabsId = `freddie-plugins-tabs-${String(idCounter++)}`
   #activeId

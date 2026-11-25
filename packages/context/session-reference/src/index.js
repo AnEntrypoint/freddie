@@ -33,7 +33,7 @@ user explicitly repeats them.
 `
 const PROMPT_SUFFIX = '\n</referenced-sessions>'
 
-export class SessionReferenceResolver extends TypertRemoteService {
+class SessionReferenceResolver extends TypertRemoteService {
   static inject = ['sessionQuery']
   static Config = z.object({
     maxReferences: z.number().step(1).min(1).max(MAX_REFERENCES).default(MAX_REFERENCES),

@@ -10,7 +10,7 @@ export function flattenVNodes(vnodes, result = []) {
     }
     return result;
 }
-export function isValidVNode(vnode) {
+function isValidVNode(vnode) {
     const typeofVNode = typeof vnode;
     return (vnode !== null &&
         vnode !== undefined &&

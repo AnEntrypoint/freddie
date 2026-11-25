@@ -1,7 +1,7 @@
 import z from '@freddie/schemastery'
 
-export const DEFAULT_BASH_SHELL = '/bin/bash'
-export const DEFAULT_BASH_ARGS = ['--noprofile', '--norc', '-i']
+const DEFAULT_BASH_SHELL = '/bin/bash'
+const DEFAULT_BASH_ARGS = ['--noprofile', '--norc', '-i']
 
 export function resolveConfig(config) {
   return {

@@ -20,7 +20,7 @@ export {
 export { FILE_REFERENCE_PROMPT } from '@freddie/freddie-file-reference'
 export { activeAtToken, formatFileMention } from '@freddie/freddie-file-reference/grammar'
 
-export class LocalFileReferenceService extends FileReferenceService {
+class LocalFileReferenceService extends FileReferenceService {
   static inject = ['agents']
   static Config = z.object({
     maxResults: z.number().step(1).min(1).default(DEFAULT_FILE_SEARCH_MAX_RESULTS),

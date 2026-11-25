@@ -8,7 +8,7 @@ export {
   HttpFetchProvider,
 } from './provider.js'
 
-export const DEFAULT_USER_AGENT = 'freddie/0.0.1 (+https://github.com/lanmower/freddie)'
+const DEFAULT_USER_AGENT = 'freddie/0.0.1 (+https://github.com/lanmower/freddie)'
 
 export const name = 'web-fetch-http'
 

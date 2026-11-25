@@ -4,7 +4,7 @@ import { AnonymousEntries, ScopedLayers, scopeOf } from '@freddie/freddie-scope'
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 import { JobRegistry, JobId } from '@freddie/freddie-jobs'
 
-export const TASK_WAIT_TIMEOUT = 'TASK_WAIT_TIMEOUT'
+const TASK_WAIT_TIMEOUT = 'TASK_WAIT_TIMEOUT'
 
 const DEFAULT_MAX_CONCURRENT_TASKS_PER_OWNER = 10
 
@@ -22,7 +22,7 @@ class JobLayer {
   }
 }
 
-export class LocalJobRegistry extends JobRegistry {
+class LocalJobRegistry extends JobRegistry {
   static Config = z.object({
     maxConcurrentJobsPerOwner: z.number()
       .step(1)

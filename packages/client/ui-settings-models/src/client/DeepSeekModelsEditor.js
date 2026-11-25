@@ -13,7 +13,7 @@ const CAPACITY_PATTERN = /^(\d+(?:\.\d+)?)([km])?$/i
 
 const CAPACITY_SCALE = { k: 1_000, m: 1_000_000 }
 
-export function parseCapacity(text) {
+function parseCapacity(text) {
   const trimmed = text.trim()
   if (trimmed.length === 0) return undefined
   const match = CAPACITY_PATTERN.exec(trimmed)
@@ -25,7 +25,7 @@ export function parseCapacity(text) {
   return Math.abs(scaled - rounded) < 1e-6 ? rounded : scaled
 }
 
-export function formatCapacity(value) {
+function formatCapacity(value) {
   if (!Number.isInteger(value) || value <= 0) return String(value)
   if (value % CAPACITY_SCALE.m === 0) return `${String(value / CAPACITY_SCALE.m)}M`
   if (value % CAPACITY_SCALE.k === 0) return `${String(value / CAPACITY_SCALE.k)}K`
@@ -79,7 +79,7 @@ const DEFAULT_PROPS = {
   onReset: () => {},
 }
 
-export class FreddieDeepSeekModelsEditor extends HTMLElement {
+class FreddieDeepSeekModelsEditor extends HTMLElement {
   #props = DEFAULT_PROPS
   #editing = new Map()
   #expanded = new Set()
@@ -266,7 +266,7 @@ export class FreddieDeepSeekModelsEditor extends HTMLElement {
 
 defineElement('freddie-deepseek-models-editor', FreddieDeepSeekModelsEditor)
 
-export function renderDeepSeekModelsEditor(el, props) {
+function renderDeepSeekModelsEditor(el, props) {
   const target = el ?? document.createElement('freddie-deepseek-models-editor')
   target.setProps(props)
   return target

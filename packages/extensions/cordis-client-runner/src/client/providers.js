@@ -25,7 +25,7 @@ const SUBTREE_INPUT = {
   additionalProperties: false,
 }
 
-export const CLIENT_BUILTIN_INSPECTION = [
+const CLIENT_BUILTIN_INSPECTION = [
   {
     name: 'ctx',
     description: 'Restricted Cordis Context. Prefer ctx.get(name) with an undefined check; use inject only for hard dependencies.',

@@ -45,7 +45,7 @@ export async function resolvePublicAddresses(hostname, signal, lookup = systemLo
   return addresses
 }
 
-export function createPinnedLookup(addresses) {
+function createPinnedLookup(addresses) {
   return (hostname, options, callback) => {
     const requested = typeof options?.family === 'number' ? options.family : options?.family === 'IPv4' ? 4 : options?.family === 'IPv6' ? 6 : 0
     const eligible = requested === 0 ? addresses : addresses.filter(entry => entry.family === requested)

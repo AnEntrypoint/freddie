@@ -2,7 +2,7 @@ import { Service } from '@freddie/cordis'
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { SettingsDescribeMirror } from './settings-mirror.js'
 
-export class SettingsScopeController {
+class SettingsScopeController {
   tail = Promise.resolve()
   writeGeneration = 0
   disposed = false

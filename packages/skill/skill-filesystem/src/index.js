@@ -54,7 +54,7 @@ export function apply(ctx, config = {}) {
   })
 }
 
-export class FileSystemSkillProvider {
+class FileSystemSkillProvider {
   name
   includeDefaultRoots
   freddieHome

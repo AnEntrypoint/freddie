@@ -38,7 +38,7 @@ const sameIds = (left, right) =>
 const compareHeaders = (left, right) =>
   right.createdAt - left.createdAt || String(left.id).localeCompare(String(right.id))
 
-export class WorkspaceRegistry extends Service {
+class WorkspaceRegistry extends Service {
   static inject = ['storageDomain', 'sessionPersistence']
 
   table

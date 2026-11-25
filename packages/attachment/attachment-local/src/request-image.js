@@ -8,8 +8,8 @@ import { hasLowColourCount } from './normalization.js'
 import { encodeFirstWithinLimit, isExhaustedEncoding } from './encoding.js'
 import { detectImage, encodedAlphaIsCompatible, probeImage } from './image.js'
 
-export const REQUEST_IMAGE_TRANSFORM_VERSION = 'request-image-v4'
-export const REQUEST_IMAGE_QUALITIES = [85, 80]
+const REQUEST_IMAGE_TRANSFORM_VERSION = 'request-image-v4'
+const REQUEST_IMAGE_QUALITIES = [85, 80]
 
 function digest(value) {
   return createHash('sha256').update(value).digest('hex')

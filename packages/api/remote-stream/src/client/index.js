@@ -16,7 +16,7 @@ export async function apply(ctx) {
 
 const installed = new WeakMap()
 
-export function installRemoteStream(remote, namespace) {
+function installRemoteStream(remote, namespace) {
   if (typeof namespace?.next !== 'function' || typeof namespace?.close !== 'function') {
     return () => {}
   }

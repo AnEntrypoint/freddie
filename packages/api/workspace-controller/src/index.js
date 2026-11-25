@@ -31,7 +31,7 @@ function workspaceView(entity) {
   }
 }
 
-export class WorkspaceController extends TypertRemoteService {
+class WorkspaceController extends TypertRemoteService {
   static inject = ['workspaceRegistry']
 
   constructor(ctx) {
@@ -116,7 +116,7 @@ export class WorkspaceController extends TypertRemoteService {
   }
 }
 
-export class DirectoryPickerController extends TypertRemoteService {
+class DirectoryPickerController extends TypertRemoteService {
   static inject = ['directoryPicker']
 
   constructor(ctx) {

@@ -20,7 +20,7 @@ class RemoteInvocationCancelled extends Error {
   }
 }
 
-export class TypertGatewayService extends Service {
+class TypertGatewayService extends Service {
   static inject = ['typert']
 
   srcClaims

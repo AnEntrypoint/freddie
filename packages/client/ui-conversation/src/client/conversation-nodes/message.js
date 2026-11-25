@@ -9,7 +9,7 @@ function isCompactionCheckpoint(event) {
   return source.kind === 'plugin' && source.plugin === 'compact'
 }
 
-export const messageDefinition = {
+const messageDefinition = {
   kind: 'input-message',
   target: 'chat',
   match: event => event.type === 'user/message'

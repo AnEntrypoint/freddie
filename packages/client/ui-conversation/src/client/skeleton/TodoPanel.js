@@ -64,7 +64,7 @@ function progressLabel(todos, t) {
   ].join(EN_SPACED_SEPARATOR)
 }
 
-export class FreddieTodoPanel extends HTMLElement {
+class FreddieTodoPanel extends HTMLElement {
   #props = { todos: [], t: (key) => key }
   #collapsed = true
 
@@ -126,7 +126,7 @@ export function TodoPanel(props) {
   return el
 }
 
-export function TodoDock({ useProjection, t }) {
+function TodoDock({ useProjection, t }) {
   const todos = useProjection('todos')
   return TodoPanel({ todos: todos ?? [], t })
 }

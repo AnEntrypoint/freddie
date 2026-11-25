@@ -42,7 +42,7 @@ function stateFor(callId) {
   return state
 }
 
-export class FreddieCordisDefineRow extends HTMLElement {
+class FreddieCordisDefineRow extends HTMLElement {
   #props = null
 
   setProps(props) {

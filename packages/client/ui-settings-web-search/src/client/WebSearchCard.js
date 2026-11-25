@@ -64,7 +64,7 @@ function KeyField(props) {
   )
 }
 
-export class FreddieWebSearchCard extends HTMLElement {
+class FreddieWebSearchCard extends HTMLElement {
   #props = null
   #open = false
 

@@ -17,7 +17,7 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieGenericCommandCard extends HTMLElement {
+class FreddieGenericCommandCard extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
 
@@ -79,7 +79,7 @@ export class FreddieGenericCommandCard extends HTMLElement {
 
 defineElement('freddie-generic-command-card', FreddieGenericCommandCard)
 
-export function renderGenericCommandCard(el, props) {
+function renderGenericCommandCard(el, props) {
   const target = el ?? document.createElement('freddie-generic-command-card')
   target.setProps(props)
   return target

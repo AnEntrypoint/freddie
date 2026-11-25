@@ -1,6 +1,6 @@
 import { structuredPatch } from 'diff'
 
-export const DIFF_CONTEXT = 3
+const DIFF_CONTEXT = 3
 
 export function computeHunkDiffs(path, before, after) {
   const patch = structuredPatch('', '', before, after, undefined, undefined, { context: DIFF_CONTEXT })

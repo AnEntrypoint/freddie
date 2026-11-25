@@ -5,7 +5,7 @@ import css from './ShortcutRow.css.js'
 
 const OPEN_COMMAND = 'shortcuts.open'
 
-export class FreddieShortcutRow extends HTMLElement {
+class FreddieShortcutRow extends HTMLElement {
   #props = null
 
   setProps(props) {

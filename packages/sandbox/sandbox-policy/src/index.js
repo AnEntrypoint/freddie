@@ -27,7 +27,7 @@ function renderPolicyContext(policy) {
   }
 }
 
-export class SandboxPolicyService extends Service {
+class SandboxPolicyService extends Service {
   static Config = z.object({
     mode: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
     workspaceRoot: z.string(),

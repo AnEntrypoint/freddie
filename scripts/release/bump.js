@@ -36,7 +36,7 @@ function comparePrereleaseFields(leftField, rightField) {
   return leftField < rightField ? -1 : 1
 }
 
-export function compareVersions(left, right) {
+function compareVersions(left, right) {
   const numbers = compareReleaseNumbers(left, right)
   if (numbers !== 0) return numbers
   const leftPre = prereleaseOf(left)
@@ -71,7 +71,7 @@ function nextSharedVersion(current, request) {
   return `${String(major)}.${String(minor)}.${String(patch + 1)}`
 }
 
-export function nextVendorVersion(
+function nextVendorVersion(
   current,
   tagged,
   prerelease,
@@ -134,7 +134,7 @@ function privateDshVersions(root) {
     })
 }
 
-export function planShared(
+function planShared(
   family,
   root,
   members,

@@ -8,7 +8,7 @@ import css from './WorkspacePicker.css.js'
 
 const ADD_WORKSPACE = '::add-workspace'
 
-export class FreddieWorkspacePickFlow extends HTMLElement {
+class FreddieWorkspacePickFlow extends HTMLElement {
   #props = null
   #errorOpen = false
   #modalError = null
@@ -177,7 +177,7 @@ export function renderWorkspacePickFlow(el, props) {
   return target
 }
 
-export class FreddieWorkspacePicker extends HTMLElement {
+class FreddieWorkspacePicker extends HTMLElement {
   #props = null
   #pickFlow = null
 
@@ -214,7 +214,7 @@ export class FreddieWorkspacePicker extends HTMLElement {
 
 defineElement('freddie-workspace-picker', FreddieWorkspacePicker)
 
-export function renderWorkspacePicker(el, props) {
+function renderWorkspacePicker(el, props) {
   const target = el ?? document.createElement('freddie-workspace-picker')
   target.setProps(props)
   return target

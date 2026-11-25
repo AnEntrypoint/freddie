@@ -1,6 +1,6 @@
 import { Service } from '@freddie/cordis'
 
-export class TimerService extends Service {
+class TimerService extends Service {
   constructor(ctx) {
     super(ctx, 'timer')
     ctx.mixin('timer', ['timeout', 'interval', 'throttle', 'debounce', 'setTimeout', 'setInterval'])

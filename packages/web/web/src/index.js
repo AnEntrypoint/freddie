@@ -7,7 +7,7 @@ export {
   WebError,
 } from './types.js'
 
-export class WebRuntime extends Service {
+class WebRuntime extends Service {
   static Config = z.object({
     searchProvider: z.string(),
     fetchProvider: z.string(),

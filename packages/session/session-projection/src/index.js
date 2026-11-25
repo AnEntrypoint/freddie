@@ -1,6 +1,6 @@
 import { Service } from '@freddie/cordis'
 
-export class SessionProjectionRegistry extends Service {
+class SessionProjectionRegistry extends Service {
   registrations = new Map()
   listeners = new Set()
 

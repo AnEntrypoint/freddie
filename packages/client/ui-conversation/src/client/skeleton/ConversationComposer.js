@@ -12,7 +12,7 @@ function sameKey(previous, next) {
     && next.every((value, index) => Object.is(value, previous[index]))
 }
 
-export class FreddieConversationComposer extends HTMLElement {
+class FreddieConversationComposer extends HTMLElement {
   #props = null
   #pickerOpen = false
   #pendingWorkspaceId

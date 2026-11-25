@@ -40,7 +40,7 @@ function notFound(path) {
   return rejected('workspace-file/not-found', 'no entry exists at this workspace path', { path })
 }
 
-export class WorkspaceFiles extends TypertRemoteService {
+class WorkspaceFiles extends TypertRemoteService {
   static inject = ['fs']
 
   static Config = z.object({

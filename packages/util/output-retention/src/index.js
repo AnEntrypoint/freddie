@@ -186,8 +186,3 @@ export function describeOmitted(omitted, unit) {
   }
 }
 
-export function formatRetentionNotice(notice, recovery) {
-  return [describeOmitted(notice.omitted, notice.unit), recovery(notice)]
-    .filter(part => part.length > 0)
-    .join(' ')
-}

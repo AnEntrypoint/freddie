@@ -1,10 +1,6 @@
 import { createRequire } from '@freddie/freddie-runtime/module'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const ModulePhase = {
-  Source: 1,
-  Evaluation: 2,
-}
 
 let _cachedLoader
 

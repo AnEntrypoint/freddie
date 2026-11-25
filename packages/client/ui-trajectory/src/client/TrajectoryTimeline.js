@@ -183,7 +183,7 @@ function cssVarStyle(vars) {
     .join('; ')
 }
 
-export class FreddieTrajectoryTimeline extends HTMLElement {
+class FreddieTrajectoryTimeline extends HTMLElement {
   #props = null
 
   #drag = null

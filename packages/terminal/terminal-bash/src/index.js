@@ -75,7 +75,7 @@ async function startupSession(session, signal) {
   }
 }
 
-export class BashTerminalBackend {
+class BashTerminalBackend {
   type
 
   constructor(

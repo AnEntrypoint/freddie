@@ -92,8 +92,3 @@ export const menuReduce = (state, ev) => {
   }
 }
 
-export const exactMatch = (groups, source, name) => {
-  const group = groups.find(g => g.source === source)
-  if (!group || group.status !== 'ready') return null
-  return group.items.find(c => c.name === name) ?? null
-}

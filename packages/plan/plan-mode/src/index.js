@@ -3,7 +3,7 @@ import { createUserMessage } from '@freddie/freddie-llm'
 import { defineTool } from '@freddie/freddie-tools'
 import { UserQuestionError } from '@freddie/freddie-user-questions'
 
-export const EXIT_PLAN_MODE = 'exit_plan_mode'
+const EXIT_PLAN_MODE = 'exit_plan_mode'
 
 const REVIEW_ID = 'plan-review'
 
@@ -40,7 +40,7 @@ export function resolveConfig(config) {
   return { section }
 }
 
-export function foldPlanMode(events, end = events.length) {
+function foldPlanMode(events, end = events.length) {
   let active = false
   let index = 0
   for (const event of events) {
@@ -71,7 +71,7 @@ function planModeAtLastHeader(events) {
   return foldPlanMode(events, lastHeader + 1)
 }
 
-export class PlanModeController extends Service {
+class PlanModeController extends Service {
   static inject = ['tools', 'systemPrompt']
 
   section

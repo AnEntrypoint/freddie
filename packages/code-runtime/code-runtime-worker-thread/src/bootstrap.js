@@ -14,7 +14,7 @@ function defineBindingErrorField(error, key, value) {
   capturedObjectDefineProperty(error, key, attributes)
 }
 
-export class LogBuffer {
+class LogBuffer {
   bytes = EMPTY_JSON_ARRAY_BYTES
   entries = 0
   truncated = false
@@ -58,7 +58,7 @@ export class LogBuffer {
 
 const CONSOLE_LEVELS = ['log', 'info', 'warn', 'error', 'debug']
 
-export function makeConsoleShim(logs) {
+function makeConsoleShim(logs) {
   const render = (args) =>
     args.map(arg => typeof arg === 'string' ? arg : inspect(arg, INSPECT_OPTIONS)).join(' ')
   const shim = Object.create(null)
@@ -74,7 +74,7 @@ function writeCallbackAmongOptionalArgs(optionalArgs) {
   )
 }
 
-export function captureStreamWrites(logs, stream) {
+function captureStreamWrites(logs, stream) {
   const original = stream.write
   stream.write = (chunk, ...rest) => {
     logs.push(typeof chunk === 'string' ? chunk : String(chunk))
@@ -87,7 +87,7 @@ export function captureStreamWrites(logs, stream) {
 
 const INSPECT_OPTIONS = { depth: 4, maxArrayLength: 100, maxStringLength: 10_000 }
 
-export function prepareCompletion(value, remainingOutputBytes, maxOutputBytes = remainingOutputBytes) {
+function prepareCompletion(value, remainingOutputBytes, maxOutputBytes = remainingOutputBytes) {
   if (value === undefined) return {}
   let snapshot
   try {
@@ -118,7 +118,7 @@ function prepareFailure(kind, message, remainingOutputBytes, maxOutputBytes) {
   return { error: { kind, message } }
 }
 
-export function prepareException(error, remainingOutputBytes, maxOutputBytes = remainingOutputBytes) {
+function prepareException(error, remainingOutputBytes, maxOutputBytes = remainingOutputBytes) {
   let message
   try {
     const detail = error instanceof CapturedError ? error.stack ?? error.message : error
@@ -143,7 +143,7 @@ function bindingFailure(errorClass, memberName, message) {
   return errorClass ? new errorClass(memberName, message) : new CapturedError(message)
 }
 
-export function makeBindingErrorClasses(data) {
+function makeBindingErrorClasses(data) {
   const classes = new Map()
   for (const namespace of data.namespaces) {
     if (namespace.errorClass) classes.set(namespace.global, makeBindingErrorClass(namespace.errorClass))
@@ -151,7 +151,7 @@ export function makeBindingErrorClasses(data) {
   return classes
 }
 
-export function wireReplies(port, pending) {
+function wireReplies(port, pending) {
   port.on('message', (message) => {
     const entry = pending.get(message.id)
     if (!entry) return
@@ -166,7 +166,7 @@ export function wireReplies(port, pending) {
   })
 }
 
-export function makeNamespaces(
+function makeNamespaces(
   data,
   port,
   pending,

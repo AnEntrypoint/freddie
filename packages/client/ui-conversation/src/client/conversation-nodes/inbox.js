@@ -26,9 +26,9 @@ function inboxDefinition(target) {
   }
 }
 
-export const nextTurnInboxDefinition = inboxDefinition('next-turn')
+const nextTurnInboxDefinition = inboxDefinition('next-turn')
 
-export const nextStepInboxDefinition = inboxDefinition('next-step')
+const nextStepInboxDefinition = inboxDefinition('next-step')
 
 export function registerInboxConversationNodes(ctx) {
   ctx.conversationEvents.register(nextTurnInboxDefinition)

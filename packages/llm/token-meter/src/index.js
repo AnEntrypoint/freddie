@@ -25,7 +25,7 @@ function validateConfigKeys(config) {
   }
 }
 
-export class TokenMeter extends Service {
+class TokenMeter extends Service {
   static Config = z.object({})
 
   states = new WeakMap()

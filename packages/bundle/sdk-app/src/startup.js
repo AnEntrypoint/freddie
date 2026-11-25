@@ -7,7 +7,7 @@ export const name = 'sdk-startup'
 
 export const inject = ['cmdlineArgs']
 
-export const SDK_STARTUP_SERVICE = 'sdkStartup'
+const SDK_STARTUP_SERVICE = 'sdkStartup'
 
 export const Config = Schema.object({
   profile: Schema.string().default('sdk'),

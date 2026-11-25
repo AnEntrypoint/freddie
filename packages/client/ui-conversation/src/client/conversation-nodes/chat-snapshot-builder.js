@@ -428,7 +428,7 @@ function partialContributionChanged(previous, next) {
       && previous?.anchorSeq !== next.anchorSeq)
 }
 
-export class ChatSnapshotBuilder {
+class ChatSnapshotBuilder {
   constructor() {
     this.store = new MutableChatNodeStore()
     this.locations = new MutableChatLocationIndex()
@@ -485,7 +485,7 @@ function locationIdentity(location) {
   return `${location.kind}:${coordinates.turn ?? ''}:${coordinates.step ?? ''}`
 }
 
-export const chatViewDefinition = {
+const chatViewDefinition = {
   target: 'chat',
   create: () => new ChatSnapshotBuilder(),
 }

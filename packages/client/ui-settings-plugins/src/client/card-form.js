@@ -13,16 +13,6 @@ export function numberField(field) {
   }
 }
 
-export function textField(field) {
-  return {
-    field,
-    format: value => typeof value === 'string' ? value : '',
-    parse: (text) => {
-      const trimmed = text.trim()
-      return trimmed === '' ? { kind: 'clear' } : { kind: 'set', value: trimmed }
-    },
-  }
-}
 
 export function endpointField(field) {
   return {

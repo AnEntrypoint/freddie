@@ -105,14 +105,14 @@ function isSyntaxError(error) {
   return typeof error === 'object' && error !== null && error.name === 'SyntaxError'
 }
 
-export function syntaxErrorContext(error) {
+function syntaxErrorContext(error) {
   const lines = (error.stack ?? '').split('\n')
   const messageIndex = lines.findIndex(line => line.startsWith('SyntaxError'))
   if (messageIndex === -1) return String(error)
   return lines.slice(0, messageIndex + 1).join('\n')
 }
 
-export function parseErrorMessage(half, context) {
+function parseErrorMessage(half, context) {
   const offendingLine = context.split('\n')[1] ?? ''
   if (/\bas\b/.test(offendingLine)) {
     return `dynamic package \`${half}\` failed to parse:\n${context}\n`

@@ -24,7 +24,7 @@ const BINARY_EXTENSIONS = new Set([
 
 const RETRYABLE_KINDS = new Set(['aborted', 'unreadable', 'transport'])
 
-export function extensionOf(name) {
+function extensionOf(name) {
   const dot = name.lastIndexOf('.')
   return dot <= 0 ? '' : name.slice(dot + 1).toLowerCase()
 }

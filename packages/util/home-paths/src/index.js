@@ -3,9 +3,9 @@ import { homedir } from '@freddie/freddie-runtime/os'
 import { basename, dirname, join, resolve } from '@freddie/freddie-runtime/path'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const FREDDIE_HOME_DIR_NAME = '.freddie'
+const FREDDIE_HOME_DIR_NAME = '.freddie'
 
-export const DEFAULT_FREDDIE_HOME_DISPLAY = `~/${FREDDIE_HOME_DIR_NAME}`
+const DEFAULT_FREDDIE_HOME_DISPLAY = `~/${FREDDIE_HOME_DIR_NAME}`
 
 export const FREDDIE_HOME_ENV = 'FREDDIE_HOME'
 
@@ -30,7 +30,7 @@ export async function canonicalizeWatchPath(path) {
   }
 }
 
-export function defaultFreddieHome() {
+function defaultFreddieHome() {
   return join(homedir(), FREDDIE_HOME_DIR_NAME)
 }
 

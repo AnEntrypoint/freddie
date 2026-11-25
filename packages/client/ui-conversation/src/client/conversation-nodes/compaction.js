@@ -10,7 +10,7 @@ function fallbackState(context) {
   }
 }
 
-export const compactionDefinition = {
+const compactionDefinition = {
   kind: 'compaction',
   target: 'chat',
   match: (event) => {

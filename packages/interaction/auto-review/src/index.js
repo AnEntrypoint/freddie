@@ -10,18 +10,18 @@ export const name = 'auto-review'
 
 export const inject = ['llm', 'permissionPresets', 'approval', 'tools']
 
-export const AUTO_PRESET = 'auto'
+const AUTO_PRESET = 'auto'
 
-export const AUTO_PRESET_BUNDLE = Object.freeze({
+const AUTO_PRESET_BUNDLE = Object.freeze({
   sandbox: 'danger-full-access',
   approval: 'ask',
   name: 'Auto review',
   description: 'Full host access with a model review before every tool call; denied calls ask first.',
 })
 
-export const AUTO_REVIEW_TIMEOUT_CODE = 'AUTO_REVIEW_TIMEOUT'
+const AUTO_REVIEW_TIMEOUT_CODE = 'AUTO_REVIEW_TIMEOUT'
 
-export const REVIEW_POLICY = `REVIEW_POLICY
+const REVIEW_POLICY = `REVIEW_POLICY
 You are the final authorization reviewer for exactly one pending tool call. Your decision replaces human approval for this call. If you allow it, the call executes immediately with full host access and no later confirmation.
 
 Return exactly one JSON object and no other text. An allow object has exactly two members, risk and decision, and never has reason. The only valid shapes are:
@@ -163,7 +163,7 @@ function requireSingleMatchingLogRecord(events, exec, inner) {
   }
 }
 
-export function snapshotAutoReview(ctx, exec) {
+function snapshotAutoReview(ctx, exec) {
   const { session } = exec.agent
   const events = session.events
   const header = session.requestHeader()
@@ -243,7 +243,7 @@ export function snapshotAutoReview(ctx, exec) {
   })
 }
 
-export function reviewUserText(snapshot) {
+function reviewUserText(snapshot) {
   return [
     'ENVIRONMENT',
     json({ cwd: snapshot.cwd }),
@@ -277,7 +277,7 @@ function topLevelMemberCount(text) {
   return count
 }
 
-export function parseReviewDecision(text) {
+function parseReviewDecision(text) {
   const value = JSON.parse(text)
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('auto-review: reviewer output must be one JSON object')

@@ -1,4 +1,4 @@
-export function workflowPhaseKey(phase) {
+function workflowPhaseKey(phase) {
   return phase === null ? 'missing' : `value:${phase.length}:${phase}`
 }
 

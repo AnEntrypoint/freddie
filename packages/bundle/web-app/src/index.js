@@ -55,7 +55,7 @@ try {
 }
 `
 
-export function resolveLanTrust(bindHost, extra) {
+function resolveLanTrust(bindHost, extra) {
   const lanAddresses = bindHost === ALL_INTERFACES_HOST
     ? Object.values(networkInterfaces()).flat()
       .filter((iface) => iface !== undefined && iface.family === 'IPv4' && !iface.internal)

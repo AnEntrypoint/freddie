@@ -17,11 +17,11 @@ function ancestryCrumbs(target) {
   }
 }
 
-export function fullyQualified(path) {
+function fullyQualified(path) {
   return posix.isAbsolute(path)
 }
 
-export function boundedInsert(window, candidate, keep) {
+function boundedInsert(window, candidate, keep) {
   if (window.length === keep && candidate.name.localeCompare(window[window.length - 1].name) >= 0) return true
   let lo = 0
   let hi = window.length

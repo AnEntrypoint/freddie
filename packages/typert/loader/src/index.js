@@ -4,7 +4,7 @@ import { dirname, join } from '@freddie/freddie-runtime/path'
 import { pathToFileURL } from '@freddie/freddie-runtime/url'
 import z from '@freddie/schemastery'
 
-export const TYPERT_HOST_EXPORT = './typert'
+const TYPERT_HOST_EXPORT = './typert'
 
 export const name = 'typert-loader'
 export const inject = ['typert', 'loader']

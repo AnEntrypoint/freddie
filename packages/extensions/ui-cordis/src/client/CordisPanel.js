@@ -74,7 +74,7 @@ function DoubleCheckIcon() {
   )
 }
 
-export class FreddieCordisPanel extends HTMLElement {
+class FreddieCordisPanel extends HTMLElement {
   #props = null
   #open = false
   #selected = {}

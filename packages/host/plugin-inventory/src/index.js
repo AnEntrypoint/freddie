@@ -22,7 +22,7 @@ const FIBER_PHASE = {
   [FIBER_STATE.UNLOADING]: 'unloading',
 }
 
-export class PluginInventoryGateway extends TypertRemoteService {
+class PluginInventoryGateway extends TypertRemoteService {
   static inject = ['loader']
 
   constructor(ctx) {

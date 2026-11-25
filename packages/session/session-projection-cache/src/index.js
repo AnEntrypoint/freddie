@@ -10,7 +10,7 @@ export const Config = z.object({
   writeIntervalMs: z.natural().min(1).required(),
 })
 
-export class SessionProjectionCache extends Service {
+class SessionProjectionCache extends Service {
   static inject = ['storageDomain', 'sessionProjections', 'sessionPersistence', 'sessions']
 
   static Config = Config

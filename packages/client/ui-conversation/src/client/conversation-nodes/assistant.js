@@ -198,7 +198,7 @@ function projectAssistant(context) {
   }
 }
 
-export const assistantDefinition = {
+const assistantDefinition = {
   kind: 'assistant-step',
   target: 'chat',
   match: (event) => {

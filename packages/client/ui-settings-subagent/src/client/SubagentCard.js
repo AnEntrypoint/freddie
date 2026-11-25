@@ -41,7 +41,7 @@ function LimitField(props) {
   )
 }
 
-export class FreddieSubagentCard extends HTMLElement {
+class FreddieSubagentCard extends HTMLElement {
   #props = null
   #open = false
 

@@ -11,7 +11,7 @@ const DEFAULT_PROPS = { text: '', clock: 'start', t: (key) => key }
 
 let nextReasonId = 0
 
-export class FreddieMessageIconActions extends HTMLElement {
+class FreddieMessageIconActions extends HTMLElement {
   #props = DEFAULT_PROPS
   #reasonId = `message-icon-actions-branch-reason-${(nextReasonId += 1)}`
   #copied = false

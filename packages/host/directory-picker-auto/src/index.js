@@ -8,12 +8,12 @@ export { resolveDirectoryPickerBackend } from './resolve.js'
 export const name = 'directory-picker-auto'
 export const inject = ['webServer', 'loader']
 
-export const BACKEND_PACKAGES = {
+const BACKEND_PACKAGES = {
   native: '@freddie/freddie-host-directory-picker-native',
   browse: '@freddie/freddie-host-directory-picker-browse',
 }
 
-export const SURFACE_PACKAGES = {
+const SURFACE_PACKAGES = {
   native: '@freddie/freddie-client-ui-directory-picker-native',
   browse: '@freddie/freddie-client-ui-directory-picker-browse',
 }

@@ -1,4 +1,4 @@
-export const DARK_ATTRIBUTE = 'data-ds-dark-theme'
+const DARK_ATTRIBUTE = 'data-ds-dark-theme'
 
 export class ThemePresenter {
   appliedTokens = []

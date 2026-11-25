@@ -65,7 +65,7 @@ function snapshotToolValue(toolName, candidate) {
   }
 }
 
-export class ToolNotFoundError extends HarnessError {
+class ToolNotFoundError extends HarnessError {
   constructor(toolName, reachableFrom) {
     super(
       reachableFrom === undefined
@@ -77,7 +77,7 @@ export class ToolNotFoundError extends HarnessError {
   }
 }
 
-export class ToolOutputError extends HarnessError {
+class ToolOutputError extends HarnessError {
   constructor(toolName, violations) {
     super(`tool "${toolName}" returned invalid output: ${violations.join('; ')}`, 'INVALID_TOOL_OUTPUT')
     this.name = 'ToolOutputError'

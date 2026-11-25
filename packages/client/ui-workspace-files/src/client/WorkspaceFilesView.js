@@ -10,7 +10,7 @@ const ROOT = ''
 const TITLE_ID = 'freddie-workspace-files-title'
 const PREVIEW_TITLE_ID = 'freddie-workspace-files-preview-title'
 
-export class FreddieWorkspaceFilesView extends HTMLElement {
+class FreddieWorkspaceFilesView extends HTMLElement {
   #props = null
   #sessionId = null
   #epoch = 0

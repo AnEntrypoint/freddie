@@ -70,7 +70,7 @@ function nextVersion() {
   return randomUUID()
 }
 
-export class MessageFeedbackService extends TypertRemoteService {
+class MessageFeedbackService extends TypertRemoteService {
   static inject = ['storageDomain', 'sessionPersistence', 'sessions']
 
   static Config = s.object({

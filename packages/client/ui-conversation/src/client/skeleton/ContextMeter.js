@@ -14,7 +14,7 @@ const ROWS = [
   { key: 'messageTokens', label: 'context.messages', color: css.colorMessages },
 ]
 
-export class FreddieContextMeter extends HTMLElement {
+class FreddieContextMeter extends HTMLElement {
   #props = null
   #open = false
   #outsideHandler = null

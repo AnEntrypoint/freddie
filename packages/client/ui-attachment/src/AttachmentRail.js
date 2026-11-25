@@ -17,7 +17,7 @@ function pageBehavior() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
 }
 
-export class FreddieAttachmentRail extends HTMLElement {
+class FreddieAttachmentRail extends HTMLElement {
   #props = {
     items: [], labels: { group: '', open: '', scrollLeft: '', scrollRight: '' }, onOpen: () => {}, onRemove: () => {},
   }

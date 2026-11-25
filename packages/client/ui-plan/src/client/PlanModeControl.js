@@ -2,7 +2,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseFill14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PlanModeControl.css.js'
 
-export class FreddiePlanChip extends HTMLElement {
+class FreddiePlanChip extends HTMLElement {
   #props = null
   #leaving = false
   #error = null

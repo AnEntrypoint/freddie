@@ -133,7 +133,7 @@ const PRIVILEGED_METHODS = new Set([
   ...CROSS_SESSION_DISCLOSURE,
 ])
 
-export const UNPINNED_BY_DECISION = Object.freeze([
+const UNPINNED_BY_DECISION = Object.freeze([
   'session.list',
   'session.search',
   'session.page',

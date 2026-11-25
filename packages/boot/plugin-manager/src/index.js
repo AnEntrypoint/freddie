@@ -1,6 +1,6 @@
 import { Service } from '@freddie/cordis'
 
-export class PluginManager extends Service {
+class PluginManager extends Service {
   static inject = ['loader', 'configEditor']
 
   constructor(ctx) {

@@ -8,7 +8,7 @@ export class UserQuestionError extends HarnessError {
   }
 }
 
-export class UserQuestionService extends Service {
+class UserQuestionService extends Service {
   provider
 
   constructor(ctx) {

@@ -27,7 +27,7 @@ function summarize(argsRaw, t) {
   }
 }
 
-export function TodoRow({ toolName, block, inspect, t }) {
+function TodoRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const argsRaw = ('kind' in block ? block.call?.argsRaw : block.argsRaw) ?? ''
   const summary = summarize(argsRaw, t) ?? { text: model.summary, extra: 0 }

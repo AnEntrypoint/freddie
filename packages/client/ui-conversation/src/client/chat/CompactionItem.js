@@ -13,7 +13,7 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieCompactionItem extends HTMLElement {
+class FreddieCompactionItem extends HTMLElement {
   #props = DEFAULT_PROPS
   #expanded = false
   #summaryEl = null
@@ -81,7 +81,7 @@ export class FreddieCompactionItem extends HTMLElement {
 
 defineElement('freddie-compaction-item', FreddieCompactionItem)
 
-export function renderCompactionItem(el, props) {
+function renderCompactionItem(el, props) {
   const target = el ?? document.createElement('freddie-compaction-item')
   target.setProps(props)
   return target

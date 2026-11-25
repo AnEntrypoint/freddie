@@ -9,7 +9,7 @@ import css from './ModelSelect.css.js'
 
 let nextId = 0
 
-export class FreddieModelSelect extends HTMLElement {
+class FreddieModelSelect extends HTMLElement {
   #props = null
   #open = false
   #pane = 'root'

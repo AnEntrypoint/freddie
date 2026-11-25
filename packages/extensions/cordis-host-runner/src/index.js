@@ -27,7 +27,7 @@ export function ApprovalRequestId(id) {
   return id
 }
 
-export class DynamicCordisRunnerService extends TypertRemoteService {
+class DynamicCordisRunnerService extends TypertRemoteService {
   static inject = ['tools']
 
   static Config = z.object({

@@ -9,7 +9,7 @@ import {
 } from '@freddie/freddie-experimental-browser-use-runtime/mcp'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const PINNED_SERVER_VERSION = '1.9.0'
+const PINNED_SERVER_VERSION = '1.9.0'
 
 const SERVER_ENTRY = 'chrome-devtools-mcp/build/src/bin/chrome-devtools-mcp.js'
 

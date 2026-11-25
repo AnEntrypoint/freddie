@@ -18,14 +18,14 @@ import { buildProvider, supportedProtocols } from './provider.js'
 
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 
-export const DEFAULT_MAX_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
+const DEFAULT_MAX_REQUEST_IMAGE_BYTES = 20 * 1024 * 1024
 export const DEFAULT_REQUEST_IMAGE_PIXEL_BUDGET = 2048 * 2048
 export const DEFAULT_REQUEST_IMAGE_MAX_BYTES = 1024 * 1024
 
 export const DEFAULT_CONTEXT_WINDOW = 262_144
 export const DEFAULT_MAX_TOKENS = 32_768
 
-export const DEFAULT_INPUT = ['text']
+const DEFAULT_INPUT = ['text']
 
 const thinkingBudgets = z.object({
   minimal: z.number(),

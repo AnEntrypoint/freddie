@@ -150,7 +150,7 @@ function parseOffsetInstant(value) {
   return localEpoch - direction * (offsetHour * 60 + offsetMinute) * 60_000
 }
 
-export function canonicalizeTimeZone(value) {
+function canonicalizeTimeZone(value) {
   if (value.length === 0 || value.trim() !== value || (value !== 'UTC' && !IANA_ZONE.test(value))) {
     throw new ScheduleInputError('invalid_time_zone', 'time_zone must be UTC or a valid IANA Area/Location name.')
   }

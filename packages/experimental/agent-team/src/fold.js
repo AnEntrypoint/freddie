@@ -9,7 +9,7 @@ import { assertTaskGraphCandidate } from './task-graph.js'
 const numericTaskIdPattern = /^task-(\d+)$/u
 
 
-export function emptyTeamFoldState(rootId) {
+function emptyTeamFoldState(rootId) {
   return {
     id: toTeamId(rootId),
     members: new Map(),
@@ -22,7 +22,7 @@ export function emptyTeamFoldState(rootId) {
 }
 
 
-export function isTeamEvent(event) {
+function isTeamEvent(event) {
   return event.type === 'team/member'
     || event.type === 'team/task'
     || event.type === 'team/message/queued'
@@ -74,7 +74,7 @@ function parseCurrentTeamEvent(event) {
   }
 }
 
-export function applyTeamEvent(state, event) {
+function applyTeamEvent(state, event) {
   if (!isTeamEvent(event)) return
   const selector = event.data
   if (selector.version !== 1) {

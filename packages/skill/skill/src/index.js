@@ -90,7 +90,7 @@ class SkillLayer {
   }
 }
 
-export class SkillRegistry extends Service {
+class SkillRegistry extends Service {
   static Config = z.object({
     collectCacheMaxEntries: z.number().default(DEFAULT_COLLECT_CACHE_ENTRIES),
   })

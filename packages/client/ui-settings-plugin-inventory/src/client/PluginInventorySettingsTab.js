@@ -57,7 +57,7 @@ function noteOf(outcome) {
 
 let nextCatalogId = 0
 
-export class FreddiePluginInventorySettingsTab extends HTMLElement {
+class FreddiePluginInventorySettingsTab extends HTMLElement {
   #props = null
   #catalogId = `plugin-inventory-${nextCatalogId++}`
   #query = ''

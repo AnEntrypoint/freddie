@@ -1,4 +1,4 @@
-export class TimeoutReason extends Error {
+class TimeoutReason extends Error {
   name = 'TimeoutReason'
 
   constructor(code, timeoutMs) {

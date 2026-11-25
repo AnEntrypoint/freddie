@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import { IconChevronDownOutline14, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './PluginCard.css.js'
 
-export class FreddiePluginCard extends HTMLElement {
+class FreddiePluginCard extends HTMLElement {
   #props = null
   #open = false
 

@@ -5,7 +5,7 @@ import css from './OpenInAppAction.css.js'
 
 const ITEM_PREFIX = 'app:'
 
-export class FreddieOpenInAppAction extends HTMLElement {
+class FreddieOpenInAppAction extends HTMLElement {
   #props = null
   #apps = null
   #loading = false

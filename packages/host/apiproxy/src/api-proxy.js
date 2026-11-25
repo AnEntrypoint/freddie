@@ -301,7 +301,7 @@ function frame(payload) {
   return { rpcId: RpcId(randomUUID()), payload }
 }
 
-export function assertJsonArgs(event, args) {
+function assertJsonArgs(event, args) {
   for (const [index, arg] of args.entries()) {
     if (!isJsonValue(arg)) {
       throw new Error(`forwarded host event "${event}" argument ${index} is not lossless JSON data`)

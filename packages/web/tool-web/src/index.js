@@ -9,9 +9,9 @@ export const name = 'tool-web'
 
 export const inject = ['tools', 'web', 'systemPrompt']
 
-export const DEFAULT_WEB_TOOL_TIMEOUT_MS = 30_000
+const DEFAULT_WEB_TOOL_TIMEOUT_MS = 30_000
 
-export const DEFAULT_FETCH_MAX_OUTPUT_CHARS = 200_000
+const DEFAULT_FETCH_MAX_OUTPUT_CHARS = 200_000
 
 export const Config = z.object({
   search: z.boolean().default(true),

@@ -113,7 +113,7 @@ export function updateCompactionState(state, match) {
   return state
 }
 
-export const commandDefinition = {
+const commandDefinition = {
   kind: 'command',
   target: 'chat',
   match: (event) => {

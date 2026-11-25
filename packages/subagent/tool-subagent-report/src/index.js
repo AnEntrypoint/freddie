@@ -10,7 +10,7 @@ export const Config = z.object({
   reportDelivery: z.union(['quiet', 'next-step']).default('next-step'),
 })
 
-export function installReportTool(childCtx, ctx, delivery) {
+function installReportTool(childCtx, ctx, delivery) {
   const disposeSection = childCtx.systemPrompt.section({
     name: 'tool:report',
     order: REPORT_SECTION_ORDER,

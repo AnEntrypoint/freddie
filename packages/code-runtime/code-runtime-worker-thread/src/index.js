@@ -131,7 +131,7 @@ class OutputLedger {
   }
 }
 
-export class WorkerThreadCodeRuntime extends CodeRuntime {
+class WorkerThreadCodeRuntime extends CodeRuntime {
   static Config = z.object({
     computeMs: z.number().default(60_000),
     maxWallMs: z.number().default(600_000),

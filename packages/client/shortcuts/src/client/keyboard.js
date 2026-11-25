@@ -12,7 +12,7 @@ export function detectPlatform(navigatorLike) {
   return 'linux'
 }
 
-export function regionOf(element) {
+function regionOf(element) {
   if (element === null || element === undefined || typeof element.closest !== 'function') return 'page'
   if (element.closest(TERMINAL_SELECTOR) !== null) return 'terminal'
   if (element.closest(EDITABLE_SELECTOR) !== null) return 'editable'

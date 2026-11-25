@@ -6,7 +6,7 @@ export const name = 'headless-startup'
 
 export const inject = ['cmdlineArgs']
 
-export const HEADLESS_STARTUP_SERVICE = 'headlessStartup'
+const HEADLESS_STARTUP_SERVICE = 'headlessStartup'
 
 function headlessCommand() {
   return new Command()

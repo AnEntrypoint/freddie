@@ -18,7 +18,7 @@ const READING_LABELS = {
   superseded: 'status.superseded',
 }
 
-export class FreddieCordisRunRow extends HTMLElement {
+class FreddieCordisRunRow extends HTMLElement {
   #props = null
   #observed = null
 

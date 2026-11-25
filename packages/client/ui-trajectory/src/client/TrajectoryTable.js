@@ -781,7 +781,7 @@ function OverviewSection({
   )
 }
 
-export class FreddieTrajectoryTable extends HTMLElement {
+class FreddieTrajectoryTable extends HTMLElement {
   #props = {
     turns: [], collapsedTurns: new Set(), onToggleTurn: () => {},
     collapsedAssistants: new Set(), onToggleAssistant: () => {},

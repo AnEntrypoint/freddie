@@ -53,7 +53,7 @@ const modelPolicy = z.object({
   maxOverflowRetries: maxOverflowRetriesSchema,
 })
 
-export class BasicCompactionEngine extends CompactionEngine {
+class BasicCompactionEngine extends CompactionEngine {
   static inject = ['llm', 'tokenMeter', 'sessions']
 
   static Config = z.object({

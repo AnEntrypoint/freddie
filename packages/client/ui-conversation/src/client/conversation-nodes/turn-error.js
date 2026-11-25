@@ -20,7 +20,7 @@ function fallbackState(context) {
   return { turn: end.event.data.turn, failure }
 }
 
-export const turnErrorDefinition = {
+const turnErrorDefinition = {
   kind: 'turn-error',
   target: 'chat',
   match: (event) => {

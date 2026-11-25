@@ -11,7 +11,7 @@ export {
 } from './escalation.js'
 export { canonicalPath, writableRoots } from './roots.js'
 
-export const SANDBOX_UNAVAILABLE = 'SANDBOX_UNAVAILABLE'
+const SANDBOX_UNAVAILABLE = 'SANDBOX_UNAVAILABLE'
 
 export class SandboxUnavailableError extends HarnessError {
   constructor(mode, detail) {

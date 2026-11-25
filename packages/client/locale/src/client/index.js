@@ -1,12 +1,12 @@
 import { en } from '../locales/index.js'
 
-export const FALLBACK_LOCALE = 'en'
+const FALLBACK_LOCALE = 'en'
 
-export const COMMON_NS = 'common'
+const COMMON_NS = 'common'
 
 const LOCALES = Object.freeze([{ id: FALLBACK_LOCALE, label: 'English' }])
 
-export class LocaleRuntime {
+class LocaleRuntime {
   dicts = new Map()
   bound = new Map()
   snapshot = Object.freeze({ active: FALLBACK_LOCALE, locales: LOCALES, revision: 0 })

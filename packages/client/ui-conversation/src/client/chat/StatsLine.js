@@ -4,7 +4,7 @@ import { formatTokensPerSecond } from './message-chrome.js'
 import { assistantStepReading } from './turn-metrics.js'
 import css from './StatsLine.css.js'
 
-export function deriveStats(nodes) {
+function deriveStats(nodes) {
   const turns = new Set()
   let steps = 0
   let llmMs = 0
@@ -73,7 +73,7 @@ function roundedIntegerPercent(cacheReadTokens, denominator) {
   return lower
 }
 
-export function cacheHitPercent(usage) {
+function cacheHitPercent(usage) {
   const denominator = billedInputTokens(usage)
   if (denominator === 0) return null
   const missedInputTokens = usage.uncachedInputTokens + usage.cacheWriteTokens
@@ -102,7 +102,7 @@ export function cacheHitPercent(usage) {
   return `99.${'9'.repeat(decimalPlaces - 1)}${10 - roundedLoss}`
 }
 
-export function billedInputTokens(usage) {
+function billedInputTokens(usage) {
   return usage.uncachedInputTokens + usage.cacheReadTokens + usage.cacheWriteTokens
 }
 
@@ -122,7 +122,7 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieStatsLine extends HTMLElement {
+class FreddieStatsLine extends HTMLElement {
   #props = DEFAULT_PROPS
   #unsubscribe = null
 
@@ -189,7 +189,7 @@ export class FreddieStatsLine extends HTMLElement {
 
 defineElement('freddie-stats-line', FreddieStatsLine)
 
-export function renderStatsLine(el, props) {
+function renderStatsLine(el, props) {
   const target = el ?? document.createElement('freddie-stats-line')
   target.setProps(props)
   return target

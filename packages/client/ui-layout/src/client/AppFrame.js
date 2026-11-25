@@ -17,7 +17,7 @@ function connectionLabel(state) {
   }
 }
 
-export class FreddieDragHandle extends HTMLElement {
+class FreddieDragHandle extends HTMLElement {
   #props = null
   #dragging = false
   #origin = 0
@@ -97,7 +97,7 @@ function renderDragHandle(el, props) {
   return target
 }
 
-export class FreddieAppFrame extends HTMLElement {
+class FreddieAppFrame extends HTMLElement {
   #props = null
   #frameEl = null
   #resizeObserver = null

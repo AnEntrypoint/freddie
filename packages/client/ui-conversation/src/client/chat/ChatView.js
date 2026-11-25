@@ -186,7 +186,7 @@ function fileOpenErrorModalProps({
   }
 }
 
-export class FreddieChatView extends HTMLElement {
+class FreddieChatView extends HTMLElement {
   #props = null
 
   #fileOpenError = null

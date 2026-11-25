@@ -9,9 +9,9 @@ export const name = 'tool-session-query'
 
 export const inject = ['tools', 'systemPrompt', 'sessionQuery']
 
-export const DEFAULT_MAX_SEARCH_RESULTS = 100
+const DEFAULT_MAX_SEARCH_RESULTS = 100
 
-export const DEFAULT_SEARCH_TIMEOUT_MS = 30_000
+const DEFAULT_SEARCH_TIMEOUT_MS = 30_000
 
 export const Config = z.object({
   maxSearchResults: z.number().step(1).min(1).default(DEFAULT_MAX_SEARCH_RESULTS),

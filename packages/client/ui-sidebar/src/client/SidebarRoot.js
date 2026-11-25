@@ -14,7 +14,7 @@ const COLLAPSE_SETTLE_MS = 150
 
 const SCROLLBAR_LINGER_MS = 2000
 
-export class FreddieSidebarRoot extends HTMLElement {
+class FreddieSidebarRoot extends HTMLElement {
   #props = null
 
   #settled = false

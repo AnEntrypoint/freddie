@@ -18,13 +18,13 @@ const { version: instrumentationScopeVersion } = createRequire(import.meta.url)(
 
 const SEMCONV_USER_ID = 'user.id'
 
-export const SessionTelemetryMode = Object.freeze({
+const SessionTelemetryMode = Object.freeze({
   FULL: 'FULL',
   FEEDBACK_ONLY: 'FEEDBACK_ONLY',
   DISABLED: 'DISABLED',
 })
 
-export const DEFAULT_TELEMETRY_MODE = SessionTelemetryMode.DISABLED
+const DEFAULT_TELEMETRY_MODE = SessionTelemetryMode.DISABLED
 
 const DISABLED_FEEDBACK_WARNING = 'session telemetry is DISABLED; nothing will be shared and this feedback remains local'
 const ENDPOINT_MISSING_WARNING = requestedMode => `session telemetry mode ${requestedMode} requested but exporter.url is not set; telemetry stays DISABLED and nothing is exported (there is no default collector)`
@@ -63,7 +63,7 @@ export const Config = z.object({
   shutdownTimeoutMillis: z.number(),
 })
 
-export const DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 3_000
+const DEFAULT_SHUTDOWN_TIMEOUT_MILLIS = 3_000
 
 const NODE_TIMER_DELAY_CEILING_MILLIS = 2_147_483_647
 
@@ -79,7 +79,7 @@ const SEVERITY = {
   error: { severityNumber: SeverityNumber.ERROR, severityText: 'ERROR' },
 }
 
-export class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
+class OpenTelemetrySessionBackend extends SessionTelemetryBackend {
   static inject = ['sessions']
   static Config = Config
 

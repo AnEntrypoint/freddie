@@ -24,7 +24,7 @@ function answeredSummary(text, t) {
   return t('ask.answered', { answered, total: answers.length })
 }
 
-export function AskQuestionRow({ toolName, block, inspect, t }) {
+function AskQuestionRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const code = 'kind' in block ? block.error?.code : undefined
   let summary = model.summary

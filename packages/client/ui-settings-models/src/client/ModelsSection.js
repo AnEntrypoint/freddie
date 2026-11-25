@@ -14,7 +14,7 @@ function renderProviderEditorCard({ target, ...props }) {
   })
 }
 
-export async function removeProviderProfile(
+async function removeProviderProfile(
   api,
   controller,
   target,
@@ -36,7 +36,7 @@ export async function removeProviderProfile(
   return undefined
 }
 
-export function needsSetup(row, anyUsable) {
+function needsSetup(row, anyUsable) {
   if (anyUsable) return false
   if (row.entry.settingsPath.length > 0) return false
   return row.credential?.configured !== true
@@ -59,13 +59,13 @@ function targetOf(row) {
   }
 }
 
-export function providerTargetLabel(target) {
+function providerTargetLabel(target) {
   return target.provider === target.displayName
     ? target.provider
     : `${target.displayName} (${target.provider})`
 }
 
-export function providerCopy(template, target) {
+function providerCopy(template, target) {
   return template.replace('{provider}', () => providerTargetLabel(target))
 }
 
@@ -80,7 +80,7 @@ export function ModelsSection(props) {
 
 const DEFAULT_LOADED_PROPS = {}
 
-export class FreddieModelsSectionLoaded extends HTMLElement {
+class FreddieModelsSectionLoaded extends HTMLElement {
   #injected = DEFAULT_LOADED_PROPS
   #editing = undefined
   #adding = false
@@ -375,7 +375,7 @@ export class FreddieModelsSectionLoaded extends HTMLElement {
 
 defineElement('freddie-models-section-loaded', FreddieModelsSectionLoaded)
 
-export function renderModelsSectionLoaded(
+function renderModelsSectionLoaded(
   el,
   injected,
 ) {

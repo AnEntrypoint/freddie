@@ -2,7 +2,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import { IconCloseOutline16, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './ImageLightbox.css.js'
 
-export class FreddieImageLightbox extends HTMLElement {
+class FreddieImageLightbox extends HTMLElement {
   #props = { src: '', alt: '', labels: { dialog: '', close: '' }, onClose: () => {} }
   #restore = null
 

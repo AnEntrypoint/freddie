@@ -1,7 +1,7 @@
 import { settingsNamespace } from '@freddie/freddie-settings'
 import z from '@freddie/schemastery'
 
-export const SUBAGENT_SETTINGS_NAMESPACE = 'subagent'
+const SUBAGENT_SETTINGS_NAMESPACE = 'subagent'
 
 export const SUBAGENT_NS = settingsNamespace(SUBAGENT_SETTINGS_NAMESPACE)
 

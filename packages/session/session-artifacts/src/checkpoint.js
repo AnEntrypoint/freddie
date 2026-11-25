@@ -36,7 +36,7 @@ function foldArtifacts(state, event) {
   return { ...state, artifactsRevision: view.revision, views }
 }
 
-export function foldCheckpoint(state, event) {
+function foldCheckpoint(state, event) {
   if (event.seq <= state.sourceSeq) return state
   const activity = state.views.activity
   const folded = event.type === 'session-artifacts/changed' ? foldArtifacts(state, event) : state

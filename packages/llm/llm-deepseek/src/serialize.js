@@ -131,7 +131,7 @@ function serializeAssistant(message) {
   }
 }
 
-export function serializeMessages(messages) {
+function serializeMessages(messages) {
   const wire = []
   for (const message of messages) {
     assertTextOnly(message.content)
@@ -159,7 +159,7 @@ export function serializeMessages(messages) {
   return wire
 }
 
-export async function serializeMessagesWithImages(messages, images) {
+async function serializeMessagesWithImages(messages, images) {
   assertSupportedImageRoles(messages)
   const wire = []
   let pendingToolImages = []

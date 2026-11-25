@@ -85,7 +85,7 @@ export function sessionLogZipFilename(sessionId) {
   return `freddie-session-${safeSessionIdSegment(sessionId)}.zip`
 }
 
-export async function* sessionLogZipEntries(deps, root, sessionId, includeDescendants, signal) {
+async function* sessionLogZipEntries(deps, root, sessionId, includeDescendants, signal) {
   const media = new Map()
   const rememberMedia = (content) => {
     for (const [id, ref] of imageRefsInArtifact(content)) media.set(id, ref)

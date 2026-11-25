@@ -14,7 +14,7 @@ function stateFrom(match) {
   return { turn: match.event.data.turn, seq: match.event.seq, time: match.event.time }
 }
 
-export const turnMaxTokensDefinition = {
+const turnMaxTokensDefinition = {
   kind: 'turn-max-tokens',
   target: 'chat',
   match: (event) => {

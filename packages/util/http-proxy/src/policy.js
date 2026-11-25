@@ -1,5 +1,5 @@
 
-export const LOOPBACK_NO_PROXY = ['localhost', '127.0.0.1', '::1', '[::1]']
+const LOOPBACK_NO_PROXY = ['localhost', '127.0.0.1', '::1', '[::1]']
 
 export const POLICY_ENV_NAMES = {
   httpProxy: ['http_proxy', 'HTTP_PROXY'],
@@ -17,7 +17,7 @@ const SUPPORTED_PROTOCOLS = new Set(['http:', 'https:'])
 
 const SOCKS_PROTOCOLS = new Set(['socks:', 'socks4:', 'socks4a:', 'socks5:', 'socks5h:'])
 
-export const DIRECT_POLICY = { noProxy: '', source: 'none' }
+const DIRECT_POLICY = { noProxy: '', source: 'none' }
 
 const ABSENT = { kind: 'absent' }
 
@@ -97,7 +97,7 @@ const OCTET = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)'
 
 const LOOPBACK_IPV4 = new RegExp(`^127\\.${OCTET}\\.${OCTET}\\.${OCTET}$`)
 
-export function isLoopbackHost(hostname) {
+function isLoopbackHost(hostname) {
   const host = hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   if (host === 'localhost' || host.endsWith('.localhost')) return true
   if (host === '::1' || host === '::' || host === '0.0.0.0') return true
@@ -106,7 +106,7 @@ export function isLoopbackHost(hostname) {
   return LOOPBACK_IPV4.test(host.startsWith('::ffff:') ? host.slice('::ffff:'.length) : host)
 }
 
-export function bypassesProxy(noProxy, url) {
+function bypassesProxy(noProxy, url) {
   const host = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   const port = url.port !== '' ? url.port : url.protocol === 'https:' ? '443' : '80'
   for (const raw of noProxy.split(/[,\s]+/)) {

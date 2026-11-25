@@ -43,7 +43,7 @@ function namespaceView(descriptor) {
   }
 }
 
-export class SettingsController extends TypertRemoteService {
+class SettingsController extends TypertRemoteService {
   static inject = []
 
   constructor(ctx) {
@@ -108,7 +108,7 @@ export class SettingsController extends TypertRemoteService {
   }
 }
 
-export class CredentialsController extends TypertRemoteService {
+class CredentialsController extends TypertRemoteService {
   static inject = []
 
   constructor(ctx) {

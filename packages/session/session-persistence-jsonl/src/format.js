@@ -22,7 +22,7 @@ export function toHeaderLine(header) {
   }
 }
 
-export function fromHeaderLine(line) {
+function fromHeaderLine(line) {
   if (Object.hasOwn(line, 'sandboxMode') || Object.hasOwn(line, 'approvalPolicy')) {
     throw new Error('session header uses retired policy baseline fields')
   }
@@ -75,7 +75,7 @@ export function encodeSegment(raw) {
   return out
 }
 
-export function projectKey(cwd) {
+function projectKey(cwd) {
   if (cwd.length === 0) throw new Error('cannot encode an empty project path')
   let readable = ''
   let separatorRun = false

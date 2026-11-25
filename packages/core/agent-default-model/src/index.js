@@ -3,9 +3,9 @@ import z from '@freddie/schemastery'
 import { ReasoningEffortId } from '@freddie/freddie-llm'
 import { installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
 
-export const AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE = settingsNamespace('agent-default-model')
+const AGENT_DEFAULT_MODEL_SETTINGS_NAMESPACE = settingsNamespace('agent-default-model')
 
-export const AGENT_DEFAULT_MODEL_SETTINGS_SCHEMA = z.object({
+const AGENT_DEFAULT_MODEL_SETTINGS_SCHEMA = z.object({
   provider: z.string().required(),
   model: z.string().required(),
   reasoningEffort: z.string(),
@@ -21,7 +21,7 @@ function selection(settings) {
   }
 }
 
-export class AgentDefaultModelConfig extends Service {
+class AgentDefaultModelConfig extends Service {
   static Config = z.object({
     provider: z.string().required(),
     model: z.string().required(),

@@ -4,7 +4,7 @@ import { installSettingsSection } from '@freddie/freddie-settings'
 import { clampTimeout, deadline, MAX_TIMER_DELAY_MS, timeoutOf } from '@freddie/freddie-timeout'
 import { process } from '@freddie/freddie-runtime/process'
 
-export const ENV_OVERRIDES = {
+const ENV_OVERRIDES = {
   NO_COLOR: '1',
   TERM: 'dumb',
   PAGER: 'cat',
@@ -30,7 +30,7 @@ function assertPositiveFinite(name, value) {
   }
 }
 
-export function assertServiceableBashConfig(config) {
+function assertServiceableBashConfig(config) {
   const resolved = config
   assertPositiveFinite('timeoutMs', resolved.timeoutMs)
   assertPositiveFinite('maxTimeoutMs', resolved.maxTimeoutMs)

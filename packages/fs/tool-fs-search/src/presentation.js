@@ -1,5 +1,5 @@
 import { Buffer } from '@freddie/freddie-runtime/buffer'
-export function groupMatchesByFile(matches) {
+function groupMatchesByFile(matches) {
   const byFile = new Map()
   for (const match of matches) {
     const entry = { lineNumber: match.lineNumber, line: match.line }

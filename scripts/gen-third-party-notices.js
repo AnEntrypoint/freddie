@@ -23,11 +23,11 @@ const FIRST_PARTY = new Set([
   '@freddie/node-addon-landlock-run-linux-x64',
 ])
 
-export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
+const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
 
-export function isOwnerAuthorizedRuntime(name) {
+function isOwnerAuthorizedRuntime(name) {
   return name === CLAUDE_AGENT_SDK_PACKAGE
 }
 
@@ -55,7 +55,7 @@ function readManifest(rel) {
   return JSON.parse(readFileSync(resolve(root, rel), 'utf8'))
 }
 
-export function manifestPatterns(rootMembers) {
+function manifestPatterns(rootMembers) {
   return [
     'package.json',
     ...rootMembers.map(member => `${member}/package.json`),
@@ -96,7 +96,7 @@ function requiredManifestString(
   return value
 }
 
-export function claudeDistributionFromManifest(
+function claudeDistributionFromManifest(
   manifest,
 ) {
   if (manifest.name !== CLAUDE_AGENT_SDK_PACKAGE) {
@@ -129,7 +129,7 @@ export function claudeDistributionFromManifest(
   return { sdkVersion, claudeCodeVersion, payloads }
 }
 
-export function virtualManifest(virtual, name) {
+function virtualManifest(virtual, name) {
   const prefix = `${name.replace('/', '+')}@`
   const entry = readdirSync(virtual).find(dir => dir.startsWith(prefix))
   if (entry !== undefined) {
@@ -225,7 +225,7 @@ function collectNpmDeps() {
     .map(([name, runtime]) => ({ name, ...installedMetadata(name), runtime }))
 }
 
-export function tierExternalDeps(manifests, names) {
+function tierExternalDeps(manifests, names) {
   const tiers = new Map()
   for (const [path, manifest] of manifests) {
     const devOnly = DEV_ONLY_AREAS.some(area => (area.endsWith('/') ? path.startsWith(area) : path === area))
@@ -240,7 +240,7 @@ export function tierExternalDeps(manifests, names) {
   return tiers
 }
 
-export function parseVendoredRows(text) {
+function parseVendoredRows(text) {
   const rows = []
   for (const line of text.split('\n')) {
     const match = new RegExp(String.raw`^\| \x60\S+\/\x60 \| \x60([^\x60]+)\x60 \| \x60([^\x60]+)\x60 \| \S+ \| `
@@ -300,7 +300,7 @@ function isPermissiveSpdx(expression) {
     && PERMISSIVE_LICENSES.has(expression.license)
 }
 
-export function isPermissive(license) {
+function isPermissive(license) {
   const normalized = slashChoiceAsSpdxOr(license)
   try {
     return isPermissiveSpdx(parseSpdx(normalized))

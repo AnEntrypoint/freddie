@@ -9,7 +9,7 @@ function optionId(source, index) {
   return `freddie-slash-option-${source}-${index}`
 }
 
-export class FreddieMenuView extends HTMLElement {
+class FreddieMenuView extends HTMLElement {
   #props = null
   #state = null
   #unsubscribeMenu = null

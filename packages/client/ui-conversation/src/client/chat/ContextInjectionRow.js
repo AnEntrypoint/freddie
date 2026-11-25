@@ -12,7 +12,7 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieContextInjectionRow extends HTMLElement {
+class FreddieContextInjectionRow extends HTMLElement {
   #props = DEFAULT_PROPS
   #open = false
   #jsonBlocks = new Map()

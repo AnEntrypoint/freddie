@@ -61,7 +61,7 @@ const RUNNER_FAILURE_RULES = {
   seatbelt: [{ fatalSignatures: ['sandbox-exec: '] }],
 }
 
-export class LocalSandboxProvider extends SandboxProvider {
+class LocalSandboxProvider extends SandboxProvider {
   static Config = z.object({
     runnerCommand: z.array(z.string()).default([]),
     runnerFailureSignatures: z.array(z.string()).default([]),

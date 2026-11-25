@@ -9,7 +9,7 @@ const PANEL_MARGIN = 12
 
 const PANEL_GAP = 4
 
-export class FreddieMessageFeedbackActions extends HTMLElement {
+class FreddieMessageFeedbackActions extends HTMLElement {
   #props = null
   #noteOpen = false
   #draft = ''

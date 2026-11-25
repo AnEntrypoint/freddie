@@ -134,7 +134,7 @@ export function DetailsPanel(
   )
 }
 
-export class FreddieDetailsPanel extends HTMLElement {
+class FreddieDetailsPanel extends HTMLElement {
   setProps(props) {
     applyDiff(this, DetailsPanel(props))
   }

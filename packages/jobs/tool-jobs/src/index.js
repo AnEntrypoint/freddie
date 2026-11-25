@@ -44,7 +44,7 @@ function publicJob(snapshot) {
   }
 }
 
-export function statusLine(snapshot) {
+function statusLine(snapshot) {
   return snapshot.detail !== undefined
     ? `[status: ${snapshot.status}, ${snapshot.detail}]`
     : `[status: ${snapshot.status}]`

@@ -1,6 +1,6 @@
 import { abbreviateHomePath } from '@freddie/freddie-client-runtime/client'
 
-export const VARIANT_TITLES = {
+const VARIANT_TITLES = {
   search: 'Search', read: 'Read', bash: 'Bash',
   write: 'Write', edit: 'Edit', code: 'Code', others: 'Tool call',
 }
@@ -31,7 +31,7 @@ const TOOL_TITLES = {
   cordis_undefine: 'Remove Cordis Plugin',
 }
 
-export function classifyTool(toolName) {
+function classifyTool(toolName) {
   return TOOL_VARIANTS[toolName] ?? 'others'
 }
 

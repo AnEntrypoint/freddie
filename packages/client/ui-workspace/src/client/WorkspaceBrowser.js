@@ -160,7 +160,7 @@ function nextSessionOrderAccount({
   return { order, updatedAt, changed: orderChanged || timestampsChanged }
 }
 
-export class FreddieViewOptionsMenu extends HTMLElement {
+class FreddieViewOptionsMenu extends HTMLElement {
   #props = null
   #open = false
   #menu = null
@@ -241,7 +241,7 @@ function workspaceGroupHalf(e) {
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 }
 
-export class FreddieSessionTree extends HTMLElement {
+class FreddieSessionTree extends HTMLElement {
   #props = null
   #expandedSessionGroups = []
   #drag = null
@@ -599,7 +599,7 @@ function SessionTree(el, props) {
   return target
 }
 
-export class FreddieFlatList extends HTMLElement {
+class FreddieFlatList extends HTMLElement {
   #props = null
   #drag = null
   #dropCommitted = false
@@ -762,7 +762,7 @@ function FlatList(el, props) {
   return target
 }
 
-export class FreddieSearchResults extends HTMLElement {
+class FreddieSearchResults extends HTMLElement {
   #props = null
 
   setProps(props) {
@@ -833,7 +833,7 @@ function SearchResults(props) {
   return el
 }
 
-export class FreddieWorkspaceBrowser extends HTMLElement {
+class FreddieWorkspaceBrowser extends HTMLElement {
   #props = null
 
   #promotedBlank = undefined

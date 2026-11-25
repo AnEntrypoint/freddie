@@ -32,7 +32,7 @@ function editRangeOf(pending, prevLength, nextLength) {
   return undefined
 }
 
-export class FreddieInputBar extends HTMLElement {
+class FreddieInputBar extends HTMLElement {
   #props = null
 
   #toast = null

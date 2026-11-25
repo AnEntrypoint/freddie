@@ -13,7 +13,7 @@ function parsePositiveInteger(value, name) {
   return value
 }
 
-export function parseReadArgs(args, maxLimit) {
+function parseReadArgs(args, maxLimit) {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   const offset = args.offset === undefined ? 1 : parsePositiveInteger(args.offset, 'offset')
   const limit = args.limit === undefined ? maxLimit : parsePositiveInteger(args.limit, 'limit')

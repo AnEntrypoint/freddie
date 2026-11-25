@@ -34,13 +34,13 @@ export {
   SESSION_QUERY_SQLITE_SCHEMA_VERSION,
 } from './schema.js'
 
-export const SESSION_QUERY_SQLITE_DEFAULT_LIMIT = 20
-export const SESSION_QUERY_SQLITE_MAX_LIMIT = 100
-export const SESSION_QUERY_SQLITE_SNIPPET_CHARS = 240
+const SESSION_QUERY_SQLITE_DEFAULT_LIMIT = 20
+const SESSION_QUERY_SQLITE_MAX_LIMIT = 100
+const SESSION_QUERY_SQLITE_SNIPPET_CHARS = 240
 
 const STABLE_OBSERVATION_ATTEMPTS = 2
 
-export class SqliteSessionQueryEngine extends SessionQueryEngine {
+class SqliteSessionQueryEngine extends SessionQueryEngine {
   static inject = ['sessions']
 
   static Config = z.object({

@@ -180,7 +180,7 @@ function collectReport(options, cwd) {
   }
 }
 
-export function renderChangeScope(args, cwd) {
+function renderChangeScope(args, cwd) {
   const options = parseOptions(args)
   const report = collectReport(options, cwd)
   return `${JSON.stringify(report, null, 2)}\n`

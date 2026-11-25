@@ -18,7 +18,7 @@ function navIcon(id) {
   return h(IconSettingsOutline16, {className: css.navIcon, size: 16})
 }
 
-export class FreddieSettingsRoot extends HTMLElement {
+class FreddieSettingsRoot extends HTMLElement {
   #props = null
   #open = false
   #activeId = undefined

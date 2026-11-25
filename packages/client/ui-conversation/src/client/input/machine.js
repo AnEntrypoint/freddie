@@ -1,6 +1,6 @@
 const REFERENCE_PLACEHOLDER_RE = /[-￼]/gu
 
-export function referenceDraftText(reference) {
+function referenceDraftText(reference) {
   return `@${reference.label}`
 }
 

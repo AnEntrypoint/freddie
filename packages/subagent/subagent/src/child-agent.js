@@ -47,7 +47,7 @@ export function childSessionMeta(parent, childDepth, lineageSeedLength) {
 }
 
 
-export const SUBAGENT_DELEGATION_CONTEXT
+const SUBAGENT_DELEGATION_CONTEXT
   = 'You are a delegated subagent: your permission scope was fixed when you were started and cannot be '
     + 'widened from inside this session — operations that require approval are rejected automatically. '
     + 'When the task needs access beyond that scope, do not retry the denied operation; state the '

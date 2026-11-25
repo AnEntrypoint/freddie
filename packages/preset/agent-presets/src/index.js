@@ -12,9 +12,9 @@ import {
   InvalidPresetDefinitionError, PresetIdTakenError, PresetMountError, PRESET_ID, UnknownPresetError,
 } from './preset.js'
 
-export const SETTINGS_NAMESPACE = 'agent-presets'
+const SETTINGS_NAMESPACE = 'agent-presets'
 
-export const AgentPresetSettingsSchema = z.object({
+const AgentPresetSettingsSchema = z.object({
   default: z.string(),
 })
 
@@ -36,7 +36,7 @@ export {
   InvalidPresetDefinitionError, PresetIdTakenError, PresetMountError, PRESET_ID, UnknownPresetError,
 } from './preset.js'
 
-export class AgentPresets extends Service {
+class AgentPresets extends Service {
   static inject = ['loader']
 
   static Config = z.object({

@@ -64,7 +64,7 @@ function optionLabel(option) {
   return option.value === FULL_ACCESS ? 'Full access' : displayName(option.name)
 }
 
-export class FreddiePermissionSelect extends HTMLElement {
+class FreddiePermissionSelect extends HTMLElement {
   #props = null
   #pick = null
   #open = false

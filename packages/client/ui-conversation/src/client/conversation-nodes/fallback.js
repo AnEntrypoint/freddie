@@ -1,7 +1,7 @@
 import { isAppendSurfaceEvent } from '@freddie/freddie-client-runtime/client'
 import { chatNode } from './common.js'
 
-export const unknownFallbackDefinition = {
+const unknownFallbackDefinition = {
   kind: 'unknown-surface',
   target: 'chat',
   match: event => isAppendSurfaceEvent(event)

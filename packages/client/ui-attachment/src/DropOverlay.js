@@ -2,7 +2,7 @@ import { applyDiff, createElement as h } from '@freddie/webjsx'
 import css from './DropOverlay.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieDropOverlay extends HTMLElement {
+class FreddieDropOverlay extends HTMLElement {
   #props = { disabled: false, labels: { title: '' } }
 
   setProps(props) {

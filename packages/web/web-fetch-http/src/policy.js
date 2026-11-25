@@ -24,7 +24,7 @@ export function validateFetchUrl(input, maxUrlLength) {
   return url
 }
 
-export function assertPublicDestination(url) {
+function assertPublicDestination(url) {
   const host = normalizeHostname(url.hostname)
   if (host === '') {
     throw new WebError('URL has no host', 'WEB_INVALID_URL')

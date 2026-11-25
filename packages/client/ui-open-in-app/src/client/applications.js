@@ -1,4 +1,4 @@
-export const APP_IDS = [
+const APP_IDS = [
   'finder', 'filemanager', 'cursor', 'vscode', 'vscodeinsiders', 'windsurf', 'zed',
   'sublimetext', 'xcode', 'androidstudio', 'intellij', 'pycharm', 'webstorm', 'phpstorm', 'goland',
   'rider', 'rustrover', 'fork', 'sourcetree', 'github', 'tower', 'gitkraken', 'smartgit',

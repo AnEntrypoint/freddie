@@ -5,7 +5,7 @@ import { en } from './locales.js'
 
 const NS = 'settings.models'
 
-export function refreshIfLoaded(controller) {
+function refreshIfLoaded(controller) {
   if (controller.store.getSnapshot().status === 'idle') return
   void controller.load()
 }

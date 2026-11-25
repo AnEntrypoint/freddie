@@ -5,7 +5,7 @@ import { renderPresetMenu } from './PresetMenu.js'
 import css from './AgentPresetRow.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieAgentPresetRow extends HTMLElement {
+class FreddieAgentPresetRow extends HTMLElement {
   #props = null
   #open = false
   #lastStatus

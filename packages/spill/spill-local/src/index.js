@@ -5,7 +5,7 @@ import { privateRoot, saveTextFile } from './store.js'
 
 export { encodeSegment, privateRoot, saveTextFile, sessionDir } from './store.js'
 
-export class LocalSpillStore extends SpillStore {
+class LocalSpillStore extends SpillStore {
   static Config = z.object({
     root: z.string(),
   })

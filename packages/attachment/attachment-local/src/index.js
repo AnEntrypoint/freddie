@@ -11,15 +11,15 @@ export { canPassThroughNormalization, normalizeImage } from './normalization.js'
 export { commitPreparedImageFile, prepareImageFile, readImageFile, saveImageFile, validateImageFile } from './store.js'
 export { readRequestImageFile, requestImageDimensions, requestImageVariantId } from './request-image.js'
 
-export const DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024
-export const DEFAULT_MAX_IMAGES_PER_MESSAGE = 20
-export const DEFAULT_MAX_MESSAGE_IMAGE_BYTES = 200 * 1024 * 1024
-export const DEFAULT_MAX_IMAGE_PIXELS = 64_000_000
-export const DEFAULT_MAX_IMAGE_DIMENSION = 8192
-export const DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION = 2048
-export const DEFAULT_NORMALIZED_IMAGE_MAX_BYTES = 4 * 1024 * 1024
-export const DEFAULT_IMAGE_COMPRESSION_CONCURRENCY = 2
-export const MAX_IMAGE_COMPRESSION_CONCURRENCY = 8
+const DEFAULT_MAX_IMAGE_BYTES = 20 * 1024 * 1024
+const DEFAULT_MAX_IMAGES_PER_MESSAGE = 20
+const DEFAULT_MAX_MESSAGE_IMAGE_BYTES = 200 * 1024 * 1024
+const DEFAULT_MAX_IMAGE_PIXELS = 64_000_000
+const DEFAULT_MAX_IMAGE_DIMENSION = 8192
+const DEFAULT_NORMALIZED_IMAGE_MAX_DIMENSION = 2048
+const DEFAULT_NORMALIZED_IMAGE_MAX_BYTES = 4 * 1024 * 1024
+const DEFAULT_IMAGE_COMPRESSION_CONCURRENCY = 2
+const MAX_IMAGE_COMPRESSION_CONCURRENCY = 8
 
 function abortReason(signal) {
   const reason = signal.reason
@@ -79,7 +79,7 @@ class SharedRequest {
   }
 }
 
-export class LocalAttachmentStore extends AttachmentStore {
+class LocalAttachmentStore extends AttachmentStore {
   static Config = z.object({
     freddieHome: z.string(),
     maxImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGE_BYTES),

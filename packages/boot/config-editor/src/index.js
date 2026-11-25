@@ -13,7 +13,7 @@ const JS_TAG = 'tag:yaml.org,2002:js'
 
 const EMPTY_DOCUMENT = '[]\n'
 
-export function readRows(source) {
+function readRows(source) {
   const rows = load(source, { schema: entryListSchema })
   if (!Array.isArray(rows)) {
     throw new Error('config-editor: profile patch must be a YAML sequence of rows')
@@ -21,7 +21,7 @@ export function readRows(source) {
   return rows
 }
 
-export function setEntryFields(source, target, fields) {
+function setEntryFields(source, target, fields) {
   const document = parseDocument(source, {
     customTags: [{ tag: JS_TAG, resolve: value => value }],
   })
@@ -65,7 +65,7 @@ export function setEntryFields(source, target, fields) {
   return String(document)
 }
 
-export class ConfigEditor extends Service {
+class ConfigEditor extends Service {
   static inject = ['loader']
 
   static Config = z.object({

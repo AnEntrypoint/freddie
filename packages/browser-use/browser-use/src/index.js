@@ -1,7 +1,7 @@
 
 import { Service } from '@freddie/cordis'
 
-export class BrowserUseRegistry extends Service {
+class BrowserUseRegistry extends Service {
   registration
 
   constructor(ctx) {

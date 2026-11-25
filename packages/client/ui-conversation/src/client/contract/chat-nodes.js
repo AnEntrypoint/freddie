@@ -1,5 +1,5 @@
 
-export function isSettledTool(block) {
+function isSettledTool(block) {
   return 'kind' in block
 }
 

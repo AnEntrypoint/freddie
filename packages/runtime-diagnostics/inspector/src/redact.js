@@ -29,7 +29,7 @@ const BODY_PATTERNS = Object.freeze([
   ],
 ])
 
-export function isSensitiveHeader(name) {
+function isSensitiveHeader(name) {
   const lowered = String(name).toLowerCase()
   return SENSITIVE_HEADER_PARTS.some(part => lowered.includes(part))
 }

@@ -3,7 +3,7 @@ import { FsError } from '@freddie/freddie-fs'
 import { writableRoots } from '@freddie/freddie-sandbox'
 import { isPathUnder } from './containment.js'
 
-export class SandboxedFileSystem extends LocalFileSystem {
+class SandboxedFileSystem extends LocalFileSystem {
   static inject = ['sandboxPolicy']
 
   defaultMode

@@ -234,7 +234,7 @@ async function readBounded(
   }
 }
 
-export function dedupInstructionFilesByDirectory(files) {
+function dedupInstructionFilesByDirectory(files) {
   const keptDigestsByDir = new Map()
   const kept = []
   for (const file of files) {

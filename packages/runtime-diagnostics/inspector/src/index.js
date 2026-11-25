@@ -37,7 +37,7 @@ export const Config = z.object({
   stopTimeoutMs: z.number().step(1).min(1).max(600_000).default(DEFAULT_STOP_TIMEOUT_MS),
 })
 
-export async function startInspector(options = {}) {
+async function startInspector(options = {}) {
   const spec = resolveInspectorOptions(options)
   const channel = new MessageChannel()
   const worker = new Worker(new URL('./worker.js', import.meta.url), {

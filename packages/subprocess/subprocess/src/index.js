@@ -4,7 +4,7 @@ import { process } from '@freddie/freddie-runtime/process'
 
 export { FREDDIE_ENV_PREFIX } from './types.js'
 
-export const SENSITIVE_ENV_PATTERN = /KEY|PASSWORD|SECRET|TOKEN/i
+const SENSITIVE_ENV_PATTERN = /KEY|PASSWORD|SECRET|TOKEN/i
 
 export function scrubbedParentEnv() {
   const env = {}

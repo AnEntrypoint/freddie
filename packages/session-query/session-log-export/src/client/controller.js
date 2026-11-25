@@ -6,7 +6,7 @@ export function sessionLogZipFilename(sessionId) {
   return `freddie-session-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.zip`
 }
 
-export function downloadUrl(url, filename) {
+function downloadUrl(url, filename) {
   const anchor = document.createElement('a')
   anchor.href = url
   anchor.download = filename

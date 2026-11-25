@@ -31,7 +31,7 @@ function deriveAncestry(list, id) {
   return chain
 }
 
-export class FreddieConversationSessionHeader extends HTMLElement {
+class FreddieConversationSessionHeader extends HTMLElement {
   #props = null
   #unsubscribeViews = null
   #unsubscribeStore = null
@@ -168,7 +168,7 @@ export class FreddieConversationSessionHeader extends HTMLElement {
 
 defineElement('freddie-conversation-session-header', FreddieConversationSessionHeader)
 
-export class FreddieConversationSession extends HTMLElement {
+class FreddieConversationSession extends HTMLElement {
   #props = null
   #unsubscribeViews = null
   #unsubscribeStore = null

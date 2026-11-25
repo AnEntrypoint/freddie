@@ -21,7 +21,7 @@ const DEFAULT_PROPS = {
   t: (key) => key,
 }
 
-export class FreddieGoalBar extends HTMLElement {
+class FreddieGoalBar extends HTMLElement {
   #props = DEFAULT_PROPS
   #editing = false
   #draft = ''
@@ -188,7 +188,7 @@ export class FreddieGoalBar extends HTMLElement {
 
 defineElement('freddie-goal-bar', FreddieGoalBar)
 
-export class FreddieGoalDock extends HTMLElement {
+class FreddieGoalDock extends HTMLElement {
   #props = null
   #bar = null
 
@@ -220,7 +220,7 @@ export class FreddieGoalDock extends HTMLElement {
 
 defineElement('freddie-goal-dock', FreddieGoalDock)
 
-export function renderGoalBar(el, props) {
+function renderGoalBar(el, props) {
   const target = el ?? document.createElement('freddie-goal-bar')
   target.setProps(props)
   return target
@@ -230,7 +230,7 @@ export function GoalBar(props) {
   return renderGoalBar(null, props)
 }
 
-export function renderGoalDock(el, props) {
+function renderGoalDock(el, props) {
   const target = el ?? document.createElement('freddie-goal-dock')
   target.setProps(props)
   return target

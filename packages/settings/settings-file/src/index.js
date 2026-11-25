@@ -53,7 +53,7 @@ function isEEXIST(error) {
   return (error)?.code === 'EEXIST'
 }
 
-export class FileSettingsProvider extends SettingsProvider {
+class FileSettingsProvider extends SettingsProvider {
   static Config = z.object({
     path: z.string(),
     freddieHome: z.string(),

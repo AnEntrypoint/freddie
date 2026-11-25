@@ -6,7 +6,7 @@ import { Buffer } from '@freddie/freddie-runtime/buffer'
 
 const TERMINAL_ID_PATTERN = /^[\w-]{1,128}$/u
 
-export class TerminalController extends TypertRemoteService {
+class TerminalController extends TypertRemoteService {
   static inject = ['terminals', 'subprocess', 'sandboxPolicy', 'typert']
   static Config = z.object({
     shell: z.union([z.object({

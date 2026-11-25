@@ -1,7 +1,7 @@
 import { CallId, EMPTY_RESPONSE_CODE, LlmError } from '@freddie/freddie-llm'
 import { DONE } from './sse.js'
 
-export function mapFinishReason(reason) {
+function mapFinishReason(reason) {
   switch (reason) {
     case 'stop': return { kind: 'stop' }
     case 'tool_calls': return { kind: 'tool-calls' }

@@ -47,7 +47,7 @@ function callToolUncached(
   )
 }
 
-export function publicToolName(serverName, rawName) {
+function publicToolName(serverName, rawName) {
   const joined = `mcp__${serverName}__${rawName}`
   const normalized = joined.replace(INVALID_NAME_CHARS, '_')
   if (normalized === joined && normalized.length <= MAX_PUBLIC_NAME_LENGTH) return normalized

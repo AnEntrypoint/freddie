@@ -6,7 +6,7 @@ export const name = 'web-startup'
 
 export const inject = ['cmdlineArgs']
 
-export const WEB_STARTUP_SERVICE = 'webStartup'
+const WEB_STARTUP_SERVICE = 'webStartup'
 
 function webCommand() {
   return new Command()

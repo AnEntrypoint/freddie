@@ -6,7 +6,7 @@ import { attachmentRailLabels, dropOverlayLabels, lightboxLabels } from './label
 import css from './ComposerAttachments.css.js'
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieComposerAttachments extends HTMLElement {
+class FreddieComposerAttachments extends HTMLElement {
   #props = null
   #preview = null
   #dragActive = false
@@ -153,7 +153,7 @@ export class FreddieComposerAttachments extends HTMLElement {
 
 defineElement('freddie-composer-attachments', FreddieComposerAttachments)
 
-export function renderComposerAttachments(el, props) {
+function renderComposerAttachments(el, props) {
   const target = el ?? document.createElement('freddie-composer-attachments')
   target.setProps(props)
   return target

@@ -33,11 +33,11 @@ const IMAGE_VALUE_SCHEMA = {
   },
 }
 
-export function imageMediaTypeForPath(filePath) {
+function imageMediaTypeForPath(filePath) {
   return IMAGE_EXTENSIONS[extname(filePath).toLowerCase()]
 }
 
-export async function assertImageCapableRoute(ctx, exec, requestedPath) {
+async function assertImageCapableRoute(ctx, exec, requestedPath) {
   const routed = exec.agent?.session.requestHeader()?.config
   const provider = routed?.provider ?? exec.agent?.options.provider
   const model = routed?.model ?? exec.agent?.options.model
@@ -51,7 +51,7 @@ export async function assertImageCapableRoute(ctx, exec, requestedPath) {
   }
 }
 
-export function imageRefFromValue(image) {
+function imageRefFromValue(image) {
   return {
     attachmentId: AttachmentId(image.attachmentId),
     mediaType: image.mediaType,
@@ -65,7 +65,7 @@ export function imageRefFromValue(image) {
   }
 }
 
-export function formatImageReadOutput(displayPath, image) {
+function formatImageReadOutput(displayPath, image) {
   let scaled = ''
   if (image.originalDimensions !== undefined) {
     const x = (image.originalDimensions.width / image.width).toFixed(2)

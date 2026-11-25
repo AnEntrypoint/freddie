@@ -7,7 +7,7 @@ import {
 } from '@freddie/freddie-session-title'
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
-export const SESSION_TITLE_TIMEOUT_CODE = 'SESSION_TITLE_TIMEOUT'
+const SESSION_TITLE_TIMEOUT_CODE = 'SESSION_TITLE_TIMEOUT'
 
 const PROVIDER_OUTAGE_TITLE = 'All upstream providers are currently unavailable. Please retry shortly.'
 
@@ -35,7 +35,7 @@ function assertPositiveInteger(name, value) {
   }
 }
 
-export function resolveSessionTitleLlmConfig(config) {
+function resolveSessionTitleLlmConfig(config) {
   const candidate = config
   if (candidate === null || typeof candidate !== 'object') {
     throw new Error('session-title-llm: configuration is required')
@@ -124,7 +124,7 @@ function finishError(finish) {
   }
 }
 
-export async function generateSessionTitleWithLlm(
+async function generateSessionTitleWithLlm(
   ctx,
   config,
   request,

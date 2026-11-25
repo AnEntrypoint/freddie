@@ -7,7 +7,7 @@ const OPTIONS = [
   { id: 'steer', label: 'settings.enter.steer' },
 ]
 
-export class FreddieEnterBehaviorRow extends HTMLElement {
+class FreddieEnterBehaviorRow extends HTMLElement {
   #props = null
   #open = false
 

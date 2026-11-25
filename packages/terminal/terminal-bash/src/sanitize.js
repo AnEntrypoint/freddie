@@ -1,6 +1,6 @@
 import { Buffer } from '@freddie/freddie-runtime/buffer'
 
-export const PROMPT_MARKER_PREFIX = '133;D;'
+const PROMPT_MARKER_PREFIX = '133;D;'
 
 export const CONTROLLED_PROMPT = 'dsh> '
 
@@ -153,6 +153,6 @@ export class TerminalSanitizer {
   }
 }
 
-export function normalizeTerminalText(text) {
+function normalizeTerminalText(text) {
   return text.replaceAll('\r\n', '\n').replaceAll('\r', '\n').replaceAll('\x07', '')
 }

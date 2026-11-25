@@ -10,7 +10,7 @@ import { PendingQuestion, planReviewOf } from './contract/slots.js'
 import { FreddiePlanReviewPanel } from './PlanReviewPanel.js'
 import css from './QuestionComposer.css.js'
 
-export function parseRecommendedLabel(label) {
+function parseRecommendedLabel(label) {
   const suffix = /\s*(?:\(recommended\)|\uff08recommended\uff09)\s*$/i
   return suffix.test(label)
     ? { label: label.replace(suffix, ''), recommended: true }
@@ -42,7 +42,7 @@ function AnswerField(props) {
   )
 }
 
-export class FreddieQuestionComposer extends HTMLElement {
+class FreddieQuestionComposer extends HTMLElement {
   #props = null
   #question = null
   #carrier = null
@@ -89,7 +89,7 @@ export class FreddieQuestionComposer extends HTMLElement {
 
 defineElement('freddie-question-composer', FreddieQuestionComposer)
 
-export class FreddieQuestionFlow extends HTMLElement {
+class FreddieQuestionFlow extends HTMLElement {
   #props = null
   #index = 0
   #drafts = []

@@ -18,7 +18,7 @@ export {
   REMOTE_STREAM_NAMESPACE,
 } from './config.js'
 
-export class RemoteStreamService extends TypertRemoteService {
+class RemoteStreamService extends TypertRemoteService {
   constructor(ctx) {
     super(ctx, 'remoteStream', { namespace: REMOTE_STREAM_NAMESPACE })
     this.streams = new Map()

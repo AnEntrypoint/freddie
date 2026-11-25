@@ -22,7 +22,7 @@ function requireString(manifest, field, context) {
   return value
 }
 
-export class ReleaseFamily {
+class ReleaseFamily {
 
   verifyBuildArtifacts(_root) {}
 

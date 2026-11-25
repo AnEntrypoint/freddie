@@ -26,7 +26,7 @@ class CommandLayer {
   }
 }
 
-export function parseCommand(line) {
+function parseCommand(line) {
   const match = /^\/([a-z][a-z0-9_-]*)(?=$|[\t\n\r ])/u.exec(line)
   if (match === null) return undefined
   const name = match[1]
@@ -148,7 +148,7 @@ function normalizeResult(command, value) {
   throw new TypeError(`command "${command}" returned unknown result kind "${String(result.kind)}"`)
 }
 
-export class CommandRuntime extends TypertRemoteService {
+class CommandRuntime extends TypertRemoteService {
   layers = new ScopedLayers(
     scope => new CommandLayer(scope),
     () => { this.notifyChange() },

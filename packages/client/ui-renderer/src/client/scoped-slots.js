@@ -458,7 +458,7 @@ class OutletSubscriptions {
   }
 }
 
-export class FreddieSlotOutlet extends HTMLElement {
+class FreddieSlotOutlet extends HTMLElement {
   #host = null
   #slotKey = ''
   #ownerProps = {}
@@ -710,7 +710,7 @@ function renderOutletContent(
     : h('div', { 'data-slot-error': slotKey, key: `x${item.id}` }))
 }
 
-export class FreddieRootOutlet extends HTMLElement {
+class FreddieRootOutlet extends HTMLElement {
   #host = null
   #ownerProps = {}
   #subscriptions = new OutletSubscriptions()

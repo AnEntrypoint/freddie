@@ -10,7 +10,7 @@ const WEB_TITLES = {
   web_fetch: 'Fetch',
 }
 
-export function WebRow({ toolName, block, inspect, t }) {
+function WebRow({ toolName, block, inspect, t }) {
   const model = toolRowModel(toolName, block)
   const web = webCardModel(block)
   const icon = toolName === 'web_fetch' ? h(IconBrowseOutline16, {size: 14}) : h(IconGlobeOutline14, {size: 14})

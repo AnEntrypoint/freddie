@@ -15,7 +15,7 @@ const SHELL_PACKAGE = '@freddie/freddie-client-web'
 
 const REMOUNTABLE_ROOTS = new Set(['apps/web', SHELL_PACKAGE])
 
-export const JOURNAL_EVENT = 'freddie:hmr'
+const JOURNAL_EVENT = 'freddie:hmr'
 
 const STALL_TIMEOUT_MS = 45_000
 

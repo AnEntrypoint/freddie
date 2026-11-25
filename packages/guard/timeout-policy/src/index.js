@@ -1,6 +1,6 @@
 import { deadline, timeoutOf } from '@freddie/freddie-timeout'
 
-export const TOOL_TIMEOUT = 'TOOL_TIMEOUT'
+const TOOL_TIMEOUT = 'TOOL_TIMEOUT'
 
 export const name = 'timeout-policy'
 

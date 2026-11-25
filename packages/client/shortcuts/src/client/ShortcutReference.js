@@ -18,7 +18,7 @@ const MODAL_OWNER_ATTRIBUTE = 'data-shortcut-modal'
 
 const MODAL_ID = 'shortcuts'
 
-export class FreddieShortcutReference extends HTMLElement {
+class FreddieShortcutReference extends HTMLElement {
   #props = null
   #modal = null
   #editing = null

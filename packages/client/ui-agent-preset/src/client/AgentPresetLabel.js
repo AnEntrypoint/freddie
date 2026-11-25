@@ -4,7 +4,7 @@ import { IconAgentPresetOutline16, defineElement } from '@freddie/freddie-client
 import { presetDisplayText } from './locales.js'
 import css from './AgentPresetLabel.css.js'
 
-export class FreddieAgentPresetLabel extends HTMLElement {
+class FreddieAgentPresetLabel extends HTMLElement {
   #props = null
 
   setProps(props) {

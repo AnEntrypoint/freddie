@@ -88,7 +88,7 @@ function resolveBudgets(config) {
   return budgets
 }
 
-export class ProductTelemetry extends Service {
+class ProductTelemetry extends Service {
   static Config = Config
 
   provider

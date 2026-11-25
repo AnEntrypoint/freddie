@@ -113,7 +113,7 @@ function tailData(context) {
   }
 }
 
-export const turnTailDefinition = {
+const turnTailDefinition = {
   kind: 'turn-tail',
   target: 'chat',
   match: (event) => {

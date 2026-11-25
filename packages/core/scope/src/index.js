@@ -77,7 +77,7 @@ export function scopeTarget(base, key) {
   return carrier
 }
 
-export function isScopeCarrier(value) {
+function isScopeCarrier(value) {
   return typeof value === 'object' && value !== null && carrierKeys.has(value)
 }
 

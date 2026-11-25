@@ -565,7 +565,7 @@ function rejectGuard(reportFailure, message) {
   throw error
 }
 
-export function pluginName(plugin) {
+function pluginName(plugin) {
   const named = plugin.name
   if (typeof named === 'string' && named.length > 0) return named
   return '<anonymous>'

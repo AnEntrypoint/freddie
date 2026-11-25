@@ -7,7 +7,7 @@ import {
   DEFAULT_PREFERENCE, isThemePreference, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
 } from '../theme-settings.js'
 
-export const SETTINGS_NS = 'settings.theme'
+const SETTINGS_NS = 'settings.theme'
 
 const BUILTIN_THEMES = Object.freeze([
   Object.freeze({ id: 'light', colorScheme: 'light', tokens: Object.freeze({}) }),
@@ -30,7 +30,7 @@ const BUILTIN_INSPECT_TOKENS = Object.freeze([
   { name: '--dsw-specific-sidebar-fill', description: 'Sidebar column and title-row background.', valueType: 'CSS color', requiresLightAndDark: true, cssVariable: '--dsw-specific-sidebar-fill' },
 ])
 
-export class ThemeRuntime {
+class ThemeRuntime {
   ctx
   host
   themes = [...BUILTIN_THEMES]

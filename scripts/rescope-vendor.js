@@ -211,7 +211,7 @@ function classify(file) {
   return 'Markdown fences and docs prose'
 }
 
-export function exactEditState(text, find, replace, expect) {
+function exactEditState(text, find, replace, expect) {
   const hits = text.split(find).length - 1
   const landed = text.split(replace).length - 1
   if (replace.includes(find)) {

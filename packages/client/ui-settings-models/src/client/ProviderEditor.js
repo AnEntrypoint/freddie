@@ -20,7 +20,7 @@ function draftAt(
   return structuredClone(subtree)
 }
 
-export function pathOps(
+function pathOps(
   base,
   before,
   after,
@@ -69,7 +69,7 @@ const DEFAULT_PROPS = {
   onClose: () => {},
 }
 
-export class FreddieProviderEditor extends HTMLElement {
+class FreddieProviderEditor extends HTMLElement {
   #props = DEFAULT_PROPS
   #draft = {}
   #keyDraft = ''
@@ -343,7 +343,7 @@ export class FreddieProviderEditor extends HTMLElement {
 
 defineElement('freddie-provider-editor', FreddieProviderEditor)
 
-export function renderProviderEditor(el, props) {
+function renderProviderEditor(el, props) {
   const target = el ?? document.createElement('freddie-provider-editor')
   target.setProps(props)
   return target

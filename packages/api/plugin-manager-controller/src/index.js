@@ -1,6 +1,6 @@
 import { Remote, TypertRemoteService } from '@freddie/freddie-typert-protocol'
 
-export const LOCK = Object.freeze({
+const LOCK = Object.freeze({
   REQUEST_PATH: 'request-path',
   HOST_DEPENDENTS: 'host-dependents',
   CLIENT_DEPENDENTS: 'client-dependents',
@@ -91,7 +91,7 @@ function findEntry(loader, id) {
   return undefined
 }
 
-export class PluginManagerController extends TypertRemoteService {
+class PluginManagerController extends TypertRemoteService {
   static inject = []
 
   queue = Promise.resolve()

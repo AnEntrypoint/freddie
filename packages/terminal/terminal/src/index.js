@@ -16,7 +16,7 @@ export class TerminalError extends Error {
   }
 }
 
-export class TerminalSessionService extends Service {
+class TerminalSessionService extends Service {
   backends = new Map()
   sessions = new Map()
   reservedNames = new Map()

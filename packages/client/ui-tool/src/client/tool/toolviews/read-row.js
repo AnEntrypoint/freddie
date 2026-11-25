@@ -5,7 +5,7 @@ import { toolRowModel } from '../models/tool-call-model.js'
 import { renderToolRow } from '../components/ToolRow.js'
 import { CONVERSATION_NS as NS } from '../../locale.js'
 
-export function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
+function ReadRow({ toolName, block, cwd, home, openFile, inspect, t }) {
   const model = toolRowModel(toolName, block, cwd, home)
   const read = readCardModel(block, cwd, home)
   return (

@@ -49,7 +49,7 @@ function depthOf(element) {
   return depth
 }
 
-export class FreddieChatNodeSeat extends HTMLElement {
+class FreddieChatNodeSeat extends HTMLElement {
   #props = null
   #node = undefined
   #rendered = false

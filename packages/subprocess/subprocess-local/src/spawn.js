@@ -30,7 +30,7 @@ function privateSpillDir() {
   return defaultSpillDir
 }
 
-export class OutputCollector {
+class OutputCollector {
   chunks = []
   bytes = 0
   dropped = false
@@ -137,13 +137,6 @@ export class OutputCollector {
   }
 }
 
-export function killGroup(pid, sig) {
-  if (pid <= 0) return
-  try {
-    process.kill(-pid, sig)
-  } catch {
-  }
-}
 
 function signalTree(pid, sig, child) {
   if (pid <= 0) return

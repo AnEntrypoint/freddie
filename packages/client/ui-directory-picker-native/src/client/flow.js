@@ -1,7 +1,7 @@
 
 import { defineElement } from '@freddie/freddie-client-ui-primitives'
 
-export class FreddieNativeDirectoryFlow extends HTMLElement {
+class FreddieNativeDirectoryFlow extends HTMLElement {
   #props = null
   #armed = false
   #alive = false

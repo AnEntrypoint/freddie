@@ -2,13 +2,13 @@ import { z } from 'zod'
 
 export const projectionValues = z.record(z.string(), z.unknown())
 
-export const projectionHints = z.object({
+const projectionHints = z.object({
   'kind': z.union([z.literal('cached'), z.literal('sequenced')]),
   'asOfSeq': z.number(),
   'values': projectionValues,
 })
 
-export const sessionSummary = z.object({
+const sessionSummary = z.object({
   'agentAvailable': z.boolean(),
   'sessionId': z.string(),
   'updatedAt': z.number(),

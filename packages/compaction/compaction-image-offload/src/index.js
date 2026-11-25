@@ -6,7 +6,7 @@ export { imageOffloadProjection } from './projection.js'
 export { offloadMessageImages } from './project-message.js'
 export { offloadOldestImages, selectOldestImageTargets } from './image-offload.js'
 
-export const IMAGE_OFFLOAD_REQUIRED_CODE = 'IMAGE_OFFLOAD_REQUIRED'
+const IMAGE_OFFLOAD_REQUIRED_CODE = 'IMAGE_OFFLOAD_REQUIRED'
 
 export const name = 'compaction-image-offload'
 export const inject = []

@@ -9,7 +9,7 @@ function swap(target, source) {
   }
 }
 
-export class Realm {
+class Realm {
   store = Object.create(null)
 
   get suffix() {
@@ -33,7 +33,7 @@ export class Realm {
   }
 }
 
-export class LocalRealm extends Realm {
+class LocalRealm extends Realm {
   entry
 
   constructor(entry) {
@@ -46,7 +46,7 @@ export class LocalRealm extends Realm {
   }
 }
 
-export class GlobalRealm extends Realm {
+class GlobalRealm extends Realm {
   label
 
   constructor(label) {

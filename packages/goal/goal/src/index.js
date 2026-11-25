@@ -19,7 +19,7 @@ export * from './domain.js'
 export { GOAL_CHANGE_VERSION, GoalError, GoalId } from './runtime.js'
 export { decodeGoalChange, foldGoal, goalChangeRef } from './fold.js'
 
-export function applyGoalProjection(state, event) {
+function applyGoalProjection(state, event) {
   if (event.type !== 'goal/change') return state
   let change
   try {
@@ -75,7 +75,7 @@ function resolveBlockReason(reason) {
   return { code, message: message.trim() }
 }
 
-export class GoalService extends TypertRemoteService {
+class GoalService extends TypertRemoteService {
   static inject = ['agents']
 
   static Config = z.object({

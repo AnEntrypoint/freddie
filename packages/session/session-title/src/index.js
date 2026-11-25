@@ -15,7 +15,7 @@ export class SessionTitleInvalidError extends Error {
   name = 'SessionTitleInvalidError'
 }
 
-export function collectSessionTitleMessages(events, throughSeq) {
+function collectSessionTitleMessages(events, throughSeq) {
   const messages = []
   for (const event of events) {
     if (throughSeq !== undefined && event.seq > throughSeq) break

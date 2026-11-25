@@ -207,7 +207,7 @@ export function goalChangeRef(change) {
     : { id: change.goal.id, revision: change.goal.revision }
 }
 
-export function applyGoalChange(state, change) {
+function applyGoalChange(state, change) {
   const ref = goalChangeRef(change)
   if (change.operation === 'clear') {
     const current = state.goal

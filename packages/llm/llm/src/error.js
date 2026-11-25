@@ -85,6 +85,3 @@ export function errorChain(value) {
   return render(value)
 }
 
-export function isHarnessError(value) {
-  return value instanceof HarnessError
-}

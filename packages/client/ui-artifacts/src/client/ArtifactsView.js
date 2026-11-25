@@ -10,7 +10,7 @@ function kind(value) {
   return ['artifact', 'memory', 'decision', 'evidence', 'plan'].includes(value) ? value : 'artifact'
 }
 
-export class FreddieArtifactsView extends HTMLElement {
+class FreddieArtifactsView extends HTMLElement {
   #props = null
   #selected = null
   #draft = { name: '', kind: 'memory', content: '' }

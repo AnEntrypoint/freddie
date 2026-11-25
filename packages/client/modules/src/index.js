@@ -158,7 +158,7 @@ function graphRow(id, rev, fields) {
   }
 }
 
-export function orderByModuleGraph(entries) {
+function orderByModuleGraph(entries) {
   const rowsById = new Map()
   for (const entry of entries) rowsById.set(entry.id, entry)
   const ordered = []
@@ -194,7 +194,7 @@ export function orderByModuleGraph(entries) {
 
 const IMMUTABLE = 'public, max-age=31536000, immutable'
 
-export function buildImportMapEntries(graph, workspaceUrl = specifier => `/workspace/${specifier}`) {
+function buildImportMapEntries(graph, workspaceUrl = specifier => `/workspace/${specifier}`) {
   const imports = {}
   for (const entry of graph.entries) {
     imports[entry.id] = entry.url
@@ -210,7 +210,7 @@ export function buildImportMapEntries(graph, workspaceUrl = specifier => `/works
   return imports
 }
 
-export function bootInjections(graph, preloadHrefs, workspaceUrl) {
+function bootInjections(graph, preloadHrefs, workspaceUrl) {
   return [
     { kind: 'importmap-entries', imports: buildImportMapEntries(graph, workspaceUrl) },
     ...preloadHrefs.map(href => ({ kind: 'link', placement: 'head', rel: 'modulepreload', href })),
@@ -218,7 +218,7 @@ export function bootInjections(graph, preloadHrefs, workspaceUrl) {
   ]
 }
 
-export class ClientModuleRegistry extends Service {
+class ClientModuleRegistry extends Service {
   static inject = ['webServer', 'loader']
 
   table = new Map()

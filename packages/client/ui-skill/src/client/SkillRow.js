@@ -85,7 +85,7 @@ function stateStatus(state, t) {
   }
 }
 
-export class FreddieSkillRow extends HTMLElement {
+class FreddieSkillRow extends HTMLElement {
   #props = null
   #expanded = false
 

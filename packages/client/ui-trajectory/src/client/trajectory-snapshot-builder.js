@@ -150,7 +150,7 @@ class DeferredTrajectorySnapshot {
   }
 }
 
-export class TrajectorySnapshotBuilder {
+class TrajectorySnapshotBuilder {
   nodes = new Map()
   positions = new Map()
   contributions = []
@@ -284,7 +284,7 @@ export class TrajectorySnapshotBuilder {
   }
 }
 
-export const trajectoryViewDefinition = {
+const trajectoryViewDefinition = {
   target: 'trajectory',
   create: () => new TrajectorySnapshotBuilder(),
 }

@@ -12,7 +12,7 @@ import {
 import { launchEnvironmentOf } from '@freddie/freddie-launch-environment'
 import { LlmError } from '@freddie/freddie-llm'
 
-export const RECORD_SCOPE = 'llm-pi-ai'
+const RECORD_SCOPE = 'llm-pi-ai'
 
 export function recordKeyFor(providerId) {
   return credentialKey(RECORD_SCOPE, providerId)

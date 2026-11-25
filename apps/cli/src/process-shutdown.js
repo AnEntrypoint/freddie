@@ -1,4 +1,4 @@
-export const PROCESS_SHUTDOWN_TIMEOUT_MS = 5_000
+const PROCESS_SHUTDOWN_TIMEOUT_MS = 5_000
 
 export function createProcessShutdown(
   dispose,

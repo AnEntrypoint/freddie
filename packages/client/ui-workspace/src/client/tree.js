@@ -2,7 +2,7 @@ import { indexSubagentDescendants } from '@freddie/freddie-client-runtime/client
 
 export const UNGROUPED_KEY = ''
 
-export const UNGROUPED_LABEL = 'Ungrouped'
+const UNGROUPED_LABEL = 'Ungrouped'
 
 export function workspaceLabel(cwd) {
   if (cwd === undefined || cwd === '') return UNGROUPED_LABEL

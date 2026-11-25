@@ -3,14 +3,14 @@ import { TypertLookupFailure } from '@freddie/freddie-typert-protocol'
 
 export class ApiSessionNotFound extends Error {}
 
-export class ApiSessionSubagentOwnership extends Error {
+class ApiSessionSubagentOwnership extends Error {
   constructor(sessionId) {
     super(`session "${sessionId}" is a subagent session; use subagent delivery`)
     this.sessionId = sessionId
   }
 }
 
-export function hasApiSessionSubagentOwner(ctx, session, agent) {
+function hasApiSessionSubagentOwner(ctx, session, agent) {
   if (session.header.origin === 'subagent') return true
   const parentId = session.header.parentSession
   if (parentId === undefined || agent === undefined) return false
@@ -18,7 +18,7 @@ export function hasApiSessionSubagentOwner(ctx, session, agent) {
   return parent !== undefined && ctx.agents.isOwnedBy(agent.id, parent)
 }
 
-export function apiSessionSubagentOwnershipError(sessionId) {
+function apiSessionSubagentOwnershipError(sessionId) {
   return new TypertLookupFailure({
     code: 'session/agent-busy',
     message: `session "${sessionId}" is owned by subagent routing`,

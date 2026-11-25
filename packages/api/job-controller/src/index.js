@@ -6,7 +6,7 @@ const DEFAULT_OBSERVE_FLUSH_MS = 100
 
 const HUMAN_KILL_REASON = 'cancelled by the user'
 
-export class JobController extends TypertRemoteService {
+class JobController extends TypertRemoteService {
   static inject = ['jobs', 'typert']
 
   static Config = z.object({

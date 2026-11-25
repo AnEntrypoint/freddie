@@ -3,7 +3,7 @@ import { computeHunkDiffs, diffsFromMeta } from './diff.js'
 import { remediateFsError } from './error.js'
 import { sessionResolveOptions } from './session-cwd.js'
 
-export function parseEditArgs(args) {
+function parseEditArgs(args) {
   if (args.file_path.trim().length === 0) throw new Error('file_path must be a non-empty string')
   if (args.old_string.length === 0) throw new Error('old_string must be a non-empty string')
   if (args.old_string === args.new_string) throw new Error('old_string and new_string must differ')
@@ -15,7 +15,7 @@ export function parseEditArgs(args) {
   }
 }
 
-export function formatEditOutput(displayPath, replaceAll) {
+function formatEditOutput(displayPath, replaceAll) {
   return replaceAll
     ? `The file ${displayPath} has been updated. All occurrences were successfully replaced.`
     : `The file ${displayPath} has been updated successfully.`

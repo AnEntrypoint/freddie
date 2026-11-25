@@ -1,4 +1,4 @@
-export class SchedulePersistenceError extends Error {
+class SchedulePersistenceError extends Error {
   constructor(cause) {
     super('Schedule persistence did not complete.', cause === undefined ? undefined : { cause })
     this.name = 'SchedulePersistenceError'

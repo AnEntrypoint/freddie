@@ -1,4 +1,4 @@
-export const CENTER_MIN = 640
+const CENTER_MIN = 640
 export const SIDEBAR_MIN = 264
 export const SIDEBAR_MAX = 420
 export const SIDEBAR_DEFAULT = 280

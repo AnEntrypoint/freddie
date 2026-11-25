@@ -22,7 +22,7 @@ export {
 } from './types.js'
 export { truncateUnicodeCodePoints } from './list.js'
 
-export class SessionController extends TypertRemoteService {
+class SessionController extends TypertRemoteService {
   static inject = [
     'agentDefaultModel',
     'agents',

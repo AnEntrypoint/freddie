@@ -17,7 +17,7 @@ const DEFAULT_INTERNALS = {
 }
 
 
-export function parseProcStat(text) {
+function parseProcStat(text) {
   const open = text.indexOf('(')
   const close = text.lastIndexOf(')')
   if (open <= 0 || close <= open) return undefined

@@ -10,7 +10,7 @@ const OPCODE_CLOSE = 0x8
 const OPCODE_PING = 0x9
 const OPCODE_PONG = 0xa
 
-export function acceptToken(key) {
+function acceptToken(key) {
   return createHash('sha1').update(`${key}${GUID}`).digest('base64')
 }
 

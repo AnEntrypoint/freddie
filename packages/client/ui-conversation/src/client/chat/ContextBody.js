@@ -84,7 +84,7 @@ function ModelFacingContent({ content, t, jsonBlock }) {
     ]))
 }
 
-export function OpaqueBody({ content, source, t, jsonBlock }) {
+function OpaqueBody({ content, source, t, jsonBlock }) {
   const fields = SourceFields({ source, formRendered: false, t })
   return fields === null
     ? ModelFacingContent({ content, t, jsonBlock })
@@ -118,7 +118,7 @@ function instructionAction(action, baseline) {
   return action === 'set' ? 'message.context.instructions.added' : 'message.context.instructions.updated'
 }
 
-export function InstructionsBody({ content, source, t, jsonBlock }) {
+function InstructionsBody({ content, source, t, jsonBlock }) {
   const changes = instructionChanges(source)
   if (changes === null) return OpaqueBody({ content, source, t, jsonBlock })
   const baseline = asRecord(source)?.['baseline'] === true
@@ -153,7 +153,7 @@ function catalogEntries(source) {
   return entries
 }
 
-export function CatalogBody({ content, source, t, jsonBlock }) {
+function CatalogBody({ content, source, t, jsonBlock }) {
   const entries = catalogEntries(source)
   if (entries === null) return OpaqueBody({ content, source, t, jsonBlock })
   const update = asRecord(source)?.['update'] === true
@@ -196,7 +196,7 @@ function snapshotSections(source) {
   return sections.length === 0 ? null : sections
 }
 
-export function SnapshotBody({ content, source, t, jsonBlock }) {
+function SnapshotBody({ content, source, t, jsonBlock }) {
   const sections = snapshotSections(source)
   if (sections === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
@@ -214,11 +214,11 @@ export function SnapshotBody({ content, source, t, jsonBlock }) {
   ]
 }
 
-export function NoticeBody({ content, t, jsonBlock }) {
+function NoticeBody({ content, t, jsonBlock }) {
   return ModelFacingContent({ content, t, jsonBlock })
 }
 
-export function RelayBody({ content, source, t, jsonBlock }) {
+function RelayBody({ content, source, t, jsonBlock }) {
   const sender = relaySender(source)
   if (sender === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [
@@ -254,7 +254,7 @@ function recalledSessions(source) {
   return sessions.length === 0 ? null : sessions
 }
 
-export function RecallBody({ content, source, t, jsonBlock }) {
+function RecallBody({ content, source, t, jsonBlock }) {
   const sessions = recalledSessions(source)
   if (sessions === null) return OpaqueBody({ content, source, t, jsonBlock })
   return [

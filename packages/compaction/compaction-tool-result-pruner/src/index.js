@@ -6,7 +6,7 @@ import { codePointLength, DEFAULTS, PRUNE_MARKER, resolveConfig } from './config
 
 export { codePointLength, DEFAULTS, PRUNE_MARKER, resolveConfig } from './config.js'
 
-export class ToolResultPruner extends Service {
+class ToolResultPruner extends Service {
   static inject = ['tokenMeter']
 
   static Config = z.object({

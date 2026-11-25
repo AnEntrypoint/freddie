@@ -1,7 +1,7 @@
 export const OFFLOADED_IMAGE_TEXT
   = '[image omitted to keep the request within its image limit; older images are omitted first. If this image is still needed, read its file again when a path is available; otherwise ask the user to attach it again.]'
 
-export function textOnlyImageText(ref) {
+function textOnlyImageText(ref) {
   const digest = String(ref.attachmentId).slice('sha256:'.length, 'sha256:'.length + 8)
   return `[image omitted because this model accepts text only; attachment sha256:${digest}]`
 }

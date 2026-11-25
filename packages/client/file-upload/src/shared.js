@@ -11,7 +11,7 @@ export const PROMPT_IMAGE_MEDIA_TYPES = Object.freeze([
   'image/gif',
 ])
 
-export const MAX_DISPLAY_NAME_LENGTH = 255
+const MAX_DISPLAY_NAME_LENGTH = 255
 
 const FIRST_PRINTABLE_CODE_POINT = 0x20
 

@@ -176,7 +176,7 @@ function requestNumbersFrom(
   return numbered
 }
 
-export class FreddieTrajectoryView extends HTMLElement {
+class FreddieTrajectoryView extends HTMLElement {
   #props = null
 
   #collapsedTurns = EMPTY_TURN_IDS

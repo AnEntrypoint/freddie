@@ -11,7 +11,7 @@ const CUBES = [
   { id: 'system', labelKey: 'appearance.system', Icon: IconFollowsystemOutline16 },
 ]
 
-export class FreddieAppearanceRow extends HTMLElement {
+class FreddieAppearanceRow extends HTMLElement {
   #props = null
   #preference = 'system'
 

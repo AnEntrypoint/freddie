@@ -1,7 +1,7 @@
 
 import { Service } from '@freddie/cordis'
 
-export class ComputerUseRegistry extends Service {
+class ComputerUseRegistry extends Service {
   registration
 
   constructor(ctx) {

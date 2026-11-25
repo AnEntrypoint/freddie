@@ -6,7 +6,7 @@ export const CHAT_SYNTHETIC_SEQ_OFFSETS = {
   finalizedFollowup: 0.1,
 }
 
-export function contextLocation(context) {
+function contextLocation(context) {
   return context.start?.location ?? context.matches[0]?.location ?? { kind: 'unresolved' }
 }
 

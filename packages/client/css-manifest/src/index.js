@@ -28,7 +28,7 @@ function escapeHtmlAttribute(value) {
     .replaceAll('>', '&gt;')
 }
 
-export class CssManifest extends Service {
+class CssManifest extends Service {
   static inject = ['webServer']
 
   built = { stamp: '', rev: '', body: Buffer.alloc(0) }

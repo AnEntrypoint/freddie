@@ -4,7 +4,7 @@ export const WEB_SEARCH_MAX_RESULTS = 8
 
 export const WEB_SEARCH_MAX_QUERIES = 4
 
-export function parseSearchArgs(
+function parseSearchArgs(
   args,
   maxQueries,
 ) {

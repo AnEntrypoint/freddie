@@ -9,7 +9,7 @@ export class AuthorizationError extends HarnessError {
   }
 }
 
-export class AuthorizationDeclinedError extends AuthorizationError {
+class AuthorizationDeclinedError extends AuthorizationError {
   constructor(message = 'the authorization prompt was declined') {
     super(message, 'DECLINED')
     this.name = 'AuthorizationDeclinedError'
@@ -22,7 +22,7 @@ function settlesWhenWithdrawn(signal) {
   })
 }
 
-export class AuthorizationService extends Service {
+class AuthorizationService extends Service {
   static inject = ['credentials']
 
   flows = new Map()

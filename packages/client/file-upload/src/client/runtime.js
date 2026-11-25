@@ -3,7 +3,7 @@ import { progressStream } from './progress.js'
 import { FILE_UPLOAD_ROUTE, displayName } from '../shared.js'
 import { fileUploadWorker } from './worker.js'
 
-export const FILE_UPLOAD_HOOK = '__FREDDIE_FILE_UPLOAD__'
+const FILE_UPLOAD_HOOK = '__FREDDIE_FILE_UPLOAD__'
 
 function customTransport(customFetch) {
   return {

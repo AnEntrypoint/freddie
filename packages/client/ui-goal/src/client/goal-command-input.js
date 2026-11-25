@@ -1,4 +1,4 @@
-export function goalCommandText(event) {
+function goalCommandText(event) {
   return `/${event.data.name}${(event.data.args ?? '').trimEnd()}`
 }
 

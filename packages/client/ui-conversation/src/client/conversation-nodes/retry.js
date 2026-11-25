@@ -16,7 +16,7 @@ function isClosed(location) {
     || ((location.kind === 'step' || location.kind === 'turn') && location.turn.status === 'closed')
 }
 
-export const retryDefinition = {
+const retryDefinition = {
   kind: 'model-retry',
   target: 'chat',
   match: (event) => {

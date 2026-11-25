@@ -1,9 +1,9 @@
 import { createSnapshotStore } from '@freddie/freddie-client-runtime/client'
 import { displayPermissionPreset } from './presentation.js'
 
-export const PERMISSION_SETTINGS_NS = 'permission'
+const PERMISSION_SETTINGS_NS = 'permission'
 
-export function permissionDefaultOf(view, schema) {
+function permissionDefaultOf(view, schema) {
   const value = (view.value)?.defaultPreset
   if (typeof value !== 'string') throw new Error('permission settings has no defaultPreset value')
   const node = schema.nodeAtPath(schema.rehydrate(view.schema), ['defaultPreset'])

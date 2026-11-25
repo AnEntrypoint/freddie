@@ -6,7 +6,7 @@ import {
 import { FULL_ACCESS_PRESET } from './presentation.js'
 import css from './PermissionRow.css.js'
 
-export class FreddiePermissionRow extends HTMLElement {
+class FreddiePermissionRow extends HTMLElement {
   #props = null
   #open = false
   #confirmingFullAccess = false

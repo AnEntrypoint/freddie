@@ -134,7 +134,7 @@ function assertAgentOptions(options) {
 
 export { DEFAULT_MAX_PARALLEL_TOOL_CALLS }
 
-export const CONFIGURED_AGENT_IDENTITIES_KEY = 'configuredAgentIdentities'
+const CONFIGURED_AGENT_IDENTITIES_KEY = 'configuredAgentIdentities'
 
 function applyLauncherIdentities(
   agents,
@@ -151,9 +151,9 @@ function applyLauncherIdentities(
   })
 }
 
-export const AGENT_LOOP_SETTINGS_NAMESPACE = settingsNamespace('agent-loop')
+const AGENT_LOOP_SETTINGS_NAMESPACE = settingsNamespace('agent-loop')
 
-export const AGENT_LOOP_SETTINGS_SCHEMA = z.object({
+const AGENT_LOOP_SETTINGS_SCHEMA = z.object({
   maxParallelToolCalls: z.number().step(1).min(1).default(DEFAULT_MAX_PARALLEL_TOOL_CALLS),
 })
 

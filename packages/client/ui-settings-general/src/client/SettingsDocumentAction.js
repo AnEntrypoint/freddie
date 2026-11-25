@@ -2,7 +2,7 @@ import { applyDiff, createElement as h, Fragment } from '@freddie/webjsx'
 import { Button, defineElement } from '@freddie/freddie-client-ui-primitives'
 import css from './SettingsDocumentAction.css.js'
 
-export class FreddieSettingsDocumentAction extends HTMLElement {
+class FreddieSettingsDocumentAction extends HTMLElement {
   #props = null
   #loaded = false
 
