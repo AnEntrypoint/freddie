@@ -82,7 +82,7 @@ export function isObject(value) {
   return value && (typeof value === 'object' || typeof value === 'function')
 }
 
-export function getPropertyDescriptor(target, prop) {
+function getPropertyDescriptor(target, prop) {
   let proto = target
   while (proto) {
     const desc = Reflect.getOwnPropertyDescriptor(proto, prop)

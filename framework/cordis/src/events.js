@@ -2,7 +2,7 @@ import { defineProperty } from '@freddie/cosmokit'
 import { Context } from './context.js'
 import { DisposableList, symbols } from './utils.js'
 
-export function isBailed(value) {
+function isBailed(value) {
   return value !== null && value !== false && value !== undefined
 }
 

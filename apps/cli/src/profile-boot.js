@@ -55,7 +55,7 @@ const PROFILE_ROOT_CONFIG = `# freddie profile root — an empty entry list. The
 
 export const PROFILE_ROOT_FILENAME = 'cordis.yml'
 
-export function resolveTelemetryPatch(disabledEnv, hasRow) {
+function resolveTelemetryPatch(disabledEnv, hasRow) {
   if ((disabledEnv ?? '') === '' || !hasRow) return undefined
   return { id: TELEMETRY_ROW_ID, disabled: true }
 }

@@ -1,7 +1,7 @@
 import { CardForm, endpointField, integerField } from '@freddie/freddie-client-ui-settings-plugins/client'
 
 export const WEB_SEARCH_NS = 'web-search-deepseek'
-export const KEY_FIELD = 'apiKey'
+const KEY_FIELD = 'apiKey'
 const DEFAULT_KEY_REF = 'DEEPSEEK_API_KEY'
 const MIN_USES = 1
 

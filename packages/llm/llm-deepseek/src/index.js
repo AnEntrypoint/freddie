@@ -105,7 +105,7 @@ export const Config = z.object({
   retryPolicy: RetryPolicySchema,
 })
 
-export const PUBLIC_BASE_URL = 'https://api.deepseek.com'
+const PUBLIC_BASE_URL = 'https://api.deepseek.com'
 
 const BASE_URL_ENV = 'DEEPSEEK_BASE_URL'
 
@@ -176,7 +176,7 @@ function resolveModels(models) {
   })
 }
 
-export function resolveAdapterOptions(config, environment) {
+function resolveAdapterOptions(config, environment) {
   if (config.thinking === 'disabled'
     && config.reasoningEffort !== undefined
     && config.reasoningEffort !== 'off') {

@@ -26,28 +26,7 @@ export {
   writeProfileManifest,
 } from './profile.js'
 
-export function resolveConfigPath(
-  configPath, snapshotMode, cwd = process.cwd(),
-) {
-  const absolute = resolve(cwd, configPath)
-  if (snapshotMode !== 'replay') return absolute
-  const dir = dirname(absolute)
-  const replayName = basename(absolute).replace(/cordis\.ya?ml$/, 'cordis.snapshot.yml')
-  return resolve(dir, replayName)
-}
 
-export function loadEnv(
-  binName, dir = process.cwd(),
-  warn = line => void process.stderr.write(line),
-) {
-  try {
-    process.loadEnvFile(resolve(dir, '.env'))
-  } catch (error) {
-    if (error?.code !== 'ENOENT') {
-      warn(`${binName}: failed to load .env: ${String(error)}\n`)
-    }
-  }
-}
 
 const BOOTSTRAP_NAMES_BY_CATEGORY = {
   processLaunchAndModuleResolution: [
@@ -293,7 +272,7 @@ function groupedDump(
 
 const PINNED_BOOTSTRAP_INCLUDE_ID = 'include'
 
-export async function mountRootInclude(
+async function mountRootInclude(
   ctx,
   absoluteConfigPath,
   patches = [],
@@ -352,7 +331,7 @@ async function observeLoaderRejectionCheckpoint(reasons) {
   }
 }
 
-export const FAIL_LOUD_RELEASE_TIMEOUT_MS = 2_000
+const FAIL_LOUD_RELEASE_TIMEOUT_MS = 2_000
 
 export function installFailLoud(
   binName,
@@ -387,7 +366,7 @@ export function installFailLoud(
   return uninstall
 }
 
-export function assertEntriesLoaded(ctx, binName) {
+function assertEntriesLoaded(ctx, binName) {
   const failed = [...ctx.loader.entries()].filter(entry => entry.fiber === undefined && !entry.disabled)
   if (failed.length > 0) {
     const names = failed.map(entry => entry.options.name).join(', ')
@@ -403,7 +382,7 @@ function formatActivationError(error) {
   return error instanceof Error ? error.stack ?? error.message : String(error)
 }
 
-export async function assertEntriesActivated(ctx, binName) {
+async function assertEntriesActivated(ctx, binName) {
   assertEntriesLoaded(ctx, binName)
   const failures = []
   const rejectionReasons = []
@@ -476,7 +455,7 @@ export async function boot(
   }
 }
 
-export const HARNESS_SOURCE_SECTION = 'harness:source'
+const HARNESS_SOURCE_SECTION = 'harness:source'
 
 export function addHarnessSourceSection(ctx, sourceRoot) {
   const text = `The Freddie implementation checkout is at ${sourceRoot}. The checkout location and current working directory are separate values and may differ; never infer the working directory from this path. Use pwd to determine the current working directory. Use this checkout only to inspect or extend FREDDIE itself.`

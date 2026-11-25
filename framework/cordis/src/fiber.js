@@ -74,7 +74,7 @@ const CordisErrorCode = {
   INACTIVE_EFFECT: 'cannot create effect on inactive context',
 }
 
-export class CordisError extends Error {
+class CordisError extends Error {
   static Code = CordisErrorCode
 
   code

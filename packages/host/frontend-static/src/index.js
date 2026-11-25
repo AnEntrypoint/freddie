@@ -29,7 +29,7 @@ const STATIC_MISS_CODES = new Set([
   'ENOTDIR',
 ])
 
-export async function serveStatic(pathname, req, res, distRoot, distIndex, renderIndex) {
+async function serveStatic(pathname, req, res, distRoot, distIndex, renderIndex) {
   const target = resolve(normalize(join(distRoot, pathname)))
   if (target !== distRoot && !target.startsWith(distRoot + sep)) {
     res.writeHead(403)

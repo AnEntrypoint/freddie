@@ -375,7 +375,7 @@ function catalogMenuPosition(trigger) {
   }
 }
 
-export class FreddieCatalogDropdown extends HTMLElement {
+class FreddieCatalogDropdown extends HTMLElement {
   #props = null
   #open = false
   #menuPosition = undefined
@@ -784,7 +784,7 @@ function renderCatalogDropdown(el, props) {
   return target
 }
 
-export class FreddieSubagentHeaderLineage extends HTMLElement {
+class FreddieSubagentHeaderLineage extends HTMLElement {
   #props = null
   #ancestorOrCount = null
   #ownCount = null
@@ -865,7 +865,7 @@ export class FreddieSubagentHeaderLineage extends HTMLElement {
 
 defineElement('freddie-subagent-header-lineage', FreddieSubagentHeaderLineage)
 
-export function renderSubagentHeaderLineage(
+function renderSubagentHeaderLineage(
   el,
   props,
 ) {

@@ -1,14 +1,14 @@
 import { defineProperty, hyphenate } from '@freddie/cosmokit'
 import { createCallable, joinPrototype, symbols } from './utils.js'
 
-export const LoggerLevel = {
+const LoggerLevel = {
   ERROR: 0,
   INFO: 1,
   WARN: 2,
   DEBUG: 3,
 }
 
-export const defaultFormatters = {
+const defaultFormatters = {
   s: (value) => String(value),
   d: (value) => Math.trunc(Number(value)),
   i: (value) => Math.trunc(Number(value)),
@@ -109,8 +109,8 @@ export class Logger {
   }
 }
 
-export const c16 = [6, 2, 3, 4, 5, 1]
-export const c256 = [
+const c16 = [6, 2, 3, 4, 5, 1]
+const c256 = [
   20, 21, 26, 27, 32, 33, 38, 39, 40, 41, 42, 43, 44, 45, 56, 57, 62,
   63, 68, 69, 74, 75, 76, 77, 78, 79, 80, 81, 92, 93, 98, 99, 112, 113,
   129, 134, 135, 148, 149, 160, 161, 162, 163, 164, 165, 166, 167, 168,

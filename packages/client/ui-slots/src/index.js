@@ -2,8 +2,8 @@ export * from './store.js'
 export * from './renderer.js'
 export * from './observable.js'
 
-export const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
-export const WEBJSX_SLOT_SUBSCRIPTIONS = Symbol('webjsxSlotSubscriptions')
+const WEBJSX_SLOT_TAG = Symbol('webjsxSlotTag')
+const WEBJSX_SLOT_SUBSCRIPTIONS = Symbol('webjsxSlotSubscriptions')
 
 export function webjsxSlot(tag, { subscriptions = 'all' } = {}) {
   const component = (() => null)
