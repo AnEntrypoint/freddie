@@ -3,6 +3,14 @@ import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
 import { renderIndexInjections } from './injections.js'
 
+function inheritedListenFd(port) {
+  for (const pair of String(process.env.CASEY_INHERITED_LISTEN || '').split(',')) {
+    const [p, fd] = pair.split('=')
+    if (Number(p) === port && Number.isInteger(Number(fd)) && Number(fd) >= 3) return Number(fd)
+  }
+  return null
+}
+
 export { renderIndexInjections } from './injections.js'
 export { etagOf, sendBody, sendFile } from './static-file.js'
 
@@ -141,12 +149,15 @@ export class WebServer extends Service {
 
     await new Promise((resolve, reject) => {
       this.server.once('error', reject)
-      this.server.listen(this.config.port, this.config.host, () => {
+      const onListening = () => {
         this.server.off('error', reject)
         this.server.on('error', (err) => { this.ctx.logger.error(err) })
         this.listenedPort = this.server.address().port
         resolve()
-      })
+      }
+      const inherited = inheritedListenFd(this.config.port)
+      if (inherited !== null) this.server.listen({ fd: inherited }, onListening)
+      else this.server.listen(this.config.port, this.config.host, onListening)
     })
 
     this.ctx.effect(() => async () => {
