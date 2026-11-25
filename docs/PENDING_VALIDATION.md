@@ -27,7 +27,7 @@ Standing rules: /workspace/hyperagent/docs/peer-rules.md. The dispatcher's decis
 | 6 | held: waits on fx | the tool rows of the adapter change shape with fx's one-tool surface (run_code verbs); fx has not published the verb catalog. Not started. |
 | 7 | finished | cordis, cosmokit and the loader are served live from framework/ (commits b44220fa to 577c073e, witness BROWSER_DONE 0 on 2755036b). |
 | 8 | api-catalog: finished under the maximal-scope rule (de1a739d, see its entry above); card chrome: finished, see its entry above | api-catalog: the repeated text is 217 characters of 44,529 in generated documentation data, not worth a shared module (earlier decision, unchanged). Card chrome: see its own entry. |
-| 9 | decided: left as it is | 274 export-only names change no line count; the export keyword drops as each file is next touched, as recorded. |
+| 9 | finished under the maximal-scope rule: 442 + 11 in f8d2bd2a, 24 more in 27eb8123, window 71 of 71 ok on 27eb8123 (see the rank 9 entry above) |
 | 10 | held: owner and fx | the plugin manifest and the merges of single-implementation seams need the owner's layering decision and fx's manifest shape. Not started. |
 | 11 | held: owner | keep the tooling exemption for node: imports, or make the tooling depend on the runtime: the owner's choice, not in any spec. Not started. |
 
