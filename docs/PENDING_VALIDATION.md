@@ -1,6 +1,36 @@
 # Pending validation: reduction to what the system needs
 undefined
 undefined
+## Rank 9 under the maximal-scope rule: names nobody else names lose the export keyword (2026-11-25)
+
+Standing rules: /workspace/hyperagent/docs/peer-rules.md. Rank 9 was left as it was under the smaller scope (no line count changes). The owner's rule is maximal scope, so it is done here, with one breaking change recorded below.
+
+Red check and equivalence for the rank 8 closure fix (de1a739d). The old closure was a backspace inside a template literal: the bytes of 48efb676 hold single backslashes before b. The fixture test fails on the old pattern (AssertionError on the dollar-sign case, exit 1); the restored file is byte-identical and the test passes again. The equivalence compare, run with the old dump as input, reports 112 problems; with the new dump it reports 0 problems across 64 services and 62 events.
+
+What changed:
+- f8d2bd2a (rebased as 8bada405): 442 names that no other file mentions lose the export keyword, and 11 declarations that nothing uses are deleted. 272 files.
+- 27eb8123: 24 more names, unused anywhere, in files that a namespace import reaches: 22 lose the keyword, 2 are deleted. 11 files. The remaining exports of those files are used or enumerated.
+- Breaking, pre-alpha: these names are no longer on their modules' surfaces. Nothing in the tree imported them, and the enumeration check (a namespace whose keys are enumerated) flagged one file, session-query's tracing namespace, which keeps its exports; none of the 24 is in it.
+
+What was held back, and why the first pass was wrong:
+- The first scan skipped package.json when it built its package map, so package-level namespace imports were never recognised. The link checker found it, and eight changed files were reverted.
+- Host-local importers under runs/ (gitignored window tooling): the scan skipped them, and the first window failed on import (window.mjs needs expectedRecord). Five files were reverted, and the link checker now walks runs/.
+
+Witnesses:
+1. Link check (TypeScript AST; every named import resolved through relative paths and workspace package exports; runs/ included): HEAD 4600 named imports, 0 failures; the working tree 4614 named imports, 0 failures, 0 unresolved relative specifiers. Red check: an untracked file importing an unexported name (Realm from isolate.js, then isBailed from events.js) gives one failure each; the file is removed afterwards.
+2. Window, ticket freddie-export-window5 on 27eb8123: 71 of 71 steps ok, record runs/analysis/window-record-phaseY.json (host-local). Earlier windows: window3 on a1aa8911 failed baseline-checks (the smoke count); window4 on a1aa8911, after the smoke fix, passed 71 of 71; window5 on the pushed 27eb8123 passed 71 of 71 and is the witness. The smoke check had a hard-coded count (242 packages, ok 240, failing 2). The same two browser-only packages (client-ui-primitives: HTMLElement at module level; client-web: bare webjsx) fail identically on the pre-change tree and have failed in every import-smoke record since 11 November; the count went stale when rank 8 added a package. The window now requires exactly that failing set.
+3. Browser, ticket freddie-export-browser5 on 27eb8123 (GATE_QUICK=1): BROWSER_DONE 0, ok true.
+4. Rebase: origin moved to 01406f0b (one webserver file, also touched by f8d2bd2a); both commits rebased clean; the link check was rerun on the rebased tree (0 failures) before the window was queued.
+
+## Rank 8 api-catalog under the maximal-scope rule: one owner for the helpers (2026-11-25)
+
+Found while measuring: the referenced-type closure in both catalogs had never matched. Its word boundary was written inside a template literal as a single backslash-b, a backspace, so referencedTypes was empty for all 64 services and 62 events. Fixed with identifier lookarounds, the name escaped; a name with a dollar sign matches literally.
+
+- packages/util/api-catalog (@freddie/freddie-api-catalog, zero dependencies): apiQueries({ services, events, types }) returns queryServiceApi and queryEventApi bound to one catalogue. Both catalogs call it.
+- Deleted as dead: INHERITED_CTX_API in both catalogs (exported, imported by nothing) and the tool catalog's unused process and Buffer imports from the seam.
+- Kept apart with the reason: the data. Of the client catalog's 7 services only sessions appears in the tool catalog, and there the two entries describe different things.
+- Commit de1a739d (message amended); pushed in 54e6d81f with its docs.
+
 ## Card chrome shared by the subagent and web-search cards (2026-11-23, rank 8)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md.
