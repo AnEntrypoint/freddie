@@ -1,5 +1,6 @@
 # Pending validation: reduction to what the system needs
 undefined
+undefined
 ## Card chrome shared by the subagent and web-search cards (2026-11-23, rank 8)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md.
