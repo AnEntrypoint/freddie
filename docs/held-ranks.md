@@ -53,3 +53,11 @@ Decision for the owner: whether the tooling keeps its exemption for node: import
 - Rank 5: held. fx js is not built (item 3), the loader and reload are not built (item 4), the server is not built (item 2), and `fx freddie <profile>` is not built.
 - Rank 6: the adapter rows are written against fx's verb table (item 5, 61c4d3b8). The Stage 5 cuts are held: the sessions cut on item 8 (journal), the subagent cut on item 9 (background task), and the permission and sandbox cut on item 6 (its file-mutation change is uncommitted in fx).
 - Rank 10 and rank 11: unchanged, held on the owner.
+
+## Update 2026-11-25, second pass (fx's tree at 0d4e06bb, after the adapter push)
+
+- fx committed item 6 as 0d4e06bb (lanmower): the prepared permission path for inner file writes. Its fx side of the permission and sandbox cut is now in fx's tree.
+- Still open in fx's answers (queue/fx.md): item 8 (journal of inner calls), item 9 (background task after a deadline), item 2 (the HTTP and WebSocket server and the Anthropic endpoint), item 3 (fx js), item 4 (loader and reload). fx:host is unchanged: 13 rows provided, 12 gaps; it still reports only version, capabilities, tools, verbs and modules.
+- Rank 4, measured: `grep -rhoE "from ['\"](node:)?[a-z_/]+['\"]" packages/util/runtime/src` gives 25 Node modules. Of these, 12 are fx gap rows (async_hooks, buffer, dns/promises, http, https, inspector, module, perf_hooks, stream, vm, worker_threads, zlib). The other 13 are provided rows. The runtime cannot drop its node: imports until fx closes the 12 gap rows, so the rewrite stays held on fx items 1, 2 and 4.
+- Rank 6, Stage 5 order (specs/fx-freddie-txiki.md): providers and the agent loop come first, and both need an agent namespace in fx:host (host-interface section 3.3, planned). fx:host has no agent namespace, so the cut cannot start there, even though fx item 6 has landed. The permission and sandbox cut is therefore not next.
+- Nothing new is unblocked by fx's answers this round. Ranks 4, 5, the Stage 5 cuts, 10 and 11 stay held. The adapter window (freddie-adapter-window3, 73 of 73 steps ok) and its push (3bda3ce9 on origin) are recorded in the rank 4 and rank 6 entry of docs/PENDING_VALIDATION.md.
