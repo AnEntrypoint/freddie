@@ -1,6 +1,29 @@
 # Pending validation: reduction to what the system needs
 undefined
 undefined
+## Rank 4 and rank 6 adapter: the adapter against the live fx:host, rows from fx's verb table (2026-11-25)
+
+fx answered the held-rank list (specs/queue/fx.md, numbered items 1 to 11). Delivered in fx's tree and used here: the verb table (fx 61c4d3b8, docs/verb-table.md), the tool table in docs/host-interface.md section 2, the tool listing (efa5fcce), the compaction of run_code (528d8d96) and the PreToolUse and PostToolUse once per inner verb (c0b04460). Not delivered: fx:host's row set (13 of 25 provided), SQLite, pty, watch, the server side of networking, the HTTP and WebSocket server, the Anthropic endpoint, fx js, the loader and reload, the journal (item 8), the background task (item 9), and the uncommitted file-mutation change (item 6).
+
+What changed (Phase A, lanmower, pre-alpha breaking):
+- The adapter read a host shape fx does not have: capabilities as an object of present flags, and namespaces such as fs and proc at the top level. Checked against the live `fx run-code` host: `capabilities` is a list of 15 names (tools, verbs and 13 Node module names); `tools` is an object of 47 functions; `verbs` is an object of 22 functions; `modules` maps each of the 13 module names to its implementation. The adapter now reads that shape. Breaking: the table's rows change (capability, source, key and reason replace the old ids and flags; `callable`, `flags`, the old `$list` branch and the `net.tls` and `net.ws` flags are removed).
+- The table has 25 rows: 13 register on the live host and 12 are gaps, each with a reason. The 22 host verbs map to the capability each serves (`VERB_BACKS`). `process` is a row (fx's status table lists it, and the module is live).
+- `AgentSwarm` is the one published tool the live catalog leaves out (model_visible false in fx's tools.zig). It is named in `UNREPORTED_TOOLS`, not silently dropped.
+- Scratch: the probe and the mutants ran in /workspace/tmp/freddie; the fx binary is fx's zig-out build (2026-11-25 12:27).
+
+Witnesses (this tree):
+- `node test/adapter.js`: 11 of 11 cases pass.
+- `node test/fx-table.js`: 48 tool names from fx's docs, 22 host verbs, 1 tool the host leaves out; exit 0.
+- `fx run-code --file packages/host/host-adapter/scripts/fx-live-check.mjs`: 11 of 11 checks ok on the live host (version, capability list, tools, verbs, modules, and the plan matches the stub); 13 register, 12 gaps, 0 absent, 8 unknown; exit 0.
+
+Red checks (each run once, the file restored, byte-identical to its backup):
+- live check, stub drops Bash: exit 1, FAIL tools.
+- adapter, gap rows registered: exit 1, the gap-rows case fails.
+- table, tools.shell loses Bash: exit 1, the tool-rows case fails.
+
+Not done: rank 4's runtime rewrite (packages/util/runtime on fx:host) waits on fx items 1, 2 and 4. Rank 5 waits on items 2, 3 and 4 and on the browser go. Rank 6's Stage 5 cuts are not started: the sessions cut waits on item 8, the subagent cut on item 9, and the permission and sandbox cut on item 6. The providers, agent loop and tools cuts are not yet checked against fx's delivered list.
+
+
 ## Held ranks: what they wait on (2026-11-25)
 
 The full list is in docs/held-ranks.md (copied from the freddie queue file). Nothing is started. Ranks 4 to 6 wait on fx; the list there names fx's stages and files. Ranks 10 and 11 each wait on one owner decision. Witness for this entry: docs/held-ranks.md is the queue text, and the commit that adds it has no code change.
@@ -56,9 +79,9 @@ Standing rules: /workspace/hyperagent/docs/peer-rules.md. The dispatcher's decis
 | rank | status | reason |
 |---|---|---|
 | 3 | decided: the seam stays | the spec's Decision 2026-11-23 (server side) keeps txiki as the default everywhere, leaves --engine edge opt-in for fx, and does not start the gm swap (stage 2) or the shared vendor step (stage 1). Seam deletion removes the txiki engine, the txiki installer and the txiki alias rows, which the default engine still runs on, so it cannot go while txiki is the default. Revisit when the spec's own triggers hold: node:sqlite, a permission binding, or a smaller build. No question for the dispatcher: the spec answers it. |
-| 4 | held: waits on fx | the fx:host runtime rewrite and the adapter against the real module need fx's published host; not started. |
-| 5 | held: waits on fx | milestones 1 and 2 are recorded runs inside fx; they need fx's host. Not started. |
-| 6 | held: waits on fx | the tool rows of the adapter change shape with fx's one-tool surface (run_code verbs); fx has not published the verb catalog. Not started. |
+| 4 | held: waits on fx | fx:host has 13 of 25 rows provided (fx item 1); the runtime rewrite needs SQLite, pty, watch, the server side of networking and the loader (items 1, 2, 4). The adapter now runs against the live host (entry below). |
+| 5 | held: waits on fx | fx js (item 3), the loader and reload (item 4), the HTTP and WebSocket server and the Anthropic endpoint (item 2) are not built, and `fx freddie` is not built. |
+| 6 | partly done | the adapter rows are written against fx's verb table (61c4d3b8, item 5). The Stage 5 cuts are held on fx items 6 (the uncommitted file-mutation change), 8 (the journal) and 9 (the background task). |
 | 7 | finished | cordis, cosmokit and the loader are served live from framework/ (commits b44220fa to 577c073e, witness BROWSER_DONE 0 on 2755036b). |
 | 8 | api-catalog: finished under the maximal-scope rule (de1a739d, see its entry above); card chrome: finished, see its entry above | api-catalog: the repeated text is 217 characters of 44,529 in generated documentation data, not worth a shared module (earlier decision, unchanged). Card chrome: see its own entry. |
 | 9 | finished under the maximal-scope rule: 442 + 11 in f8d2bd2a, 24 more in 27eb8123, window 71 of 71 ok on 27eb8123 (see the rank 9 entry above) |

@@ -46,3 +46,10 @@ The manifest shape itself waits on fx's loader (specs/fx-freddie-txiki.md, Stage
 ## Rank 11: tooling node: imports, 96 in 29 files (owner decision)
 
 Decision for the owner: whether the tooling keeps its exemption for node: imports, or depends on the runtime seam instead.
+
+## Update 2026-11-25 after fx's answers (queue/fx.md, items 1 to 11)
+
+- Rank 4: held. fx:host provides 13 of 25 rows; SQLite, pty, watch and the server side of networking are not provided (item 1); the HTTP and WebSocket server and the Anthropic endpoint are not built (item 2); the loader is not built (item 4). The adapter itself now runs against the live host; the runtime rewrite does not.
+- Rank 5: held. fx js is not built (item 3), the loader and reload are not built (item 4), the server is not built (item 2), and `fx freddie <profile>` is not built.
+- Rank 6: the adapter rows are written against fx's verb table (item 5, 61c4d3b8). The Stage 5 cuts are held: the sessions cut on item 8 (journal), the subagent cut on item 9 (background task), and the permission and sandbox cut on item 6 (its file-mutation change is uncommitted in fx).
+- Rank 10 and rank 11: unchanged, held on the owner.
