@@ -1,6 +1,10 @@
 # Pending validation: reduction to what the system needs
 undefined
 undefined
+## Held ranks: what they wait on (2026-11-25)
+
+The full list is in docs/held-ranks.md (copied from the freddie queue file). Nothing is started. Ranks 4 to 6 wait on fx; the list there names fx's stages and files. Ranks 10 and 11 each wait on one owner decision. Witness for this entry: docs/held-ranks.md is the queue text, and the commit that adds it has no code change.
+
 ## Rank 9 under the maximal-scope rule: names nobody else names lose the export keyword (2026-11-25)
 
 Standing rules: /workspace/hyperagent/docs/peer-rules.md. Rank 9 was left as it was under the smaller scope (no line count changes). The owner's rule is maximal scope, so it is done here, with one breaking change recorded below.
