@@ -1,0 +1,384 @@
+[
+  {
+    "name": "process_info",
+    "description": "Report cwd, pid, platform, homedir, tmpdir, parallelism and env.",
+    "input": {
+      "properties": {},
+      "required": []
+    }
+  },
+  {
+    "name": "fs_exists",
+    "description": "Report whether a path exists.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_stat",
+    "description": "Report type, size, mode and mtimeMs of a path.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "follow": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_read",
+    "description": "Read a whole file as base64.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_write",
+    "description": "Write base64 bytes to a file, replacing it or appending.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "base64": {
+          "type": "string"
+        },
+        "append": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "base64"
+      ]
+    }
+  },
+  {
+    "name": "fs_read_range",
+    "description": "Read length bytes from position as base64.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "length": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "position",
+        "length"
+      ]
+    }
+  },
+  {
+    "name": "fs_write_at",
+    "description": "Write base64 bytes at position, or at the end when position is null.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "base64": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "base64"
+      ]
+    }
+  },
+  {
+    "name": "fs_readdir",
+    "description": "List the entries of a directory.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_mkdir",
+    "description": "Create a directory.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_mkdtemp",
+    "description": "Create a unique directory from a path prefix.",
+    "input": {
+      "properties": {
+        "prefix": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prefix"
+      ]
+    }
+  },
+  {
+    "name": "fs_remove",
+    "description": "Remove a file or directory.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        },
+        "force": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_rename",
+    "description": "Rename a path.",
+    "input": {
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    }
+  },
+  {
+    "name": "fs_copy",
+    "description": "Copy a file, or a tree when recursive.",
+    "input": {
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        },
+        "recursive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ]
+    }
+  },
+  {
+    "name": "fs_realpath",
+    "description": "Resolve a path to its canonical absolute form.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_readlink",
+    "description": "Read the target of a symlink.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_symlink",
+    "description": "Create a symlink at path pointing to target.",
+    "input": {
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_link",
+    "description": "Create a hard link at path to existing.",
+    "input": {
+      "properties": {
+        "existing": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "existing",
+        "path"
+      ]
+    }
+  },
+  {
+    "name": "fs_chmod",
+    "description": "Set the mode bits of a path.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "mode"
+      ]
+    }
+  },
+  {
+    "name": "fs_truncate",
+    "description": "Truncate a file to length bytes.",
+    "input": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "length": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "length"
+      ]
+    }
+  },
+  {
+    "name": "run_command",
+    "description": "Run a program without a shell; stdout and stderr come back as base64.",
+    "input": {
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array"
+        },
+        "cwd": {
+          "type": "string"
+        },
+        "env": {
+          "type": "object"
+        },
+        "timeout_ms": {
+          "type": "integer"
+        },
+        "input_base64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ]
+    }
+  },
+  {
+    "name": "random_bytes",
+    "description": "Return n random bytes as base64.",
+    "input": {
+      "properties": {
+        "n": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "n"
+      ]
+    }
+  },
+  {
+    "name": "hash_digest",
+    "description": "Hash base64 bytes with sha1, sha256, sha512 or md5.",
+    "input": {
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "base64": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "algorithm",
+        "base64"
+      ]
+    }
+  }
+]

@@ -1,14 +1,13 @@
 import '@freddie/freddie-runtime/install-node'
 import { Context } from '@freddie/cordis'
 import { FxHostContractError, FxUnsupported, createHostAdapter, hostView, planHost, services } from '../src/index.js'
-import { CAPABILITY_NAMESPACE, TOOL_NAMES, stubHost } from './stub-host.js'
+import { CAPABILITY_NAMES, TOOL_NAMES, stubHost } from './stub-host.js'
 
 const results = []
 const test = (name, run) => results.push({ name, run })
 const check = (condition, message) => { if (!condition) throw new Error(message) }
 const same = (actual, expected, message) => check(JSON.stringify(actual) === JSON.stringify(expected), message + ': got ' + JSON.stringify(actual) + ', expected ' + JSON.stringify(expected))
 const thrown = (run) => { try { run() } catch (error) { return error } }
-const rejected = async (run) => { try { await run() } catch (error) { return error } }
 const settle = () => new Promise((resolve) => setTimeout(resolve, 15))
 
 async function mount(host, table) {
@@ -18,26 +17,28 @@ async function mount(host, table) {
   return { root, fiber }
 }
 
-test('every capability with a service registers, and the two flag capabilities do not', async () => {
+const GAPS = ['agent.core', 'agent.persistence', 'dns', 'net.fetch', 'net.server', 'net.tls', 'net.ws', 'pty', 'sqlite', 'watch', 'loader', 'reload']
+
+test('every row whose capability the host reports registers; the gap rows never do', async () => {
+  const plan = planHost(stubHost())
+  same([...plan.gaps].sort(), [...GAPS].sort(), 'gap rows')
+  same(plan.absent, [], 'no reported capability is absent')
   const { root } = await mount(stubHost())
-  const wanted = Object.values(services).filter((row) => row.service !== null).map((row) => row.service)
-  for (const name of wanted) check(root.get(name) !== undefined, name + ' is not registered')
-  same(wanted.length, 21, 'service count')
-  same(Object.entries(services).filter(([, row]) => row.service === null).map(([id]) => id), ['net.tls', 'net.ws'], 'flag capabilities')
+  for (const id of plan.register) check(root.get(services[id].service) !== undefined, id + ' is not registered')
+  same(plan.register.length, Object.keys(services).length - GAPS.length, 'registered rows')
+  for (const id of GAPS) check(services[id].service === null, id + ' must not name a service')
 })
 
 test('a Proxy forwards calls and reads to the host', async () => {
   const host = stubHost()
   const { root } = await mount(host)
-  same(await root.get('hostFs').exists('/missing'), false, 'fs.exists before write')
-  await root.get('hostFs').writeFile('/a', new Uint8Array([1]))
-  same(await root.get('hostFs').exists('/a'), true, 'fs.exists after write')
+  same(root.get('hostFs').existsSync('/missing'), false, 'fs before write')
+  root.get('hostFs').writeFileSync('/a', new Uint8Array([1]))
+  same(root.get('hostFs').existsSync('/a'), true, 'fs after write')
   same((await root.get('hostFileTools').read_file({ path: 'x' })).text, 'read_file:{"path":"x"}', 'tool result')
-  same((await root.get('hostFetch')('http://x')).url, 'http://x', 'callable fetch')
-  same(typeof root.get('hostAgent')({ name: 'a' }).close, 'function', 'callable agent')
-  same(typeof root.get('hostAgent').hooks.on, 'function', 'agent.hooks')
-  same(await root.get('hostAgentPersistence').sessions.list(), [{ id: 's1' }], 'agent sessions')
-  same(root.get('hostProc').info().platform, 'stub', 'proc.info')
+  same(root.get('hostVerbs').fs_exists({ path: 'p' }).verb, 'fs_exists', 'verb result')
+  same(root.get('hostCrypto').randomBytes(3).length, 3, 'crypto')
+  same(root.get('hostProcess').platform, 'stub', 'process reads')
 })
 
 test('a Proxy refuses what its capability does not cover', async () => {
@@ -45,51 +46,53 @@ test('a Proxy refuses what its capability does not cover', async () => {
   const error = thrown(() => root.get('hostFileTools').Bash)
   check(error instanceof FxUnsupported && error.code === 'ERR_FX_UNSUPPORTED', 'a shell tool through the file service must throw FxUnsupported')
   check(thrown(() => root.get('hostFs').nope) instanceof FxUnsupported, 'a member the host lacks must throw FxUnsupported')
-  same(thrown(() => root.get('hostFs')('x'))?.name, 'TypeError', 'a non-callable namespace must refuse a call')
-  check(thrown(() => { root.get('hostFs').exists = 1 }) instanceof FxUnsupported, 'assignment must be refused')
-  same(thrown(() => root.get('hostAgentPersistence')())?.name, 'TypeError', 'a subset service must not be callable')
+  check(thrown(() => { root.get('hostFs').existsSync = 1 }) instanceof FxUnsupported, 'assignment must be refused')
+  same('Bash' in root.get('hostFileTools'), false, 'has outside the row')
   same(root.get('hostFs').then, undefined, 'await must not see a then member')
 })
 
-test('the tools capabilities partition the tools namespace exactly', async () => {
-  const claimed = Object.values(services).filter((row) => row.namespace === 'tools').flatMap((row) => row.members)
-  same([...claimed].sort(), [...TOOL_NAMES].sort(), 'claimed tool names')
+test('the tool rows claim every tool the host reports, and name the one it leaves out', async () => {
+  const claimed = Object.values(services).filter((row) => row.source === 'tools').flatMap((row) => row.members)
   same(new Set(claimed).size, claimed.length, 'a tool is claimed twice')
+  same(TOOL_NAMES.filter((name) => !claimed.includes(name)), [], 'reported tools no row claims')
+  same(claimed.filter((name) => !TOOL_NAMES.includes(name)), ['AgentSwarm'], 'claimed but unreported')
   const { root } = await mount(stubHost())
-  same(root.get('hostBrowserTools').$list().map((entry) => entry.name), ['Browser'], 'filtered $list')
   same(Object.keys(root.get('hostWebTools')).sort(), ['FetchURL', 'WebSearch'], 'enumerable members')
 })
 
 test('a capability the host does not report is not registered, and a dependent plugin does not run', async () => {
-  const host = stubHost({ omit: ['sqlite', 'watch', 'tools.browser'] })
+  const host = stubHost({ omit: ['fs', 'tools'] })
   const root = new Context()
   const ran = []
-  root.plugin({ name: 'needs-sqlite', inject: ['hostSqlite'], apply: () => { ran.push('sqlite') } })
   root.plugin({ name: 'needs-fs', inject: ['hostFs'], apply: () => { ran.push('fs') } })
+  root.plugin({ name: 'needs-verbs', inject: ['hostVerbs'], apply: () => { ran.push('verbs') } })
   root.plugin(createHostAdapter(host))
   await settle()
-  same(root.get('hostSqlite'), undefined, 'hostSqlite')
-  same(root.get('hostWatch'), undefined, 'hostWatch')
-  same(root.get('hostBrowserTools'), undefined, 'hostBrowserTools')
-  same(ran, ['fs'], 'dependents that ran')
-  same(planHost(host).absent.sort(), ['sqlite', 'tools.browser', 'watch'], 'plan.absent')
+  same(root.get('hostFs'), undefined, 'hostFs')
+  same(root.get('hostFileTools'), undefined, 'hostFileTools')
+  same(ran, ['verbs'], 'dependents that ran')
+  const plan = planHost(host)
+  same(plan.absent.includes('fs') && plan.absent.includes('tools.file') && plan.absent.includes('tools.shell'), true, 'plan.absent names them')
 })
 
 test('an unknown capability is reported and not registered', async () => {
-  const host = stubHost({ extraCapabilities: { 'future.thing': { present: true, since: 2, status: 'planned' } } })
-  same(planHost(host).unknown, ['future.thing'], 'plan.unknown')
+  const host = stubHost({ extraCapabilities: ['future.thing'] })
+  check(planHost(host).unknown.includes('future.thing'), 'plan.unknown names it')
   const { root } = await mount(host)
   same(root.get('hostFutureThing'), undefined, 'no service for an unknown id')
 })
 
-test('the interface version is checked', async () => {
+test('the interface version is checked, and capabilities must be a list', async () => {
   check(thrown(() => planHost(stubHost({ version: { interface: 2 } }))) instanceof FxHostContractError, 'interface 2 must be refused')
   check(thrown(() => planHost({})) instanceof FxHostContractError, 'a host without a version must be refused')
+  const host = stubHost()
+  host.capabilities = {}
+  check(thrown(() => planHost(host)) instanceof FxHostContractError, 'capabilities as an object must be refused')
 })
 
 test('a capability reported present without its namespace is a contract error', async () => {
   const host = stubHost()
-  delete host.crypto
+  delete host.modules.crypto
   const error = thrown(() => planHost(host))
   check(error instanceof FxHostContractError && /crypto/.test(error.message), 'present without a namespace must throw naming it')
 })
@@ -97,12 +100,12 @@ test('a capability reported present without its namespace is a contract error', 
 test('the Proxy reads the host live, so a replaced namespace shows through', async () => {
   const host = stubHost()
   const { root } = await mount(host)
-  const view = root.get('hostDns')
-  same((await view.lookup('a'))[0].address, '127.0.0.1', 'before')
-  host.dns = { lookup: async () => [{ address: '10.0.0.1', family: 4 }] }
-  same((await view.lookup('a'))[0].address, '10.0.0.1', 'after the swap')
-  delete host.dns
-  check((await rejected(() => view.lookup('a'))) instanceof FxUnsupported, 'a removed namespace must refuse')
+  const view = root.get('hostFs')
+  same(view.existsSync('/x'), false, 'before')
+  host.modules.fs = { existsSync: () => true }
+  same(view.existsSync('/x'), true, 'after the swap')
+  delete host.modules.fs
+  check(thrown(() => view.existsSync('/x')) instanceof FxUnsupported, 'a removed namespace must refuse')
 })
 
 test('disposing the adapter removes every service', async () => {
@@ -117,10 +120,16 @@ test('disposing the adapter removes every service', async () => {
 test('the table is consistent with the host shape', async () => {
   const names = Object.values(services).filter((row) => row.service !== null).map((row) => row.service)
   same(new Set(names).size, names.length, 'service names are unique')
-  same(Object.keys(services).sort(), Object.keys(CAPABILITY_NAMESPACE).sort(), 'table ids against the host capability ids')
-  for (const [id, row] of Object.entries(services)) same(row.service === null ? null : row.namespace, CAPABILITY_NAMESPACE[id], id + ' namespace')
+  for (const [id, row] of Object.entries(services)) {
+    if (row.capability === null) {
+      check(typeof row.reason === 'string' && row.reason.length > 0 && row.service === null, id + ' is a gap with a reason and no service')
+    } else {
+      check(CAPABILITY_NAMES.includes(row.capability), id + ' names a capability the host lists')
+      check(row.service !== null, id + ' must name a service')
+    }
+  }
   const view = hostView(stubHost(), 'fs', services.fs)
-  same(Object.keys(view).sort(), Object.keys(stubHost().fs).sort(), 'enumerated members')
+  same(Object.keys(view).sort(), Object.keys(stubHost().modules.fs).sort(), 'enumerated members')
 })
 
 const failed = []

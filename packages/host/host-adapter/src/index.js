@@ -15,18 +15,24 @@ export class FxHostContractError extends Error {
   code = 'ERR_FX_HOST_CONTRACT'
 }
 
+export function namespaceOf(host, row) {
+  if (row.source === 'tools') return host.tools
+  if (row.source === 'verbs') return host.verbs
+  if (row.source === 'modules') return host.modules?.[row.key]
+  return undefined
+}
+
 export function hostView(host, id, row) {
   const namespace = () => {
-    const found = host[row.namespace]
+    const found = namespaceOf(host, row)
     if (found === undefined) throw new FxUnsupported(id)
     return found
   }
   const allowed = row.members === null ? null : new Set(row.members)
   const permitted = (key) => allowed === null || allowed.has(key)
-  return new Proxy(row.callable ? function hostNamespace() {} : {}, {
+  return new Proxy({}, {
     get(_, key) {
       if (typeof key === 'symbol' || key === 'then') return undefined
-      if (key === '$list' && row.namespace === 'tools') return () => namespace().$list().filter((entry) => allowed.has(entry.name))
       if (!permitted(key)) throw new FxUnsupported(id + '.' + key)
       const target = namespace()
       const value = target[key]
@@ -36,7 +42,6 @@ export function hostView(host, id, row) {
     has: (_, key) => permitted(key) && key in namespace(),
     ownKeys: () => (allowed === null ? Reflect.ownKeys(namespace()) : [...allowed].filter((key) => key in namespace())),
     getOwnPropertyDescriptor: (_, key) => (permitted(key) && key in namespace() ? { enumerable: true, configurable: true } : undefined),
-    apply: (_, receiver, args) => namespace()(...args),
     set() {
       throw new FxUnsupported(id + ' assignment')
     },
@@ -45,18 +50,20 @@ export function hostView(host, id, row) {
 
 export function planHost(host, table = services) {
   if (host?.version?.interface !== 1) throw new FxHostContractError('fx:host interface 1 is required, found ' + String(host?.version?.interface))
-  const capabilities = host.capabilities ?? {}
+  if (!Array.isArray(host.capabilities)) throw new FxHostContractError('fx:host must list its capabilities as an array')
+  const reported = new Set(host.capabilities)
   const register = []
-  const flags = []
+  const gaps = []
   const absent = []
   for (const [id, row] of Object.entries(table)) {
-    if (capabilities[id]?.present !== true) absent.push(id)
-    else if (row.service === null) flags.push(id)
-    else if (host[row.namespace] === undefined) throw new FxHostContractError(id + ' is reported present but the host has no ' + row.namespace + ' namespace')
+    if (row.capability === null) gaps.push(id)
+    else if (!reported.has(row.capability)) absent.push(id)
+    else if (namespaceOf(host, row) === undefined) throw new FxHostContractError(id + ' is reported present but the host has no ' + (row.key ?? row.source) + ' namespace')
     else register.push(id)
   }
-  const unknown = Object.keys(capabilities).filter((id) => !(id in table))
-  return Object.freeze({ register, flags, absent, unknown })
+  const named = new Set(Object.values(table).map((row) => row.capability))
+  const unknown = [...reported].filter((capability) => !named.has(capability))
+  return Object.freeze({ register, gaps, absent, unknown })
 }
 
 export function createHostAdapter(host, table = services) {
