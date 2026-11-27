@@ -23,11 +23,12 @@ export const VERB_NAMES = [
 ]
 
 export const MODULE_NAMES = [
-  'agent', 'child_process', 'crypto', 'dns/promises', 'fetch', 'fs',
-  'fs/promises',
-  'loader', 'net', 'os', 'path', 'process', 'pty',
-  'serve', 'sqlite', 'string_decoder', 'timers/promises', 'url', 'util',
-  'util/types', 'ws',
+  'agent', 'async_hooks', 'buffer', 'child_process', 'crypto', 'dns/promises',
+  'fetch', 'fs', 'fs/promises', 'http', 'https', 'inspector',
+  'loader', 'module', 'net', 'os', 'path', 'perf_hooks',
+  'process', 'pty', 'serve', 'sqlite', 'stream', 'string_decoder',
+  'timers/promises', 'url', 'util', 'util/types', 'vm', 'worker_threads',
+  'ws', 'zlib',
 ]
 
 export const CAPABILITY_NAMES = ['tools', 'verbs', ...MODULE_NAMES]
@@ -39,7 +40,11 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
   const tools = Object.fromEntries(TOOL_NAMES.map((name) => [name, async (args) => ({ ok: true, text: name + ':' + JSON.stringify(args ?? {}), images: [] })]))
   const verbs = Object.fromEntries(VERB_NAMES.map((name) => [name, (args) => ({ ok: true, verb: name, args: args ?? null })]))
   const modules = Object.fromEntries(MODULE_NAMES.map((name) => [name, {}]))
-  modules.agent = { core: (options) => ({ name: options?.name ?? 'stub', close: async () => {} }) }
+  const records = new Map()
+  modules.agent = {
+    core: { name: 'stub', interface: 1, turn: (prompt) => String(prompt) },
+    persistence: { write: (key, value) => { records.set(key, JSON.stringify(value)) }, read: (key) => (records.has(key) ? JSON.parse(records.get(key)) : undefined) },
+  }
   modules.fetch = { fetch: async (url) => ({ ok: true, url: String(url) }) }
   modules.fs = {
     existsSync: (path) => files.has(path),
@@ -53,6 +58,7 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
   modules.pty = { spawn: () => ({ pid: 1 }) }
   modules.sqlite = { open: () => ({ close() {} }) }
   modules['dns/promises'] = { lookup: async (hostname) => ({ address: '127.0.0.1', family: 4, hostname }) }
+  for (const name of ['async_hooks', 'buffer', 'http', 'https', 'inspector', 'module', 'perf_hooks', 'stream', 'vm', 'worker_threads', 'zlib']) modules[name] = {}
   modules.ws = { connect: () => ({ send() {}, recv: () => '', close() {} }) }
   modules.loader = { reload: async (path) => ({ path: String(path) }) }
   return {

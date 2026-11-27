@@ -17,7 +17,7 @@ async function mount(host, table) {
   return { root, fiber }
 }
 
-const GAPS = ['agent.core', 'agent.persistence', 'net.tls']
+const GAPS = ['net.tls']
 
 test('every row whose capability the host reports registers; the gap rows never do', async () => {
   const plan = planHost(stubHost())
@@ -76,6 +76,14 @@ test('the loader view reloads through the host', async () => {
   const { root } = await mount(stubHost())
   same((await root.get('hostLoader').reload('/a.mjs')).path, '/a.mjs', 'reload')
   check(thrown(() => root.get('hostLoader').load) instanceof FxUnsupported, 'loader must not expose members outside reload')
+})
+
+test('the agent views turn and persist through the host', async () => {
+  const { root } = await mount(stubHost())
+  same(root.get('hostAgent').core.turn('hello'), 'hello', 'turn returns the prompt')
+  root.get('hostAgentPersistence').persistence.write('k', { a: 1 })
+  same(root.get('hostAgentPersistence').persistence.read('k'), { a: 1 }, 'persistence round trip')
+  check(thrown(() => root.get('hostAgent').spawn) instanceof FxUnsupported, 'agent must not expose members outside core')
 })
 
 test('the tool rows claim every tool the host reports, and name the one it leaves out', async () => {
