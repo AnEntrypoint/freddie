@@ -17,7 +17,7 @@ async function mount(host, table) {
   return { root, fiber }
 }
 
-const GAPS = ['agent.core', 'agent.persistence', 'net.fetch', 'net.tls', 'net.ws', 'loader', 'reload']
+const GAPS = ['agent.core', 'agent.persistence', 'net.tls', 'loader', 'reload']
 
 test('every row whose capability the host reports registers; the gap rows never do', async () => {
   const plan = planHost(stubHost())
@@ -61,6 +61,15 @@ test('the serve, pty, sqlite, dns and watch views forward to the host and refuse
   same(typeof root.get('hostWatch').watch, 'function', 'watch.watch')
   check(thrown(() => root.get('hostWatch').existsSync) instanceof FxUnsupported, 'watch must not expose fs members outside its row')
   check(thrown(() => root.get('hostDns').exec) instanceof FxUnsupported, 'dns must not expose members outside its row')
+})
+
+test('the net.ws view connects, sends, reads and closes through the host', async () => {
+  const { root } = await mount(stubHost())
+  const socket = root.get('hostWs').connect('127.0.0.1', 1, '/')
+  same(typeof socket.send, 'function', 'send')
+  same(typeof socket.recv, 'function', 'recv')
+  same(typeof socket.close, 'function', 'close')
+  check(thrown(() => root.get('hostWs').listen) instanceof FxUnsupported, 'ws must not expose members outside connect')
 })
 
 test('the tool rows claim every tool the host reports, and name the one it leaves out', async () => {

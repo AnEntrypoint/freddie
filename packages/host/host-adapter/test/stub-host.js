@@ -18,14 +18,15 @@ export const VERB_NAMES = [
   'proc_wait', 'proc_write', 'process_info', 'pty_read', 'pty_spawn',
   'pty_wait', 'pty_write', 'random_bytes', 'run_command', 'serve_accept',
   'serve_listen', 'serve_respond', 'sqlite_all', 'sqlite_close', 'sqlite_exec',
-  'sqlite_open', 'watch_close', 'watch_poll', 'watch_start', 'ws_recv',
-  'ws_send',
+  'sqlite_open', 'watch_close', 'watch_poll', 'watch_start', 'ws_close',
+  'ws_connect', 'ws_recv', 'ws_send',
 ]
 
 export const MODULE_NAMES = [
-  'child_process', 'crypto', 'dns/promises', 'fs', 'fs/promises', 'net',
-  'os', 'path', 'process', 'pty', 'serve', 'sqlite',
-  'string_decoder', 'timers/promises', 'url', 'util', 'util/types',
+  'agent', 'child_process', 'crypto', 'dns/promises', 'fetch', 'fs',
+  'fs/promises', 'net', 'os', 'path', 'process', 'pty',
+  'serve', 'sqlite', 'string_decoder', 'timers/promises', 'url', 'util',
+  'util/types', 'ws',
 ]
 
 export const CAPABILITY_NAMES = ['tools', 'verbs', ...MODULE_NAMES]
@@ -37,6 +38,8 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
   const tools = Object.fromEntries(TOOL_NAMES.map((name) => [name, async (args) => ({ ok: true, text: name + ':' + JSON.stringify(args ?? {}), images: [] })]))
   const verbs = Object.fromEntries(VERB_NAMES.map((name) => [name, (args) => ({ ok: true, verb: name, args: args ?? null })]))
   const modules = Object.fromEntries(MODULE_NAMES.map((name) => [name, {}]))
+  modules.agent = { core: (options) => ({ name: options?.name ?? 'stub', close: async () => {} }) }
+  modules.fetch = { fetch: async (url) => ({ ok: true, url: String(url) }) }
   modules.fs = {
     existsSync: (path) => files.has(path),
     readFileSync: (path) => files.get(path),
@@ -49,6 +52,7 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
   modules.pty = { spawn: () => ({ pid: 1 }) }
   modules.sqlite = { open: () => ({ close() {} }) }
   modules['dns/promises'] = { lookup: async (hostname) => ({ address: '127.0.0.1', family: 4, hostname }) }
+  modules.ws = { connect: () => ({ send() {}, recv: () => '', close() {} }) }
   return {
     version,
     capabilities: [...CAPABILITY_NAMES.filter((name) => !omit.includes(name)), ...extraCapabilities],

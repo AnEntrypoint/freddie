@@ -6,10 +6,6 @@ export const UNREPORTED_TOOLS = Object.freeze({
   AgentSwarm: 'model_visible false in fx tools.zig; the host catalog leaves it out (docs/host-interface.md section 2)',
 })
 
-export const UNREPORTED_VERBS = Object.freeze({
-  net_fetch: 'backs the global fetch that fx installs in its runtime; fx:host does not list a fetch capability yet (host-interface section 3, net.fetch)',
-})
-
 export const VERB_BACKS = Object.freeze({
   process_info: 'process',
   fs_exists: 'fs', fs_stat: 'fs', fs_read: 'fs', fs_write: 'fs', fs_read_range: 'fs', fs_write_at: 'fs',
@@ -23,8 +19,8 @@ export const VERB_BACKS = Object.freeze({
   dns_lookup: 'dns/promises',
   pty_spawn: 'pty', pty_write: 'pty', pty_read: 'pty', pty_wait: 'pty',
   sqlite_open: 'sqlite', sqlite_exec: 'sqlite', sqlite_all: 'sqlite', sqlite_close: 'sqlite',
-  serve_listen: 'serve', serve_accept: 'serve', serve_respond: 'serve', ws_send: 'serve', ws_recv: 'serve',
-  net_fetch: null,
+  serve_listen: 'serve', serve_accept: 'serve', serve_respond: 'serve', ws_send: 'serve', ws_recv: 'serve', ws_connect: 'ws', ws_close: 'ws',
+  net_fetch: 'fetch',
 })
 
 export default Object.freeze({
@@ -53,9 +49,9 @@ export default Object.freeze({
   'net.server': fromModule('hostServe', 'serve', ['serve']),
   'agent.core': gap('fx:host has no agent namespace; the agent runs as run_code and the tools (host-interface section 3.3, planned)'),
   'agent.persistence': gap('fx:host has no agent namespace; sessions reach the host through run_code and the tools (host-interface section 3.3, planned)'),
-  'net.fetch': gap('fetch is the global fx installs (verb net_fetch); fx:host has no fetch capability yet (host-interface section 3, net.fetch)'),
+  'net.fetch': fromModule('hostFetch', 'fetch', ['fetch']),
   'net.tls': gap('TLS for serve and fetch is planned: serve has no cert option (host-interface section 3, net.tls)'),
-  'net.ws': gap('the websocket server is reached through serve, and the websocket client is planned (host-interface section 3, net.ws)'),
+  'net.ws': fromModule('hostWs', 'ws', ['connect']),
   loader: gap('the loader and reload protocol are not built (fx stage 3)'),
   reload: gap('the reload protocol is not built (fx stage 3)'),
 })

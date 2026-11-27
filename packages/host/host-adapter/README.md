@@ -19,7 +19,7 @@ Checked against the live `fx run-code` host (`scripts/fx-live-check.mjs`): `vers
 
 ## Rows over fx's Stage 2 host
 
-The table registers 18 of its 25 rows on the live host. The serve, pty, sqlite, dns and watch rows are the ones fx's Stage 2 added: `net.server` reads `serve.serve` (it listens, returns a port and an `accept`; fx has no close yet), `pty` reads `pty.spawn`, `sqlite` reads `sqlite.open`, `dns` reads `dns/promises` with `lookup` and `resolve`, and `watch` reads `fs.watch` only, since fx exposes watch as a member of fs. Gaps that remain: `net.fetch` (fetch is a global, with no capability), `net.tls` (no cert option on serve), `net.ws` (the websocket server is reached through serve, and the client is planned), and the agent, loader and reload rows.
+The table registers 18 of its 25 rows on the live host. The serve, pty, sqlite, dns and watch rows are the ones fx's Stage 2 added: `net.server` reads `serve.serve` (it listens, returns a port and an `accept`; fx has no close yet), `pty` reads `pty.spawn`, `sqlite` reads `sqlite.open`, `dns` reads `dns/promises` with `lookup` and `resolve`, and `watch` reads `fs.watch` only, since fx exposes watch as a member of fs. Gaps that remain: `net.tls` (no cert option on serve), the agent rows (`agent.core` and `agent.persistence`, the second still open in fx), and the loader and reload rows. `net.fetch` reads the `fetch` module, and `net.ws` reads the `ws` module's `connect`, which returns send, recv and close.
 
 ## What the adapter does
 
@@ -30,6 +30,7 @@ The table registers 18 of its 25 rows on the live host. The serve, pty, sqlite, 
 
 ## Tests
 
-- `node test/adapter.js`: twelve cases in plain Node against `test/stub-host.js`, which has the live host's shape.
+- `node test/adapter.js`: thirteen cases in plain Node against `test/stub-host.js`, which has the live host's shape.
 - `node test/fx-table.js`: the tool rows against `test/fixtures/fx-tool-names.json` and the verb map against `test/fixtures/fx-host-verbs.json`, both the tool names are snapshotted from fx's published docs by `scripts/snapshot-fx.mjs`; the verb names are the live binary's (fx's published verb table lists 22 and the host has 46, so the docs are behind).
-- `fx run-code --file scripts/fx-live-check.mjs` (run in the fx checkout's binary): the real host's shape against the stub, and the plan the adapter makes for it. It throws if any check fails.
+- `fx js scripts/fx-live-check.mjs`: the real host's shape against the stub, the plan the adapter makes for it, and serve listening on the host. It throws if any check fails.
+- `sh scripts/fx-ws-check.sh <fx binary>`: a websocket echo across two `fx js` processes. The server is `scripts/ws-echo-server.mjs` (serve through the adapter, accept, echo one frame on port 47361); the client is `scripts/ws-echo-client.mjs` (net.ws through the adapter: connect, send, read the echo, close).

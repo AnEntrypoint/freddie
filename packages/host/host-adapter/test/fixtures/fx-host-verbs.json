@@ -43,6 +43,8 @@
   "watch_close",
   "watch_poll",
   "watch_start",
+  "ws_close",
+  "ws_connect",
   "ws_recv",
   "ws_send"
 ]
