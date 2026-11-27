@@ -17,7 +17,7 @@ async function mount(host, table) {
   return { root, fiber }
 }
 
-const GAPS = ['agent.core', 'agent.persistence', 'net.tls', 'loader', 'reload']
+const GAPS = ['agent.core', 'agent.persistence', 'net.tls']
 
 test('every row whose capability the host reports registers; the gap rows never do', async () => {
   const plan = planHost(stubHost())
@@ -70,6 +70,12 @@ test('the net.ws view connects, sends, reads and closes through the host', async
   same(typeof socket.recv, 'function', 'recv')
   same(typeof socket.close, 'function', 'close')
   check(thrown(() => root.get('hostWs').listen) instanceof FxUnsupported, 'ws must not expose members outside connect')
+})
+
+test('the loader view reloads through the host', async () => {
+  const { root } = await mount(stubHost())
+  same((await root.get('hostLoader').reload('/a.mjs')).path, '/a.mjs', 'reload')
+  check(thrown(() => root.get('hostLoader').load) instanceof FxUnsupported, 'loader must not expose members outside reload')
 })
 
 test('the tool rows claim every tool the host reports, and name the one it leaves out', async () => {

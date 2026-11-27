@@ -24,7 +24,8 @@ export const VERB_NAMES = [
 
 export const MODULE_NAMES = [
   'agent', 'child_process', 'crypto', 'dns/promises', 'fetch', 'fs',
-  'fs/promises', 'net', 'os', 'path', 'process', 'pty',
+  'fs/promises',
+  'loader', 'net', 'os', 'path', 'process', 'pty',
   'serve', 'sqlite', 'string_decoder', 'timers/promises', 'url', 'util',
   'util/types', 'ws',
 ]
@@ -53,6 +54,7 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
   modules.sqlite = { open: () => ({ close() {} }) }
   modules['dns/promises'] = { lookup: async (hostname) => ({ address: '127.0.0.1', family: 4, hostname }) }
   modules.ws = { connect: () => ({ send() {}, recv: () => '', close() {} }) }
+  modules.loader = { reload: async (path) => ({ path: String(path) }) }
   return {
     version,
     capabilities: [...CAPABILITY_NAMES.filter((name) => !omit.includes(name)), ...extraCapabilities],

@@ -52,6 +52,5 @@ export default Object.freeze({
   'net.fetch': fromModule('hostFetch', 'fetch', ['fetch']),
   'net.tls': gap('TLS for serve and fetch is planned: serve has no cert option (host-interface section 3, net.tls)'),
   'net.ws': fromModule('hostWs', 'ws', ['connect']),
-  loader: gap('the loader and reload protocol are not built (fx stage 3)'),
-  reload: gap('the reload protocol is not built (fx stage 3)'),
+  loader: fromModule('hostLoader', 'loader', ['reload']),
 })
