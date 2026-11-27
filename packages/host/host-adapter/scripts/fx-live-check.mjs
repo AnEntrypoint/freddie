@@ -18,6 +18,7 @@ const checks = [
   ['unknown matches the model', same(live.unknown, modeled.unknown)],
   ['fs view reads the live module', typeof hostView(host, 'fs', services.fs).readFileSync === 'function'],
   ['tool view names the live tool', typeof hostView(host, 'hostWebTools', services['tools.web']).FetchURL === 'function'],
+  ['serve view listens and accepts', (() => { const server = hostView(host, 'net.server', services['net.server']).serve({ port: 0, fetch: () => new Response('ok') }); return server.port > 0 && typeof server.accept === 'function' })()],
 ]
 for (const [name, ok] of checks) console.log((ok ? 'ok   ' : 'FAIL ') + name)
 if (checks.some(([, ok]) => !ok)) throw new Error('fx live check failed')

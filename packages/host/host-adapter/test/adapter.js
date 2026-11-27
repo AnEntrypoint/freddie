@@ -17,7 +17,7 @@ async function mount(host, table) {
   return { root, fiber }
 }
 
-const GAPS = ['agent.core', 'agent.persistence', 'dns', 'net.fetch', 'net.server', 'net.tls', 'net.ws', 'pty', 'sqlite', 'watch', 'loader', 'reload']
+const GAPS = ['agent.core', 'agent.persistence', 'net.fetch', 'net.tls', 'net.ws', 'loader', 'reload']
 
 test('every row whose capability the host reports registers; the gap rows never do', async () => {
   const plan = planHost(stubHost())
@@ -49,6 +49,18 @@ test('a Proxy refuses what its capability does not cover', async () => {
   check(thrown(() => { root.get('hostFs').existsSync = 1 }) instanceof FxUnsupported, 'assignment must be refused')
   same('Bash' in root.get('hostFileTools'), false, 'has outside the row')
   same(root.get('hostFs').then, undefined, 'await must not see a then member')
+})
+
+test('the serve, pty, sqlite, dns and watch views forward to the host and refuse the rest', async () => {
+  const host = stubHost()
+  const { root } = await mount(host)
+  same(root.get('hostServe').serve({ port: 0 }).port, 0, 'serve')
+  same(typeof root.get('hostPty').spawn, 'function', 'pty.spawn')
+  same(typeof root.get('hostSqlite').open, 'function', 'sqlite.open')
+  same((await root.get('hostDns').lookup('a')).address, '127.0.0.1', 'dns.lookup')
+  same(typeof root.get('hostWatch').watch, 'function', 'watch.watch')
+  check(thrown(() => root.get('hostWatch').existsSync) instanceof FxUnsupported, 'watch must not expose fs members outside its row')
+  check(thrown(() => root.get('hostDns').exec) instanceof FxUnsupported, 'dns must not expose members outside its row')
 })
 
 test('the tool rows claim every tool the host reports, and name the one it leaves out', async () => {

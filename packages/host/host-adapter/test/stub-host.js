@@ -10,13 +10,22 @@ export const TOOL_NAMES = [
 ]
 
 export const VERB_NAMES = [
-  'process_info', 'fs_exists', 'fs_stat', 'fs_read', 'fs_write', 'fs_read_range', 'fs_write_at', 'fs_readdir', 'fs_mkdir', 'fs_mkdtemp',
-  'fs_remove', 'fs_rename', 'fs_copy', 'fs_realpath', 'fs_readlink', 'fs_symlink', 'fs_link', 'fs_chmod', 'fs_truncate', 'run_command',
-  'random_bytes', 'hash_digest',
+  'dns_lookup', 'fs_chmod', 'fs_copy', 'fs_exists', 'fs_link',
+  'fs_mkdir', 'fs_mkdtemp', 'fs_read', 'fs_read_range', 'fs_readdir',
+  'fs_readlink', 'fs_realpath', 'fs_remove', 'fs_rename', 'fs_stat',
+  'fs_symlink', 'fs_truncate', 'fs_write', 'fs_write_at', 'hash_digest',
+  'net_fetch', 'proc_close_stdin', 'proc_kill', 'proc_read', 'proc_spawn',
+  'proc_wait', 'proc_write', 'process_info', 'pty_read', 'pty_spawn',
+  'pty_wait', 'pty_write', 'random_bytes', 'run_command', 'serve_accept',
+  'serve_listen', 'serve_respond', 'sqlite_all', 'sqlite_close', 'sqlite_exec',
+  'sqlite_open', 'watch_close', 'watch_poll', 'watch_start', 'ws_recv',
+  'ws_send',
 ]
 
 export const MODULE_NAMES = [
-  'child_process', 'crypto', 'fs', 'fs/promises', 'net', 'os', 'path', 'process', 'string_decoder', 'timers/promises', 'url', 'util', 'util/types',
+  'child_process', 'crypto', 'dns/promises', 'fs', 'fs/promises', 'net',
+  'os', 'path', 'process', 'pty', 'serve', 'sqlite',
+  'string_decoder', 'timers/promises', 'url', 'util', 'util/types',
 ]
 
 export const CAPABILITY_NAMES = ['tools', 'verbs', ...MODULE_NAMES]
@@ -32,9 +41,14 @@ export function stubHost({ omit = [], extraCapabilities = [], version = VERSION 
     existsSync: (path) => files.has(path),
     readFileSync: (path) => files.get(path),
     writeFileSync: (path, data) => { files.set(path, data) },
+    watch: () => ({ close() {} }),
   }
   modules.crypto = { randomBytes: (n) => new Uint8Array(n) }
   modules.process = { platform: 'stub', env: {} }
+  modules.serve = { serve: (options) => ({ port: options?.port ?? 0, accept: () => ({ method: 'GET', path: '/', upgrade: false, body: '', respond() {}, websocket: { send() {}, recv: () => '' } }) }) }
+  modules.pty = { spawn: () => ({ pid: 1 }) }
+  modules.sqlite = { open: () => ({ close() {} }) }
+  modules['dns/promises'] = { lookup: async (hostname) => ({ address: '127.0.0.1', family: 4, hostname }) }
   return {
     version,
     capabilities: [...CAPABILITY_NAMES.filter((name) => !omit.includes(name)), ...extraCapabilities],

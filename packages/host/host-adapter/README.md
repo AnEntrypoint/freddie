@@ -17,6 +17,10 @@ Checked against the live `fx run-code` host (`scripts/fx-live-check.mjs`): `vers
 
 `src/services.js` is the one table. Each row is keyed by a spec id and gives the Cordis service, the `capability` the host lists it under (`null` for a gap), the `source` it reads (`tools`, `verbs` or `modules`), the `key` inside `modules`, the `members` it exposes (`null` means all), and a `reason` for a gap. The `tools.*` rows partition the tools, so each tool belongs to one service. `UNREPORTED_TOOLS` names the one published tool the host leaves out. `VERB_BACKS` says which capability each host verb serves.
 
+## Rows over fx's Stage 2 host
+
+The table registers 18 of its 25 rows on the live host. The serve, pty, sqlite, dns and watch rows are the ones fx's Stage 2 added: `net.server` reads `serve.serve` (it listens, returns a port and an `accept`; fx has no close yet), `pty` reads `pty.spawn`, `sqlite` reads `sqlite.open`, `dns` reads `dns/promises` with `lookup` and `resolve`, and `watch` reads `fs.watch` only, since fx exposes watch as a member of fs. Gaps that remain: `net.fetch` (fetch is a global, with no capability), `net.tls` (no cert option on serve), `net.ws` (the websocket server is reached through serve, and the client is planned), and the agent, loader and reload rows.
+
 ## What the adapter does
 
 - `planHost(host)` is pure. It requires `version.interface === 1` and a `capabilities` list, and sorts the table into `register` (the host reports the capability), `gaps` (the row is a gap), `absent` (the host does not report it) and `unknown` (a capability the table does not name; reported, never registered). A reported capability whose namespace is missing throws `FxHostContractError`.
@@ -26,6 +30,6 @@ Checked against the live `fx run-code` host (`scripts/fx-live-check.mjs`): `vers
 
 ## Tests
 
-- `node test/adapter.js`: eleven cases in plain Node against `test/stub-host.js`, which has the live host's shape.
-- `node test/fx-table.js`: the tool rows against `test/fixtures/fx-tool-names.json` and the verb map against `test/fixtures/fx-host-verbs.json`, both snapshotted from fx's published docs by `scripts/snapshot-fx.mjs`.
+- `node test/adapter.js`: twelve cases in plain Node against `test/stub-host.js`, which has the live host's shape.
+- `node test/fx-table.js`: the tool rows against `test/fixtures/fx-tool-names.json` and the verb map against `test/fixtures/fx-host-verbs.json`, both the tool names are snapshotted from fx's published docs by `scripts/snapshot-fx.mjs`; the verb names are the live binary's (fx's published verb table lists 22 and the host has 46, so the docs are behind).
 - `fx run-code --file scripts/fx-live-check.mjs` (run in the fx checkout's binary): the real host's shape against the stub, and the plan the adapter makes for it. It throws if any check fails.
