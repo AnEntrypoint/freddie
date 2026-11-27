@@ -3184,3 +3184,24 @@ export async function runParity(label, withGaps) {
   if (mismatches.length > 0 || unexpectedGaps.length > 0) throw new Error(label + ' parity failed: ' + JSON.stringify({ mismatches, unexpectedGaps }))
   return summary
 }
+
+export async function runParityPart(label, from, to, perCaseMs = 20000) {
+  const started = performance.now()
+  const cases = sharedCases.slice(from, to)
+  const failures = []
+  let pass = 0
+  for (const { name, run, expected } of cases) {
+    let timer
+    const outcome = await Promise.race([
+      outcomeOf(run),
+      new Promise((resolve) => { timer = setTimeout(() => resolve({ thrown: 'case timed out after ' + perCaseMs + ' ms' }), perCaseMs) }),
+    ]).finally(() => clearTimeout(timer))
+    const got = outcome.thrown === undefined ? outcome.value : 'threw: ' + outcome.thrown
+    if (JSON.stringify(canon(got)) === JSON.stringify(canon(expected))) pass += 1
+    else failures.push({ name, got, expected })
+  }
+  const elapsedMs = Math.round(performance.now() - started)
+  console.log(label + ' part ' + from + '-' + to + ': pass ' + pass + ' fail ' + failures.length + ' of ' + cases.length + ' in ' + elapsedMs + ' ms')
+  for (const failure of failures) console.log('FAIL ' + failure.name)
+  return { label, from, to, cases: cases.length, pass, fail: failures.length, elapsedMs, failures }
+}
