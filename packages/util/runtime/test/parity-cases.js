@@ -3185,7 +3185,7 @@ export async function runParity(label, withGaps) {
   return summary
 }
 
-export async function runParityPart(label, from, to, perCaseMs = 20000) {
+export async function runParityPart(label, from, to, perCaseMs = 20000, namesPath = undefined) {
   const started = performance.now()
   const cases = sharedCases.slice(from, to)
   const failures = []
@@ -3201,7 +3201,7 @@ export async function runParityPart(label, from, to, perCaseMs = 20000) {
     else failures.push({ name, got, expected })
   }
   const elapsedMs = Math.round(performance.now() - started)
+  if (namesPath !== undefined) s.fs.writeFileSync(namesPath, failures.map((failure) => failure.name + '\n').join(''))
   console.log(label + ' part ' + from + '-' + to + ': pass ' + pass + ' fail ' + failures.length + ' of ' + cases.length + ' in ' + elapsedMs + ' ms')
-  for (const failure of failures) console.log('FAIL ' + failure.name)
   return { label, from, to, cases: cases.length, pass, fail: failures.length, elapsedMs, failures }
 }
