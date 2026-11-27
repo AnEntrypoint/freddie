@@ -68,3 +68,10 @@ Decision for the owner: whether the tooling keeps its exemption for node: import
 - fx:host is unchanged in its rows: 13 provided, 12 gaps (src/core/runcode/host_module.zig). The capability list is still the 15-name list the adapter reads. fetch is now a global in fx's runtime (e23eadd1, 93859694), not an fx:host row, so the adapter's net.fetch gap stays.
 - Still waiting on fx: the rows for proc.spawn streams, fetch streaming, serve and WebSocket, watch, dns, pty and sqlite; the 12 gap modules that the runtime imports; the loader (stage 3); the server and the Anthropic endpoint.
 - Nothing in the freddie queue is reachable without those rows, and the adapter's table-driven shape and tool rows over the verb table are already in place (rank 6 item 1 and the adapter entry).
+
+## Update 2026-11-27 (fx at 038775c9, Stage 2 on origin)
+
+- The fx:host rows the adapter waited on are in the binary built at 16:15 from origin (host.modules now also has serve, pty, sqlite and dns/promises; fs.watch is a member of fs; 46 host verbs, 47 tools). The adapter's table now registers 18 of 25 rows (was 13 of 25). Gaps left: net.fetch, net.tls, net.ws, the agent rows, loader and reload.
+- Witnesses: fx-live-check (11 original checks plus serve listening and accepting, all ok, `fx run-code` against the 16:15 binary); adapter tests 12 of 12; fixture check 46 verbs and 48 tool names; red checks (net.server turned into a gap, watch verb removed) both fail and restore byte-identical.
+- fx's published verb table (docs/verb-table.md at origin) still lists 22 verbs; the binary has 46. The verb fixture is taken from the binary.
+- The serve row exposes no close: fx's serve returns { port, accept } (its own gap: no keep-alive). The pty row exposes only spawn (no resize or kill, fx's known gap). The loader-dependent rows stay queued.
