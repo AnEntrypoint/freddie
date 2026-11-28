@@ -269,6 +269,8 @@ export class ReactLoopAgent {
     const { turn, step, abort: { signal } } = this.phase
     signal.throwIfAborted()
     const system = renderPrompt(assembly)
+    const engine = this.loopCtx.get('agentEngine')
+    if (engine !== undefined) return this.stepWithEngine(engine, assembly, system)
 
     while (true) {
       const { request, preparedCall } = await this.buildRequest(
@@ -351,6 +353,29 @@ export class ReactLoopAgent {
       )
       return concluded ? { kind: 'completed' } : null
     }
+  }
+
+  async stepWithEngine(engine, assembly, system) {
+    const { turn, step, abort: { signal } } = this.phase
+    const { request } = await this.buildRequest(turn, step, assembly.tools, system, this.session.deriveMessages(), signal)
+    return engine.step({
+      request,
+      turn,
+      step,
+      signal,
+      session: this.session,
+      runToolCall: (block, callSignal) => this.runEngineToolCall(turn, step, block, callSignal),
+    })
+  }
+
+  async runEngineToolCall(turn, step, block, signal) {
+    const { concluded } = await executeToolCalls(
+      this.loopCtx, turn, step, [block], signal,
+      context => this.inbox.splice('next-step', this.inbox.nextStep.length, 0, [context]),
+    )
+    const result = this.session.events.findLast(event => event.type === 'tool/result' && event.data.message.content[0].toolCallId === block.id)
+    const part = result.data.message.content[0]
+    return { content: part.content, isError: part.isError === true, concluded }
   }
 
   async buildRequest(

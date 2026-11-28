@@ -3649,6 +3649,31 @@ importers:
         specifier: '*'
         version: link:../../settings/settings
 
+  packages/core/agent-fx:
+    dependencies:
+      '@freddie/schemastery':
+        specifier: link:../../../framework/schemastery
+        version: link:../../../framework/schemastery
+    devDependencies:
+      '@freddie/cordis':
+        specifier: '*'
+        version: link:../../../framework/cordis
+      '@freddie/freddie-agent-loop':
+        specifier: '*'
+        version: link:../agent-loop
+      '@freddie/freddie-credentials':
+        specifier: '*'
+        version: link:../../credentials/credentials
+      '@freddie/freddie-llm':
+        specifier: '*'
+        version: link:../../llm/llm
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
+      '@freddie/freddie-session':
+        specifier: '*'
+        version: link:../session
+
   packages/core/agent-loop:
     dependencies:
       '@freddie/freddie-runtime':

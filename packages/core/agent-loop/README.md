@@ -45,6 +45,10 @@ interface Config {
 
 Configured agents start automatically. A model call requires both `provider` and `model`; `agent/request` may supply a missing pair before dispatch. An optional positive `maxTokens` seeds each conversation request's output cap and is logged in its request header. `maxParallelToolCalls` bounds every agent's rolling pool for parallel-safe calls and defaults to `10`; it is also the whole of the `agent-loop` Settings section, so a user layer over this entry caps the next tool group without a restart, and a value that is not a positive integer is refused at the write rather than at that group. `agents` is deliberately absent from that section — it is consumed once when the service starts, so a stored change could only look like it had an effect. `cwd` applies only to fresh sessions, while `resumeSessionId` retains persisted metadata. Configured agents use the deployment persona, and programmatic setup can shadow it per agent. This plugin supplies the per-agent `provider`, `model`, and `cwd` prompt variables; harness identity and deployment persona belong to `freddie-system-prompt`.
 
+### Agent engine seam
+
+When a service named `agentEngine` exists, `step` builds and logs the request as usual and hands the step to `agentEngine.step({ request, turn, step, signal, session, runToolCall })` instead of streaming from `ctx.llm`. `runToolCall(block, signal)` runs one tool call through the loop's own pipeline and returns `{ content, isError, concluded }`. No plugin provides it by default, so the native loop is the default; [`@freddie/freddie-agent-fx`](../agent-fx/README.md) provides it over `fx:host/agent`.
+
 ### Internal concrete driver
 
 The concrete `ReactLoopAgent`, its inbox, and run controls are package-internal. The package root exports only the plugin/service/config contract, and the package exports map exposes no `./src/*` escape hatch; lifecycle owners create agents through `ctx.agents` rather than naming, constructing, or starting driver internals. One prepared session can be claimed by only one concrete driver, and everything observable happens through session events and the `agent/*` event taxonomy.
