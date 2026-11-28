@@ -1,6 +1,5 @@
 {
   "imports": {
-    "anser": "harness/fx/anser.mjs",
     "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js",
     "zod": "node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js",
     "@freddie/cordis": "framework/cordis/src/index.js",
