@@ -1,7 +1,7 @@
 import '@freddie/freddie-runtime/install-fx'
 import host from 'fx:host'
 import { sessionPersistence } from 'fx:host/session'
-import { mkdtempSync, rmSync, writeFileSync } from '@freddie/freddie-runtime/fs'
+import { mkdtempSync, rmSync } from '@freddie/freddie-runtime/fs'
 import { spawnSync } from '@freddie/freddie-runtime/child-process'
 import { tmpdir } from '@freddie/freddie-runtime/os'
 import { join } from '@freddie/freddie-runtime/path'
@@ -27,8 +27,7 @@ async function newStorage() {
       }
     },
     crashAfterAppend: async (meta, batches) => {
-      writeFileSync(join(root, 'payload.json'), JSON.stringify({ meta, batches }))
-      const child = spawnSync(process.argv[0], ['js', '--permission-mode', 'yolo', CHILD], { cwd: root, encoding: 'utf8' })
+      const child = spawnSync(process.execPath, ['js', '--permission-mode', 'yolo', CHILD, '--', path, JSON.stringify({ meta, batches })], { encoding: 'utf8' })
       const killed = child.signal === 'SIGKILL' || child.signal === 9
       if (!killed) throw new Error(`the child was meant to die by SIGKILL right after the append, got ${child.signal ?? child.status}: ${child.stderr}`)
     },
