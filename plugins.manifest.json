@@ -10,7 +10,9 @@
       "packages/util/runtime/test/fx-parity.mjs",
       "packages/util/runtime/test/fx-seams.mjs",
       "packages/util/runtime/test/parity-fixture.mjs",
-      "packages/util/runtime/test/parity-node.mjs"
+      "packages/util/runtime/test/parity-node.mjs",
+      "packages/session/session-persistence/test/fx-conformance.mjs",
+      "packages/session/session-persistence/test/fx-conformance-child.mjs"
     ],
     "overrides": {
       "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js"

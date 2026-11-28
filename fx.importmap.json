@@ -8,6 +8,8 @@
     "@freddie/freddie-runtime/url": "packages/util/runtime/src/url.js",
     "zod": "node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js",
     "@freddie/freddie-runtime/process": "packages/util/runtime/src/process.js",
+    "@freddie/freddie-runtime/child-process": "packages/util/runtime/src/child-process.js",
+    "@freddie/freddie-runtime/os": "packages/util/runtime/src/os.js",
     "@freddie/cordis": "framework/cordis/src/index.js",
     "@freddie/cosmokit": "framework/cosmokit/src/index.js",
     "@freddie/freddie-client-runtime/client": "packages/client/runtime/src/client/index.js",
