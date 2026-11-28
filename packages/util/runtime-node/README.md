@@ -9,3 +9,5 @@ The Node host backend of the runtime seam. `src/node.js` builds the 25-member ru
 ## Guard
 
 `packages/util/runtime/test/aliases.js` keeps this package from spreading. It exempts only `packages/util/runtime-node/` from the rule that shipped code imports no `node:` module, and it checks that `src/node.js` imports the Node module for every alias seam and for nothing else.
+
+The retirement plan, with the replacement for each check, is the [runtime-node retirement note](../../../.agents/notes/proposed/architecture/2026-11-28-runtime-node-retirement-plan.md).
