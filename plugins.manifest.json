@@ -1,4 +1,21 @@
 {
+  "fx": {
+    "tests": [
+      "framework/cordis/test/emit-contained.mjs",
+      "packages/client/ui-settings-plugins/test/card-form.mjs",
+      "packages/core/tools/test/json-schema.mjs",
+      "packages/host/host-adapter/test/adapter.mjs",
+      "packages/typert/loader/test/manifest.mjs",
+      "packages/api/remote-stream/src/typert.host.js",
+      "packages/util/runtime/test/fx-parity.mjs",
+      "packages/util/runtime/test/fx-seams.mjs",
+      "packages/util/runtime/test/parity-fixture.mjs",
+      "packages/util/runtime/test/parity-node.mjs"
+    ],
+    "overrides": {
+      "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js"
+    }
+  },
   "packages": {
     "framework/cordis": {
       "entries": {
