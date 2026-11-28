@@ -10,9 +10,9 @@ The agent side of freddie (the agent loop, tools, session log, sandbox, model ad
 
 @freddie/freddie-runtime is the only seam through which agent-side code reaches Node built-ins and the process and Buffer globals. Agent code imports from its subpaths, for example @freddie/freddie-runtime/fs-promises or @freddie/freddie-runtime/process. Each subpath exports exactly the names the agent code uses, read from the installed runtime when the module loads.
 
-The composition root installs one runtime before any other module loads. Node hosts import @freddie/freddie-runtime/install-node as their first import: apps/cli/src/bin.js and the three worker entries (code-runtime-worker-thread, workflow-worker-thread and the inspector worker). A missing install throws on first use, and a second install throws.
+The composition root installs one runtime before any other module loads. Node hosts import @freddie/freddie-runtime-node/install-node as their first import (the Node backend moved out of the runtime package, see the 2026-11-28 note): apps/cli/src/bin.js and the three worker entries (code-runtime-worker-thread, workflow-worker-thread and the inspector worker). A missing install throws on first use, and a second install throws.
 
-src/node.js holds the Node implementation: the real module namespaces and the global process. Each subpath therefore returns the same function objects Node gives, so behaviour does not change.
+packages/util/runtime-node/src/node.js holds the Node implementation: the real module namespaces and the global process. The runtime package itself reads fx:host only (src/fx.js). Each subpath therefore returns the same function objects Node gives, so behaviour does not change.
 
 Another runtime, such as an embedded txiki.js, provides an object of the same shape as nodeRuntime and calls installRuntime from its own composition root. The shape is the set of names agent code imports, so that implementation has a precise contract.
 
@@ -25,6 +25,6 @@ Another runtime, such as an embedded txiki.js, provides an object of the same sh
 ## Consequences
 
 - Converted agent-side packages list @freddie/freddie-runtime as a dependency.
-- Inside the agent-side scope, only src/node.js of the adapter imports a Node built-in.
+- Inside the agent-side scope, only packages/util/runtime-node/src/node.js imports a Node built-in; the runtime package imports none.
 - apps/cli keeps its direct Node imports, as the Node host.
 - Adding a Node-only API to agent code means adding its name to the subpath and to the runtime shape, so every runtime has to provide it.
