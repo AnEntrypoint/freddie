@@ -3116,6 +3116,16 @@ export async function captureCases() {
   return { shared, gaps }
 }
 
+export const DEFERRED_FX = new Map([
+  ['child-process.spawn uid of another user throws EPERM', 'uid and gid are not passed to the host spawn (fx deferred D6, D7 family)'],
+  ['child-process.spawn gid of another group throws EPERM', 'uid and gid are not passed to the host spawn'],
+  ['child-process.execFile uid of another user throws EPERM', 'uid and gid are not passed to the host spawn'],
+  ['child-process.execFile gid of another group throws EPERM', 'uid and gid are not passed to the host spawn'],
+  ['child-process.spawn stdio ignore on stdout gives fd 1 a socket as in Node', 'the host spawn gives the child only pipes or null'],
+  ['child-process.spawn stdio entry at fd 3 carries the bytes the child writes to it', 'the host spawn cannot hand the child an extra pipe at fd 3'],
+  ['worker_threads.Worker replies to a message with the doubled value', 'fx has no worker runtime'],
+])
+
 export function fixtureProblems(fixture, captured) {
   const problems = []
   for (const [section, cases] of [['shared', sharedCases], ['gaps', gapCases]]) {
@@ -3135,6 +3145,7 @@ export function fixtureProblems(fixture, captured) {
   if (captured !== undefined) {
     const recorded = new Map((fixture.shared ?? []).map((entry) => [entry.name, entry]))
     for (const entry of captured.shared) {
+      if (DEFERRED_FX.has(entry.name)) continue
       const expected = recorded.get(entry.name)
       if (expected !== undefined && (expected.kind !== entry.kind || JSON.stringify(expected.output) !== JSON.stringify(entry.output))) problems.push('output differs for "' + entry.name + '": ' + entry.kind + ' ' + JSON.stringify(entry.output) + ', fixture ' + expected.kind + ' ' + JSON.stringify(expected.output))
     }
