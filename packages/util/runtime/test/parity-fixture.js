@@ -1,4 +1,4 @@
-import '../src/install-node.js'
+import '../src/install-fx.js'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { captureCases, fixtureProblems } from './parity-cases.js'
 

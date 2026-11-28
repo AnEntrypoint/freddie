@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { Context } from '../src/index.js'
 
 const ctx = new Context()

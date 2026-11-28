@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { randomUUID } from '@freddie/freddie-runtime/crypto'
 import { createServer } from '@freddie/freddie-runtime/http'
 import { parentPort, workerData } from '@freddie/freddie-runtime/worker-threads'

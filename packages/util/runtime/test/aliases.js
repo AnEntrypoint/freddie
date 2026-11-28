@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const SRC = join(ROOT, 'packages/util/runtime/src')
 const table = JSON.parse(readFileSync(join(SRC, 'aliases.json'), 'utf8'))
-const NOT_SEAMS = new Set(['runtime', 'node', 'fx', 'txiki', 'index', 'install-node', 'install-fx', 'install-txiki', 'install-browser'])
-const SEAM_ENTRIES = new Set(['install-node', 'install-fx', 'install-txiki', 'install-browser'])
+const NOT_SEAMS = new Set(['runtime', 'fx', 'txiki', 'index', 'install-fx', 'install-txiki', 'install-browser'])
+const SEAM_ENTRIES = new Set(['install-fx', 'install-txiki', 'install-browser'])
 const SHIPPED = /^(apps\/[^/]+|packages\/[^/]+\/[^/]+|framework\/[^/]+)\/src\//
 const SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)(['"])([^'"]+)\1/g
 const failures = []
@@ -28,9 +28,14 @@ for (const [key, row] of Object.entries(table)) {
 const shims = readdirSync(SRC).filter((name) => name.endsWith('.js')).map((name) => name.slice(0, -3)).filter((name) => !NOT_SEAMS.has(name))
 for (const shim of shims) if (!seams.has(shim)) fail('shim src/' + shim + '.js has no alias row')
 for (const seam of seams.keys()) if (!shims.includes(seam)) fail('alias seam ' + seam + ' has no shim')
-const nodeImports = new Set([...readFileSync(join(SRC, 'node.js'), 'utf8').matchAll(/from '(node:[\w/]+)'/g)].map((match) => match[1]))
-for (const [seam, key] of seams) if (!nodeImports.has(key)) fail('src/node.js does not import ' + key + ' for seam ' + seam)
-for (const key of nodeImports) if (table[key]?.seam === undefined) fail('src/node.js imports ' + key + ' with no alias row')
+const fxSource = readFileSync(join(SRC, 'fx.js'), 'utf8')
+if (!/from 'fx:host'/.test(fxSource)) fail('src/fx.js must read fx:host')
+if (/node:/.test(fxSource)) fail('src/fx.js imports a node: specifier')
+for (const name of readdirSync(SRC).filter((file) => file.endsWith('.js'))) {
+  for (const match of readFileSync(join(SRC, name), 'utf8').matchAll(SPECIFIER)) {
+    if (keyOf(match[2]) !== undefined) fail('src/' + name + ' imports ' + match[2] + ': the shipped runtime reads fx:host only')
+  }
+}
 
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.js', '*.mjs', '*.cjs'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((file) => file !== '' && !file.startsWith('packages/util/runtime/') && !file.includes('/vendor/') && !file.startsWith('runs/'))
 for (const file of files) {

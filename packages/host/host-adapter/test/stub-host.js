@@ -14,12 +14,12 @@ export const VERB_NAMES = [
   'fs_mkdir', 'fs_mkdtemp', 'fs_read', 'fs_read_range', 'fs_readdir',
   'fs_readlink', 'fs_realpath', 'fs_remove', 'fs_rename', 'fs_stat',
   'fs_symlink', 'fs_truncate', 'fs_write', 'fs_write_at', 'hash_digest',
-  'net_fetch', 'proc_close_stdin', 'proc_kill', 'proc_read', 'proc_spawn',
-  'proc_wait', 'proc_write', 'process_info', 'pty_read', 'pty_spawn',
-  'pty_wait', 'pty_write', 'random_bytes', 'run_command', 'serve_accept',
-  'serve_listen', 'serve_respond', 'sqlite_all', 'sqlite_close', 'sqlite_exec',
-  'sqlite_open', 'watch_close', 'watch_poll', 'watch_start', 'ws_close',
-  'ws_connect', 'ws_recv', 'ws_send',
+  'net_fetch', 'net_interfaces', 'proc_close_stdin', 'proc_kill', 'proc_read',
+  'proc_spawn', 'proc_wait', 'proc_write', 'process_info', 'pty_read',
+  'pty_spawn', 'pty_wait', 'pty_write', 'random_bytes', 'run_command',
+  'serve_accept', 'serve_listen', 'serve_respond', 'sqlite_all', 'sqlite_close',
+  'sqlite_exec', 'sqlite_open', 'watch_close', 'watch_poll', 'watch_start',
+  'ws_close', 'ws_connect', 'ws_recv', 'ws_send',
 ]
 
 export const MODULE_NAMES = [

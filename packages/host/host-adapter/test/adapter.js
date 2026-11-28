@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { Context } from '@freddie/cordis'
 import { FxHostContractError, FxUnsupported, createHostAdapter, hostView, planHost, services } from '../src/index.js'
 import { CAPABILITY_NAMES, TOOL_NAMES, stubHost } from './stub-host.js'

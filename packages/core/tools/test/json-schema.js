@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { assertSupportedJsonSchema } from '../src/index.js'
 
 const check = (condition, message) => { if (!condition) throw new Error('json schema check failed: ' + message) }

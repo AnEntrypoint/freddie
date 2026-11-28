@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { register } from 'node:module'
 
 register('data:text/javascript,' + encodeURIComponent("export async function resolve(specifier, context, next) { return specifier === '@freddie/freddie-client-ui-settings-plugins/client' ? next(new URL('../src/client/card-form.js', '" + import.meta.url + "').href, context) : next(specifier, context) }"))

@@ -16,22 +16,20 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./install-node": {
-      "default": "./src/install-node.js"
-    },
-    "./install-txiki": {
-      "default": "./src/install-txiki.js"
-    },
     "./package.json": "./package.json",
     "./*": {
       "default": "./src/*.js"
+    },
+    "./install-fx": {
+      "default": "./src/install-fx.js"
+    },
+    "./install-txiki": {
+      "default": "./src/install-txiki.js"
     }
   },
   "files": [
     "src/index.js",
     "src/runtime.js",
-    "src/node.js",
-    "src/install-node.js",
     "src/txiki.js",
     "src/install-txiki.js",
     "src/install-browser.js",
@@ -60,7 +58,9 @@
     "src/net.js",
     "src/dns-promises.js",
     "src/process.js",
-    "src/aliases.json"
+    "src/aliases.json",
+    "src/fx.js",
+    "src/install-fx.js"
   ],
   "license": "MIT"
 }

@@ -20,6 +20,7 @@
   "fs_write_at",
   "hash_digest",
   "net_fetch",
+  "net_interfaces",
   "proc_close_stdin",
   "proc_kill",
   "proc_read",

@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-node'
+import '@freddie/freddie-runtime/install-fx'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { validateTypertManifest } from '../src/index.js'

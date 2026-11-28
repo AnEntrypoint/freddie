@@ -6,6 +6,6 @@ export function installRuntime(runtime) {
 }
 
 export function activeRuntime() {
-  if (installed === null) throw new Error('@freddie/freddie-runtime: no runtime installed; import @freddie/freddie-runtime/install-node before any module that uses the runtime')
+  if (installed === null) throw new Error('@freddie/freddie-runtime: no runtime installed; import @freddie/freddie-runtime/install-fx before any module that uses the runtime')
   return installed
 }

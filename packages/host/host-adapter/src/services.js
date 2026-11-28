@@ -21,6 +21,7 @@ export const VERB_BACKS = Object.freeze({
   sqlite_open: 'sqlite', sqlite_exec: 'sqlite', sqlite_all: 'sqlite', sqlite_close: 'sqlite',
   serve_listen: 'serve', serve_accept: 'serve', serve_respond: 'serve', ws_send: 'serve', ws_recv: 'serve', ws_connect: 'ws', ws_close: 'ws',
   net_fetch: 'fetch',
+  net_interfaces: 'os',
 })
 
 export default Object.freeze({
@@ -41,6 +42,7 @@ export default Object.freeze({
   watch: fromModule('hostWatch', 'fs', ['watch']),
   proc: fromModule('hostProc', 'child_process'),
   process: fromModule('hostProcess', 'process'),
+  os: fromModule('hostOs', 'os'),
   timers: fromModule('hostTimers', 'timers/promises'),
   crypto: fromModule('hostCrypto', 'crypto'),
   dns: fromModule('hostDns', 'dns/promises', ['lookup', 'resolve']),
