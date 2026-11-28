@@ -35,7 +35,7 @@ Freddie is a plugin-based agent harness on the Cordis framework layer (`framewor
 
 - Packages are `@freddie/freddie-<name>`; `framework/` packages take the `@freddie` scope too and publish public with the harness (`publishConfig.access: public`; [mapping](docs/rescope.md)). `@freddie/cordis` is a peer and dev dependency of every harness package.
 - ESM everywhere (`"type": "module"`). Cross-package imports use package names; local relative imports use `.js`. No TypeScript, transpilation or `tsx`: `packages/*/*/src` runs under plain `node`.
-- Bare `cordis.yml` plugins (raw/Web) must appear in their resolver manifest's `dependencies`; no script checks this, so boot the real config after adding one.
+- Bare `cordis.yml` plugins (raw/Web) must appear in their resolver manifest's `dependencies`; `node scripts/check-bundle-rows.js` checks every bundle row's package and subpath, and `--write` adds missing dependencies. Boot the real config after adding one.
 - **Registrations are effects**: contributions go through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
 - **Typed events are merge-extensible maps** (e.g. `SessionEventMap`): a new event also joins its package's runtime type set; its mode and payload contract live in the package README. Public service methods document parameters and returns in the package README.
 - A `SessionEventMap` member is required-on-read by default; builds without its type refuse the log unless the event carries `ignorable: true`. Only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).

@@ -18,7 +18,7 @@ Supplements the repo-wide [conventions](../AGENTS.md#conventions).
 
 [Naming rules](../docs/cookbook/adding-a-package.md#name-the-role-that-exists):
 
-- **`exports`, `main` and `files` come from [`plugins.manifest.json`](../plugins.manifest.json).** Edit the manifest, then run `node scripts/sync-package-manifest.js --write`; without `--write` the script fails on drift or on a package missing from the manifest. The same manifest seeds [`fx.importmap.json`](../fx.importmap.json) (`fx.tests` lists the files `fx js` runs, including files a test loads at run time; `node scripts/gen-fx-importmap.js --write`).
+- **`exports`, `main`, `files` and [`fx.importmap.json`](../fx.importmap.json) come from [`plugins.manifest.json`](../plugins.manifest.json).** Edit it, then run `node scripts/sync-package-manifest.js --write` and `node scripts/gen-fx-importmap.js --write` (`fx.tests` seeds the map, including files a test loads at run time); without `--write` each fails on drift.
 - **Package source is buildless plain JavaScript** (`src/*.js`, ESM) runnable under plain `node`: no transformation step, no `lib/` output. `framework/*` is buildless too ([its AGENTS.md](../framework/AGENTS.md)).
 - A package README changes in the same commit as its behavior (config keys, defaults, error codes, wire fields). Apply [freddie-prose-standard](../.agents/skills/freddie-prose-standard/SKILL.md) and verify against code.
 - Package READMEs document model, token and KV-cache effects per the [Model Experience format](../docs/cookbook/adding-a-package.md#4-write-the-package-readme).
