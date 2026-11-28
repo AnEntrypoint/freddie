@@ -1,7 +1,5 @@
 import '@freddie/freddie-runtime/install-fx'
-import { register } from 'node:module'
 
-register('data:text/javascript,' + encodeURIComponent("export async function resolve(specifier, context, next) { return specifier === '@freddie/freddie-client-ui-settings-plugins/client' ? next(new URL('../src/client/card-form.js', '" + import.meta.url + "').href, context) : next(specifier, context) }"))
 const { SubagentCardController } = await import('../../ui-settings-subagent/src/client/subagent-card-controller.js')
 const { WebSearchCardController } = await import('../../ui-settings-web-search/src/client/web-search-card-controller.js')
 const scopeOf = () => { const user = {}; const listeners = new Set(); return { user, writes: [], getSnapshot: () => ({ status: 'ready', writable: true, value: { ...user }, base: {}, user }), subscribe: (l) => { listeners.add(l); return () => listeners.delete(l) }, async set(f, v) { this.writes.push(['set', f, v]); user[f] = v; listeners.forEach((l) => l()) }, async unset(f) { this.writes.push(['unset', f]); delete user[f]; listeners.forEach((l) => l()) } } }
