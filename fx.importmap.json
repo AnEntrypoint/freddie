@@ -3,6 +3,7 @@
     "zod": "node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js",
     "@freddie/cordis": "framework/cordis/src/index.js",
     "@freddie/cosmokit": "framework/cosmokit/src/index.js",
+    "@freddie/freddie-llm": "packages/llm/llm/src/index.js",
     "@freddie/freddie-runtime/buffer": "packages/util/runtime/src/buffer.js",
     "@freddie/freddie-runtime/fs": "packages/util/runtime/src/fs.js",
     "@freddie/freddie-runtime/install-fx": "packages/util/runtime/src/install-fx.js",
@@ -10,6 +11,10 @@
     "@freddie/freddie-runtime/path": "packages/util/runtime/src/path.js",
     "@freddie/freddie-runtime/process": "packages/util/runtime/src/process.js",
     "@freddie/freddie-runtime/url": "packages/util/runtime/src/url.js",
+    "@freddie/freddie-scope": "packages/core/scope/src/index.js",
+    "@freddie/freddie-session": "packages/core/session/src/index.js",
+    "@freddie/freddie-timeout": "packages/util/timeout/src/index.js",
+    "@freddie/freddie-values": "packages/util/values/src/index.js",
     "@freddie/schemastery": "framework/schemastery/src/index.js"
   }
 }
