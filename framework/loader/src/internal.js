@@ -18,6 +18,7 @@ function requireInternal(id) {
 
 function fromInternal() {
   if (_cachedLoader) return _cachedLoader
+  if (process.versions?.edge !== undefined) return undefined
   const [major] = (process.versions?.node ?? '').split('.').map(Number)
 
   if (major >= 24) {

@@ -14,6 +14,7 @@ export * from './config/isolate.js'
 export * from './config/tree.js'
 export * from './config/utils.js'
 export * from './internal.js'
+export * from './resolve.js'
 
 export class Loader extends EntryTree {
   envData = process.env.CORDIS_SHARED

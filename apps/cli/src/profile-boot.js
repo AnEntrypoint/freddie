@@ -168,7 +168,8 @@ export async function runProfile(options) {
   if (loader !== undefined) loader.exit = () => { void shutdown.interrupt(75) }
   if (!signalShutdown.signal.aborted
     && ctx.fiber.state === FiberState.ACTIVE
-    && ctx.get('loader') !== undefined) {
+    && ctx.get('loader') !== undefined
+    && ctx.loader.internal !== undefined) {
     try {
       if (ctx.get('hmr') === undefined) {
         if (ctx.get('timer') === undefined) {

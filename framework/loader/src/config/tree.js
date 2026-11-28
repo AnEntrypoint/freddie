@@ -1,6 +1,7 @@
 import { composeError } from '@freddie/cordis'
 import { isNonNullable } from '@freddie/cosmokit'
 import { EntryGroup } from './group.js'
+import { resolveFrom } from '../resolve.js'
 
 export class EntryTree {
   static sep = ':'
@@ -140,7 +141,7 @@ export class EntryTree {
       } else if (name.startsWith('.')) {
         return await import( new URL(name, this.ctx.baseUrl).href)
       } else {
-        return await import( name)
+        return await import(resolveFrom(this.ctx.baseUrl, name))
       }
     }, getOuterStack)
   }
