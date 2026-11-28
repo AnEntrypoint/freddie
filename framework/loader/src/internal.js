@@ -11,6 +11,7 @@ function requireInternal(id) {
       return require(id)
     } catch {}
   }
+  if (process.versions?.edge !== undefined) return undefined
   try {
     return require('node-addon-require-builtin').requireBuiltin(id)
   } catch {}
@@ -18,7 +19,6 @@ function requireInternal(id) {
 
 function fromInternal() {
   if (_cachedLoader) return _cachedLoader
-  if (process.versions?.edge !== undefined) return undefined
   const [major] = (process.versions?.node ?? '').split('.').map(Number)
 
   if (major >= 24) {
