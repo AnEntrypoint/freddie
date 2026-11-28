@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import '@freddie/freddie-runtime/install-fx'
+import '@freddie/freddie-runtime-node/install-node'
 
 import { readFileSync } from '@freddie/freddie-runtime/fs'
 import { fileURLToPath } from '@freddie/freddie-runtime/url'

@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@freddie/cosmokit": "*",
-    "@freddie/freddie-runtime": "*"
+    "@freddie/freddie-runtime": "*",
+    "@freddie/freddie-runtime-node": "*"
   }
 }

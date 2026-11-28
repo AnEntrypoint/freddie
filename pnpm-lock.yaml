@@ -137,6 +137,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../packages/util/runtime
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../packages/util/runtime-node
       '@freddie/freddie-schedule':
         specifier: '*'
         version: link:../../packages/schedule/schedule
@@ -303,6 +306,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../packages/util/runtime
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../packages/util/runtime-node
 
   framework/cosmokit:
     dependencies:
@@ -3242,6 +3248,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../util/runtime-node
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -5512,6 +5521,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../util/runtime-node
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -7175,6 +7187,12 @@ importers:
 
   packages/util/runtime: {}
 
+  packages/util/runtime-node:
+    dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../runtime
+
   packages/util/time: {}
 
   packages/util/timeout:
@@ -7375,6 +7393,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../util/runtime-node
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery

@@ -1,0 +1,32 @@
+{
+  "name": "@freddie/freddie-runtime-node",
+  "description": "The Node host backend of the runtime seam: installs Node's built-in modules as the runtime for Node-run hosts (the CLI and the worker threads); the runtime package itself reads fx:host only",
+  "version": "0.1.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lanmower/freddie.git",
+    "directory": "packages/util/runtime-node"
+  },
+  "type": "module",
+  "main": "src/install-node.js",
+  "exports": {
+    ".": {
+      "default": "./src/install-node.js"
+    },
+    "./install-node": {
+      "default": "./src/install-node.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/node.js",
+    "src/install-node.js"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@freddie/freddie-runtime": "*"
+  }
+}

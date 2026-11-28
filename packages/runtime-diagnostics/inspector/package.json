@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@freddie/freddie-runtime": "*",
+    "@freddie/freddie-runtime-node": "*",
     "@freddie/schemastery": "*"
   },
   "devDependencies": {

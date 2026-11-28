@@ -31,13 +31,17 @@ for (const seam of seams.keys()) if (!shims.includes(seam)) fail('alias seam ' +
 const fxSource = readFileSync(join(SRC, 'fx.js'), 'utf8')
 if (!/from 'fx:host'/.test(fxSource)) fail('src/fx.js must read fx:host')
 if (/node:/.test(fxSource)) fail('src/fx.js imports a node: specifier')
+const nodeSource = readFileSync(join(ROOT, 'packages/util/runtime-node/src/node.js'), 'utf8')
+const nodeImports = new Set([...nodeSource.matchAll(/from '(node:[\w/]+)'/g)].map((match) => match[1]))
+for (const [seam, key] of seams) if (!nodeImports.has(key)) fail('runtime-node does not import ' + key + ' for seam ' + seam)
+for (const key of nodeImports) if (table[key]?.seam === undefined) fail('runtime-node imports ' + key + ' with no alias row')
 for (const name of readdirSync(SRC).filter((file) => file.endsWith('.js'))) {
   for (const match of readFileSync(join(SRC, name), 'utf8').matchAll(SPECIFIER)) {
     if (keyOf(match[2]) !== undefined) fail('src/' + name + ' imports ' + match[2] + ': the shipped runtime reads fx:host only')
   }
 }
 
-const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.js', '*.mjs', '*.cjs'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((file) => file !== '' && !file.startsWith('packages/util/runtime/') && !file.includes('/vendor/') && !file.startsWith('runs/'))
+const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.js', '*.mjs', '*.cjs'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((file) => file !== '' && !file.startsWith('packages/util/runtime/') && !file.startsWith('packages/util/runtime-node/') && !file.includes('/vendor/') && !file.startsWith('runs/'))
 for (const file of files) {
   const shipped = SHIPPED.test(file)
   for (const match of readFileSync(join(ROOT, file), 'utf8').matchAll(SPECIFIER)) {

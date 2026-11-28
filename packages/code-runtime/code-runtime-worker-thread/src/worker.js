@@ -1,4 +1,4 @@
-import '@freddie/freddie-runtime/install-fx'
+import '@freddie/freddie-runtime-node/install-node'
 
 import { parentPort, workerData } from '@freddie/freddie-runtime/worker-threads'
 import { runWorkerMain } from './bootstrap.js'

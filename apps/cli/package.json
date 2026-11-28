@@ -48,6 +48,7 @@
     "@freddie/freddie-persona": "*",
     "@freddie/freddie-plan-mode": "*",
     "@freddie/freddie-runtime": "*",
+    "@freddie/freddie-runtime-node": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-terminal-bash": "*",
     "@freddie/freddie-session-projection": "*",
