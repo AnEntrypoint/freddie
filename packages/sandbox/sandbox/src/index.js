@@ -1,5 +1,6 @@
-import { Service } from '@freddie/cordis'
-import { HarnessError } from '@freddie/freddie-llm'
+import z from '@freddie/schemastery'
+import { LocalSandboxProvider } from './provider.js'
+import { SandboxPolicyService } from './policy.js'
 
 export {
   ESCALATION_TARGETS,
@@ -10,31 +11,21 @@ export {
   validateEscalationArgs,
 } from './escalation.js'
 export { canonicalPath, writableRoots } from './roots.js'
+export { SandboxUnavailableError } from './error.js'
+export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.js'
+export { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './runner-failure.js'
 
-const SANDBOX_UNAVAILABLE = 'SANDBOX_UNAVAILABLE'
+export const name = 'sandbox'
 
-export class SandboxUnavailableError extends HarnessError {
-  constructor(mode, detail) {
-    super(
-      `sandbox mode "${mode}" is requested but no sandbox backend is usable on this host; `
-      + 'refusing to run the command unconfined. Install bubblewrap or run a Landlock-enforcing '
-      + 'kernel (Linux), or ensure sandbox-exec is usable (macOS) — otherwise switch the consumer to '
-      + 'danger-full-access.'
-      + (detail === undefined ? '' : ` Runner failure: ${detail}`),
-      SANDBOX_UNAVAILABLE,
-    )
-    this.name = 'SandboxUnavailableError'
-  }
+export const Config = z.object({
+  mode: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
+  workspaceRoot: z.string(),
+  runnerCommand: z.array(z.string()).default([]),
+  runnerFailureSignatures: z.array(z.string()).default([]),
+  probeTimeoutMs: z.natural().default(5_000),
+})
+
+export function apply(ctx, config) {
+  new LocalSandboxProvider(ctx, config)
+  new SandboxPolicyService(ctx, config)
 }
-
-export class SandboxProvider extends Service {
-  constructor(ctx) {
-    super(ctx, 'sandbox')
-  }
-
-  confine(argv, policy) {
-    throw new Error('SandboxProvider.confine is abstract and must be implemented by a concrete provider')
-  }
-}
-
-export default SandboxProvider

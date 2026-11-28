@@ -4,7 +4,7 @@
 
 Its plugin config is the local backend config unchanged: `cwd` remains the relative-path resolution default, and `diffBasisMaxBytes` bounds the optional overwrite contextual-diff basis.
 
-Loading it INSTEAD OF `freddie-fs-local`, together with a [`ctx.sandboxPolicy`](../../sandbox/sandbox-policy/README.md), is the whole swap; the model-facing tools (`freddie-tool-fs`) are untouched. The tool layer resolves the calling session's mode and cwd into the SAME per-call policy bash receives, so the two families never confine to different roots.
+Loading it INSTEAD OF `freddie-fs-local`, together with a [`ctx.sandboxPolicy`](../../sandbox/sandbox/README.md#the-policy-home-ctxsandboxpolicy), is the whole swap; the model-facing tools (`freddie-tool-fs`) are untouched. The tool layer resolves the calling session's mode and cwd into the SAME per-call policy bash receives, so the two families never confine to different roots.
 
 ## The fence
 

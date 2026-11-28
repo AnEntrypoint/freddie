@@ -32,7 +32,6 @@
     "@freddie/freddie-brand": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
@@ -48,9 +47,6 @@
       "optional": true
     },
     "@freddie/freddie-sandbox": {
-      "optional": true
-    },
-    "@freddie/freddie-sandbox-policy": {
       "optional": true
     },
     "@freddie/freddie-session-persistence": {
@@ -75,7 +71,6 @@
     "@freddie/freddie-brand": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-scope": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",

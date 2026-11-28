@@ -41,7 +41,7 @@
     "@freddie/freddie-agent-presets": "*",
     "@freddie/freddie-fs-sandbox": "*",
     "@freddie/freddie-llm": "*",
-    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subagent": "*",
     "@freddie/freddie-system-prompt": "*",

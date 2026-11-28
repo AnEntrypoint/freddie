@@ -1,6 +1,6 @@
 import { Service } from '@freddie/cordis'
 import z from '@freddie/schemastery'
-import { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from '@freddie/freddie-sandbox-policy'
+import { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from '@freddie/freddie-sandbox'
 import { APPROVAL_POLICIES, effectiveApprovalPolicy, setApprovalPolicy } from '@freddie/freddie-user-approval'
 import { installSettingsSection, settingsNamespace } from '@freddie/freddie-settings'
 

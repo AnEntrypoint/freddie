@@ -5,9 +5,9 @@ import {
   launcherPath as landlockLauncherPath,
   probe as defaultProbeLandlock,
 } from '@freddie/node-addon-landlock-run'
-import z from '@freddie/schemastery'
 import { assertNever } from '@freddie/freddie-llm'
-import { SandboxProvider, SandboxUnavailableError } from '@freddie/freddie-sandbox'
+import { Service } from '@freddie/cordis'
+import { SandboxUnavailableError } from './error.js'
 import { bwrapProfileArgs, landlockProfileArgs, seatbeltProfileArgs } from './profiles.js'
 import { process } from '@freddie/freddie-runtime/process'
 
@@ -40,7 +40,7 @@ const STATIC_ENFORCEMENT = {
 
 function assertPositiveFinite(name, value) {
   if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`sandbox-local: ${name} must be a positive finite number`)
+    throw new Error(`sandbox: ${name} must be a positive finite number`)
   }
 }
 
@@ -61,13 +61,7 @@ const RUNNER_FAILURE_RULES = {
   seatbelt: [{ fatalSignatures: ['sandbox-exec: '] }],
 }
 
-class LocalSandboxProvider extends SandboxProvider {
-  static Config = z.object({
-    runnerCommand: z.array(z.string()).default([]),
-    runnerFailureSignatures: z.array(z.string()).default([]),
-    probeTimeoutMs: z.natural().default(5_000),
-  })
-
+export class LocalSandboxProvider extends Service {
   internals = {}
 
   runnerCommand
@@ -76,17 +70,17 @@ class LocalSandboxProvider extends SandboxProvider {
   selectedRunner
 
   constructor(ctx, config) {
-    super(ctx)
+    super(ctx, 'sandbox')
     const runner = config.runnerCommand
     const runnerFailureSignatures = config.runnerFailureSignatures
     if (runner.length === 0 && runnerFailureSignatures.length > 0) {
-      throw new Error('sandbox-local: runnerFailureSignatures requires runnerCommand')
+      throw new Error('sandbox: runnerFailureSignatures requires runnerCommand')
     }
     if (runner.length > 0 && runnerFailureSignatures.length === 0) {
-      throw new Error('sandbox-local: runnerCommand requires at least one runnerFailureSignatures entry')
+      throw new Error('sandbox: runnerCommand requires at least one runnerFailureSignatures entry')
     }
     if (runnerFailureSignatures.some(signature => signature.trim().length === 0 || /[\r\n]/u.test(signature))) {
-      throw new Error('sandbox-local: runnerFailureSignatures entries must be non-empty single-line strings')
+      throw new Error('sandbox: runnerFailureSignatures entries must be non-empty single-line strings')
     }
     this.runnerCommand = runner.length > 0 ? runner : undefined
     this.configuredRunnerFailureSignatures = runnerFailureSignatures
@@ -166,5 +160,3 @@ class LocalSandboxProvider extends SandboxProvider {
     return this.internals.seatbeltExec ?? 'sandbox-exec'
   }
 }
-
-export default LocalSandboxProvider

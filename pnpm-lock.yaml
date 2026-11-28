@@ -717,9 +717,9 @@ importers:
       '@freddie/freddie-client-runtime':
         specifier: '*'
         version: link:../../client/runtime
-      '@freddie/freddie-sandbox-policy':
+      '@freddie/freddie-sandbox':
         specifier: '*'
-        version: link:../../sandbox/sandbox-policy
+        version: link:../../sandbox/sandbox
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
@@ -1068,12 +1068,9 @@ importers:
       '@freddie/freddie-repeat-tool-reminder':
         specifier: '*'
         version: link:../../guard/repeat-tool-reminder
-      '@freddie/freddie-sandbox-local':
+      '@freddie/freddie-sandbox':
         specifier: '*'
-        version: link:../../sandbox/sandbox-local
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
+        version: link:../../sandbox/sandbox
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -4314,9 +4311,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
 
   packages/fs/tool-fs:
     dependencies:
@@ -4360,9 +4354,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -4455,9 +4446,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -5009,9 +4997,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -5522,22 +5507,6 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-llm':
-        specifier: '*'
-        version: link:../../llm/llm
-      '@freddie/freddie-session':
-        specifier: '*'
-        version: link:../../core/session
-
-  packages/sandbox/sandbox-local:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
       '@freddie/node-addon-landlock-run':
         specifier: '*'
         version: link:../../../native/landlock-run/packages/entry
@@ -5548,34 +5517,12 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-llm':
-        specifier: '*'
-        version: link:../../llm/llm
-      '@freddie/freddie-sandbox':
-        specifier: '*'
-        version: link:../sandbox
-      '@freddie/freddie-session':
-        specifier: '*'
-        version: link:../../core/session
-
-  packages/sandbox/sandbox-policy:
-    dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
       '@freddie/freddie-agent':
         specifier: '*'
         version: link:../../core/agent
-      '@freddie/freddie-sandbox':
+      '@freddie/freddie-llm':
         specifier: '*'
-        version: link:../sandbox
+        version: link:../../llm/llm
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6248,12 +6195,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-local':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-local
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-shell':
         specifier: '*'
         version: link:../shell
@@ -6340,9 +6281,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6398,9 +6336,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6628,9 +6563,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-scope':
         specifier: '*'
         version: link:../../core/scope
@@ -6723,9 +6655,9 @@ importers:
       '@freddie/freddie-llm':
         specifier: '*'
         version: link:../../llm/llm
-      '@freddie/freddie-sandbox-policy':
+      '@freddie/freddie-sandbox':
         specifier: '*'
-        version: link:../../sandbox/sandbox-policy
+        version: link:../../sandbox/sandbox
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
@@ -6984,9 +6916,6 @@ importers:
       '@freddie/freddie-sandbox':
         specifier: '*'
         version: link:../../sandbox/sandbox
-      '@freddie/freddie-sandbox-policy':
-        specifier: '*'
-        version: link:../../sandbox/sandbox-policy
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session

@@ -150,10 +150,7 @@
       name: '@freddie/freddie-terminal-bash'
 
     - id: sandbox
-      name: '@freddie/freddie-sandbox-local'
-
-    - id: sandbox-policy
-      name: '@freddie/freddie-sandbox-policy'
+      name: '@freddie/freddie-sandbox'
       config:
         mode: !!js process.env.FREDDIE_PERMISSION_MODE ?? 'workspace-write'
         workspaceRoot: !!js process.cwd()

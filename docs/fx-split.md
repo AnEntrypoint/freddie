@@ -70,7 +70,7 @@ These packages are candidates for removal in a later stage. Phase A did not remo
 
 | Duplicate | Files | Merge | Commit |
 |---|---|---|---|
-| sandbox runner-failure classifier, byte-identical | packages/shell/bash-sandbox/src/helpers.js, packages/shell/pwsh-sandbox/src/helpers.js | one copy at packages/sandbox/sandbox-policy/src/runner-failure.js, re-exported from sandbox-policy; both sandboxes import it from there, and both already depend on sandbox-policy | 94471ada |
+| sandbox runner-failure classifier, byte-identical | packages/shell/bash-sandbox/src/helpers.js, packages/shell/pwsh-sandbox/src/helpers.js | one copy at packages/sandbox/sandbox/src/runner-failure.js, re-exported from sandbox-policy; both sandboxes import it from there, and both already depend on sandbox-policy | 94471ada |
 | typert json parameter builder, one copy per package | packages/api/remote-stream, packages/api/session-controller, packages/api/terminal-controller: host and remote-client halves | one src/typert-parameter.js per package, imported by both halves; terminal-controller json renamed to jsonParameter | de79ae6c |
 | apiproxy passthrough schema stub, identical | packages/host/apiproxy/src/api/sessions.schema.js, packages/host/apiproxy/src/api/terminals.schema.js | packages/host/apiproxy/src/api/passthrough.js | f4f3664b |
 | lastStep, identical | packages/client/ui-conversation/src/client/conversation-nodes/turn-error.js, turn-max-tokens.js | exported from conversation-nodes/common.js | 1e216623 |
@@ -244,9 +244,9 @@ Node-only uses that stay outside the adapter, each by design:
 | packages/runtime-diagnostics/inspector/src/index.js | modules: worker-threads |
 | packages/runtime-diagnostics/inspector/src/worker.js | modules: crypto, http, worker-threads; process: exit x1 |
 | packages/runtime-diagnostics/inspector/src/ws.js | modules: crypto; Buffer x17 |
-| packages/sandbox/sandbox-local/src/index.js | modules: child-process, fs, os, path, url; process: platform x1, execPath x2 |
-| packages/sandbox/sandbox-policy/src/index.js | modules: path; process: cwd x1 |
-| packages/sandbox/sandbox-policy/src/runner-failure.js | modules: fs |
+| packages/sandbox/sandbox/src/provider.js | modules: child-process, fs, os, path, url; process: platform x1, execPath x2 |
+| packages/sandbox/sandbox/src/policy.js | modules: path; process: cwd x1 |
+| packages/sandbox/sandbox/src/runner-failure.js | modules: fs |
 | packages/sandbox/sandbox-windows-acl/src/acl.js | modules: crypto, fs, path; Buffer x1 |
 | packages/sandbox/sandbox-windows-acl/src/ffi.js | Buffer x2 |
 | packages/sandbox/sandbox-windows-acl/src/index.js | modules: fs, path; process: cwd x1; Buffer x2 |

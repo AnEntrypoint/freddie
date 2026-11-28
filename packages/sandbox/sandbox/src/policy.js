@@ -1,12 +1,9 @@
 import { resolve as resolvePath } from '@freddie/freddie-runtime/path'
 import { Service } from '@freddie/cordis'
-import z from '@freddie/schemastery'
-import { canonicalPath } from '@freddie/freddie-sandbox'
+import { canonicalPath } from './roots.js'
 import { effectiveSandboxMode } from './session-mode.js'
 import { process } from '@freddie/freddie-runtime/process'
 
-export { SANDBOX_MODES, effectiveSandboxMode, setSandboxMode } from './session-mode.js'
-export { classifyDenial, classifyRunnerFailure, isRunnerSpawnFailure, matchesSignature } from './runner-failure.js'
 
 function resolveWorkspaceRoot(path) {
   return resolvePath(canonicalPath(path))
@@ -27,12 +24,7 @@ function renderPolicyContext(policy) {
   }
 }
 
-class SandboxPolicyService extends Service {
-  static Config = z.object({
-    mode: z.union(['read-only', 'workspace-write', 'danger-full-access']).default('read-only'),
-    workspaceRoot: z.string(),
-  })
-
+export class SandboxPolicyService extends Service {
   defaultMode
   workspaceRoot
   constructor(ctx, config) {
@@ -67,5 +59,3 @@ class SandboxPolicyService extends Service {
     return effectiveSandboxMode(session.events)
   }
 }
-
-export default SandboxPolicyService

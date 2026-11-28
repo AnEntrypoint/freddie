@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-sandbox",
-  "description": "Abstract process-sandbox seam (ctx.sandbox) for the Freddie: same-world confinement vocabulary and the SandboxProvider contract",
+  "description": "Process-sandbox plugin (ctx.sandbox, ctx.sandboxPolicy) for the Freddie: confinement vocabulary, local bwrap, landlock and seatbelt backends, and the per-call policy resolver",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -24,16 +24,22 @@
   ],
   "license": "MIT",
   "peerDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
-    "@freddie/cordis": "*"
-  },
-  "devDependencies": {
-    "@freddie/freddie-llm": "*",
-    "@freddie/freddie-session": "*",
-    "@freddie/cordis": "*"
+    "@freddie/freddie-system-prompt": "*"
   },
   "dependencies": {
-    "@freddie/freddie-runtime": "*"
+    "@freddie/freddie-runtime": "*",
+    "@freddie/node-addon-landlock-run": "*",
+    "@freddie/schemastery": "*"
+  },
+  "devDependencies": {
+    "@freddie/cordis": "*",
+    "@freddie/freddie-agent": "*",
+    "@freddie/freddie-llm": "*",
+    "@freddie/freddie-session": "*",
+    "@freddie/freddie-system-prompt": "*"
   }
 }

@@ -27,7 +27,6 @@
     "@freddie/freddie-shell": "*",
     "@freddie/freddie-bash-local": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
@@ -35,8 +34,6 @@
     "@freddie/freddie-bash-local": "*",
     "@freddie/freddie-subprocess-local": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-local": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/cordis": "*",
     "@freddie/node-addon-landlock-run": "*"
   }

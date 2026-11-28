@@ -1,6 +1,6 @@
 # Process Sandbox
 
-The process-sandbox seam of [@freddie/freddie-sandbox](../../packages/sandbox/sandbox) wraps a same-world subprocess argv in a file-effect policy without coupling consumers to a platform runner. [@freddie/freddie-sandbox-local](../../packages/sandbox/sandbox-local) supplies Linux bwrap/Landlock and macOS Seatbelt; [@freddie/freddie-bash-sandbox](../../packages/shell/bash-sandbox) consumes it. Containers, microVMs, and remote execution are sibling implementations of whole capability seams, not providers of `ctx.sandbox`.
+The process-sandbox plugin [@freddie/freddie-sandbox](../../packages/sandbox/sandbox) wraps a same-world subprocess argv in a file-effect policy without coupling consumers to a platform runner. It supplies Linux bwrap/Landlock and macOS Seatbelt, and the policy home (`ctx.sandboxPolicy`) in the same plugin; the earlier abstract `SandboxProvider`, local provider and policy packages were merged because there is one provider; [@freddie/freddie-bash-sandbox](../../packages/shell/bash-sandbox) consumes it. Containers, microVMs, and remote execution are sibling implementations of whole capability seams, not providers of `ctx.sandbox`.
 
 Source: [`packages/sandbox/sandbox/src/index.js`](../../packages/sandbox/sandbox/src/index.js)
 
@@ -115,7 +115,7 @@ interface RunnerFailureRule {
 
 ```ts type-equiv
 /**
- * A {@link SandboxProvider.confine} result: the argv to spawn in place of
+ * A {@link LocalSandboxProvider.confine} result: the argv to spawn in place of
  * the caller's own, plus the enforcement completeness the selected backend
  * achieves for it.
  */
@@ -143,13 +143,13 @@ interface ConfinedArgv {
 }
 ```
 
-The [local provider](../../packages/sandbox/sandbox-local/README.md) owns operator configuration and maps its runner dialect into these rules. The [sandboxed bash consumer](../../packages/shell/bash-sandbox/README.md) owns spawn and result attribution.
+The [local provider](../../packages/sandbox/sandbox/README.md#the-local-provider) owns operator configuration and maps its runner dialect into these rules. The [sandboxed bash consumer](../../packages/shell/bash-sandbox/README.md) owns spawn and result attribution.
 
 ## Provider and fail-closed errors
 
 `ctx.sandbox.confine(argv, policy)` returns a `ConfinedArgv` or throws `SandboxUnavailableError` with code `SANDBOX_UNAVAILABLE` when no usable backend exists. Consumers may also classify a failure while spawning or observing the returned argv; that attribution belongs to the consumer contract. Silent unconfined passthrough is never legal for a confined policy.
 
-Provider selection, probing, caching, and backend-specific enforcement reports belong to the [local provider](../../packages/sandbox/sandbox-local/README.md).
+Provider selection, probing, caching, and backend-specific enforcement reports belong to the [local provider](../../packages/sandbox/sandbox/README.md#the-local-provider).
 
 <!-- BEGIN cordis-surface (hand-maintained) -->
 
@@ -159,11 +159,11 @@ Provider selection, probing, caching, and backend-specific enforcement reports b
 
 Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
-<a id="ctxsandbox--sandboxprovider-abstract-seam"></a>
+<a id="ctxsandbox--localsandboxprovider"></a>
 
-### `ctx.sandbox` — `SandboxProvider` (abstract seam)
+### `ctx.sandbox` — `LocalSandboxProvider`
 
-Abstract process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.
+Process-sandbox service. confine must return enforcing argv or fail closed at wrap or runner-execution time; silent unconfined passthrough is forbidden. Functional probes arbitrate multi-runner chains and may be skipped for a sole candidate, whose own refusal remains the fail-closed end.
 
 ```ts cordis-catalog
 /**
@@ -186,7 +186,7 @@ Source: [`packages/sandbox/sandbox/src/index.js`](../../packages/sandbox/sandbox
 
 ### `ctx.sandboxPolicy` — `SandboxPolicyService`
 
-The sandbox-policy service (`ctx.sandboxPolicy`). Owns the deployment default mode, fallback workspace root, and current request-time policy section. Tool layers call resolve for each execution so a session's mode log and immutable cwd travel together to every enforcing capability.
+The sandbox policy service (`ctx.sandboxPolicy`). Owns the deployment default mode, fallback workspace root, and current request-time policy section. Tool layers call resolve for each execution so a session's mode log and immutable cwd travel together to every enforcing capability.
 
 ```ts cordis-catalog
 /**
@@ -210,5 +210,5 @@ overrideOf(session: Session): SandboxMode | undefined
 
 Types: [Session](session.md)
 
-Source: [`packages/sandbox/sandbox-policy/src/index.js`](../../packages/sandbox/sandbox-policy/src/index.js)
+Source: [`packages/sandbox/sandbox/src/policy.js`](../../packages/sandbox/sandbox/src/policy.js)
 <!-- END cordis-surface -->

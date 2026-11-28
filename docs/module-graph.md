@@ -224,8 +224,6 @@ flowchart TD
   end
   subgraph group_sandbox["packages/sandbox"]
     pkg_sandbox["sandbox"]
-    pkg_sandbox_local["sandbox-local"]
-    pkg_sandbox_policy["sandbox-policy"]
   end
   subgraph group_schedule["packages/schedule"]
     pkg_schedule["schedule"]
@@ -411,13 +409,8 @@ flowchart TD
   pkg_agent_presets --> pkg_session
   pkg_agent_presets --> pkg_settings
   pkg_agent_presets --> pkg_system_prompt
-  pkg_sandbox_local --> pkg_llm
-  pkg_sandbox_local --> pkg_sandbox
-  pkg_sandbox_local --> pkg_session
-  pkg_sandbox_policy --> pkg_agent
-  pkg_sandbox_policy --> pkg_sandbox
-  pkg_sandbox_policy --> pkg_session
-  pkg_sandbox_policy --> pkg_system_prompt
+  pkg_sandbox --> pkg_agent
+  pkg_sandbox --> pkg_system_prompt
   pkg_session_persistence_jsonl --> pkg_session
   pkg_session_persistence_jsonl --> pkg_session_persistence
   pkg_session_projection_cache --> pkg_session
@@ -492,7 +485,6 @@ flowchart TD
   pkg_command_feedback --> pkg_session_telemetry
   pkg_permission_presets --> pkg_commands
   pkg_permission_presets --> pkg_sandbox
-  pkg_permission_presets --> pkg_sandbox_policy
   pkg_permission_presets --> pkg_session
   pkg_permission_presets --> pkg_session_projection
   pkg_permission_presets --> pkg_settings
@@ -512,7 +504,6 @@ flowchart TD
   pkg_bash_local --> pkg_timeout
   pkg_terminal_bash --> pkg_agent
   pkg_terminal_bash --> pkg_sandbox
-  pkg_terminal_bash --> pkg_sandbox_policy
   pkg_terminal_bash --> pkg_session
   pkg_terminal_bash --> pkg_subprocess
   pkg_terminal_bash --> pkg_terminal
@@ -538,12 +529,10 @@ flowchart TD
   pkg_fs_sandbox --> pkg_fs
   pkg_fs_sandbox --> pkg_fs_local
   pkg_fs_sandbox --> pkg_sandbox
-  pkg_fs_sandbox --> pkg_sandbox_policy
   pkg_tool_fs --> pkg_attachment
   pkg_tool_fs --> pkg_fs
   pkg_tool_fs --> pkg_llm
   pkg_tool_fs --> pkg_sandbox
-  pkg_tool_fs --> pkg_sandbox_policy
   pkg_tool_fs --> pkg_session
   pkg_tool_fs --> pkg_system_prompt
   pkg_tool_fs --> pkg_tools
@@ -558,7 +547,6 @@ flowchart TD
   pkg_tool_fs_search --> pkg_tools
   pkg_tool_str_replace_editor --> pkg_fs
   pkg_tool_str_replace_editor --> pkg_sandbox
-  pkg_tool_str_replace_editor --> pkg_sandbox_policy
   pkg_tool_str_replace_editor --> pkg_tools
   pkg_tool_skill --> pkg_agent
   pkg_tool_skill --> pkg_llm
@@ -570,7 +558,6 @@ flowchart TD
   pkg_subagent --> pkg_jobs
   pkg_subagent --> pkg_llm
   pkg_subagent --> pkg_sandbox
-  pkg_subagent --> pkg_sandbox_policy
   pkg_subagent --> pkg_scope
   pkg_subagent --> pkg_session
   pkg_subagent --> pkg_session_persistence
@@ -679,7 +666,6 @@ flowchart TD
   pkg_session_title_first_prompt_llm --> pkg_session_title_llm
   pkg_bash_sandbox --> pkg_bash_local
   pkg_bash_sandbox --> pkg_sandbox
-  pkg_bash_sandbox --> pkg_sandbox_policy
   pkg_bash_sandbox --> pkg_shell
   pkg_shell_env --> pkg_home_paths
   pkg_shell_env --> pkg_session_persistence
@@ -743,7 +729,6 @@ flowchart TD
   pkg_tool_bash --> pkg_jobs
   pkg_tool_bash --> pkg_llm
   pkg_tool_bash --> pkg_sandbox
-  pkg_tool_bash --> pkg_sandbox_policy
   pkg_tool_bash --> pkg_shell
   pkg_tool_bash --> pkg_shell_env
   pkg_tool_bash --> pkg_system_prompt

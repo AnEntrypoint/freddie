@@ -264,7 +264,7 @@ Requires: `subprocess` · `sandbox` · `sandboxPolicy`
 /**
  * Plugin config: the local executor's knobs, verbatim. The sandbox policy —
  * the default mode and fallback `workspace-write` root — is NOT here: it lives
- * on `ctx.sandboxPolicy` (`@freddie/freddie-sandbox-policy`), which resolves
+ * on `ctx.sandboxPolicy` (`@freddie/freddie-sandbox`), which resolves
  * each calling session's mode and cwd for every enforcing capability. The runner
  * choice is likewise the `ctx.sandbox` provider's config, not this executor's.
  */
@@ -1299,49 +1299,15 @@ export interface Config {
 
 Source: [`packages/guard/repeat-tool-reminder/src/index.js`](../packages/guard/repeat-tool-reminder/src/index.js)
 
-<a id="freddie-sandbox-local"></a>
+<a id="freddie-sandbox"></a>
 
-## `@freddie/freddie-sandbox-local`
-
-```ts config-catalog
-/** Plugin config. All optional — `static Config` supplies the defaults. */
-export interface Config {
-  /**
-   * Override the runner argv; bwrap-compatible profile arguments are appended. A
-   * non-empty override asserts full enforcement and skips built-in selection and
-   * probing. A runner that starts but refuses its profile must be identifiable by
-   * {@link runnerFailureSignatures}. Consumers classify a spawn rejection only after
-   * confirming the workdir is usable. `ENOENT` or `EACCES` identifies the runner when
-   * `error.path` equals argv[0] and `error.syscall` is `spawn` or `spawn <runner>`, or
-   * when `error.path` is absent and `error.syscall` is exactly `spawn <runner>`.
-   */
-  runnerCommand?: string[]
-  /**
-   * Case-insensitive stderr substrings emitted when a configured
-   * {@link runnerCommand} refuses its profile before executing the wrapped
-   * command. Required and non-empty with `runnerCommand`; rejected without
-   * it. Each entry is a non-empty, single-line, case-insensitive substring
-   * covering the executable runner's own failure dialect.
-   */
-  runnerFailureSignatures?: string[]
-  /** Positive timeout for each functional probe; zero would mean unbounded to Node. */
-  probeTimeoutMs?: number
-}
-```
-
-Source: [`packages/sandbox/sandbox-local/src/index.js`](../packages/sandbox/sandbox-local/src/index.js)
-
-<a id="freddie-sandbox-policy"></a>
-
-## `@freddie/freddie-sandbox-policy`
+## `@freddie/freddie-sandbox`
 
 ```ts config-catalog
 /**
- * Plugin config: the deployment's sandbox default. All optional — `Config`
- * supplies the defaults (`mode: 'read-only'` is the fail-safe default; a
- * deployment that wants a workspace-writable agent opts in explicitly). The
- * runner choice is NOT here (it is the `ctx.sandbox` provider's config), nor
- * is any per-family knob: this is the one shared policy home.
+ * Plugin config: the deployment's sandbox default and the local runner's
+ * options. `mode: 'read-only'` is the fail-safe default; a deployment that
+ * wants a workspace-writable agent opts in explicitly.
  */
 export interface Config {
   /** File-sandbox mode a session starts from (default: `read-only`). */
@@ -1351,12 +1317,26 @@ export interface Config {
    * `process.cwd()`). Normal agent calls use their session cwd instead.
    */
   workspaceRoot?: string
+  /**
+   * Override the runner argv; bwrap-compatible profile arguments are appended.
+   * A non-empty override asserts full enforcement and skips built-in selection
+   * and probing.
+   */
+  runnerCommand?: string[]
+  /**
+   * Case-insensitive stderr substrings emitted when a configured
+   * {@link runnerCommand} refuses its profile before executing the wrapped
+   * command. Required and non-empty with `runnerCommand`; rejected without it.
+   */
+  runnerFailureSignatures?: string[]
+  /** Positive timeout for each functional probe (default 5000). */
+  probeTimeoutMs?: number
 }
 ```
 
 Depends on: [`SandboxMode`](subsystems/sandbox.md)
 
-Source: [`packages/sandbox/sandbox-policy/src/index.js`](../packages/sandbox/sandbox-policy/src/index.js)
+Source: [`packages/sandbox/sandbox/src/index.js`](../packages/sandbox/sandbox/src/index.js)
 
 <a id="freddie-sdk-app"></a>
 
@@ -2562,7 +2542,6 @@ Abstract service classes — a deployment loads a concrete implementation packag
 - `@freddie/freddie-fs` — abstract `FileSystem` ([`packages/fs/fs/src/index.js`](../packages/fs/fs/src/index.js))
 - `@freddie/freddie-host-directory-picker` — abstract `DirectoryPicker` ([`packages/host/directory-picker/src/index.js`](../packages/host/directory-picker/src/index.js))
 - `@freddie/freddie-jobs` — abstract `JobRegistry` ([`packages/jobs/jobs/src/index.js`](../packages/jobs/jobs/src/index.js))
-- `@freddie/freddie-sandbox` — abstract `SandboxProvider` ([`packages/sandbox/sandbox/src/index.js`](../packages/sandbox/sandbox/src/index.js))
 - `@freddie/freddie-session-persistence` — abstract `SessionPersistence` ([`packages/session/session-persistence/src/index.js`](../packages/session/session-persistence/src/index.js))
 - `@freddie/freddie-session-query` — abstract `SessionQueryEngine` ([`packages/session-query/session-query/src/index.js`](../packages/session-query/session-query/src/index.js))
 - `@freddie/freddie-settings` — abstract `SettingsProvider` ([`packages/settings/settings/src/index.js`](../packages/settings/settings/src/index.js))

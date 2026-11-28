@@ -41,7 +41,6 @@
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-terminal-bash": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subprocess-local": "*",
     "@freddie/freddie-system-prompt": "*",

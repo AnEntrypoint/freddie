@@ -4,9 +4,7 @@ This family applies per-session confinement policy to process execution. It cove
 
 | Package | Role | ctx key |
 |---|---|---|
-| [`sandbox/`](sandbox/README.md) | Defines the process-sandbox service and shared escalation vocabulary | `ctx.sandbox` |
-| [`sandbox-local/`](sandbox-local/README.md) | Provides local platform confinement backends | registers on `ctx.sandbox` |
-| [`sandbox-policy/`](sandbox-policy/README.md) | Resolves durable per-session sandbox policy | `ctx.sandboxPolicy` |
+| [`sandbox/`](sandbox/README.md) | Provides local platform confinement backends, resolves durable per-session sandbox policy, and holds the shared escalation vocabulary | `ctx.sandbox`, `ctx.sandboxPolicy` |
 
 See the [sandbox decision](../../.agents/notes/implemented/feature/2026-07-06-sandbox.md) for the capability boundary and the [filesystem integration decision](../../.agents/notes/implemented/feature/2026-07-14-cross-family-fs-sandbox.md) for cross-family policy use.
 

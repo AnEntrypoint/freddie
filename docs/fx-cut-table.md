@@ -137,7 +137,7 @@ Result. 203 of 240 package entries import and evaluate. The 37 that fail are lis
 | cause | packages that fail on it |
 |---|---|
 | node import in package source: node:crypto | 3: client-css-manifest, client-file-upload, client-modules |
-| node import in package source: node:child_process | 2: node-addon-landlock-run, sandbox-local |
+| node import in package source: node:child_process | 2: node-addon-landlock-run, sandbox |
 | node import in package source: node:fs | 1: client-hmr |
 | node import in package source: node:module | 1: client-vendor-modules |
 | third-party: js-yaml | 7: agent-presets, app-boot, client-connection, config-editor, cordis-plugin-include, host-apiproxy, web-app |

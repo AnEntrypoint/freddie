@@ -1,5 +1,5 @@
 import { TerminalBackendCleanupError } from '@freddie/freddie-terminal'
-import { effectiveSandboxMode } from '@freddie/freddie-sandbox-policy'
+import { effectiveSandboxMode } from '@freddie/freddie-sandbox'
 import { resolveConfig, validateConfig } from './config.js'
 import { LocalPtySession } from './session.js'
 import { CONTROLLED_PROMPT } from './sanitize.js'

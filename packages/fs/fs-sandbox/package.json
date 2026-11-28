@@ -28,14 +28,12 @@
     "@freddie/freddie-fs": "*",
     "@freddie/freddie-fs-local": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
     "@freddie/freddie-fs": "*",
     "@freddie/freddie-fs-local": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/cordis": "*"
   },
   "dependencies": {

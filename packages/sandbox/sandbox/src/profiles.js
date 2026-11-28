@@ -1,5 +1,5 @@
 import { grantArgs as landlockGrantArgs } from '@freddie/node-addon-landlock-run'
-import { writableRoots } from '@freddie/freddie-sandbox'
+import { writableRoots } from './roots.js'
 
 export function bwrapProfileArgs(policy) {
   const args = ['--ro-bind', '/', '/', '--dev', '/dev', '--unshare-pid', '--proc', '/proc', '--die-with-parent']

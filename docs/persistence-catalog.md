@@ -530,7 +530,7 @@ Source: [`packages/core/session/src/types.js`](../packages/core/session/src/type
 }
 ```
 
-Source: [`packages/sandbox/sandbox-policy/src/session-mode.js`](../packages/sandbox/sandbox-policy/src/session-mode.js)
+Source: [`packages/sandbox/sandbox/src/session-mode.js`](../packages/sandbox/sandbox/src/session-mode.js)
 
 ### `schedule/*`
 

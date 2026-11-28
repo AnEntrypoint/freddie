@@ -25,7 +25,6 @@
   "peerDependencies": {
     "@freddie/freddie-fs": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/cordis": "*"
   },
@@ -41,7 +40,6 @@
     "@freddie/freddie-fs-sandbox": "*",
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-system-prompt": "*",
     "@freddie/freddie-tools": "*",

@@ -45,7 +45,7 @@
   "peerDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-client-runtime": "*",
-    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-typert-protocol": "*"
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@freddie/cordis": "*",
     "@freddie/freddie-client-runtime": "*",
-    "@freddie/freddie-sandbox-policy": "*",
+    "@freddie/freddie-sandbox": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-typert-protocol": "*"

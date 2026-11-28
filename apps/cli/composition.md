@@ -49,10 +49,8 @@ flowchart LR
   cfg --> plugin_freddie_base_session_telemetry_otel
   plugin_freddie_base_subprocess["subprocess<br/>@freddie/freddie-subprocess-local"]
   cfg --> plugin_freddie_base_subprocess
-  plugin_freddie_base_sandbox["sandbox<br/>@freddie/freddie-sandbox-local"]
+  plugin_freddie_base_sandbox["sandbox<br/>@freddie/freddie-sandbox"]
   cfg --> plugin_freddie_base_sandbox
-  plugin_freddie_base_sandbox_policy["sandbox-policy<br/>@freddie/freddie-sandbox-policy"]
-  cfg --> plugin_freddie_base_sandbox_policy
   plugin_freddie_base_bash_sandbox["bash-sandbox<br/>@freddie/freddie-bash-sandbox"]
   cfg --> plugin_freddie_base_bash_sandbox
   plugin_freddie_base_approval["approval<br/>@freddie/freddie-user-approval"]
@@ -179,8 +177,7 @@ flowchart LR
 | `session-projection` | `@freddie/freddie-session-projection` |
 | `session-telemetry-otel` | `@freddie/freddie-session-telemetry-otel` |
 | `subprocess` | `@freddie/freddie-subprocess-local` |
-| `sandbox` | `@freddie/freddie-sandbox-local` |
-| `sandbox-policy` | `@freddie/freddie-sandbox-policy` |
+| `sandbox` | `@freddie/freddie-sandbox` |
 | `bash-sandbox` | `@freddie/freddie-bash-sandbox` |
 | `approval` | `@freddie/freddie-user-approval` |
 | `permission` | `@freddie/freddie-permission-presets` |

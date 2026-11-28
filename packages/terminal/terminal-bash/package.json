@@ -30,7 +30,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/cordis": "*"
@@ -43,7 +42,6 @@
     "@freddie/freddie-agent": "*",
     "@freddie/freddie-terminal": "*",
     "@freddie/freddie-sandbox": "*",
-    "@freddie/freddie-sandbox-policy": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-subprocess-local": "*",
