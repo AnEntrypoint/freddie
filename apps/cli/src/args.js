@@ -6,6 +6,7 @@ const collect = (value, previous = []) => [...previous, value]
 const HELP_EXAMPLES = `
 Examples:
   freddie --profile web                          boot the web profile (same as: freddie web)
+  freddie headless "run the tests"                the profile may be the first argument instead of --profile
   freddie --profile headless "run the tests"     answer one task, print the result, and exit
   freddie --profile tui --patch ./extra.yml      boot a custom profile with one extra overlay
   freddie --profile tui --resume <session>       arguments after the launcher flags reach the app
@@ -51,13 +52,14 @@ export function parseDshArgs(argv, version) {
     .option('--dump-config', 'print the composed profile tree and exit')
     .option('--dump-default-config', 'print the profile tree without its user layer or --patch overlays and exit')
     .action((args, options) => {
-      if (options.profile === undefined) {
+      const positional = options.profile === undefined && args.length > 0 && !args[0].startsWith('-')
+      if (options.profile === undefined && !positional) {
         if (args.some(argument => argument === '-h' || argument === '--help')) program.help()
-        program.error('error: --profile <name> is required')
+        program.error('error: --profile <name> or a profile name is required')
       }
-      const profile = options.profile
+      const profile = positional ? args[0] : options.profile
       if (profile === '') program.error('error: --profile needs a name')
-      resolved = resolveBoot(program, profile, options, args)
+      resolved = resolveBoot(program, profile, options, positional ? args.slice(1) : args)
     })
 
   const rejectParentOptions = (command) => {

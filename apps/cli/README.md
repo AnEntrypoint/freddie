@@ -6,7 +6,7 @@ The `freddie` command is the product launcher for profiles: ordered stacks of pl
 
 | Command | Purpose |
 |---|---|
-| `freddie --profile <name>` | Boot the named profile under `$FREDDIE_HOME/profiles/<name>`. |
+| `freddie --profile <name>` or `freddie <name>` | Boot the named profile under `$FREDDIE_HOME/profiles/<name>`; without `--profile` the first argument is the profile and the rest go to the app. |
 | `freddie --profile headless "job"` | Run one fresh persisted session, print the final answer, and exit. |
 | `freddie web` | Alias of `--profile web`. |
 | `freddie plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
