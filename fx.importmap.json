@@ -1,7 +1,14 @@
 {
   "imports": {
+    "zod": "node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js",
     "@freddie/cosmokit": "framework/cosmokit/src/index.js",
     "@freddie/freddie-runtime/buffer": "packages/util/runtime/src/buffer.js",
-    "@freddie/freddie-runtime/install-fx": "packages/util/runtime/src/install-fx.js"
+    "@freddie/freddie-runtime/fs": "packages/util/runtime/src/fs.js",
+    "@freddie/freddie-runtime/install-fx": "packages/util/runtime/src/install-fx.js",
+    "@freddie/freddie-runtime/module": "packages/util/runtime/src/module.js",
+    "@freddie/freddie-runtime/path": "packages/util/runtime/src/path.js",
+    "@freddie/freddie-runtime/process": "packages/util/runtime/src/process.js",
+    "@freddie/freddie-runtime/url": "packages/util/runtime/src/url.js",
+    "@freddie/schemastery": "framework/schemastery/src/index.js"
   }
 }

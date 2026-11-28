@@ -1,9 +1,8 @@
 import '@freddie/freddie-runtime/install-fx'
 import { execFileSync } from 'node:child_process'
-import { pathToFileURL } from 'node:url'
 import { validateTypertManifest } from '../src/index.js'
 
-const ROOT = new URL('../../../../', import.meta.url).pathname
+const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim() + '/'
 const check = (condition, message) => { if (!condition) throw new Error('typert manifest check failed: ' + message) }
 const refused = (manifest, fragment, why) => {
   try { validateTypertManifest('@freddie/pkg', manifest) } catch (error) { check(error.message.includes(fragment), why + ': message ' + error.message); return }
@@ -17,7 +16,7 @@ refused({ ...minimal, schemas: {} }, 'schemas must be an array', 'schemas that a
 refused({ ...minimal, invocations: undefined }, 'invocations must be an array', 'no invocations')
 const files = execFileSync('git', ['ls-files', '*typert.host.js'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
 for (const file of files) {
-  const { TYPERT } = await import(pathToFileURL(ROOT + file).href)
+  const { TYPERT } = await import(ROOT + file)
   check(!('model' in TYPERT), file + ' still carries a model')
   validateTypertManifest(TYPERT.package, TYPERT)
 }
