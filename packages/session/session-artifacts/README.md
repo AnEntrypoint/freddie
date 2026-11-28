@@ -1,6 +1,6 @@
 # `@freddie/freddie-session-artifacts`
 
-`ctx.sessionArtifacts` stores user-visible artifacts and explicit memory records beside a durable conversation through the host-owned storage-domain sidecar. The current view is a small `artifacts` session projection, while full content remains in the sidecar; the append-only session event therefore records metadata and revision state without duplicating potentially large content in conversation history.
+`ctx.sessionArtifacts` stores user-visible artifacts and explicit memory records beside a durable conversation through the host-owned domain-storage sidecar. The current view is a small `artifacts` session projection, while full content remains in the sidecar; the append-only session event therefore records metadata and revision state without duplicating potentially large content in conversation history.
 
 ## Service API
 
@@ -49,5 +49,5 @@ A capture is appended after the current input and repeats only when the selected
 ## Known Limitations and Deferred Work
 
 - Retrieval selects by recency; semantic ranking is a separate capability.
-- The initial provider is a storage-domain sidecar, so it works without assuming a physical per-session directory. A folder-backed export provider may later materialize the same records under JSONL's reserved session directory.
+- The initial provider is a domain-storage sidecar, so it works without assuming a physical per-session directory. A folder-backed export provider may later materialize the same records under JSONL's reserved session directory.
 - Semantic search, expiry review, and external/team principals require separate retrieval, retention, and authenticated-principal capability seams; the sidecar remains the authoritative local record.

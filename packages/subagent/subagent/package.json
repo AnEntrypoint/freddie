@@ -82,7 +82,6 @@
     "@freddie/freddie-session-projection": "*",
     "@freddie/freddie-session-projection-cache": "*",
     "@freddie/freddie-storage": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-jobs": "*",
     "@freddie/freddie-tools": "*",
     "@freddie/freddie-user-approval": "*",

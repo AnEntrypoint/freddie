@@ -1,4 +1,4 @@
-import { defineDomain, domainTable } from '@freddie/freddie-storage-domain'
+import { defineDomain, domainTable } from '@freddie/freddie-storage'
 
 export const messageFeedbackDomainSpec = defineDomain({
   name: 'message_feedback',

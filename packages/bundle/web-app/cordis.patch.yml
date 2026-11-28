@@ -27,11 +27,6 @@
       config:
         root: !!js freddieHomePath('storages')
 
-    - id: storage-domain
-      name: '@freddie/freddie-storage-domain'
-      config:
-        backend: json
-
     - id: message-feedback
       name: '@freddie/freddie-message-feedback'
       config:

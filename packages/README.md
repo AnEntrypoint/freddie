@@ -42,7 +42,7 @@ Groups hold `packages/<group>/<pkg>/`; names stay `@freddie/freddie-<pkg>`. **Gr
 | [`session-query/`](session-query/README.md) | Session retrieval family: bounded reads, lineage, semantic filtering, SQLite full-text search | Product — stable API |
 | [`settings/`](settings/README.md) | User-settings seam, file-backed provider | Product — stable API |
 | [`credentials/`](credentials/README.md) | Credential reference/record seam, env-over-`.env` provider, authorization flows | Product — stable API |
-| [`storage/`](storage/README.md) | Non-session storage hub, backends, domain form | Product — stable API |
+| [`storage/`](storage/README.md) | Non-session domain-record storage and its JSON backend | Product — stable API |
 | [`workspace/`](workspace/README.md) | Workspace entity | Product — stable API |
 | [`sdk/`](sdk/README.md) | Out-of-process runtime SDK: JSON-RPC protocol and server plugin | Product — stable API |
 | [`acp/`](acp/README.md) | Automation-only Agent Client Protocol server | Product — stable API |

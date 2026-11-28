@@ -1,6 +1,6 @@
 # @freddie/freddie-message-feedback
 
-Host-owned editable feedback for one finalized assistant message. The package registers `ctx.messageFeedback`, persists one lifecycle-bound sidecar row per Session in storage-domain, and publishes the Host `messageFeedback.list`, `messageFeedback.put`, and `messageFeedback.delete` unary Remote contract. It is separate from the immutable Session-level `feedback/record` event and performs no telemetry handoff. The [message-feedback sidecar Agent Note](../../../.agents/notes/implemented/architecture/2026-08-10-message-feedback-sidecar.md) owns the design boundary.
+Host-owned editable feedback for one finalized assistant message. The package registers `ctx.messageFeedback`, persists one lifecycle-bound sidecar row per Session in domain-storage, and publishes the Host `messageFeedback.list`, `messageFeedback.put`, and `messageFeedback.delete` unary Remote contract. It is separate from the immutable Session-level `feedback/record` event and performs no telemetry handoff. The [message-feedback sidecar Agent Note](../../../.agents/notes/implemented/architecture/2026-08-10-message-feedback-sidecar.md) owns the design boundary.
 
 Public request, value, version, and failure types are exported from the package root and `@freddie/freddie-message-feedback/types`; [`src/types.js`](src/types.js) is their source.
 
@@ -51,7 +51,7 @@ The same three `MessageFeedbackService` methods are published by `TypertRemoteSe
 
 A matching-version no-op returns the already stored item with unchanged version and timestamps. After a lost success response, a retry with the old token receives `version-conflict.current`; the caller can compare that authoritative item with its desired value without an extra read. `delete` ignores `ifVersion` when the item is already absent and always returns the stable `{ absent: true }` postcondition after success.
 
-A per-Session promise queue encloses inspection, durability validation, sidecar read, comparison, and whole-row write. These semantics serialize concurrent mutations through one service instance; storage-domain itself has no cross-process conditional write.
+A per-Session promise queue encloses inspection, durability validation, sidecar read, comparison, and whole-row write. These semantics serialize concurrent mutations through one service instance; domain-storage itself has no cross-process conditional write.
 
 Plugin disposal closes mutation admission, drains every operation already accepted into the per-Session queues, and only then closes the storage domain. A mutation submitted after disposal begins rejects as a lifecycle failure instead of entering a closing domain.
 
@@ -74,7 +74,7 @@ Independent. Listing or mutating message feedback does not touch a model request
 ## Known Limitations and Deferred Work
 
 - **Client aggregate and UI are absent** — the Host Remote contract ships, but the Client Remote aggregate contribution and any UI consumer are separately owned and deferred.
-- **Compare-and-set is single-process** — the per-Session queue serializes one service instance only; multiple Host processes writing one storage root can still lose updates because storage-domain exposes no cross-process conditional write.
+- **Compare-and-set is single-process** — the per-Session queue serializes one service instance only; multiple Host processes writing one storage root can still lose updates because domain-storage exposes no cross-process conditional write.
 - **No durable Session deletion cascade** — Session persistence has no deletion API, and `session/disposed`/`host/session-removed` mean detach rather than durable deletion. The service therefore retains empty rows and may leave orphan rows after out-of-band log removal instead of deleting valid feedback on detach.
 - **Detach/catalog retirement window** — a request in the narrow interval after live detach but before the persistence catalog materializes the header can receive `session-not-found`; callers retry after retirement materialization.
 - **Header identity is not a content fingerprint** — `{createdAt, cwd}` detects reuse only when those fields differ; a cloned log retaining the same header identity is indistinguishable.

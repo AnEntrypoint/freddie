@@ -107,7 +107,6 @@
     "@freddie/freddie-session-log-export": "*",
     "@freddie/freddie-session-stats": "*",
     "@freddie/freddie-storage": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-workspace": "*",
     "@freddie/schemastery": "*",

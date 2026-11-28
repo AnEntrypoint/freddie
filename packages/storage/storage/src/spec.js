@@ -1,4 +1,4 @@
-import { UNIT_NAME_RE } from '@freddie/freddie-storage'
+import { UNIT_NAME_RE } from './backend.js'
 
 export function domainTable() {
   return {}

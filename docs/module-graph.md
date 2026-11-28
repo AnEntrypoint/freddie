@@ -262,7 +262,6 @@ flowchart TD
   end
   subgraph group_storage["packages/storage"]
     pkg_storage["storage"]
-    pkg_storage_domain["storage-domain"]
   end
   subgraph group_subprocess["packages/subprocess"]
     pkg_subprocess["subprocess"]
@@ -296,7 +295,6 @@ flowchart TD
   pkg_anonymous_user_id --> pkg_brand
   pkg_anonymous_user_id --> pkg_home_paths
   pkg_settings --> pkg_brand
-  pkg_storage_domain --> pkg_storage
   pkg_subprocess_local --> pkg_subprocess
   pkg_subprocess_local --> pkg_timeout
   pkg_typert_loader --> pkg_typert_registry
@@ -386,7 +384,7 @@ flowchart TD
   pkg_message_feedback --> pkg_llm
   pkg_message_feedback --> pkg_session
   pkg_message_feedback --> pkg_session_persistence
-  pkg_message_feedback --> pkg_storage_domain
+  pkg_message_feedback --> pkg_storage
   pkg_message_feedback --> pkg_typert_protocol
   pkg_commands --> pkg_agent
   pkg_commands --> pkg_attachment
@@ -425,7 +423,7 @@ flowchart TD
   pkg_session_projection_cache --> pkg_session
   pkg_session_projection_cache --> pkg_session_persistence
   pkg_session_projection_cache --> pkg_session_projection
-  pkg_session_projection_cache --> pkg_storage_domain
+  pkg_session_projection_cache --> pkg_storage
   pkg_session_stats --> pkg_llm
   pkg_session_stats --> pkg_session
   pkg_session_stats --> pkg_session_projection
@@ -448,7 +446,6 @@ flowchart TD
   pkg_workspace --> pkg_session
   pkg_workspace --> pkg_session_persistence
   pkg_workspace --> pkg_storage
-  pkg_workspace --> pkg_storage_domain
   pkg_tools --> pkg_agent
   pkg_tools --> pkg_code_runtime
   pkg_tools --> pkg_llm

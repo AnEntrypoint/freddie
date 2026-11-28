@@ -41,7 +41,7 @@
     "@freddie/freddie-llm": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
-    "@freddie/freddie-storage-domain": "*",
+    "@freddie/freddie-storage": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   },
@@ -59,7 +59,6 @@
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-persistence-jsonl": "*",
     "@freddie/freddie-storage": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   }

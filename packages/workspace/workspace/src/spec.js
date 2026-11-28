@@ -1,4 +1,4 @@
-import { defineDomain, domainTable } from '@freddie/freddie-storage-domain'
+import { defineDomain, domainTable } from '@freddie/freddie-storage'
 
 function passthroughSchema() {
   return { parse: value => value, safeParse: value => ({ success: value !== null }) }

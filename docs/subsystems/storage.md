@@ -1,25 +1,8 @@
 # Storage
 
-The storage subsystem persists everything that is not a session event log (session logs have their own seam — [persistence.md](persistence.md)). It is one optional capability, not part of the agent-loop spine, split as a [capability seam](../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md): the hub and Service Definition ([@freddie/freddie-storage](../../packages/storage/storage), `ctx.storage`), its one Service Provider, the `json` backend, which the same plugin registers (`src/json-backend.js` in the package above), and the Consumer data form ([@freddie/freddie-storage-domain](../../packages/storage/storage-domain), `ctx.storageDomain`, also reachable as `ctx.storage.domain`) — the backend contract's only Consumer and the typed API everything else uses. The hub performs no IO itself: backends own media, data forms own semantics, and product packages never touch backends directly. Design record: [domain KV storage Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md).
+The storage subsystem persists everything that is not a session event log (session logs have their own seam — [persistence.md](persistence.md)). It is one optional capability, not part of the agent-loop spine, and one plugin: [@freddie/freddie-storage](../../packages/storage/storage) provides the `json` backend (`src/json-backend.js`) and the typed domain facility (`ctx.storageDomain`) that everything else uses. The backend contract keeps its own file, so a second medium can be added behind the same facility; the earlier hub, registry and route table were removed because there is only one backend and one data form. Product packages never touch the backend directly. Design record: [domain KV storage Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md) (frozen; describes the earlier three-package layout).
 
-Source: [`packages/storage/storage/src/backend.js`](../../packages/storage/storage/src/backend.js) · [`packages/storage/storage-domain/src/spec.js`](../../packages/storage/storage-domain/src/spec.js) · [`packages/storage/storage-domain/src/events.js`](../../packages/storage/storage-domain/src/events.js)
-
-## The hub: `ctx.storage`
-
-`Storage` ([signatures](#ctxstorage--storage)) is a meeting point, not a store. `ctx.storage.backend` is a name → backend table: multiple backends stay mounted side by side, and which backend serves which consumer is that consumer's configuration (the domain layer's route table), never a hub-global choice. `register(name, backend)` returns the disposer; duplicate names and unknown lookups throw `StorageError`. Disposal only unregisters the name — the owning plugin closes the backend after unregistering. Each backend plugin also publishes a lifecycle-only service key (`storageBackendServiceKey(name)`), which form providers inject so their activation cannot race backend registration.
-
-Data forms mount on the hub under a merge-extensible key map:
-
-```ts type-equiv
-/**
- * Data forms mountable on the hub, keyed by form name. Form owners extend
- * this map via declaration merging (the domain layer merges
- * `domain: DomainFacility`) and mount the facility in their `apply`.
- */
-interface StorageForms {}
-```
-
-`mount(form, facility)` is an effect whose disposer unmounts; a second mount of the same key throws `duplicate-mount`. `form(form)` resolves a mounted facility and throws `form-not-mounted` until the owning plugin loads — assemblies order plugins accordingly rather than silently deferring. The domain layer merges `domain: DomainFacility`, so `ctx.storage.domain` and `ctx.storageDomain` are the same object.
+Source: [`packages/storage/storage/src/backend.js`](../../packages/storage/storage/src/backend.js) · [`packages/storage/storage/src/spec.js`](../../packages/storage/storage/src/spec.js) · [`packages/storage/storage/src/domain.js`](../../packages/storage/storage/src/domain.js)
 
 ## The backend contract
 
@@ -97,7 +80,7 @@ Reads are synchronous from authoritative in-memory state: `KvTable` exposes `get
 
 ## The domain facility: `ctx.storageDomain`
 
-`DomainFacility` ([signatures](#ctxstoragedomain--domainfacility)) opens declared domains over routed backends. Routing is the domain plugin's configuration, never the hub's: `backend` names the required default route and `routes` overrides it per domain name. `open(spec)` runs a strict sequence, each step failing the whole call: it rejects a name already open or still closing (`already-open`), resolves the route (`backend-not-found`), requires the backend's `kv` facet (`facet-unsupported`), opens the unit (backend `version-mismatch`/`malformed-medium` pass through), and validates every stored record and global against the spec's zod schemas (`invalid-record` with the offending table and key). The caller owns the returned handle and releases it with `Domain.close()`; domains still open when the plugin unmounts are closed by the facility, and a closed domain's name frees for reopening only after teardown fully completes. `get(name)` is an untyped diagnostic lookup onto the package-private `DomainImpl` runtime behind every typed handle; `closeAll()` is the unmount path.
+`DomainFacility` ([signatures](#ctxstoragedomain--domainfacility)) opens declared domains over the `json` backend, whose `root` is the plugin's only configuration. `open(spec)` runs a strict sequence, each step failing the whole call: it rejects a name already open or still closing (`already-open`), opens the unit (backend `version-mismatch`/`malformed-medium` pass through), and validates every stored record and global against the spec's zod schemas (`invalid-record` with the offending table and key). The caller owns the returned handle and releases it with `Domain.close()`; domains still open when the plugin unmounts are closed by the facility, and a closed domain's name frees for reopening only after teardown fully completes. `get(name)` is an untyped diagnostic lookup onto the package-private `DomainImpl` runtime behind every typed handle; `closeAll()` is the unmount path.
 
 ## The change event: `domain/changed`
 
@@ -120,7 +103,7 @@ interface DomainChangedBase {
 type DomainChanged = DomainChangedPut | DomainChangedDeleted
 ```
 
-`put` (inserts, overwrites, and global writes) carries the new snapshot in `value` — never the old value; a diffing consumer keeps its own previous snapshot. `deleted` is a tombstone with no value. The event is a notification, not a transaction participant: the commit point has passed at emission, so a synchronously throwing listener is contained with a logged warning rather than rejecting the already-durable write, and emitted values equal the in-memory state at emission. The event is in-process only; cross-process change push is a recorded limitation ([package README](../../packages/storage/storage-domain/README.md)).
+`put` (inserts, overwrites, and global writes) carries the new snapshot in `value` — never the old value; a diffing consumer keeps its own previous snapshot. `deleted` is a tombstone with no value. The event is a notification, not a transaction participant: the commit point has passed at emission, so a synchronously throwing listener is contained with a logged warning rather than rejecting the already-durable write, and emitted values equal the in-memory state at emission. The event is in-process only; cross-process change push is a recorded limitation ([package README](../../packages/storage/storage/README.md)).
 
 <!-- BEGIN cordis-surface (hand-maintained) -->
 
@@ -130,44 +113,17 @@ type DomainChanged = DomainChangedPut | DomainChangedDeleted
 
 Originally generated from source by `scripts/gen-cordis-catalog.ts`; that script and its `verify-cordis-catalog` freshness check no longer exist, so this region is maintained by hand and must be updated alongside the code it describes. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
-<a id="ctxstorage--storage"></a>
-
-### `ctx.storage` — `Storage`
-
-The storage hub service. Backends register under `backend`; data forms mount under their `StorageForms` key and are reached as `ctx.storage.<form>`.
-
-```ts cordis-catalog
-/**
- * Mount a data-form facility on the hub. Mounting is an effect: the
- * returned disposer unmounts the form.
- * @param form - Form key declared in {@link StorageForms}.
- * @param facility - The facility instance to expose.
- * @returns the disposer that unmounts the form.
- */
-mount<K extends keyof StorageForms>(form: K, facility: StorageForms[K]): () => void
-
-/**
- * Resolve a mounted data form.
- * @param form - Form key declared in {@link StorageForms}.
- * @returns the mounted facility.
- */
-form<K extends keyof StorageForms>(form: K): StorageForms[K]
-```
-
-Source: [`packages/storage/storage/src/index.js`](../../packages/storage/storage/src/index.js)
-
 <a id="ctxstoragedomain--domainfacility"></a>
 
 ### `ctx.storageDomain` — `DomainFacility`
 
-The mounted domain facility. Opens declared domains over routed backends; one facility instance owns the open-domain table and enforces single-open per domain name.
+The mounted domain facility. Opens declared domains over the json backend; one facility instance owns the open-domain table and enforces single-open per domain name.
 
 ```ts cordis-catalog
 /**
  * Open one declared domain. Steps, each failing the whole call: reject a
- * name that is already open (`already-open`); resolve the backend route
- * (`backend-not-found` passes through from the hub); require its `kv` facet
- * (`facet-unsupported`); open the unit projected from the spec (backend
+ * name that is already open (`already-open`); open the unit projected
+ * from the spec (backend
  * `version-mismatch`/`malformed-medium` pass through); load and validate
  * every stored record against the spec's zod schemas (`invalid-record`
  * with the offending table and key); construct the domain.
@@ -199,7 +155,7 @@ get(name: string): DomainImpl | undefined
 async closeAll(): Promise<void>
 ```
 
-Source: [`packages/storage/storage-domain/src/index.js`](../../packages/storage/storage-domain/src/index.js)
+Source: [`packages/storage/storage/src/facility.js`](../../packages/storage/storage/src/facility.js)
 
 <a id="domain-events"></a>
 
@@ -223,5 +179,5 @@ A domain record or the global singleton changed, emitted once per write strictly
 'domain/changed'(change: DomainChanged): void
 ```
 
-Source: [`packages/storage/storage-domain/src/events.js`](../../packages/storage/storage-domain/src/events.js)
+Source: [`packages/storage/storage/src/domain.js`](../../packages/storage/storage/src/domain.js)
 <!-- END cordis-surface -->

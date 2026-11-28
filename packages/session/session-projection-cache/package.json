@@ -31,7 +31,7 @@
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-projection": "*",
-    "@freddie/freddie-storage-domain": "*",
+    "@freddie/freddie-storage": "*",
     "@freddie/cordis": "*"
   },
   "devDependencies": {
@@ -39,7 +39,6 @@
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-session-projection": "*",
     "@freddie/freddie-storage": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/cordis": "*"
   }
 }

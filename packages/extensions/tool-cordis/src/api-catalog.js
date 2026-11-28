@@ -1631,37 +1631,13 @@ export const SERVICE_API = [
     ],
   },
   {
-    key: 'storage',
-    summary: 'The storage hub service.',
-    description: 'The storage hub service. Backends register under `backend`; data forms mount under their `StorageForms` key and are reached as `ctx.storage.<form>`.',
-    methods: [
-      {
-        signature: 'readonly backend: BackendRegistry = new BackendRegistry()',
-        description: 'Named backend table; multiple backends stay mounted side by side.',
-        parameters: [],
-      },
-      {
-        signature: 'mount<K extends keyof StorageForms>(form: K, facility: StorageForms[K]): () => void',
-        description: 'Mount a data-form facility on the hub. Mounting is an effect: the returned disposer unmounts the form.',
-        parameters: [{ name: 'form', description: 'Form key declared in {@link StorageForms}.' }, { name: 'facility', description: 'The facility instance to expose.' }],
-        returns: 'the disposer that unmounts the form.',
-      },
-      {
-        signature: 'form<K extends keyof StorageForms>(form: K): StorageForms[K]',
-        description: 'Resolve a mounted data form.',
-        parameters: [{ name: 'form', description: 'Form key declared in {@link StorageForms}.' }],
-        returns: 'the mounted facility.',
-      },
-    ],
-  },
-  {
     key: 'storageDomain',
     summary: 'The mounted domain facility.',
-    description: 'The mounted domain facility. Opens declared domains over routed backends; one facility instance owns the open-domain table and enforces single-open per domain name.',
+    description: 'The mounted domain facility. Opens declared domains over the json backend; one facility instance owns the open-domain table and enforces single-open per domain name.',
     methods: [
       {
         signature: 'async open<S extends DomainSpec>(spec: S): Promise<Domain<S>>',
-        description: 'Open one declared domain. Steps, each failing the whole call: reject a name that is already open (`already-open`); resolve the backend route (`backend-not-found` passes through from the hub); require its `kv` facet (`facet-unsupported`); open the unit projected from the spec (backend `version-mismatch`/`malformed-medium` pass through); load and validate every stored record against the spec\'s zod schemas (`invalid-record` with the offending table and key); construct the domain.\n\nLifecycle: the CALLER owns the returned handle and closes it via `Domain.close()` (typically as its own `ctx.effect` disposer) — the facility does not tie the domain to any consumer fiber. Domains still open when the facility unmounts are closed by the plugin disposer.',
+        description: 'Open one declared domain. Steps, each failing the whole call: reject a name that is already open (`already-open`); open the unit projected from the spec (backend `version-mismatch`/`malformed-medium` pass through); load and validate every stored record against the spec\'s zod schemas (`invalid-record` with the offending table and key); construct the domain.\n\nLifecycle: the CALLER owns the returned handle and closes it via `Domain.close()` (typically as its own `ctx.effect` disposer) — the facility does not tie the domain to any consumer fiber. Domains still open when the facility unmounts are closed by the plugin disposer.',
         parameters: [{ name: 'spec', description: 'The domain declaration, typically from `defineDomain`.' }],
         returns: 'the opened domain handle, typed by the spec.',
       },
@@ -2901,10 +2877,6 @@ export const TYPE_API = [
   {
     name: 'AuthorizationStatus',
     declaration: 'export type AuthorizationStatus = \'authorized\' | \'cancelled\';',
-  },
-  {
-    name: 'BackendRegistry',
-    declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
   },
   {
     name: 'BashEnvContributor',
@@ -4341,14 +4313,6 @@ export const TYPE_API = [
   {
     name: 'SpillSource',
     declaration: 'export interface SpillSource {\n    toolName: string;\n    callId: CallId;\n    label: string;\n}',
-  },
-  {
-    name: 'StorageBackend',
-    declaration: 'export interface StorageBackend {\n    readonly kv?: KvFacet;\n    close(): Promise<void>;\n}',
-  },
-  {
-    name: 'StorageForms',
-    declaration: 'export interface StorageForms {\n}',
   },
   {
     name: 'StoredImageAttachment',

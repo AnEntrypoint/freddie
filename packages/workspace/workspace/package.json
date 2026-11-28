@@ -28,7 +28,6 @@
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-storage": "*",
@@ -36,7 +35,6 @@
   },
   "devDependencies": {
     "@freddie/freddie-brand": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
     "@freddie/freddie-storage": "*",

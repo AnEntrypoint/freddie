@@ -9,4 +9,4 @@ The feedback family exposes two deliberately separate contracts: an immutable re
 
 A command feedback remark is log-only: it never enters model context or derived history. When mounted, [`freddie-session-telemetry-otel`](../session/session-telemetry-otel) observes `feedback/record` to release a pending telemetry prefix or warn that disabled telemetry leaves the feedback local; capture itself remains independent of that policy.
 
-Message feedback is not a Session event or projection. It remains in the storage-domain sidecar and causes no telemetry handoff. The Host Remote contract ships with the service; the client Remote aggregate mount and UI consumer are separately owned and deferred.
+Message feedback is not a Session event or projection. It remains in the domain-storage sidecar and causes no telemetry handoff. The Host Remote contract ships with the service; the client Remote aggregate mount and UI consumer are separately owned and deferred.

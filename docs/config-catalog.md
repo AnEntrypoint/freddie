@@ -1765,29 +1765,6 @@ export interface Config {
 
 Source: [`packages/storage/storage/src/index.js`](../packages/storage/storage/src/index.js)
 
-<a id="freddie-storage-domain"></a>
-
-## `@freddie/freddie-storage-domain`
-
-Requires: `storage`
-
-```ts config-catalog
-/**
- * Plugin config. Which backend serves which domain is decided here, not
- * globally on the hub: `backend` is the default route and `routes` overrides
- * it per domain name. A route naming an unregistered backend fails loud at
- * `open` with `backend-not-found`.
- */
-export interface Config {
-  /** Default backend name for every domain without an explicit route. Required: there is no universally correct medium. */
-  backend: string
-  /** Per-domain overrides: domain name → backend name. */
-  routes?: Record<string, string>
-}
-```
-
-Source: [`packages/storage/storage-domain/src/index.js`](../packages/storage/storage-domain/src/index.js)
-
 <a id="freddie-subagent-fork-in-process"></a>
 
 ## `@freddie/freddie-subagent-fork-in-process`

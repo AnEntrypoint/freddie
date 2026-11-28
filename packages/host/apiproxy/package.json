@@ -73,7 +73,6 @@
     "@freddie/freddie-agent-presets": "*",
     "@freddie/freddie-cordis-host-runner": "*",
     "@freddie/freddie-storage": "*",
-    "@freddie/freddie-storage-domain": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/freddie-typert-registry": "*"
   }

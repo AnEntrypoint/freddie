@@ -1548,9 +1548,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
@@ -4249,9 +4246,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -4739,9 +4733,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -5848,9 +5839,9 @@ importers:
       '@freddie/freddie-session-projection':
         specifier: '*'
         version: link:../session-projection
-      '@freddie/freddie-storage-domain':
+      '@freddie/freddie-storage':
         specifier: '*'
-        version: link:../../storage/storage-domain
+        version: link:../../storage/storage
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -5958,9 +5949,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
 
   packages/session/session-stats:
     devDependencies:
@@ -6613,19 +6601,6 @@ importers:
         specifier: '*'
         version: link:../../../framework/cordis
 
-  packages/storage/storage-domain:
-    dependencies:
-      '@freddie/schemastery':
-        specifier: link:../../../framework/schemastery
-        version: link:../../../framework/schemastery
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-      '@freddie/freddie-storage':
-        specifier: '*'
-        version: link:../storage
-
   packages/subagent/subagent:
     dependencies:
       '@freddie/freddie-runtime':
@@ -6674,9 +6649,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
       '@freddie/freddie-tools':
         specifier: '*'
         version: link:../../core/tools
@@ -7443,9 +7415,6 @@ importers:
       '@freddie/freddie-storage':
         specifier: '*'
         version: link:../../storage/storage
-      '@freddie/freddie-storage-domain':
-        specifier: '*'
-        version: link:../../storage/storage-domain
 
 packages:
 

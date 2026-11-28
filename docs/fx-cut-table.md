@@ -70,7 +70,7 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 | move | shell-jobs | 1 | 96 | - | stays with the sandbox decision (gap G2) | bash-sandbox |
 | move | skills | 1 | 47 | - | badge shown in the web UI | skill-badge |
 | move | split | 7 | 6322 | - | agent host half moves with the web UI backend; client half is GUI JavaScript | api-gateway, api-remotes, job-controller, remote-stream, session-controller, terminal-controller, typert-registry |
-| move | state-policy | 4 | 2106 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, storage, storage-domain |
+| move | state-policy | 4 | 2106 | - | settings, credentials and storage stay freddie contracts until compared in stage 5 | inspector, storage |
 | move | util | 12 | 1107 | - | shared primitives; copies follow the host interface in stage 4 | atomic-write, brand, crypto, deque, home-paths, http-proxy, launch-environment, native-command, output-retention, time, timeout, values |
 
 ## Deleted so far (stage 7)
