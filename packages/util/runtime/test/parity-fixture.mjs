@@ -1,4 +1,5 @@
 import '../src/install-fx.js'
+import process from 'node:process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { captureCases, fixtureProblems } from './parity-cases.js'
 
