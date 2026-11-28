@@ -16,10 +16,10 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./src/*": "./src/*",
     "./brand": {
       "default": "./src/brand.js"
     },
+    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

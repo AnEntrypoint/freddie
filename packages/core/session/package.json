@@ -19,11 +19,11 @@
     "./types": {
       "default": "./src/types.js"
     },
-    "./src/*": "./src/*",
-    "./package.json": "./package.json",
     "./surface": {
       "default": "./src/surface.js"
-    }
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "src/*.js"

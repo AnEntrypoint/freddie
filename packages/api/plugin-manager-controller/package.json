@@ -19,10 +19,10 @@
     "./remote": {
       "default": "./src/typert.remote-client.js"
     },
-    "./src/*": "./src/*",
     "./typert": {
       "default": "./src/typert.host.js"
     },
+    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [

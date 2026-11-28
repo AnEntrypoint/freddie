@@ -15,7 +15,9 @@
   "main": "src/index.js",
   "bin": "bin.js",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "default": "./src/index.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },

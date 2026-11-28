@@ -13,9 +13,15 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": "./src/index.js",
-    "./jsx-runtime": "./src/jsx-runtime.js",
-    "./jsx-dev-runtime": "./src/jsx-dev-runtime.js",
+    ".": {
+      "default": "./src/index.js"
+    },
+    "./jsx-runtime": {
+      "default": "./src/jsx-runtime.js"
+    },
+    "./jsx-dev-runtime": {
+      "default": "./src/jsx-dev-runtime.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },

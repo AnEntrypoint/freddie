@@ -16,8 +16,6 @@
     ".": {
       "default": "./src/index.js"
     },
-    "./src/*": "./src/*",
-    "./package.json": "./package.json",
     "./api": {
       "default": "./src/api/index.js"
     },
@@ -26,7 +24,9 @@
     },
     "./client": {
       "default": "./src/fetch/client.js"
-    }
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "src/**/*.js"

@@ -13,7 +13,9 @@
   "type": "module",
   "main": "src/index.js",
   "exports": {
-    ".": "./src/index.js",
+    ".": {
+      "default": "./src/index.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },

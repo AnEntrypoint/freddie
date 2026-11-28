@@ -1,0 +1,2665 @@
+{
+  "packages": {
+    "framework/cordis": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "bin.js",
+        "src"
+      ]
+    },
+    "framework/cosmokit": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/group": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/hmr": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/include": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/loader": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/logger-console": {
+      "entries": {},
+      "raw": {
+        ".": {
+          "node": "./src/index.js",
+          "default": "./src/browser.js"
+        }
+      },
+      "srcWildcard": true,
+      "main": "src/index.js",
+      "files": [
+        "src"
+      ]
+    },
+    "framework/schemastery": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/timer": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "framework/webjsx": {
+      "entries": {
+        ".": "src/index.js",
+        "./jsx-runtime": "src/jsx-runtime.js",
+        "./jsx-dev-runtime": "src/jsx-dev-runtime.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "packages/acp/acp": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/codec.js",
+        "src/content.js"
+      ]
+    },
+    "packages/api/gateway": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/api/job-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./rows": "src/rows.js",
+        "./wake": "src/wake.js",
+        "./client": "src/client/index.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/api/plugin-manager-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./remote": "src/typert.remote-client.js",
+        "./typert": "src/typert.host.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/remote-stream": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/remotes": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/api/session-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client/index.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/settings-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./remote": "src/typert.remote-client.js",
+        "./typert": "src/typert.host.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/terminal-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client/index.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/workspace-controller": {
+      "entries": {
+        ".": "src/index.js",
+        "./remote": "src/typert.remote-client.js",
+        "./typert": "src/typert.host.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/api/workspace-files": {
+      "entries": {
+        ".": "src/index.js",
+        "./remote": "src/typert.remote-client.js",
+        "./typert": "src/typert.host.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/attachment/attachment-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/*.js"
+      ]
+    },
+    "packages/attachment/attachment": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/brand.js",
+        "src/error.js",
+        "src/admission.js"
+      ]
+    },
+    "packages/boot/app-boot": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/boot/cmdline": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/boot/config-editor": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/boot/plugin-manager": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/browser-use/browser-use": {
+      "entries": {
+        ".": "src/index.js",
+        "./brand": "src/brand.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/brand.js"
+      ]
+    },
+    "packages/bundle/acp-app": {
+      "entries": {
+        ".": "src/index.js",
+        "./startup": "src/startup.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/startup.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/bundle/agent-team-profile": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/bundle/base": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/bundle/headless": {
+      "entries": {
+        ".": "src/index.js",
+        "./startup": "src/startup.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/startup.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/bundle/sdk-app": {
+      "entries": {
+        ".": "src/index.js",
+        "./startup": "src/startup.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/startup.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/bundle/web-app": {
+      "entries": {
+        ".": "src/index.js",
+        "./startup": "src/startup.js"
+      },
+      "raw": {
+        "./cordis.patch.yml": "./cordis.patch.yml"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/startup.js",
+        "cordis.patch.yml"
+      ]
+    },
+    "packages/client/connection": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/css-manifest": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/client/file-upload": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js",
+        "./shared": "src/shared.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/shared.js",
+        "src/error.js",
+        "src/staging.js",
+        "src/intake.js",
+        "src/media-type.js",
+        "src/http-route.js",
+        "src/client/index.js",
+        "src/client/runtime.js",
+        "src/client/worker.js",
+        "src/client/progress.js"
+      ]
+    },
+    "packages/client/hmr": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/events.js",
+        "src/handles.js",
+        "src/client/index.js"
+      ]
+    },
+    "packages/client/locale": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/locales/en.js",
+        "src/locales/index.js",
+        "src/client/index.js"
+      ]
+    },
+    "packages/client/modules": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/client/runtime": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/shortcuts": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-agent-preset": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/client/ui-artifacts": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-attachment": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/AttachmentRail.js",
+        "src/AttachmentRail.css.js",
+        "src/DropOverlay.js",
+        "src/DropOverlay.css.js",
+        "src/ImageLightbox.js",
+        "src/ImageLightbox.css.js",
+        "src/MessageImage.js",
+        "src/MessageImage.css.js",
+        "src/client/index.js",
+        "src/client/labels.js",
+        "src/client/MessageImages.js",
+        "src/client/ComposerAttachments.js",
+        "src/client/ComposerAttachments.css.js"
+      ]
+    },
+    "packages/client/ui-brand-official": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/Brand.js"
+      ]
+    },
+    "packages/client/ui-commands": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-conversation": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-deliverables": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-directory-picker-browse": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/flow.js",
+        "src/client/DirectoryBrowser.js",
+        "src/client/DirectoryBrowser.css",
+        "src/client/DirectoryBrowser.css.js"
+      ]
+    },
+    "packages/client/ui-directory-picker-native": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/flow.js"
+      ]
+    },
+    "packages/client/ui-goal": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-input-trigger": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/service.js",
+        "src/client/controller.js",
+        "src/client/contract.js",
+        "src/client/slots.js",
+        "src/client/locales.js",
+        "src/client/MenuView.js",
+        "src/client/MenuView.css",
+        "src/client/MenuView.css.js",
+        "src/core/contract.js",
+        "src/core/detect.js",
+        "src/core/menu.js",
+        "src/types.js"
+      ]
+    },
+    "packages/client/ui-jobs": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/JobListAction.js",
+        "src/client/JobListAction.css.js",
+        "src/client/locales.js"
+      ]
+    },
+    "packages/client/ui-layout": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/client/ui-message-feedback": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/controller.js",
+        "src/client/locales.js",
+        "src/client/MessageFeedbackActions.js",
+        "src/client/MessageFeedbackActions.css.js"
+      ]
+    },
+    "packages/client/ui-model-selection": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js",
+        "src/client/ModelSelect.css"
+      ]
+    },
+    "packages/client/ui-open-in-app": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/controller.js",
+        "src/client/applications.js",
+        "src/client/OpenInAppAction.js",
+        "src/client/OpenInAppAction.css.js",
+        "src/client/locales.js"
+      ]
+    },
+    "packages/client/ui-permission-presets": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-plan": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/locales.js",
+        "src/client/PlanModeControl.js",
+        "src/client/PlanModeControl.css.js"
+      ]
+    },
+    "packages/client/ui-primitives": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js",
+        "src/**/*.css"
+      ]
+    },
+    "packages/client/ui-reference": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/locales.js"
+      ]
+    },
+    "packages/client/ui-renderer": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/client/ui-settings-general": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/client/ui-settings-models": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-settings-plugin-inventory": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/locales.js",
+        "src/client/plugin-manager-port.js",
+        "src/client/PluginInventorySettingsTab.js",
+        "src/client/PluginInventorySettingsTab.css.js"
+      ]
+    },
+    "packages/client/ui-settings-plugins": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/AgentLoopCard.js",
+        "src/client/BashCard.js",
+        "src/client/PluginCard.js",
+        "src/client/PluginCard.css",
+        "src/client/PluginCard.css.js",
+        "src/client/settings-card.css",
+        "src/client/settings-card.css.js",
+        "src/client/fields.js",
+        "src/client/fields.css",
+        "src/client/fields.css.js",
+        "src/client/PluginsSettingsSection.js",
+        "src/client/PluginsSettingsSection.css",
+        "src/client/PluginsSettingsSection.css.js",
+        "src/client/ConfigurablePluginsTab.js",
+        "src/client/agent-loop-card-controller.js",
+        "src/client/bash-card-controller.js",
+        "src/client/card-form.js",
+        "src/client/locales.js",
+        "src/client/tab-store.js"
+      ]
+    },
+    "packages/client/ui-settings-subagent": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/SubagentCard.js",
+        "src/client/locales.js",
+        "src/client/subagent-card-controller.js"
+      ]
+    },
+    "packages/client/ui-settings-web-search": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/WebSearchCard.js",
+        "src/client/locales.js",
+        "src/client/web-search-card-controller.js"
+      ]
+    },
+    "packages/client/ui-settings": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js",
+        "src/client/contract/*.js"
+      ]
+    },
+    "packages/client/ui-sidebar": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-skill": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/locales.js",
+        "src/client/SkillRow.js",
+        "src/client/SkillRow.css.js"
+      ]
+    },
+    "packages/client/ui-slots": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/observable.js",
+        "src/renderer.js",
+        "src/store.js"
+      ]
+    },
+    "packages/client/ui-subagent": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-theme": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "packages/client/ui-tool": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-trajectory": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-user-questions": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-workflow-run": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-workspace-files": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/client/ui-workspace": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/client/index.js",
+        "src/client/WorkspaceBrowser.js",
+        "src/client/WorkspaceBrowser.css.js",
+        "src/client/WorkspacePicker.js",
+        "src/client/WorkspacePicker.css.js",
+        "src/client/locales.js",
+        "src/client/stores.js",
+        "src/client/tree.js",
+        "src/client/rows/Rows.js",
+        "src/client/rows/Rows.css.js"
+      ]
+    },
+    "packages/client/vendor-modules": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "vendor/**/*.js"
+      ]
+    },
+    "packages/client/web": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js",
+        "src/**/*.css"
+      ]
+    },
+    "packages/code-runtime/code-runtime-worker-thread": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/code-runtime/code-runtime": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/compaction/command-compact": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/compaction/compaction-basic": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/config.js",
+        "src/region.js",
+        "src/summarizer.js"
+      ]
+    },
+    "packages/compaction/compaction-image-offload": {
+      "entries": {
+        ".": "src/index.js",
+        "./projection": "src/projection.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/compaction/compaction-tool-result-pruner": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/compaction/compaction": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./checkpoint": "src/checkpoint.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/computer-use/computer-use": {
+      "entries": {
+        ".": "src/index.js",
+        "./brand": "src/brand.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/brand.js"
+      ]
+    },
+    "packages/context/agent-instructions": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/config.js",
+        "src/digest.js",
+        "src/files.js",
+        "src/render.js",
+        "src/state.js"
+      ]
+    },
+    "packages/context/file-reference-local": {
+      "entries": {
+        ".": "src/index.js",
+        "./search": "src/search.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/search.js"
+      ]
+    },
+    "packages/context/file-reference": {
+      "entries": {
+        ".": "src/index.js",
+        "./grammar": "src/grammar.js",
+        "./types": "src/types.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/grammar.js",
+        "src/types.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/context/session-reference": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/config.js",
+        "src/index.js",
+        "src/projection.js",
+        "src/serialization.js",
+        "src/types.js",
+        "src/uri.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/context/time-context": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/context/tmux-context": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/core/agent-default-model": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/core/agent-loop": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js",
+        "src/agent.js",
+        "src/constants.js",
+        "src/runtime-context.js",
+        "src/tool-calls.js"
+      ]
+    },
+    "packages/core/agent-tool-presentation": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/core/agent": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/dispatch.js",
+        "src/inbox.js",
+        "src/consumed-work.js",
+        "src/model-selection.js",
+        "src/runtime-types.js"
+      ]
+    },
+    "packages/core/scope": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/store.js"
+      ]
+    },
+    "packages/core/session": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./surface": "src/surface.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/core/system-prompt": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/core/tools": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./presentation": "src/presentation.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/credentials/authorization": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/credentials/credentials-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/credentials/credentials": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/experimental/agent-team": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/experimental/browser-use-browserskill": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/experimental/browser-use-chrome-devtools-mcp": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/experimental/browser-use-runtime": {
+      "entries": {
+        ".": "src/index.js",
+        "./mcp": "src/mcp.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/experimental/tool-agent-team": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/extensions/cordis-client-runner": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/extensions/cordis-host-runner": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/extensions/tool-cordis": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/api-catalog.js",
+        "src/inspect.js",
+        "src/present.js",
+        "src/prompt.js",
+        "src/providers.js"
+      ]
+    },
+    "packages/extensions/ui-cordis": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/feedback/command-feedback": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/feedback/message-feedback": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/spec.js",
+        "src/types.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/fs/fs-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/fsio.js"
+      ]
+    },
+    "packages/fs/fs-observation-policy": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/fs/fs-sandbox": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/containment.js"
+      ]
+    },
+    "packages/fs/fs": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/fs/tool-fs-search": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/direct-call.js",
+        "src/glob.js",
+        "src/grep.js",
+        "src/presentation.js",
+        "src/search-core.js"
+      ]
+    },
+    "packages/fs/tool-fs": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/diff.js",
+        "src/edit.js",
+        "src/error.js",
+        "src/read-image.js",
+        "src/read-render.js",
+        "src/read-target.js",
+        "src/read.js",
+        "src/sandbox.js",
+        "src/session-cwd.js",
+        "src/write.js"
+      ]
+    },
+    "packages/fs/tool-str-replace-editor": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/goal/command-goal": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/goal/goal-round-driver": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/goal/goal": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js",
+        "src/domain.js",
+        "src/fold.js",
+        "src/runtime.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/goal/tool-goal": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/guard/repeat-tool-reminder": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/guard/timeout-policy": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/host/apiproxy": {
+      "entries": {
+        ".": "src/index.js",
+        "./api": "src/api/index.js",
+        "./api/*": "src/api/*.js",
+        "./client": "src/fetch/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/host/directory-picker-auto": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/host/directory-picker-browse": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/host/directory-picker-native": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/host/directory-picker": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/host/frontend-static": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/host/host-adapter": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/host/open-in-app": {
+      "entries": {
+        ".": "src/index.js",
+        "./shared": "src/shared.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/catalog.js",
+        "src/resolver.js",
+        "src/icons.js",
+        "src/shared.js"
+      ]
+    },
+    "packages/host/plugin-inventory": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/host/product-telemetry-otel": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/host/webserver": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/identity/anonymous-user-id": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/interaction/auto-review": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/interaction/commands": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./brand": "src/brand.js",
+        "./typert": "src/typert.host.js",
+        "./remote": "src/typert.remote-client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/brand.js",
+        "src/typert.host.js",
+        "src/typert.remote-client.js"
+      ]
+    },
+    "packages/interaction/permission-presets": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js"
+      ]
+    },
+    "packages/interaction/tool-ask-user": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src"
+      ]
+    },
+    "packages/interaction/user-approval": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/interaction/user-questions": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/jobs/jobs-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/jobs/jobs": {
+      "entries": {
+        ".": "src/index.js",
+        "./brand": "src/brand.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/jobs/tool-jobs": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/llm/llm-deepseek": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/llm/llm-pi-ai": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/llm/llm-retry": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js",
+        "src/brand.js"
+      ]
+    },
+    "packages/llm/llm": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./brand": "src/brand.js",
+        "./message": "src/message.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/llm/token-meter": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/mcp/mcp-client": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/plan/plan-mode": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js"
+      ]
+    },
+    "packages/preset/agent-presets": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/preset/persona": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/runtime-diagnostics/inspector": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/shared.js",
+        "src/options.js",
+        "src/redact.js",
+        "src/host-source.js",
+        "src/fetch-capture.js",
+        "src/cordis-tree.js",
+        "src/worker.js",
+        "src/ws.js",
+        "src/cdp.js"
+      ]
+    },
+    "packages/sandbox/sandbox": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/schedule/schedule": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/sdk/protocol": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js",
+        "src/transport.js"
+      ]
+    },
+    "packages/sdk/server": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/session-query/session-log-export": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/session-query/session-query-sqlite": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/query.js",
+        "src/schema.js"
+      ]
+    },
+    "packages/session-query/session-query": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/session-query/tool-session-query": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/input.js",
+        "src/operations.js",
+        "src/presentation.js",
+        "src/service-boundary.js",
+        "src/workspace-access.js"
+      ]
+    },
+    "packages/session/session-artifacts": {
+      "entries": {
+        ".": "src/index.js",
+        "./remote": "src/typert.remote-client.js",
+        "./typert": "src/typert.host.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/session/session-checkpoint-policy": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/session/session-persistence-jsonl": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/format.js",
+        "src/zstd.js",
+        "src/zstd-private-decoder.js",
+        "src/zstd-public-decoder.js"
+      ]
+    },
+    "packages/session/session-persistence": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/session/session-projection-cache": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/spec.js"
+      ]
+    },
+    "packages/session/session-projection": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/session/session-stats": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js",
+        "src/projection.js"
+      ]
+    },
+    "packages/session/session-telemetry-otel": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/session/session-telemetry": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/coordinator.js"
+      ]
+    },
+    "packages/session/session-title-all-prompts-llm": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/session/session-title-first-prompt-llm": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/session/session-title-llm": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/session/session-title": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js",
+        "src/normalize.js"
+      ]
+    },
+    "packages/session/session-turn-outline": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js",
+        "src/client.js",
+        "src/projection.js"
+      ]
+    },
+    "packages/settings/settings-file": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/settings/settings": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/redact.js"
+      ]
+    },
+    "packages/shell/bash-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/shell/bash-sandbox": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/shell/shell-env": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/shell/shell": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/render.js",
+        "src/types.js"
+      ]
+    },
+    "packages/shell/tool-bash-persistent": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/shell/tool-bash": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/background.js",
+        "src/render.js"
+      ]
+    },
+    "packages/skill/skill-badge": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "files": [
+        "src/index.js",
+        "assets"
+      ]
+    },
+    "packages/skill/skill-filesystem": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/skill/skill": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/skill/tool-skill": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/spill/spill-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/store.js"
+      ]
+    },
+    "packages/spill/spill-policy": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/spill/spill": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/storage/storage": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/backend.js",
+        "src/error.js",
+        "src/json-backend.js",
+        "src/unit.js",
+        "src/atomic.js",
+        "src/format.js",
+        "src/domain.js",
+        "src/spec.js",
+        "src/facility.js"
+      ]
+    },
+    "packages/subagent/subagent-fork-in-process": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/subagent/subagent-in-process-driver": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/structured.js"
+      ]
+    },
+    "packages/subagent/subagent-spawn-in-process": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/subagent/subagent": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/subagent/tool-subagent-control": {
+      "entries": {
+        ".": "src/index.js",
+        "./list-agents": "src/list-agents.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/list-agents.js"
+      ]
+    },
+    "packages/subagent/tool-subagent-report": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/subagent/tool-subagent": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/subprocess/subprocess-local": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "scripts/ensure-spawn-helper.mjs"
+      ]
+    },
+    "packages/subprocess/subprocess": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/terminal/terminal-bash": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/config.js",
+        "src/sanitize.js",
+        "src/session.js"
+      ]
+    },
+    "packages/terminal/terminal": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/todo/tool-todo": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/typert/loader": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/typert/protocol": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/typert/registry": {
+      "entries": {
+        ".": "src/index.js",
+        "./client": "src/client/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js",
+        "src/client/*.js"
+      ]
+    },
+    "packages/util/api-catalog": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/atomic-write": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/brand": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/crypto": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/deque": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/home-paths": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/http-proxy": {
+      "entries": {
+        ".": "src/index.js",
+        "./policy": "src/policy.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/*.js"
+      ]
+    },
+    "packages/util/launch-environment": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/native-command": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/output-retention": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/runtime-node": {
+      "entries": {
+        ".": "src/install-node.js",
+        "./install-node": "src/install-node.js"
+      },
+      "files": [
+        "src/node.js",
+        "src/install-node.js"
+      ]
+    },
+    "packages/util/runtime": {
+      "entries": {
+        ".": "src/index.js",
+        "./*": "src/*.js",
+        "./install-fx": "src/install-fx.js",
+        "./install-txiki": "src/install-txiki.js"
+      },
+      "files": [
+        "src/index.js",
+        "src/runtime.js",
+        "src/txiki.js",
+        "src/install-txiki.js",
+        "src/install-browser.js",
+        "src/fs.js",
+        "src/fs-promises.js",
+        "src/path.js",
+        "src/crypto.js",
+        "src/stream.js",
+        "src/buffer.js",
+        "src/url.js",
+        "src/util.js",
+        "src/util-types.js",
+        "src/module.js",
+        "src/child-process.js",
+        "src/os.js",
+        "src/worker-threads.js",
+        "src/async-hooks.js",
+        "src/vm.js",
+        "src/http.js",
+        "src/https.js",
+        "src/zlib.js",
+        "src/inspector.js",
+        "src/string-decoder.js",
+        "src/perf-hooks.js",
+        "src/timers-promises.js",
+        "src/net.js",
+        "src/dns-promises.js",
+        "src/process.js",
+        "src/aliases.json",
+        "src/fx.js",
+        "src/install-fx.js"
+      ]
+    },
+    "packages/util/time": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/timeout": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/util/values": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/web/tool-web": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/fetch.js",
+        "src/search.js"
+      ]
+    },
+    "packages/web/web-fetch-http": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/address.js",
+        "src/index.js",
+        "src/network.js",
+        "src/policy.js",
+        "src/provider.js"
+      ]
+    },
+    "packages/web/web": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/types.js"
+      ]
+    },
+    "packages/workflow/tool-ralph": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/workflow/tool-workflow": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js"
+      ]
+    },
+    "packages/workflow/workflow-worker-thread": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/**/*.js"
+      ]
+    },
+    "packages/workflow/workflow": {
+      "entries": {
+        ".": "src/index.js",
+        "./types": "src/types.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/graph.js",
+        "src/types.js"
+      ]
+    },
+    "packages/workspace/workspace": {
+      "entries": {
+        ".": "src/index.js"
+      },
+      "srcWildcard": true,
+      "files": [
+        "src/index.js",
+        "src/entity.js",
+        "src/paths.js",
+        "src/spec.js"
+      ]
+    }
+  }
+}
