@@ -20,8 +20,12 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "src/*.js"
+    "src/*.js",
+    "scripts/ensure-spawn-helper.mjs"
   ],
+  "scripts": {
+    "postinstall": "node scripts/ensure-spawn-helper.mjs"
+  },
   "license": "MIT",
   "peerDependencies": {
     "@freddie/freddie-subprocess": "*",
@@ -29,7 +33,8 @@
     "@freddie/cordis": "*"
   },
   "dependencies": {
-    "@freddie/freddie-runtime": "*"
+    "@freddie/freddie-runtime": "*",
+    "node-pty": "1.2.0-beta.15"
   },
   "devDependencies": {
     "@freddie/freddie-subprocess": "*",

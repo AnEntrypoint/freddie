@@ -23,16 +23,10 @@
   },
   "files": [
     "src/node.js",
-    "src/install-node.js",
-    "scripts/ensure-spawn-helper.mjs"
+    "src/install-node.js"
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-runtime": "*",
-    "node-pty": "1.2.0-beta.15",
-    "sharp": "^0.35.3"
-  },
-  "scripts": {
-    "postinstall": "node scripts/ensure-spawn-helper.mjs"
+    "@freddie/freddie-runtime": "*"
   }
 }

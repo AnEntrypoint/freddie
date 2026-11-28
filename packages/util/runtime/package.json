@@ -60,11 +60,7 @@
     "src/process.js",
     "src/aliases.json",
     "src/fx.js",
-    "src/install-fx.js",
-    "src/pty.js",
-    "src/fx-pty.js",
-    "src/image.js",
-    "src/fx-image.js"
+    "src/install-fx.js"
   ],
   "license": "MIT"
 }

@@ -792,6 +792,9 @@ importers:
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
+      sharp:
+        specifier: ^0.35.3
+        version: 0.35.3
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -6891,6 +6894,9 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../../util/runtime
+      node-pty:
+        specifier: 1.2.0-beta.15
+        version: 1.2.0-beta.15(patch_hash=b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0)
     devDependencies:
       '@freddie/cordis':
         specifier: '*'
@@ -7100,12 +7106,6 @@ importers:
       '@freddie/freddie-runtime':
         specifier: '*'
         version: link:../runtime
-      node-pty:
-        specifier: 1.2.0-beta.15
-        version: 1.2.0-beta.15(patch_hash=b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0)
-      sharp:
-        specifier: ^0.35.3
-        version: 0.35.3
 
   packages/util/time: {}
 

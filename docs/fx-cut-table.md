@@ -147,12 +147,12 @@ Result. 203 of 240 package entries import and evaluate. The 37 that fail are lis
 | third-party: @opentelemetry/sdk-logs | 2: host-product-telemetry-otel, session-telemetry-otel |
 | third-party: eventsource-parser | 2: llm-deepseek, sdk-jsonrpc-server |
 | third-party: @agentclientprotocol/sdk | 1: acp |
-| third-party: sharp | 1: runtime-node (image seam) |
+| third-party: sharp | 1: attachment-local |
 | third-party: clsx | 1: client-ui-primitives |
 | third-party: webjsx | 1: client-web |
 | third-party: diff | 1: tool-fs |
 | third-party: @earendil-works/pi-ai | 1: llm-pi-ai |
-| third-party: node-pty | 1: runtime-node (pty seam) |
+| third-party: node-pty | 1: subprocess-local |
 | third-party: turndown | 1: tool-web |
 | txiki gap: process.stdout | 2: cmdline, headless |
 | txiki gap: zlib.constants.ZSTD_c_checksumFlag | 1: session-persistence-jsonl |
@@ -207,10 +207,10 @@ Finding about the loader. In gm's host `import.meta` has no keys (no `url`, `fil
 | fflate | ^0.8.2 | 1: host-apiproxy | agent |
 | libsql-plugkit-client | github:AnEntrypoint/libsql-plugkit-client | 1: session-query-sqlite | agent |
 | node-addon-require-builtin | ^0.1.4 | 1: freddie | agent |
-| node-pty | 1.2.0-beta.15 | 1: runtime-node | agent |
+| node-pty | 1.2.0-beta.15 | 1: subprocess-local | agent |
 | open | ^11.0.0 | 1: web-app | agent |
 | picomatch | ^4.0.3 | 1: cordis-plugin-hmr | agent |
-| sharp | ^0.35.3 | 1: runtime-node | agent |
+| sharp | ^0.35.3 | 1: attachment-local | agent |
 | turndown | ^7.2.4 | 1: tool-web | agent |
 | undici | >=7.29.0 | 1: http-proxy | agent |
 

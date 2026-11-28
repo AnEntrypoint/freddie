@@ -11,7 +11,3 @@ The Node host backend of the runtime seam. `src/node.js` builds the 25-member ru
 `packages/util/runtime/test/aliases.js` keeps this package from spreading. It exempts only `packages/util/runtime-node/` from the rule that shipped code imports no `node:` module, and it checks that `src/node.js` imports the Node module for every alias seam and for nothing else.
 
 The retirement plan, with the replacement for each check, is the [runtime-node retirement note](../../../.agents/notes/proposed/architecture/2026-11-28-runtime-node-retirement-plan.md).
-
-Beyond the Node built-ins it provides the `pty` seam (`@freddie/freddie-runtime/pty`, `spawn(file, args, { cwd, env, cols, rows })`) over `node-pty`. Under fx the same seam is `src/fx-pty.js` over `pty.open`, which fx 9b0167c8 and f76a0af3 do not have; its `pty.spawn(file, args)` takes no cwd, env or size, has no `pid`, `resize` or `kill`, and its `read()` blocks the thread.
-
-It also provides the `image` seam (`@freddie/freddie-runtime/image`, `sharp`) over `sharp`. fx 9b0167c8 and f76a0af3 expose no image module to JavaScript (its PNG crop and downscale are internal Zig), so `src/fx-image.js` fails with the list of calls the attachment package needs: `sharp(data, { failOn, limitInputPixels })` with `metadata()`, `clone()`, `rotate()`, `toColourspace('srgb')`, `resize({ width, height, fit: 'inside', withoutEnlargement, kernel, fastShrinkOnLoad })`, `raw()`, `png({ compressionLevel, palette })`, `jpeg({ quality })`, `webp({ quality })` and `toBuffer({ resolveWithObject })`, plus `sharp.kernel.nearest`.

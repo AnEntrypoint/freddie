@@ -1,5 +1,5 @@
 
-import { sharp } from '@freddie/freddie-runtime/image'
+import sharp from 'sharp'
 import { AttachmentError } from '@freddie/freddie-attachment'
 
 export function encodedAlphaIsCompatible(sourceHasAlpha, output) {
