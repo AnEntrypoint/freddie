@@ -1,10 +1,13 @@
 import { valueMap } from '@freddie/cosmokit'
+import { process } from '@freddie/freddie-runtime/process'
 
-export const evaluate = new Function('ctx', 'expr', `
+const run = new Function('ctx', 'expr', 'process', `
   with (ctx) {
     return eval(expr)
   }
 `)
+
+export const evaluate = (ctx, expr) => run(ctx, expr, process)
 
 export function interpolate(ctx, value) {
   if (isJsExpr(value)) {

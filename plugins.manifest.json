@@ -21,7 +21,8 @@
     },
     "bundles": [
       "packages/bundle/base",
-      "packages/bundle/headless"
+      "packages/bundle/headless",
+      "packages/bundle/agent-team-profile"
     ]
   },
   "packages": {

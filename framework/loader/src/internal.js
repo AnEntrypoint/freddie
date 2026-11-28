@@ -18,7 +18,7 @@ function requireInternal(id) {
 
 function fromInternal() {
   if (_cachedLoader) return _cachedLoader
-  const [major] = process.versions.node.split('.').map(Number)
+  const [major] = (process.versions?.node ?? '').split('.').map(Number)
 
   if (major >= 24) {
     const raw = requireInternal('internal/modules/esm/loader')?.getOrInitializeCascadedLoader()

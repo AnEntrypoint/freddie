@@ -45,7 +45,7 @@ function externalTarget(spec, fromDir) {
       const pkg = JSON.parse(readFileSync(join(candidate, 'package.json'), 'utf8'))
       const exported = pkg.exports ?? {}
       let target = exported[`.${subpath}`]
-      if (target === undefined && subpath === '') target = pkg.module ?? pkg.main ?? './index.js'
+      if (target === undefined && subpath === '') target = pkg.main ?? pkg.module ?? './index.js'
       if (target === undefined) {
         const pattern = Object.keys(exported).find(key => key.endsWith('/*') && `.${subpath}`.startsWith(key.slice(0, -1)))
         if (pattern !== undefined) {
@@ -95,10 +95,14 @@ function visit(file) {
 for (const seed of fx.tests) visit(seed)
 for (const dir of fx.bundles ?? []) {
   const { dependencies = {} } = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'))
-  for (const name of Object.keys(dependencies)) {
+  const own = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8')).name
+  for (const name of [own, ...Object.keys(dependencies)]) {
     const pkg = byName.get(name)
     if (pkg === undefined) continue
-    for (const file of Object.values(pkg.entry.entries)) visit(`${pkg.dir}/${file}`)
+    for (const [subpath, file] of Object.entries(pkg.entry.entries)) {
+      bare.add(`${name}${subpath.slice(1)}`)
+      visit(`${pkg.dir}/${file}`)
+    }
   }
 }
 
