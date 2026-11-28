@@ -14,7 +14,8 @@
       "packages/session/session-persistence/test/fx-conformance.mjs",
       "packages/session/session-persistence/test/fx-conformance-child.mjs",
       "packages/core/agent-fx/test/engine.mjs",
-      "apps/cli/src/bin.js"
+      "apps/cli/src/bin.js",
+      "packages/util/runtime/test/pty-fx.mjs"
     ],
     "overrides": {
       "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js"
@@ -2581,7 +2582,9 @@
         "src/process.js",
         "src/aliases.json",
         "src/fx.js",
-        "src/install-fx.js"
+        "src/install-fx.js",
+        "src/pty.js",
+        "src/fx-pty.js"
       ]
     },
     "packages/util/time": {

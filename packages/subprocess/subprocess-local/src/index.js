@@ -1,7 +1,7 @@
 import { constants } from '@freddie/freddie-runtime/fs'
 import { access, stat } from '@freddie/freddie-runtime/fs-promises'
 import { delimiter, isAbsolute, resolve } from '@freddie/freddie-runtime/path'
-import * as nodePty from 'node-pty'
+import { spawn as spawnPty } from '@freddie/freddie-runtime/pty'
 import { SubprocessRuntime } from '@freddie/freddie-subprocess'
 import { childEnv, spawnSubprocess } from './spawn.js'
 import { createProcessInspector } from './process-inspector.js'
@@ -119,7 +119,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       env: childEnv(spec.env),
     }
     const inspector = this.terminalInspector ?? createProcessInspector()
-    const terminal = nodePty.spawn(file, [...spec.argv.slice(1)], options)
+    const terminal = spawnPty(file, [...spec.argv.slice(1)], options)
     const handle = new LocalTerminalHandle(terminal, inspector, spec.graceMs)
     this.terminals.add(handle)
     const release = async () => {

@@ -23,6 +23,7 @@ import * as timersPromises from 'node:timers/promises'
 import * as net from 'node:net'
 import dnsPromises from 'node:dns/promises'
 import process from 'node:process'
+import * as nodePty from 'node-pty'
 
 export const nodeRuntime = {
   fs,
@@ -50,4 +51,5 @@ export const nodeRuntime = {
   net,
   dnsPromises,
   process,
+  pty: { spawn: nodePty.spawn },
 }

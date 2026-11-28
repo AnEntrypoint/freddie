@@ -27,6 +27,7 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@freddie/freddie-runtime": "*"
+    "@freddie/freddie-runtime": "*",
+    "node-pty": "1.2.0-beta.15"
   }
 }
