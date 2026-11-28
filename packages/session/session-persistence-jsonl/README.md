@@ -50,6 +50,10 @@ A root belongs to one encoding. Startup discovery and targeted lookup reject the
 
 The plugin copies frozen session events into one controller per live session. The first pending event starts the configured fixed batching window, and later events join without resetting it. Expiry starts one durable append; events admitted during that write form a separately bounded follow-up batch. `session/flush` cancels the wait and drains current and pending batches. A per-session cursor prevents resumed sessions from re-appending stored events, and live sessions are seeded when the plugin loads. The owning backend instance serializes operations for one session; disposal drains every retained controller before teardown. Every logical event remains present: batching only lets one compressed frame or raw fsync carry more records.
 
+## Conformance
+
+`node test/conformance.js` runs the shared session-persistence suite from `@freddie/freddie-session-persistence/src/conformance.js` against this backend (raw `.jsonl`, one temporary root per case). Its harness abandons a backend by removing the writer lock, tears a tail by cutting the last 12 bytes of the log, and kills a child process (`test/conformance-child.js`) with SIGKILL right after its last append resolves. It installs the Node runtime from `@freddie/freddie-runtime-node`, a dev dependency here and transitional.
+
 ## Model Experience
 
 ### Resumed conversation history
