@@ -39,6 +39,7 @@
   "devDependencies": {
     "@freddie/freddie-session": "*",
     "@freddie/freddie-session-persistence": "*",
-    "@freddie/cordis": "*"
+    "@freddie/cordis": "*",
+    "@freddie/freddie-runtime-node": "*"
   }
 }

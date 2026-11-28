@@ -5924,6 +5924,9 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
+      '@freddie/freddie-runtime-node':
+        specifier: '*'
+        version: link:../../util/runtime-node
       '@freddie/freddie-session':
         specifier: '*'
         version: link:../../core/session
