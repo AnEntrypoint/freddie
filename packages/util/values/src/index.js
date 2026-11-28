@@ -17,7 +17,7 @@ function hasIntrinsicConstructor(prototype, name) {
   try {
     return constructor.name === name
       && constructor.prototype === prototype
-      && Function.prototype.toString.call(constructor) === `function ${name}() { [native code] }`
+      && new RegExp('^function ' + name + '\\(\\) \\{\\s*\\[native code\\]\\s*\\}$').test(Function.prototype.toString.call(constructor))
   } catch {
     return false
   }
