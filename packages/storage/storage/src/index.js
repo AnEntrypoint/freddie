@@ -1,5 +1,7 @@
 import { Service } from '@freddie/cordis'
+import z from '@freddie/schemastery'
 import { StorageError } from './error.js'
+import { JsonStorageBackend } from './json-backend.js'
 import { BackendRegistry } from './registry.js'
 
 export { BackendRegistry } from './registry.js'
@@ -44,4 +46,21 @@ export class Storage extends Service {
   }
 }
 
-export default Storage
+export const name = 'storage'
+
+export const Config = z.object({
+  root: z.string().required(),
+})
+
+export function apply(ctx, config) {
+  const storage = new Storage(ctx)
+  const backend = new JsonStorageBackend(config.root)
+  ctx.effect(() => {
+    const unregister = storage.backend.register('json', backend)
+    return async () => {
+      unregister()
+      await backend.close()
+    }
+  })
+  ctx.provide(storageBackendServiceKey('json'), backend)
+}

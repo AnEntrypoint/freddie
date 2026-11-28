@@ -60,7 +60,6 @@
     "@freddie/freddie-session-persistence-jsonl": "*",
     "@freddie/freddie-storage": "*",
     "@freddie/freddie-storage-domain": "*",
-    "@freddie/freddie-storage-json": "*",
     "@freddie/freddie-typert-protocol": "*",
     "@freddie/cordis": "*"
   }

@@ -263,7 +263,6 @@ flowchart TD
   subgraph group_storage["packages/storage"]
     pkg_storage["storage"]
     pkg_storage_domain["storage-domain"]
-    pkg_storage_json["storage-json"]
   end
   subgraph group_subprocess["packages/subprocess"]
     pkg_subprocess["subprocess"]
@@ -298,7 +297,6 @@ flowchart TD
   pkg_anonymous_user_id --> pkg_home_paths
   pkg_settings --> pkg_brand
   pkg_storage_domain --> pkg_storage
-  pkg_storage_json --> pkg_storage
   pkg_subprocess_local --> pkg_subprocess
   pkg_subprocess_local --> pkg_timeout
   pkg_typert_loader --> pkg_typert_registry

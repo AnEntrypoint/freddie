@@ -1,6 +1,6 @@
 {
   "name": "@freddie/freddie-storage",
-  "description": "Storage hub (ctx.storage): named backend registry plus mounted data-form facilities for the Freddie",
+  "description": "Storage hub (ctx.storage): named backend registry plus mounted data-form facilities, with the JSON backend, for the Freddie",
   "version": "0.1.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -23,11 +23,19 @@
     "src/index.js",
     "src/backend.js",
     "src/error.js",
-    "src/registry.js"
+    "src/registry.js",
+    "src/json-backend.js",
+    "src/unit.js",
+    "src/atomic.js",
+    "src/format.js"
   ],
   "license": "MIT",
   "peerDependencies": {
     "@freddie/cordis": "*"
+  },
+  "dependencies": {
+    "@freddie/freddie-runtime": "*",
+    "@freddie/schemastery": "*"
   },
   "devDependencies": {
     "@freddie/cordis": "*"

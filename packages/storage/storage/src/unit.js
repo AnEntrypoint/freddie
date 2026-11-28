@@ -1,5 +1,5 @@
 import { readFile } from '@freddie/freddie-runtime/fs-promises'
-import { StorageError } from '@freddie/freddie-storage'
+import { StorageError } from './error.js'
 import { writeAtomic } from './atomic.js'
 import { parse, serialize } from './format.js'
 

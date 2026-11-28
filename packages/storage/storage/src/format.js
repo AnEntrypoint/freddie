@@ -1,4 +1,4 @@
-import { StorageError } from '@freddie/freddie-storage'
+import { StorageError } from './error.js'
 
 export function serialize(name, state) {
   const tables = {}

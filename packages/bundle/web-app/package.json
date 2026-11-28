@@ -108,7 +108,6 @@
     "@freddie/freddie-session-stats": "*",
     "@freddie/freddie-storage": "*",
     "@freddie/freddie-storage-domain": "*",
-    "@freddie/freddie-storage-json": "*",
     "@freddie/freddie-subprocess": "*",
     "@freddie/freddie-workspace": "*",
     "@freddie/schemastery": "*",

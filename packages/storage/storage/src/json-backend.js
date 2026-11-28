@@ -1,17 +1,10 @@
 import { mkdir } from '@freddie/freddie-runtime/fs-promises'
 import { join } from '@freddie/freddie-runtime/path'
-import z from '@freddie/schemastery'
-import { StorageError, UNIT_NAME_RE, storageBackendServiceKey } from '@freddie/freddie-storage'
+import { UNIT_NAME_RE } from './backend.js'
+import { StorageError } from './error.js'
 import { openJsonUnit } from './unit.js'
 
-export const name = 'storage-json'
-export const inject = ['storage']
-
-export const Config = z.object({
-  root: z.string().required(),
-})
-
-class JsonStorageBackend {
+export class JsonStorageBackend {
   open = new Map()
   opening = new Map()
   closed = false
@@ -64,16 +57,4 @@ function validateDescriptor(descriptor) {
       throw new StorageError('malformed-medium', `invalid table name '${table}' in unit '${descriptor.name}'`)
     }
   }
-}
-
-export function apply(ctx, config) {
-  const backend = new JsonStorageBackend(config.root)
-  ctx.effect(() => {
-    const unregister = ctx.storage.backend.register('json', backend)
-    return async () => {
-      unregister()
-      await backend.close()
-    }
-  })
-  ctx.provide(storageBackendServiceKey('json'), backend)
 }

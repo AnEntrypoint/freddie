@@ -1551,9 +1551,6 @@ importers:
       '@freddie/freddie-storage-domain':
         specifier: '*'
         version: link:../../storage/storage-domain
-      '@freddie/freddie-storage-json':
-        specifier: '*'
-        version: link:../../storage/storage-json
       '@freddie/freddie-subprocess':
         specifier: '*'
         version: link:../../subprocess/subprocess
@@ -4255,9 +4252,6 @@ importers:
       '@freddie/freddie-storage-domain':
         specifier: '*'
         version: link:../../storage/storage-domain
-      '@freddie/freddie-storage-json':
-        specifier: '*'
-        version: link:../../storage/storage-json
       '@freddie/freddie-typert-protocol':
         specifier: '*'
         version: link:../../typert/protocol
@@ -6607,13 +6601,10 @@ importers:
         version: link:../../core/tools
 
   packages/storage/storage:
-    devDependencies:
-      '@freddie/cordis':
-        specifier: '*'
-        version: link:../../../framework/cordis
-
-  packages/storage/storage-domain:
     dependencies:
+      '@freddie/freddie-runtime':
+        specifier: '*'
+        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery
@@ -6621,15 +6612,9 @@ importers:
       '@freddie/cordis':
         specifier: '*'
         version: link:../../../framework/cordis
-      '@freddie/freddie-storage':
-        specifier: '*'
-        version: link:../storage
 
-  packages/storage/storage-json:
+  packages/storage/storage-domain:
     dependencies:
-      '@freddie/freddie-runtime':
-        specifier: '*'
-        version: link:../../util/runtime
       '@freddie/schemastery':
         specifier: link:../../../framework/schemastery
         version: link:../../../framework/schemastery

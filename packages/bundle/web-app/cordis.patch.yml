@@ -24,9 +24,6 @@
 
     - id: storage
       name: '@freddie/freddie-storage'
-
-    - id: storage-json
-      name: '@freddie/freddie-storage-json'
       config:
         root: !!js freddieHomePath('storages')
 

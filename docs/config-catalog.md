@@ -1746,6 +1746,25 @@ export interface Config {
 
 Source: [`packages/spill/spill-policy/src/index.js`](../packages/spill/spill-policy/src/index.js)
 
+<a id="freddie-storage"></a>
+
+## `@freddie/freddie-storage`
+
+```ts config-catalog
+/**
+ * Plugin configuration.
+ * `root` has NO default on purpose: a `process.cwd()` fallback would scatter
+ * unit files wherever the process happens to start; assemblies state the
+ * location explicitly.
+ */
+export interface Config {
+  /** Directory holding one `<unit>.json` file per unit. */
+  root: string
+}
+```
+
+Source: [`packages/storage/storage/src/index.js`](../packages/storage/storage/src/index.js)
+
 <a id="freddie-storage-domain"></a>
 
 ## `@freddie/freddie-storage-domain`
@@ -1768,27 +1787,6 @@ export interface Config {
 ```
 
 Source: [`packages/storage/storage-domain/src/index.js`](../packages/storage/storage-domain/src/index.js)
-
-<a id="freddie-storage-json"></a>
-
-## `@freddie/freddie-storage-json`
-
-Requires: `storage`
-
-```ts config-catalog
-/**
- * Plugin configuration.
- * `root` has NO default on purpose: a `process.cwd()` fallback would scatter
- * unit files wherever the process happens to start; assemblies state the
- * location explicitly.
- */
-export interface Config {
-  /** Directory holding one `<unit>.json` file per unit. */
-  root: string
-}
-```
-
-Source: [`packages/storage/storage-json/src/index.js`](../packages/storage/storage-json/src/index.js)
 
 <a id="freddie-subagent-fork-in-process"></a>
 
