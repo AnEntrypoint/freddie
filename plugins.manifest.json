@@ -15,7 +15,8 @@
       "packages/session/session-persistence/test/fx-conformance-child.mjs",
       "packages/core/agent-fx/test/engine.mjs",
       "apps/cli/src/bin.js",
-      "packages/util/runtime/test/pty-fx.mjs"
+      "packages/util/runtime/test/pty-fx.mjs",
+      "packages/util/runtime/test/image-fx.mjs"
     ],
     "overrides": {
       "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js"
@@ -2366,8 +2367,7 @@
       },
       "srcWildcard": true,
       "files": [
-        "src/*.js",
-        "scripts/ensure-spawn-helper.mjs"
+        "src/*.js"
       ]
     },
     "packages/subprocess/subprocess": {
@@ -2539,7 +2539,8 @@
       },
       "files": [
         "src/node.js",
-        "src/install-node.js"
+        "src/install-node.js",
+        "scripts/ensure-spawn-helper.mjs"
       ]
     },
     "packages/util/runtime": {
@@ -2584,7 +2585,9 @@
         "src/fx.js",
         "src/install-fx.js",
         "src/pty.js",
-        "src/fx-pty.js"
+        "src/fx-pty.js",
+        "src/image.js",
+        "src/fx-image.js"
       ]
     },
     "packages/util/time": {

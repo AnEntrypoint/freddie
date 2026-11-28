@@ -24,6 +24,7 @@ import * as net from 'node:net'
 import dnsPromises from 'node:dns/promises'
 import process from 'node:process'
 import * as nodePty from 'node-pty'
+import sharp from 'sharp'
 
 export const nodeRuntime = {
   fs,
@@ -52,4 +53,5 @@ export const nodeRuntime = {
   dnsPromises,
   process,
   pty: { spawn: nodePty.spawn },
+  image: { sharp },
 }

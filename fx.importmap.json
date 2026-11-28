@@ -23,6 +23,7 @@
     "@freddie/freddie-runtime/async-hooks": "packages/util/runtime/src/async-hooks.js",
     "@freddie/freddie-runtime/util-types": "packages/util/runtime/src/util-types.js",
     "@freddie/freddie-runtime/crypto": "packages/util/runtime/src/crypto.js",
+    "@freddie/freddie-runtime/image": "packages/util/runtime/src/image.js",
     "@freddie/node-addon-landlock-run": "native/landlock-run/packages/entry/src/index.js",
     "yaml": "node_modules/.pnpm/yaml@2.9.0/node_modules/yaml/browser/index.js",
     "eventsource-parser/stream": "node_modules/.pnpm/eventsource-parser@3.1.0/node_modules/eventsource-parser/dist/stream.js",

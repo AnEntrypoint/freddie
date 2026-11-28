@@ -1,4 +1,5 @@
 import host from 'fx:host'
+import { imageOverFx } from './fx-image.js'
 import { ptyOverFx } from './fx-pty.js'
 
 const modules = host.modules
@@ -30,4 +31,5 @@ export const fxRuntime = {
   dnsPromises: modules['dns/promises'],
   process: modules.process,
   pty: ptyOverFx(modules.pty),
+  image: imageOverFx(modules.image),
 }

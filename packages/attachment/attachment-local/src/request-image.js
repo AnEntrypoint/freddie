@@ -2,7 +2,7 @@
 import { createHash, randomUUID } from '@freddie/freddie-runtime/crypto'
 import { mkdir, readFile, rename, rm, writeFile } from '@freddie/freddie-runtime/fs-promises'
 import { dirname, join } from '@freddie/freddie-runtime/path'
-import sharp from 'sharp'
+import { sharp } from '@freddie/freddie-runtime/image'
 import { AttachmentError, ImageVariantId } from '@freddie/freddie-attachment'
 import { hasLowColourCount } from './normalization.js'
 import { encodeFirstWithinLimit, isExhaustedEncoding } from './encoding.js'

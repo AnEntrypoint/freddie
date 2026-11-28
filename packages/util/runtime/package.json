@@ -62,7 +62,9 @@
     "src/fx.js",
     "src/install-fx.js",
     "src/pty.js",
-    "src/fx-pty.js"
+    "src/fx-pty.js",
+    "src/image.js",
+    "src/fx-image.js"
   ],
   "license": "MIT"
 }
