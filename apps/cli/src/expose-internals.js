@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 import { spawn } from '@freddie/freddie-runtime/child-process'
 
 export async function reexecWithExposeInternals() {

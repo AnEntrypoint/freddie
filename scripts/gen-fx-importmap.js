@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, realpathSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, realpathSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -30,6 +30,7 @@ function workspaceTarget(name, subpath) {
 }
 
 function withExtension(path) {
+  if (existsSync(path) && statSync(path).isDirectory()) return join(path, 'index.js')
   return !existsSync(path) && existsSync(`${path}.js`) ? `${path}.js` : path
 }
 
@@ -70,7 +71,7 @@ const externals = new Map()
 
 function visit(file) {
   const absolute = resolve(ROOT, file)
-  if (seen.has(absolute) || !existsSync(absolute)) return
+  if (seen.has(absolute) || !existsSync(absolute) || !/\.[cm]?js$/.test(absolute)) return
   seen.add(absolute)
   for (const [, spec] of readFileSync(absolute, 'utf8').matchAll(IMPORT)) {
     if (spec.startsWith('.') || spec.startsWith('/')) {
@@ -92,6 +93,14 @@ function visit(file) {
 }
 
 for (const seed of fx.tests) visit(seed)
+for (const dir of fx.bundles ?? []) {
+  const { dependencies = {} } = JSON.parse(readFileSync(join(ROOT, dir, 'package.json'), 'utf8'))
+  for (const name of Object.keys(dependencies)) {
+    const pkg = byName.get(name)
+    if (pkg === undefined) continue
+    for (const file of Object.values(pkg.entry.entries)) visit(`${pkg.dir}/${file}`)
+  }
+}
 
 const imports = { ...fx.overrides }
 for (const [spec, path] of externals) if (!(spec in imports)) imports[spec] = path

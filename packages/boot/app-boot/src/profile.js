@@ -1,4 +1,3 @@
-import { createRequire } from '@freddie/freddie-runtime/module'
 import {
   existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, symlinkSync, unlinkSync, writeFileSync,
 } from '@freddie/freddie-runtime/fs'
@@ -160,8 +159,16 @@ function normalizeShippedProfile(name, dir, manifest) {
   return normalized
 }
 
+function moduleSearchPaths(anchor) {
+  const paths = []
+  for (let dir = dirname(anchor); ; dir = dirname(dir)) {
+    if (basename(dir) !== 'node_modules') paths.push(join(dir, 'node_modules'))
+    if (dirname(dir) === dir) return paths
+  }
+}
+
 function packageDirFromAnchor(anchor, packageName) {
-  for (const searchPath of createRequire(anchor).resolve.paths(packageName) ?? []) {
+  for (const searchPath of moduleSearchPaths(anchor)) {
     const candidate = join(searchPath, packageName)
     if (existsSync(join(candidate, 'package.json'))) return candidate
   }

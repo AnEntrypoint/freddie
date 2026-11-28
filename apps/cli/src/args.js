@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 import { Command, CommanderError } from 'commander'
 
 const collect = (value, previous = []) => [...previous, value]

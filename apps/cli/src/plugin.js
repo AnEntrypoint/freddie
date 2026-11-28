@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 import { spawnSync } from '@freddie/freddie-runtime/child-process'
 import { existsSync } from '@freddie/freddie-runtime/fs'
 import { join, resolve } from '@freddie/freddie-runtime/path'

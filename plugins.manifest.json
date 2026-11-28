@@ -13,11 +13,16 @@
       "packages/util/runtime/test/parity-node.mjs",
       "packages/session/session-persistence/test/fx-conformance.mjs",
       "packages/session/session-persistence/test/fx-conformance-child.mjs",
-      "packages/core/agent-fx/test/engine.mjs"
+      "packages/core/agent-fx/test/engine.mjs",
+      "apps/cli/src/bin.js"
     ],
     "overrides": {
       "@freddie/freddie-client-ui-settings-plugins/client": "packages/client/ui-settings-plugins/src/client/card-form.js"
-    }
+    },
+    "bundles": [
+      "packages/bundle/base",
+      "packages/bundle/headless"
+    ]
   },
   "packages": {
     "framework/cordis": {

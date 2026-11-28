@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 const PROCESS_SHUTDOWN_TIMEOUT_MS = 5_000
 
 export function createProcessShutdown(

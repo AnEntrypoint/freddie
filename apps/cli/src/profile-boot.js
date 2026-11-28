@@ -1,3 +1,4 @@
+import { process } from '@freddie/freddie-runtime/process'
 import { existsSync, readdirSync, writeFileSync } from '@freddie/freddie-runtime/fs'
 import { join, relative, resolve } from '@freddie/freddie-runtime/path'
 import { fileURLToPath, pathToFileURL } from '@freddie/freddie-runtime/url'
