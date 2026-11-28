@@ -1,6 +1,7 @@
 {
   "imports": {
     "zod": "node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.js",
+    "@freddie/cordis": "framework/cordis/src/index.js",
     "@freddie/cosmokit": "framework/cosmokit/src/index.js",
     "@freddie/freddie-runtime/buffer": "packages/util/runtime/src/buffer.js",
     "@freddie/freddie-runtime/fs": "packages/util/runtime/src/fs.js",
