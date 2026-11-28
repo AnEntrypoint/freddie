@@ -128,7 +128,7 @@ Buffer statics: .byteLength 34, .from 33, .alloc 28, .concat 15, .allocUnsafe 2,
 
 Node-only uses that stay outside the adapter, each by design:
 
-- apps/cli (the Node host): bin.js, dump-config.js, plugin.js, profile-boot.js keep direct node: imports and the global process. bin.js is the install point, and its first import is @freddie/freddie-runtime/install-node.
+- apps/cli (the Node host): bin.js, dump-config.js, plugin.js, profile-boot.js keep direct node: imports and the global process. bin.js is the install point, and its first import is @freddie/freddie-runtime-node/install-node (the transitional Node backend, removed when fx freddie <profile> lands).
 - GUI-side Node halves, 10 files, which serve the browser from the Node host: packages/client/connection/src/websocket-downlink.js, packages/client/css-manifest/src/index.js and scripts/generate-manifest.mjs, packages/client/file-upload/src/index.js, intake.js and staging.js, packages/client/hmr/src/index.js, packages/client/modules/src/index.js, packages/client/vendor-modules/src/index.js and scripts/generate-vendor.mjs. Their node: imports are unchanged.
 - Worker entries, which run in a separate module graph and install the runtime themselves: packages/code-runtime/code-runtime-worker-thread/src/worker.js, packages/workflow/workflow-worker-thread/src/worker.js, packages/runtime-diagnostics/inspector/src/worker.js.
 - Node-only globals not routed through the adapter: setImmediate in 3 files (packages/boot/app-boot/src/index.js, packages/code-runtime/code-runtime-worker-thread/src/index.js, packages/sdk/server/src/index.js), which txiki must provide or the callers must change. fetch and structuredClone are standard globals and are listed for the txiki check.

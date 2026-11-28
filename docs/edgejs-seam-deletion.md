@@ -49,7 +49,7 @@ None of the 13 differences is reached by shipped code, so none blocks the swap. 
 
 ## What stage 2 changes in packages/util/runtime, when go is given
 
-1. Delete src/txiki.js, src/install-txiki.js and the ./install-txiki export. The runtime installed on edge is the one src/node.js already builds (src/install-node.js): edge is a Node surface, so the node installer is the edge installer. Net: -3,862 lines of source.
+1. Delete src/txiki.js, src/install-txiki.js and the ./install-txiki export. The runtime installed on edge is the one packages/util/runtime-node already builds (src/install-node.js): edge is a Node surface, so the node installer is the edge installer. Net: -3,862 lines of source.
 2. Delete test/contract-txiki.js and test/parity-txiki.js, and the txiki rows of the alias table (aliases.json keeps one row per node: module; the "to" column becomes "runtime" for every row, and the "gaps" column empties except inspector and stripTypeScriptTypes). The alias check test/aliases.js and the shipped-code import rule stay.
 3. Keep the 25 seam files src/<module>.js (5 to 27 lines each): they are the one place shipped code reaches Node, and the node: import check depends on them. Keep test/parity-cases.js, test/parity-fixture.json and the fixture check; add the 13 known edge differences to the cases as named expectations (an "edge" field per case, the Node output unchanged) so the parity run on edge passes 859 of 859 with the differences listed, and a new difference fails.
 4. test/parity-bypass.js becomes the edge parity run itself (the same file, with the 13 expectations).

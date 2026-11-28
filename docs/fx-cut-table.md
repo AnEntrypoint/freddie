@@ -92,7 +92,7 @@ Written 2026-11-21 against fx's [host-interface.md](/workspace/fx/fx/docs/host-i
 
 ## Node APIs used by packages/util/runtime
 
-The runtime object has 25 members (`fs, fsPromises, path, crypto, stream, buffer, url, util, utilTypes, module, childProcess, os, workerThreads, asyncHooks, vm, http, https, zlib, inspector, stringDecoder, perfHooks, timersPromises, net, dnsPromises, process`); `src/node.js` imports the 25 matching `node:` modules for the Node install. The shims below export 120 names. The last column is the `fx:host` entry from host-interface.md section 4.1, or the named gap (G1 to G14 in that file).
+The runtime object has 25 members (`fs, fsPromises, path, crypto, stream, buffer, url, util, utilTypes, module, childProcess, os, workerThreads, asyncHooks, vm, http, https, zlib, inspector, stringDecoder, perfHooks, timersPromises, net, dnsPromises, process`); `packages/util/runtime-node/src/node.js` imports the 25 matching `node:` modules for the Node install, and `src/fx.js` reads the same 25 from `fx:host`. The shims below export 120 names. The last column is the `fx:host` entry from host-interface.md section 4.1, or the named gap (G1 to G14 in that file).
 
 | runtime subpath | exported names | fx:host entry or named gap |
 |---|---|---|
