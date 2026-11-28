@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "@freddie/cosmokit": "framework/cosmokit/src/index.js",
+    "@freddie/freddie-runtime/buffer": "packages/util/runtime/src/buffer.js",
+    "@freddie/freddie-runtime/install-fx": "packages/util/runtime/src/install-fx.js"
+  }
+}
